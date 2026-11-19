@@ -9,7 +9,7 @@ use super::{
   JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner, result::merge_loader_context,
   runtime::ExecutionMode,
 };
-use crate::js_tasks::{JsTask, LoaderTask, js_task_dispatcher};
+use crate::js_tasks::{JsTask, LoaderTask};
 
 #[plugin_hook(NormalModuleLoaderStartYielding for JsLoaderRspackPlugin, tracing=false)]
 pub(crate) async fn loader_yield(
@@ -98,7 +98,7 @@ pub(crate) async fn loader_yield(
       module.worker = true;
     }
     let (result, reply) = oneshot::channel();
-    js_task_dispatcher().dispatch_worker(JsTask::Loader(LoaderTask {
+    self.dispatcher.dispatch_worker(JsTask::Loader(LoaderTask {
       context,
       compiler_id: compiler_id.as_u32(),
       resolver_factory: (mode == ExecutionMode::Strict)

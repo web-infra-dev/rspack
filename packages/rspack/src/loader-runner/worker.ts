@@ -102,7 +102,7 @@ export default async function initialize({
       }
       if (type === 'subscribe') {
         try {
-          getJsTaskSubscription(true);
+          getJsTaskSubscription();
           control.postMessage({ id });
         } catch (error) {
           control.postMessage({ id, error: String(error) });

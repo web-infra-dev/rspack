@@ -23,7 +23,11 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use tokio::sync::OnceCell;
 
-use crate::{COMPILER_REFERENCES, error::RspackResultToNapiResultExt};
+use crate::{
+  COMPILER_REFERENCES,
+  error::RspackResultToNapiResultExt,
+  js_tasks::{JsTaskDispatcher, js_task_dispatcher},
+};
 
 pub type JsLoaderRunner =
   rspack_napi::threadsafe_function::ThreadsafeFunction<JsLoaderContext, Promise<JsLoaderContext>>;
@@ -109,6 +113,7 @@ pub(crate) struct JsLoaderRspackPlugin {
   /// This complex data structure is used to avoid deadlock when running loaders which contain `importModule`
   /// See: https://github.com/web-infra-dev/rspack/pull/10632
   pub(crate) runner: Mutex<Arc<tokio::sync::OnceCell<JsLoaderRunner>>>,
+  pub(crate) dispatcher: Arc<JsTaskDispatcher>,
   pub(crate) resolved_loaders: resolver::LoaderResolveCache,
 }
 
@@ -118,6 +123,7 @@ impl JsLoaderRspackPlugin {
       Default::default(),
       runner_getter,
       Mutex::default(),
+      js_task_dispatcher(),
       Default::default(),
     )
   }

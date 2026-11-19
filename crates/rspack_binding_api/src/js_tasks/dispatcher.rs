@@ -1,16 +1,51 @@
 use std::{
   collections::HashSet,
-  sync::{LazyLock, Mutex},
+  sync::{Arc, LazyLock, Mutex, Weak},
 };
 
 use async_channel::{Receiver, Sender};
+use rustc_hash::FxHashMap;
 
 use super::JsTask;
 
-static JS_TASK_DISPATCHER: LazyLock<JsTaskDispatcher> = LazyLock::new(JsTaskDispatcher::new);
+/// Node `worker_threads` thread id used to route loader tasks to their owner.
+pub(crate) type WorkerThreadId = u32;
 
-pub fn js_task_dispatcher() -> &'static JsTaskDispatcher {
-  &JS_TASK_DISPATCHER
+thread_local! {
+  // One queue per JS env thread; compilers constructed by the same env share it.
+  static JS_TASK_DISPATCHER: Arc<JsTaskDispatcher> = Arc::new(JsTaskDispatcher::new());
+}
+
+pub(crate) fn js_task_dispatcher() -> Arc<JsTaskDispatcher> {
+  JS_TASK_DISPATCHER.with(Arc::clone)
+}
+
+/// Worker envs cannot read the owner env's thread-local queue. The main env
+/// registers each worker thread id here so its subscription can attach to the
+/// owning queue. This is lookup-only state: multiple owners may coexist.
+static WORKER_DISPATCHERS: LazyLock<Mutex<FxHashMap<WorkerThreadId, Weak<JsTaskDispatcher>>>> =
+  LazyLock::new(Default::default);
+
+pub(crate) fn register_worker_dispatcher(id: WorkerThreadId, dispatcher: &Arc<JsTaskDispatcher>) {
+  WORKER_DISPATCHERS
+    .lock()
+    .expect("worker dispatchers lock poisoned")
+    .insert(id, Arc::downgrade(dispatcher));
+}
+
+pub(crate) fn worker_dispatcher(id: WorkerThreadId) -> Option<Arc<JsTaskDispatcher>> {
+  WORKER_DISPATCHERS
+    .lock()
+    .expect("worker dispatchers lock poisoned")
+    .get(&id)
+    .and_then(Weak::upgrade)
+}
+
+pub(crate) fn unregister_worker_dispatcher(id: u32) {
+  WORKER_DISPATCHERS
+    .lock()
+    .expect("worker dispatchers lock poisoned")
+    .remove(&id);
 }
 
 struct TaskQueue {
@@ -50,7 +85,7 @@ impl JsTaskReceiver {
 
 pub struct JsTaskDispatcher {
   worker: TaskQueue,
-  workers: Mutex<HashSet<u32>>,
+  workers: Mutex<HashSet<WorkerThreadId>>,
 }
 
 impl JsTaskDispatcher {
@@ -74,7 +109,7 @@ impl JsTaskDispatcher {
     }
   }
 
-  pub fn register_worker(&self, id: u32) {
+  pub fn register_worker(&self, id: WorkerThreadId) {
     self
       .workers
       .lock()
@@ -84,7 +119,7 @@ impl JsTaskDispatcher {
 
   /// Retire an exited worker or a failed startup slot. Registration, enqueue and
   /// draining the last consumer's queue use the same lock.
-  pub fn stop_worker(&self, id: u32) {
+  pub fn stop_worker(&self, id: WorkerThreadId) {
     let mut workers = self.workers.lock().expect("JS task workers lock poisoned");
     workers.remove(&id);
     if workers.is_empty() {

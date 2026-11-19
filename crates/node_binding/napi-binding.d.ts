@@ -284,7 +284,7 @@ export declare class JsCompilation {
 }
 
 export declare class JsCompiler {
-  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache, jsHelpers: JsHelpers, taskSubscription: ExternalObject<'JsTaskSubscription'>)
+  constructor(compilerPath: string, options: RawOptions, builtinPlugins: BuiltinPlugin[], registerJsTaps: RegisterJsTaps, outputFilesystem: ThreadsafeNodeFS, intermediateFilesystem: ThreadsafeNodeFS | undefined | null, inputFilesystem: ThreadsafeNodeFS | undefined | null, resolverFactoryReference: JsResolverFactory, unsafeFastDrop: boolean, platform: RawCompilerPlatform, infrastructureLogCallback: (logs: JsLog[]) => void, cache: JsCache, jsHelpers: JsHelpers)
   setNonSkippableRegisters(kinds: Array<RegisterJsTapKind>): void
   /** Build with the given option passed to the constructor */
   build(callback: (err: null | Error) => void): void
@@ -617,7 +617,7 @@ export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObje
  * The returned holder transfers its strong reference to a JsCompiler. Worker
  * registration is owned by the main subscription and returns an empty holder.
  */
-export declare function getJsTaskSubscription(isWorker: boolean): ExternalObject<'JsTaskSubscription'>
+export declare function getJsTaskSubscription(): ExternalObject<'JsTaskSubscription'>
 
 /**
  * Access only the JS-owned custom fields. The module is owned by its loader
@@ -3473,11 +3473,11 @@ export interface RegisterJsTaps {
 }
 
 /** Register one compiler-independent entry point in the current JS env. */
-export declare function registerJsTaskRunner(runner: (task: { type: 'loader'; context: JsLoaderContext; compilerId: number; getResolver?: (options: RawResolveOptionsWithDependencyType) => JsResolver }) => Promise<JsLoaderContext>, workerId?: number | undefined | null): void
+export declare function registerJsTaskRunner(runner: (task: { type: 'loader'; context: JsLoaderContext; compilerId: number; getResolver?: (options: RawResolveOptionsWithDependencyType) => JsResolver }) => Promise<JsLoaderContext>, workerId?: WorkerThreadId | undefined | null): void
 
 export declare function registerLoaderReference(owner: number, ident: string, parallel: boolean, serialized?: Buffer | undefined | null, strict?: boolean | undefined | null, compilerOptions?: Buffer | undefined | null): boolean
 
-export declare function registerLoaderWorker(id: number): void
+export declare function registerLoaderWorker(id: WorkerThreadId): void
 
 export interface ResolveResult {
   path?: string
@@ -3519,7 +3519,7 @@ export interface SourcePosition {
   column?: number
 }
 
-export declare function stopLoaderWorker(id: number): void
+export declare function stopLoaderWorker(id: WorkerThreadId): void
 
 export declare function sync(path: string, request: string): ResolveResult
 
