@@ -9,7 +9,7 @@ use std::{
 use derive_more::Debug;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{As, AsInner, AsOption, AsPreset},
+  with::{As, AsOption, AsPreset},
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result, error};
@@ -34,10 +34,9 @@ use crate::{
   FreezeLock, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext,
-  ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
-  RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SnapshotValidationResult, SourceType, ValueCacheVersions, contextify, contextify_source_map,
-  contextify_source_url,
+  ParseResult, ParserAndGenerator, ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SnapshotValidationResult, SourceType,
+  ValueCacheVersions, contextify, contextify_source_map, contextify_source_url,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -124,9 +123,10 @@ pub struct NormalModule {
 
   /// Resolve options derived from [Rule.resolve]
   resolve_options: Option<Arc<Resolve>>,
-  /// Parser and generator options derived from [Rule.parser] and [Rule.generator]
-  #[cacheable(with=AsInner)]
-  parser_and_generator_options: Arc<ResolvedModuleOptions>,
+  /// Parser options derived from [Rule.parser]
+  parser_options: Option<Arc<ParserOptions>>,
+  /// Generator options derived from [Rule.generator]
+  generator_options: Option<Arc<GeneratorOptions>>,
   /// enable/disable extracting source map
   extract_source_map: Option<bool>,
 
@@ -191,7 +191,8 @@ impl NormalModule {
     module_type: impl Into<ModuleType>,
     layer: Option<ModuleLayer>,
     parser_and_generator: Box<dyn ParserAndGenerator>,
-    parser_and_generator_options: Arc<ResolvedModuleOptions>,
+    parser_options: Option<Arc<ParserOptions>>,
+    generator_options: Option<Arc<GeneratorOptions>>,
     match_resource: Option<ResourceData>,
     resource_data: Arc<ResourceData>,
     resolve_options: Option<Arc<Resolve>>,
@@ -222,7 +223,8 @@ impl NormalModule {
       module_type,
       layer,
       parser_and_generator,
-      parser_and_generator_options,
+      parser_options,
+      generator_options,
       match_resource: match_resource.map(Box::new),
       resource_data,
       resolve_options,
@@ -322,11 +324,11 @@ impl NormalModule {
   }
 
   pub fn get_parser_options(&self) -> Option<&ParserOptions> {
-    self.parser_and_generator_options.parser_options()
+    self.parser_options.as_deref()
   }
 
   pub fn get_generator_options(&self) -> Option<&GeneratorOptions> {
-    self.parser_and_generator_options.generator_options()
+    self.generator_options.as_deref()
   }
 
   pub fn asset_filename_override(&self) -> Option<crate::Filename> {
@@ -623,8 +625,8 @@ impl Module for NormalModule {
         source: source.clone(),
         module_context: &self.context,
         module_identifier: self.id,
-        module_parser_options: self.parser_and_generator_options.parser_options(),
-        module_generator_options: self.parser_and_generator_options.generator_options(),
+        module_parser_options: self.parser_options.as_deref(),
+        module_generator_options: self.generator_options.as_deref(),
         module_type: &self.module_type,
         module_layer: self.layer.as_ref(),
         module_user_request: self
@@ -747,8 +749,8 @@ impl Module for NormalModule {
             runtime_template,
             data: code_generation_result.data_mut(),
             requested_source_type: *source_type,
-            module_parser_options: self.parser_and_generator_options.parser_options(),
-            module_generator_options: self.parser_and_generator_options.generator_options(),
+            module_parser_options: self.parser_options.as_deref(),
+            module_generator_options: self.generator_options.as_deref(),
             runtime: *runtime,
             concatenation_scope: concatenation_scope.as_mut(),
           },

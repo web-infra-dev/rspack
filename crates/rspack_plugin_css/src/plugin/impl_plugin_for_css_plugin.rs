@@ -314,8 +314,8 @@ async fn normal_module_factory_after_resolve(
   }
 
   let configured_export_type = create_data
-    .module_options
-    .parser_options()
+    .parser_options
+    .as_deref()
     .and_then(|options| options.get_css_module())
     .and_then(|options| options.export_type);
   // Match the module's effective export type for every incoming dependency so
@@ -667,8 +667,11 @@ impl Plugin for CssPlugin {
     ] {
       ctx.register_parser_and_generator_builder(
         module_type,
-        Box::new(|options| {
-          Box::new(CssParserAndGenerator::new(options)) as Box<dyn ParserAndGenerator>
+        Box::new(|parser_options, generator_options| {
+          Box::new(CssParserAndGenerator::new(
+            parser_options,
+            generator_options,
+          )) as Box<dyn ParserAndGenerator>
         }),
       );
     }

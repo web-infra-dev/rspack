@@ -255,13 +255,13 @@ impl Plugin for JsonPlugin {
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::Json,
-      Box::new(|options| {
-        let p = options
-          .parser_options_computed(ParserOptions::get_json)
+      Box::new(|parser_options, generator_options| {
+        let p = parser_options
+          .and_then(ParserOptions::get_json)
           .expect("should have JsonParserOptions");
 
-        let g = options
-          .generator_options_computed(GeneratorOptions::get_json)
+        let g = generator_options
+          .and_then(GeneratorOptions::get_json)
           .expect("should have JsonGeneratorOptions");
 
         Box::new(JsonParserAndGenerator {

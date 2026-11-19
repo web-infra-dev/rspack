@@ -951,13 +951,13 @@ impl Plugin for AssetPlugin {
 
     ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::Asset,
-      Box::new(move |options| {
-        let data_url_condition = options
-          .parser_options_computed(ParserOptions::get_asset)
+      Box::new(move |parser_options, generator_options| {
+        let data_url_condition = parser_options
+          .and_then(ParserOptions::get_asset)
           .and_then(|x| x.data_url_condition.clone());
 
-        let emit: Option<bool> = options
-          .generator_options_computed(GeneratorOptions::get_asset)
+        let emit = generator_options
+          .and_then(GeneratorOptions::get_asset)
           .and_then(|x| x.emit);
 
         Box::new(AssetParserAndGenerator::with_auto(
@@ -969,14 +969,14 @@ impl Plugin for AssetPlugin {
 
     ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetInline,
-      Box::new(|_| Box::new(AssetParserAndGenerator::with_inline())),
+      Box::new(|_, _| Box::new(AssetParserAndGenerator::with_inline())),
     );
 
     ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetResource,
-      Box::new(move |options| {
-        let emit = options
-          .generator_options_computed(GeneratorOptions::get_asset_resource)
+      Box::new(move |_, generator_options| {
+        let emit = generator_options
+          .and_then(GeneratorOptions::get_asset_resource)
           .and_then(|x| x.emit);
 
         Box::new(AssetParserAndGenerator::with_resource(emit.unwrap_or(true)))
@@ -985,12 +985,12 @@ impl Plugin for AssetPlugin {
 
     ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetSource,
-      Box::new(move |_| Box::new(AssetParserAndGenerator::with_source())),
+      Box::new(move |_, _| Box::new(AssetParserAndGenerator::with_source())),
     );
 
     ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetBytes,
-      Box::new(move |_| Box::new(AssetParserAndGenerator::with_bytes())),
+      Box::new(move |_, _| Box::new(AssetParserAndGenerator::with_bytes())),
     );
 
     Ok(())

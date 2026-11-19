@@ -7,10 +7,7 @@ use memchr::{memchr, memmem, memrchr};
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{Loader, LoaderFilter, LoaderRunnerOptions, Scheme, get_scheme};
-use rspack_util::{
-  MergeFrom,
-  fx_hash::{FxDashMap, FxHashMap as HashMap},
-};
+use rspack_util::{MergeFrom, fx_hash::FxHashMap as HashMap};
 use sugar_path::SugarPath;
 
 use crate::{
@@ -18,13 +15,12 @@ use crate::{
   CompilerOptions, Context, CssAutoOrModuleParserOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, Dependency, DependencyCategory, DependencyType, FactoryMeta, FuncUseCtx,
   GeneratorOptions, MatchContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleRuleEffect, ModuleRuleEffectIndices,
-  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
-  ParserAndGenerator, ParserOptions, ParserOptionsMap, RawModule, Resolve, ResolveArgs,
-  ResolveOptionsWithDependencyType, ResolveResult, ResolvedModuleOptions,
-  ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory, ResourceData, ResourceParsedData,
-  RunnerContext, RuntimeGlobals, SharedPluginDriver, diagnostics::EmptyDependency,
-  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
+  ModuleFactoryResult, ModuleIdentifier, ModuleRuleEffectIndices, ModuleRuleEnforce, ModuleRuleUse,
+  ModuleRuleUseLoader, ModuleType, NormalModule, ParserAndGenerator, ParserOptions,
+  ParserOptionsMap, RawModule, Resolve, ResolveArgs, ResolveOptionsWithDependencyType,
+  ResolveResult, Resolver, ResolverFactory, ResourceData, ResourceParsedData, RunnerContext,
+  RuntimeGlobals, SharedPluginDriver, diagnostics::EmptyDependency, module_rules_matcher,
+  parse_resource, resolve, stringify_loaders_and_resource,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -285,48 +281,6 @@ fn normalize_css_generator_options(
   }
 }
 
-fn resolve_module_options(
-  options_cache: &FxDashMap<ResolvedModuleOptionsCacheKey, Arc<ResolvedModuleOptions>>,
-  effects: &[ModuleRuleEffect],
-  effect_indices: ModuleRuleEffectIndices,
-  module_type: &ModuleType,
-  global_parser: Option<&ParserOptions>,
-  global_generator: Option<&GeneratorOptions>,
-) -> Arc<ResolvedModuleOptions> {
-  let cache_key = ResolvedModuleOptionsCacheKey {
-    effect_indices,
-    module_type: *module_type,
-  };
-  if let Some(options) = options_cache.get(&cache_key) {
-    return Arc::clone(&options);
-  }
-
-  match options_cache.entry(cache_key.clone()) {
-    dashmap::mapref::entry::Entry::Occupied(entry) => Arc::clone(entry.get()),
-    dashmap::mapref::entry::Entry::Vacant(entry) => {
-      let mut local_parser = None;
-      let mut local_generator = None;
-
-      for &idx in &cache_key.effect_indices {
-        let effect = &effects[idx];
-        local_parser = local_parser.merge_from(&effect.parser);
-        local_generator = local_generator.merge_from(&effect.generator);
-      }
-
-      let parser = merge_parser_options_with_local(global_parser, local_parser.as_ref());
-      let generator =
-        merge_generator_options_with_local(global_generator, local_generator.as_ref());
-      let options = Arc::new(ResolvedModuleOptions::new(
-        cache_key,
-        normalize_css_parser_options(module_type, parser),
-        normalize_css_generator_options(module_type, generator),
-      ));
-      entry.insert(Arc::clone(&options));
-      options
-    }
-  }
-}
-
 #[derive(Debug, Default)]
 pub struct NormalModuleFactoryHooks {
   pub before_resolve: NormalModuleFactoryBeforeResolveHook,
@@ -351,7 +305,6 @@ pub struct NormalModuleFactory {
   options: Arc<CompilerOptions>,
   global_parser_options: HashMap<String, ParserOptions>,
   global_generator_options: HashMap<String, GeneratorOptions>,
-  resolved_module_options: FxDashMap<ResolvedModuleOptionsCacheKey, Arc<ResolvedModuleOptions>>,
   loader_resolver_factory: Arc<ResolverFactory>,
   plugin_driver: SharedPluginDriver,
 }
@@ -396,7 +349,6 @@ impl NormalModuleFactory {
       options,
       global_parser_options,
       global_generator_options,
-      resolved_module_options: FxDashMap::default(),
       loader_resolver_factory,
       plugin_driver,
     }
@@ -853,11 +805,15 @@ module.exports = "data:,";
 
     let mut rule_module_type = None;
     let mut resolved_module_layer = data.issuer_layer.as_ref();
+    let mut local_parser = None;
+    let mut local_generator = None;
     let mut resolved_resolve_options: Option<Resolve> = None;
     let mut resolved_side_effects = None;
     let mut resolved_extract_source_map = None;
     for &idx in &effect_indices {
       let effect = &self.options.module.effects[idx];
+      local_parser = local_parser.merge_from(&effect.parser);
+      local_generator = local_generator.merge_from(&effect.generator);
       rule_module_type = effect.r#type.or(rule_module_type);
       resolved_module_layer = effect.layer.as_ref().or(resolved_module_layer);
       resolved_side_effects = effect.side_effects.or(resolved_side_effects);
@@ -878,17 +834,32 @@ module.exports = "data:,";
     .unwrap_or(ModuleType::JsAuto);
     let resolved_module_layer = resolved_module_layer.cloned();
     let resolved_resolve_options = resolved_resolve_options.map(Arc::new);
-    let resolved_options = self.resolve_module_options(&resolved_module_type, effect_indices);
-    let mut resolved_parser_and_generator = self
-      .plugin_driver
-      .registered_parser_and_generator_builder
-      .get(&resolved_module_type)
-      .ok_or_else(|| {
-        error!(
-          "No parser registered for '{}'",
-          resolved_module_type.as_str()
-        )
-      })?(resolved_options.clone());
+    let parser = merge_parser_options_with_local(
+      self
+        .global_parser_options
+        .get(resolved_module_type.as_str()),
+      local_parser.as_ref(),
+    );
+    let generator = merge_generator_options_with_local(
+      self
+        .global_generator_options
+        .get(resolved_module_type.as_str()),
+      local_generator.as_ref(),
+    );
+    let parser_options = normalize_css_parser_options(&resolved_module_type, parser).map(Arc::new);
+    let generator_options =
+      normalize_css_generator_options(&resolved_module_type, generator).map(Arc::new);
+    let mut resolved_parser_and_generator =
+      self
+        .plugin_driver
+        .registered_parser_and_generator_builder
+        .get(&resolved_module_type)
+        .ok_or_else(|| {
+          error!(
+            "No parser registered for '{}'",
+            resolved_module_type.as_str()
+          )
+        })?(parser_options.as_deref(), generator_options.as_deref());
     self
       .plugin_driver
       .normal_module_factory_hooks
@@ -896,7 +867,7 @@ module.exports = "data:,";
       .call(
         &resolved_module_type,
         &mut resolved_parser_and_generator,
-        resolved_options.parser_options(),
+        parser_options.as_deref(),
       )
       .await?;
 
@@ -910,7 +881,8 @@ module.exports = "data:,";
           .map(|d| d.resource().to_owned()),
         side_effects: resolved_side_effects,
         context: resource_data.context().map(|c| c.to_owned()),
-        module_options: resolved_options.clone(),
+        parser_options: parser_options.clone(),
+        generator_options: generator_options.clone(),
         resource_resolve_data: UniqueArc::into_arc(resource_data),
       };
       if let Some(plugin_result) = self
@@ -945,7 +917,8 @@ module.exports = "data:,";
         resolved_module_type,
         resolved_module_layer,
         resolved_parser_and_generator,
-        resolved_options,
+        parser_options,
+        generator_options,
         match_resource_data,
         Arc::clone(&create_data.resource_resolve_data),
         resolved_resolve_options,
@@ -987,23 +960,6 @@ module.exports = "data:,";
     };
     module_rules_matcher(&self.options.module.rules, &match_ctx, &mut effect_indices).await?;
     Ok(effect_indices)
-  }
-
-  fn resolve_module_options(
-    &self,
-    module_type: &ModuleType,
-    effect_indices: ModuleRuleEffectIndices,
-  ) -> Arc<ResolvedModuleOptions> {
-    let global_parser = self.global_parser_options.get(module_type.as_str());
-    let global_generator = self.global_generator_options.get(module_type.as_str());
-    resolve_module_options(
-      &self.resolved_module_options,
-      &self.options.module.effects,
-      effect_indices,
-      module_type,
-      global_parser,
-      global_generator,
-    )
   }
 
   async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<ModuleFactoryResult> {
@@ -1123,7 +1079,8 @@ async fn resolve_each_with_options(
 
 #[derive(Debug)]
 pub struct NormalModuleCreateData {
-  pub module_options: Arc<ResolvedModuleOptions>,
+  pub parser_options: Option<Arc<ParserOptions>>,
+  pub generator_options: Option<Arc<GeneratorOptions>>,
   pub raw_request: String,
   pub request: String,
   pub user_request: String,
@@ -1199,8 +1156,8 @@ fn match_ext(input: &str) -> Option<(&str, &str)> {
 mod tests {
   use super::*;
   use crate::{
-    AssetGeneratorOptions, AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions,
-    CssGeneratorOptions, CssParserOptions, JavascriptParserCreateRequire, JavascriptParserOptions,
+    AssetGeneratorOptions, CssGeneratorOptions, CssParserOptions, JavascriptParserCreateRequire,
+    JavascriptParserOptions,
   };
 
   #[test]
@@ -1275,97 +1232,17 @@ mod tests {
     assert_eq!(options.require_dynamic, Some(true));
   }
 
-  fn asset_rule_effect(max_size: f64, emit: bool) -> ModuleRuleEffect {
-    ModuleRuleEffect {
-      parser: Some(ParserOptions::Asset(AssetParserOptions {
-        data_url_condition: Some(AssetParserDataUrl::Options(AssetParserDataUrlOptions {
-          max_size: Some(max_size),
-        })),
-      })),
-      generator: Some(GeneratorOptions::Asset(AssetGeneratorOptions {
-        emit: Some(emit),
-        ..Default::default()
-      })),
-      ..Default::default()
-    }
-  }
-
-  #[test]
-  fn lazily_reuse_parser_and_generator_options_for_effect_indices() {
-    let effects = [
-      asset_rule_effect(300.0, true),
-      asset_rule_effect(200.0, false),
-    ];
-    let options_cache = FxDashMap::default();
-    let global_parser = ParserOptions::Asset(AssetParserOptions {
-      data_url_condition: Some(AssetParserDataUrl::Options(AssetParserDataUrlOptions {
-        max_size: Some(100.0),
-      })),
-    });
-    let global_generator = GeneratorOptions::Asset(AssetGeneratorOptions {
-      emit: Some(true),
-      ..Default::default()
-    });
-
-    let first = resolve_module_options(
-      &options_cache,
-      &effects,
-      smallvec::smallvec![1],
-      &ModuleType::Asset,
-      Some(&global_parser),
-      Some(&global_generator),
-    );
-    let second = resolve_module_options(
-      &options_cache,
-      &effects,
-      smallvec::smallvec![1],
-      &ModuleType::Asset,
-      Some(&global_parser),
-      Some(&global_generator),
-    );
-
-    assert!(Arc::ptr_eq(&first, &second));
-    assert_eq!(options_cache.len(), 1);
-    assert_eq!(first.cache_key().effect_indices.as_slice(), &[1]);
-    assert_eq!(first.cache_key().module_type, ModuleType::Asset);
-
-    let parser_options = first
-      .parser_options()
-      .and_then(ParserOptions::get_asset)
-      .expect("asset parser options should exist");
-    let max_size = match parser_options.data_url_condition.as_ref() {
-      Some(AssetParserDataUrl::Options(options)) => options.max_size,
-      _ => None,
-    };
-    assert_eq!(max_size, Some(200.0));
-
-    let generator_options = first
-      .generator_options()
-      .and_then(GeneratorOptions::get_asset)
-      .expect("asset generator options should exist");
-    assert_eq!(generator_options.emit, Some(false));
-  }
-
   #[test]
   fn reuse_global_generator_options_when_local_options_are_empty() {
-    let options_cache = FxDashMap::default();
     let global_generator = GeneratorOptions::Asset(AssetGeneratorOptions {
       emit: Some(true),
       ..Default::default()
     });
 
-    let options = resolve_module_options(
-      &options_cache,
-      &[],
-      ModuleRuleEffectIndices::new(),
-      &ModuleType::Asset,
-      None,
-      Some(&global_generator),
-    );
-
+    let options = merge_generator_options_with_local(Some(&global_generator), None);
     assert_eq!(
       options
-        .generator_options()
+        .as_ref()
         .and_then(GeneratorOptions::get_asset)
         .expect("asset generator options should exist")
         .emit,
@@ -1375,38 +1252,37 @@ mod tests {
 
   #[test]
   fn normalize_css_options_for_parser_and_generator_builder() {
-    let options_cache = FxDashMap::default();
     for module_type in [
       ModuleType::Css,
       ModuleType::CssAuto,
       ModuleType::CssGlobal,
       ModuleType::CssModule,
     ] {
-      let options = resolve_module_options(
-        &options_cache,
-        &[],
-        ModuleRuleEffectIndices::new(),
+      let parser = normalize_css_parser_options(
         &module_type,
-        Some(&ParserOptions::Css(CssParserOptions {
+        Some(ParserOptions::Css(CssParserOptions {
           export_type: None,
           named_exports: Some(true),
           url: None,
           r#import: None,
           resolve_import: None,
         })),
-        Some(&GeneratorOptions::Css(CssGeneratorOptions {
+      );
+      let generator = normalize_css_generator_options(
+        &module_type,
+        Some(GeneratorOptions::Css(CssGeneratorOptions {
           exports_only: Some(false),
           runtime_public_path: Some(false),
           es_module: Some(true),
         })),
       );
 
-      let parser_options = options
-        .parser_options()
+      let parser_options = parser
+        .as_ref()
         .and_then(ParserOptions::get_css_module)
         .expect("css parser options should be normalized to CssAutoOrModule");
-      let generator_options = options
-        .generator_options()
+      let generator_options = generator
+        .as_ref()
         .and_then(GeneratorOptions::get_css_module)
         .expect("css generator options should be normalized to CssModule");
 

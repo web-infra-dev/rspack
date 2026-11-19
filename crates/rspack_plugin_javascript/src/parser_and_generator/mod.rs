@@ -4,16 +4,12 @@ use std::{
 };
 
 use regex::Regex;
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  with::{AsInner, Skip},
-};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
-  ArcComputed, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
-  COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CollectedTypeScriptInfo, Compilation,
-  DependenciesBlock, Dependency, GenerateContext, ImportMeta, Module, ModuleArgument,
-  ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
-  ResolvedModuleOptions, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable,
+  AsyncDependenciesBlockIdentifier, BuildMetaExportsType, COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY,
+  ChunkGraph, CollectedTypeScriptInfo, Compilation, DependenciesBlock, Dependency, GenerateContext,
+  Module, ModuleArgument, ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult,
+  ParserAndGenerator, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable,
   SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
@@ -126,9 +122,8 @@ impl ParserRuntimeRequirementsData {
 }
 
 #[cacheable]
+#[derive(Default)]
 pub struct JavaScriptParserAndGenerator {
-  #[cacheable(with=AsInner)]
-  import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,
   #[cacheable(with=Skip)]
   parser_plugins: Vec<BoxJavascriptParserPlugin>,
 }
@@ -173,13 +168,6 @@ impl JavaScriptParserAndGenerator {
       return Some(format!("Module uses {bailout}").into());
     }
     None
-  }
-
-  pub fn new(module_options: Arc<ResolvedModuleOptions>) -> Self {
-    Self {
-      import_meta: ArcComputed::new(module_options, |options| options.into()),
-      parser_plugins: Vec::default(),
-    }
   }
 
   pub fn add_parser_plugin(&mut self, parser_plugin: BoxJavascriptParserPlugin) {
@@ -398,7 +386,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       build_info,
       module_identifier,
       module_parser_options,
-      ArcComputed::clone(&self.import_meta),
       &mut semicolons,
       &mut self.parser_plugins,
       parse_meta,
