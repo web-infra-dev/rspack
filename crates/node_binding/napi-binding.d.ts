@@ -946,7 +946,9 @@ export interface JsLoaderContext {
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
   content: string | Buffer | null
-  additionalData?: number | Buffer
+  additionalData?: any
+  additionalDataSerialized?: Buffer
+  additionalDataNeedsSerialization: boolean
   __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
   cacheable: boolean

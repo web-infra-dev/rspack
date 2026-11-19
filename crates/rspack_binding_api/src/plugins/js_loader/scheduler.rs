@@ -55,10 +55,26 @@ pub(crate) async fn loader_yield(
     }
     (start, end, mode)
   };
-  if mode == ExecutionMode::Strict {
-    loader_context.take_additional_data();
-  }
-  let mut context = JsLoaderContext::try_from(&mut *loader_context)?;
+  let needs_serialization = mode == ExecutionMode::Main && {
+    let state = loader_context.state();
+    let (range_start, range_end) =
+      loader_context
+        .current_chain()
+        .map_or((0, loader_context.loader_items.len()), |chain| {
+          if state == State::Pitching {
+            // The normal pass revisits the whole chain after pitching finishes.
+            (chain.start(), chain.end())
+          } else {
+            // Normal execution walks from the end of the chain towards its start.
+            (chain.start(), start)
+          }
+        });
+    (range_start..range_end).any(|index| {
+      runtime.execution_mode(loader_context.loader_items[index].query()) != ExecutionMode::Main
+    })
+  };
+  let mut context =
+    JsLoaderContext::from_loader_context(&mut *loader_context, mode, needs_serialization)?;
   context.loader_chain_start = start as u32;
   context.loader_chain_end = end as u32;
   let context = if mode == ExecutionMode::Main {

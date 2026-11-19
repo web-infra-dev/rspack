@@ -4,11 +4,12 @@ use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_collections::Identifiable;
 use rspack_core::{CodeFilter, Content, LoaderContext, LoaderDependencies, RunnerContext};
-use rspack_error::ToStringResultToRspackResultExt;
+use rspack_error::{ToStringResultToRspackResultExt, error};
 use rspack_loader_runner::State as LoaderState;
+use rspack_napi::ThreadsafeOneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::bridge::{MainObjectHandle, SerializedLoaderData};
+use super::{bridge::SerializedLoaderData, runtime::ExecutionMode};
 use crate::{
   error::{JsRspackDiagnostic, RspackError},
   module::ModuleObject,
@@ -190,7 +191,10 @@ pub struct JsLoaderContext {
 
   /// Content maybe empty in pitching stage
   pub content: Either3<String, Buffer, Null>,
-  pub additional_data: Option<Either<u32, Buffer>>,
+  #[napi(ts_type = "any")]
+  pub additional_data: Option<ThreadsafeOneShotRef>,
+  pub additional_data_serialized: Option<Buffer>,
+  pub additional_data_needs_serialization: bool,
   #[napi(js_name = "__internal__parseMeta")]
   pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,
@@ -213,22 +217,54 @@ pub struct JsLoaderContext {
   pub module: Option<ModuleObject>,
 }
 
-impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
-  type Error = rspack_error::Error;
-
-  fn try_from(
-    cx: &mut rspack_core::LoaderContext<RunnerContext>,
-  ) -> std::result::Result<Self, Self::Error> {
-    let additional_data = cx.additional_data().and_then(|data| {
-      data
-        .get::<SerializedLoaderData>()
-        .map(|data| Either::B(Buffer::from(data.0.clone())))
-        .or_else(|| {
-          data
-            .get::<MainObjectHandle>()
-            .map(|handle| Either::A(handle.handle()))
-        })
-    });
+impl JsLoaderContext {
+  pub(super) fn from_loader_context(
+    cx: &mut LoaderContext<RunnerContext>,
+    mode: ExecutionMode,
+    needs_serialization: bool,
+  ) -> rspack_error::Result<Self> {
+    let (additional_data, additional_data_serialized) = match mode {
+      ExecutionMode::Strict => {
+        cx.take_additional_data();
+        (None, None)
+      }
+      ExecutionMode::Main => {
+        let mut data = cx.take_additional_data();
+        match data
+          .as_mut()
+          .and_then(|data| data.remove::<ThreadsafeOneShotRef>())
+        {
+          Some(reference) => (Some(reference), None),
+          None => (
+            None,
+            data
+              .as_mut()
+              .and_then(|data| data.remove::<SerializedLoaderData>())
+              .map(|data| Buffer::from(data.0)),
+          ),
+        }
+      }
+      _ => {
+        let mut data = cx.take_additional_data();
+        let serialized = data
+          .as_mut()
+          .and_then(|data| data.remove::<SerializedLoaderData>())
+          .map(|data| Buffer::from(data.0));
+        let has_reference = data
+          .as_mut()
+          .and_then(|data| data.remove::<ThreadsafeOneShotRef>())
+          .is_some();
+        match serialized {
+          Some(serialized) => (None, Some(serialized)),
+          None if has_reference => {
+            return Err(error!(
+              "Failed to transfer loader additionalData to a parallel loader: the value is not structured-cloneable"
+            ));
+          }
+          None => (None, None),
+        }
+      }
+    };
 
     let execution_span = cx
       .current_chain()
@@ -246,6 +282,8 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       // set values from js side to rust side.
       parse_meta: Default::default(),
       additional_data,
+      additional_data_serialized,
+      additional_data_needs_serialization: needs_serialization,
       source_map: cx
         .source_map()
         .map(|v| v.to_json())
@@ -271,9 +309,7 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       },
     })
   }
-}
 
-impl JsLoaderContext {
   pub(crate) fn into_jsobject(
     mut self,
     env: &Env,

@@ -1,10 +1,6 @@
 use std::sync::{Arc, LazyLock, Mutex, Weak};
 
-use napi::{
-  Env, Status,
-  bindgen_prelude::Buffer,
-  threadsafe_function::{ThreadsafeFunction, ThreadsafeFunctionCallMode},
-};
+use napi::{Env, Status, bindgen_prelude::Buffer, threadsafe_function::ThreadsafeFunction};
 use napi_derive::napi;
 use rustc_hash::FxHashMap;
 
@@ -18,52 +14,6 @@ static RELEASE: Mutex<Weak<MainObjectRelease>> = Mutex::new(Weak::new());
 
 struct MainObjectRelease {
   callback: Mutex<Option<ReleaseCallback>>,
-}
-
-struct MainObjectHandleInner {
-  handle: u32,
-  release: Arc<MainObjectRelease>,
-}
-
-impl Drop for MainObjectHandleInner {
-  fn drop(&mut self) {
-    if let Some(callback) = self
-      .release
-      .callback
-      .lock()
-      .expect("main object release lock poisoned")
-      .as_ref()
-    {
-      callback.call(self.handle, ThreadsafeFunctionCallMode::NonBlocking);
-    }
-  }
-}
-
-/// A cloneable handle for a JavaScript value owned by the main thread.
-///
-/// The last clone releases the handle through a threadsafe main-thread callback.
-#[derive(Clone)]
-pub struct MainObjectHandle {
-  inner: Arc<MainObjectHandleInner>,
-}
-
-impl MainObjectHandle {
-  pub fn new(handle: u32) -> Self {
-    Self {
-      inner: Arc::new(MainObjectHandleInner {
-        handle,
-        release: RELEASE
-          .lock()
-          .expect("main object release lock poisoned")
-          .upgrade()
-          .expect("main-thread JS value release callback should be registered"),
-      }),
-    }
-  }
-
-  pub fn handle(&self) -> u32 {
-    self.inner.handle
-  }
 }
 
 struct LoaderReferences {

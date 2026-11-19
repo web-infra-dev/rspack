@@ -1,11 +1,8 @@
-use napi::bindgen_prelude::{Either, Either3};
+use napi::bindgen_prelude::Either3;
 use rspack_core::{AdditionalData, LoaderContext, RunnerContext};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 
-use super::{
-  JsLoaderContext,
-  bridge::{MainObjectHandle, SerializedLoaderData},
-};
+use super::{JsLoaderContext, bridge::SerializedLoaderData};
 
 pub(crate) fn merge_loader_context(
   to: &mut LoaderContext<RunnerContext>,
@@ -22,25 +19,17 @@ pub(crate) fn merge_loader_context(
     to.emit_diagnostic(diagnostic.into());
   }
 
-  // Own returned handles before fallible conversion so errors also release them.
-  let additional_data = from.additional_data.take().map(|data| {
+  // Own returned references before fallible conversion so errors also release them.
+  let additional_data = {
     let mut additional = AdditionalData::default();
-    match data {
-      Either::A(data) => {
-        let handle = to
-          .additional_data()
-          .and_then(|data| data.get::<MainObjectHandle>())
-          .filter(|handle| handle.handle() == data)
-          .cloned()
-          .unwrap_or_else(|| MainObjectHandle::new(data));
-        additional.insert(handle);
-      }
-      Either::B(bytes) => {
-        additional.insert(SerializedLoaderData(bytes.to_vec()));
-      }
+    if let Some(reference) = from.additional_data.take() {
+      additional.insert(reference);
     }
-    additional
-  });
+    if let Some(bytes) = from.additional_data_serialized.take() {
+      additional.insert(SerializedLoaderData(bytes.to_vec()));
+    }
+    (!additional.is_empty()).then_some(additional)
+  };
 
   if let Some(error) = from.error {
     if let Some(diagnostic) = error.rust_diagnostic.as_ref() {

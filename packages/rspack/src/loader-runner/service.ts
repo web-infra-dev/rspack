@@ -17,6 +17,7 @@ import {
   replaceCustomBuildInfoFields,
 } from '../BuildInfo';
 import type { Compiler } from '../Compiler';
+import { isNil } from '../util';
 import { parseResourceWithoutFragment } from '../util/identifier';
 
 const require = createRequire(import.meta.url);
@@ -81,8 +82,21 @@ function serializeLoaderValue(value: unknown): Buffer | undefined {
   try {
     return serialize(value);
   } catch {
-    // Leave functions and other non-serializable values on the existing bridge.
+    // Functions and other non-serializable values stay on the main thread
+    // unless a later parallel loader actually needs them.
     return undefined;
+  }
+}
+
+function serializeLoaderValueOrThrow(value: unknown): Buffer {
+  const { serialize } = require('node:v8') as typeof import('node:v8');
+  try {
+    return serialize(value);
+  } catch (error) {
+    throw new Error(
+      'additionalData cannot be transferred to a parallel loader because it is not structured-cloneable.',
+      { cause: error },
+    );
   }
 }
 
@@ -91,25 +105,32 @@ function deserializeLoaderValue(bytes: Buffer): unknown {
   return deserialize(bytes);
 }
 
-export function serializeAdditionalData(value: unknown): Buffer | number {
-  // V8 turns class instances into plain objects and drops prototype methods.
-  // Keep those roots on the existing bridge, outside this plain-data experiment.
-  if (
-    value !== null &&
-    typeof value === 'object' &&
-    Object.prototype.toString.call(value) === '[object Object]'
-  ) {
-    const prototype = Object.getPrototypeOf(value);
-    if (prototype !== null && prototype !== Object.prototype)
-      return registerMainObject(value);
-  }
-  return serializeLoaderValue(value) ?? registerMainObject(value);
+function isWorkerEnvironment(): boolean {
+  return bridge !== undefined;
 }
 
-export function deserializeAdditionalData(value: Buffer | number): unknown {
-  return typeof value === 'number'
-    ? getMainObject(value)
-    : deserializeLoaderValue(value);
+export function readAdditionalData(context: JsLoaderContext): unknown {
+  if (!isNil(context.additionalData)) return context.additionalData;
+  if (context.additionalDataSerialized)
+    return deserializeLoaderValue(context.additionalDataSerialized);
+  return undefined;
+}
+
+export function writeAdditionalData(
+  context: JsLoaderContext,
+  value: unknown,
+  strict: boolean,
+): void {
+  context.additionalData = undefined;
+  context.additionalDataSerialized = undefined;
+  if (strict || isNil(value)) return;
+  if (isWorkerEnvironment()) {
+    context.additionalDataSerialized = serializeLoaderValueOrThrow(value);
+    return;
+  }
+  context.additionalData = value;
+  if (context.additionalDataNeedsSerialization)
+    context.additionalDataSerialized = serializeLoaderValue(value);
 }
 
 export interface WorkerLoaderContext {

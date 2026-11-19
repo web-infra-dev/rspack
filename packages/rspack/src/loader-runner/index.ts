@@ -63,8 +63,8 @@ import { strictLoaderError } from './utils';
 import { LoaderDependenciesState } from './dependencies';
 import {
   beginWorkerImport,
-  deserializeAdditionalData,
-  serializeAdditionalData,
+  readAdditionalData,
+  writeAdditionalData,
 } from './service';
 import {
   convertArgs,
@@ -903,10 +903,7 @@ export async function runLoaders(
                 ? content
                 : toBuffer(content);
             context.sourceMap = serializeObject(sourceMap);
-            context.additionalData =
-              strict || isNil(additionalData)
-                ? undefined
-                : serializeAdditionalData(additionalData);
+            writeAdditionalData(context, additionalData, !!strict);
             break;
           }
         }
@@ -919,10 +916,7 @@ export async function runLoaders(
         const rawSourceMap = context.sourceMap;
         let sourceMap: string | object | undefined;
         let sourceMapParsed = false;
-        let additionalData =
-          strict || isNil(context.additionalData)
-            ? undefined
-            : deserializeAdditionalData(context.additionalData);
+        let additionalData = strict ? undefined : readAdditionalData(context);
 
         const codeFilterTextCache = createCodeFilterTextCache();
         while (loaderContext.loaderIndex >= loaderChainStart) {
@@ -973,12 +967,12 @@ export async function runLoaders(
           ? JsSourceMap.__to_binding(sourceMap)
           : rawSourceMap;
         // Rust has no consumer after the chain finishes; avoid creating an unused JS reference.
-        context.additionalData =
-          loaderContext.loaderIndex < 0
-            ? undefined
-            : strict || isNil(additionalData)
-              ? undefined
-              : serializeAdditionalData(additionalData);
+        if (loaderContext.loaderIndex < 0) {
+          context.additionalData = undefined;
+          context.additionalDataSerialized = undefined;
+        } else {
+          writeAdditionalData(context, additionalData, !!strict);
+        }
 
         break;
       }
