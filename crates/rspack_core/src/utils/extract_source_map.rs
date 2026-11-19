@@ -208,7 +208,7 @@ async fn fetch_from_filesystem(
   fs.read_to_string(&path.assert_utf8())
     .await
     .map(|content| (source_url.to_string(), Some(content)))
-    .map_err(|err| format!("Failed to read '{source_url}': {err}"))
+    .map_err(|err| format!("Failed to read '{source_url}' while loading the source map: {err}"))
 }
 
 /// Fetch from multiple possible file paths
