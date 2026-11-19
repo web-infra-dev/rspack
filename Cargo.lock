@@ -3811,8 +3811,8 @@ dependencies = [
 
 [[package]]
 name = "rspack-lightningcss"
-version = "0.1.2"
-source = "git+https://github.com/rstackjs/lightningcss.git?rev=a002b2f38c1ff4472bcc9e8e91cc4bec705613ca#a002b2f38c1ff4472bcc9e8e91cc4bec705613ca"
+version = "0.2.0"
+source = "git+https://github.com/rstackjs/lightningcss.git?rev=c41d3fbb6da97e50f8b6c9d6c164623ce318256f#c41d3fbb6da97e50f8b6c9d6c164623ce318256f"
 dependencies = [
  "ahash",
  "bitflags 2.13.2",
@@ -3837,8 +3837,8 @@ dependencies = [
 
 [[package]]
 name = "rspack-lightningcss-derive"
-version = "0.1.2"
-source = "git+https://github.com/rstackjs/lightningcss.git?rev=a002b2f38c1ff4472bcc9e8e91cc4bec705613ca#a002b2f38c1ff4472bcc9e8e91cc4bec705613ca"
+version = "0.2.0"
+source = "git+https://github.com/rstackjs/lightningcss.git?rev=c41d3fbb6da97e50f8b6c9d6c164623ce318256f#c41d3fbb6da97e50f8b6c9d6c164623ce318256f"
 dependencies = [
  "convert_case 0.6.0",
  "proc-macro2",
@@ -3848,8 +3848,8 @@ dependencies = [
 
 [[package]]
 name = "rspack-lightningcss-selectors"
-version = "0.1.2"
-source = "git+https://github.com/rstackjs/lightningcss.git?rev=a002b2f38c1ff4472bcc9e8e91cc4bec705613ca#a002b2f38c1ff4472bcc9e8e91cc4bec705613ca"
+version = "0.2.0"
+source = "git+https://github.com/rstackjs/lightningcss.git?rev=c41d3fbb6da97e50f8b6c9d6c164623ce318256f#c41d3fbb6da97e50f8b6c9d6c164623ce318256f"
 dependencies = [
  "bitflags 2.13.2",
  "cssparser",
@@ -3865,8 +3865,8 @@ dependencies = [
 
 [[package]]
 name = "rspack-lightningcss-static-self"
-version = "0.1.2"
-source = "git+https://github.com/rstackjs/lightningcss.git?rev=a002b2f38c1ff4472bcc9e8e91cc4bec705613ca#a002b2f38c1ff4472bcc9e8e91cc4bec705613ca"
+version = "0.2.0"
+source = "git+https://github.com/rstackjs/lightningcss.git?rev=c41d3fbb6da97e50f8b6c9d6c164623ce318256f#c41d3fbb6da97e50f8b6c9d6c164623ce318256f"
 dependencies = [
  "indexmap",
  "rspack-lightningcss-static-self-derive",
@@ -3875,8 +3875,8 @@ dependencies = [
 
 [[package]]
 name = "rspack-lightningcss-static-self-derive"
-version = "0.1.2"
-source = "git+https://github.com/rstackjs/lightningcss.git?rev=a002b2f38c1ff4472bcc9e8e91cc4bec705613ca#a002b2f38c1ff4472bcc9e8e91cc4bec705613ca"
+version = "0.2.0"
+source = "git+https://github.com/rstackjs/lightningcss.git?rev=c41d3fbb6da97e50f8b6c9d6c164623ce318256f#c41d3fbb6da97e50f8b6c9d6c164623ce318256f"
 dependencies = [
  "proc-macro2",
  "quote",

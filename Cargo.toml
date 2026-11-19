@@ -92,7 +92,7 @@ ref-cast            = { version = "1.0.27", default-features = false }
 regex               = { version = "1.13.1", default-features = false, features = ["perf"] }
 regex-syntax        = { version = "0.8.11", default-features = false, features = ["std"] }
 regress             = { version = "0.11.1", default-features = false }
-rspack-lightningcss = { version = "0.1.2", git = "https://github.com/rstackjs/lightningcss.git", rev = "a002b2f38c1ff4472bcc9e8e91cc4bec705613ca", default-features = false, features = ["serde", "custom_sourcemap"] }
+rspack-lightningcss = { version = "0.2.0", git = "https://github.com/rstackjs/lightningcss.git", rev = "c41d3fbb6da97e50f8b6c9d6c164623ce318256f", default-features = false, features = ["serde", "custom_sourcemap"] }
 rustc-hash          = { version = "2.1.3", default-features = false }
 ryu-js              = { version = "1.0.3", default-features = false }
 scopeguard          = { version = "1.2.0", default-features = false }
