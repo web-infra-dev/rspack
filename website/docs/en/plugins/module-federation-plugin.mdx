@@ -285,11 +285,11 @@ export default {
 
 ## Node remote cache invalidation
 
-Enhanced MF Node builds with compiled remotes emit the dependency graph and
-module table handles under `__webpack_require__.federation.remotesLoadingData.cache`.
-MF bundler runtime reads this graph to plan and clear remote and consumer modules.
-Use the Node runtime plugin for remote chunk loading and container lifecycle, and
-drain application work before calling the asynchronous replacement API.
+When `@module-federation/node` is configured in an enhanced MF Node build, runtime
+chunks that consume compiled remotes emit the reverse dependency map and module
+table handles under `__webpack_require__.federation.remotesLoadingData.cache`.
+MF bundler runtime reads this metadata to plan and clear remote and consumer modules,
+while `@module-federation/node` manages remote chunk loading and container lifecycle.
 
 ## FAQ
 

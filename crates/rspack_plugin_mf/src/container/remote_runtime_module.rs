@@ -2,9 +2,10 @@ use std::sync::LazyLock;
 
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_core::{
-  ChunkGraph, Compilation, DependenciesBlock, ModuleGraph, ModuleId, ModuleIdentifier,
-  RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeModuleRuntimeRequirements,
-  RuntimeModuleStage, RuntimeTemplate, SourceType, impl_runtime_module,
+  ChunkGraph, ChunkUkey, Compilation, ConcatenatedModule, DependenciesBlock, ModuleGraph, ModuleId,
+  ModuleIdentifier, NormalModule, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeModuleRuntimeRequirements, RuntimeModuleStage, RuntimeSpec, RuntimeTemplate, SourceType,
+  impl_runtime_module,
 };
 use rspack_plugin_runtime::extract_runtime_globals_from_ejs;
 use rustc_hash::FxHashMap;
@@ -27,12 +28,29 @@ static REMOTES_LOADING_RUNTIME_REQUIREMENTS: LazyLock<RuntimeModuleRuntimeRequir
 #[derive(Debug)]
 pub struct RemoteRuntimeModule {
   enhanced: bool,
+  with_cache_data: bool,
 }
 
 impl RemoteRuntimeModule {
-  pub fn new(runtime_template: &RuntimeTemplate, enhanced: bool) -> Self {
-    Self::with_name(runtime_template, "remotes_loading", enhanced)
+  pub fn new(runtime_template: &RuntimeTemplate, enhanced: bool, with_cache_data: bool) -> Self {
+    Self::with_name(
+      runtime_template,
+      "remotes_loading",
+      enhanced,
+      with_cache_data,
+    )
   }
+}
+
+pub fn should_emit_remote_cache_data(
+  compilation: &Compilation,
+  chunk_ukey: &ChunkUkey,
+  enhanced: bool,
+) -> bool {
+  enhanced
+    && compilation.platform.is_node()
+    && chunk_has_remotes(chunk_ukey, compilation)
+    && has_node_cache_runtime(compilation.get_module_graph())
 }
 
 #[async_trait::async_trait]
@@ -47,7 +65,7 @@ impl RuntimeModule for RemoteRuntimeModule {
   ) -> rspack_core::RuntimeModuleRuntimeRequirements {
     let mut dependencies = REMOTES_LOADING_RUNTIME_REQUIREMENTS.dependencies
       | runtime_require_scope_requirement(compilation);
-    if self.enhanced && compilation.platform.is_node() {
+    if self.with_cache_data {
       dependencies |= RuntimeGlobals::MODULE_CACHE | RuntimeGlobals::MODULE_FACTORIES;
     }
     rspack_core::RuntimeModuleRuntimeRequirements {
@@ -80,13 +98,11 @@ impl RuntimeModule for RemoteRuntimeModule {
       .expect_get(&chunk_ukey);
     let mut chunk_to_remotes_mapping = FxHashMap::default();
     let mut id_to_remote_data_mapping = FxHashMap::default();
-    let mut remote_key_to_remote_module_ids = FxHashMap::default();
-    let mut remote_module_id_to_consumer_module_ids = FxHashMap::default();
-    let mut consumer_module_id_to_parent_module_ids = FxHashMap::default();
+    let mut module_id_to_parent_module_ids = FxHashMap::default();
     let module_graph = compilation.get_module_graph();
-    let with_cache_data = self.enhanced && compilation.platform.is_node();
+    let with_cache_data = self.with_cache_data;
     let consumers = if with_cache_data {
-      collect_consumers(compilation, module_graph)
+      collect_consumers(compilation, module_graph, chunk.runtime())
     } else {
       IdentifierMap::default()
     };
@@ -123,39 +139,28 @@ impl RuntimeModule for RemoteRuntimeModule {
         )
         .expect("should have module_id at <RemoteRuntimeModule as RuntimeModule>::generate");
         if with_cache_data {
-          let remote_key = m.remote_key.clone();
-          let consumer_modules = consumers.get(&m.identifier()).cloned().unwrap_or_default();
-          let consumer_module_ids = consumer_modules
-            .iter()
-            .map(|(_, module_id)| module_id.clone())
-            .collect::<Vec<_>>();
-          let mut pending_consumers = consumer_modules.clone();
-          let mut visited_consumers = IdentifierSet::default();
-          while let Some((consumer_identifier, consumer_id)) = pending_consumers.pop() {
-            if !visited_consumers.insert(consumer_identifier) {
+          let mut pending = vec![(m.identifier(), id.clone())];
+          let mut visited = IdentifierSet::default();
+          while let Some((current_identifier, current_id)) = pending.pop() {
+            if !visited.insert(current_identifier) {
               continue;
             }
             let parents = consumers
-              .get(&consumer_identifier)
+              .get(&current_identifier)
               .cloned()
               .unwrap_or_default();
-            add_to_mapping(
-              &mut consumer_module_id_to_parent_module_ids,
-              consumer_id,
-              parents.iter().map(|(_, id)| id.clone()).collect(),
-            );
-            pending_consumers.extend(parents);
+            if !parents.is_empty() {
+              add_to_mapping(
+                &mut module_id_to_parent_module_ids,
+                current_id,
+                parents
+                  .iter()
+                  .map(|(_, parent_id)| parent_id.clone())
+                  .collect(),
+              );
+              pending.extend(parents);
+            }
           }
-          add_to_mapping(
-            &mut remote_key_to_remote_module_ids,
-            remote_key.clone(),
-            vec![id.clone()],
-          );
-          add_to_mapping(
-            &mut remote_module_id_to_consumer_module_ids,
-            id.clone(),
-            consumer_module_ids,
-          );
         }
         remotes.push(id.to_string());
         id_to_remote_data_mapping.insert(
@@ -180,9 +185,7 @@ impl RuntimeModule for RemoteRuntimeModule {
         .expect("should have chunkId at <RemoteRuntimeModule as RuntimeModule>::generate");
       chunk_to_remotes_mapping.insert(chunk_id, remotes);
     }
-    sort_mapping_values(&mut remote_key_to_remote_module_ids);
-    sort_mapping_values(&mut remote_module_id_to_consumer_module_ids);
-    sort_mapping_values(&mut consumer_module_id_to_parent_module_ids);
+    sort_mapping_values(&mut module_id_to_parent_module_ids);
 
     let remotes_loading_impl = if self.enhanced {
       format!(
@@ -200,18 +203,16 @@ impl RuntimeModule for RemoteRuntimeModule {
         runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES);
       format!(
         r#"
-{require_name}.federation.remotesLoadingData = Object.assign({{
-cache: {{
-  remoteKeyToRemoteModuleIds: {},
-  remoteModuleIdToConsumerModuleIds: {},
-  consumerModuleIdToParentModuleIds: {},
-  modules: {module_cache},
-  factories: {module_factories}
-}}
-}}, {require_name}.remotesLoadingData);"#,
-        json_stringify(&remote_key_to_remote_module_ids),
-        json_stringify(&remote_module_id_to_consumer_module_ids),
-        json_stringify(&consumer_module_id_to_parent_module_ids),
+{require_name}.federation.remotesLoadingData = {{
+  chunkMapping: {require_name}.remotesLoadingData.chunkMapping,
+  moduleIdToRemoteDataMapping: {require_name}.remotesLoadingData.moduleIdToRemoteDataMapping,
+  cache: {{
+    moduleIdToParentModuleIds: {},
+    modules: {module_cache},
+    factories: {module_factories}
+  }}
+}};"#,
+        json_stringify(&module_id_to_parent_module_ids),
       )
     } else {
       String::new()
@@ -227,6 +228,62 @@ cache: {{
       remotes_loading_impl = remotes_loading_impl,
     ))
   }
+}
+
+fn chunk_has_remotes(chunk_ukey: &ChunkUkey, compilation: &Compilation) -> bool {
+  let Some(chunk) = compilation
+    .build_chunk_graph_artifact
+    .chunk_by_ukey
+    .get(chunk_ukey)
+  else {
+    return false;
+  };
+  let module_graph = compilation.get_module_graph();
+  chunk
+    .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+    .into_iter()
+    .any(|referenced| {
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_graph
+        .has_chunk_module_by_source_type(&referenced, SourceType::Remote, module_graph)
+    })
+}
+
+fn is_node_cache_specifier(specifier: &str) -> bool {
+  specifier.contains("@module-federation/node")
+    || specifier.contains("webpack-bundler-runtime/clear-cache")
+    || specifier.contains("webpack-bundler-runtime/dist/clear-cache")
+    || specifier.contains("webpack-bundler-runtime\\dist\\clear-cache")
+}
+
+fn has_node_cache_runtime(module_graph: &ModuleGraph) -> bool {
+  module_graph.modules().any(|(identifier, module)| {
+    if is_node_cache_specifier(identifier.as_str()) {
+      return true;
+    }
+    if let Some(concatenated) = module
+      .as_ref()
+      .as_any()
+      .downcast_ref::<ConcatenatedModule>()
+    {
+      return concatenated
+        .get_modules()
+        .iter()
+        .any(|inner| is_node_cache_specifier(inner.id.as_str()));
+    }
+    let Some(normal_module) = module.as_ref().as_any().downcast_ref::<NormalModule>() else {
+      return false;
+    };
+    is_node_cache_specifier(normal_module.raw_request())
+      || is_node_cache_specifier(normal_module.user_request())
+      || normal_module
+        .resource_resolved_data()
+        .description()
+        .and_then(|data| data.json().get("name"))
+        .and_then(|name| name.as_str())
+        == Some("@module-federation/node")
+  })
 }
 
 fn add_to_mapping<K, V>(mapping: &mut FxHashMap<K, Vec<V>>, key: K, values: Vec<V>)
@@ -256,11 +313,12 @@ fn get_module_id(
 
 // A source module may be concatenated into several emitted modules. Its dependency
 // IDs are shared, so incoming connections can retain only one rewritten origin.
-// Reverse each emitted module's outgoing edges instead: every concatenation owner
-// must be invalidated, even when the dependency's recorded origin is another owner.
+// Reverse each emitted module's active outgoing edges instead: every concatenation
+// owner must be invalidated, even when the dependency's recorded origin is another owner.
 fn collect_consumers(
   compilation: &Compilation,
   module_graph: &ModuleGraph,
+  runtime: &RuntimeSpec,
 ) -> IdentifierMap<Vec<(ModuleIdentifier, ModuleId)>> {
   let mut consumers = IdentifierMap::<Vec<_>>::default();
   for (identifier, _) in module_graph.modules() {
@@ -268,6 +326,17 @@ fn collect_consumers(
       continue;
     };
     for connection in module_graph.get_outgoing_connections(identifier) {
+      if !connection.is_target_active(
+        module_graph,
+        Some(runtime),
+        &compilation.module_graph_cache_artifact,
+        &compilation
+          .build_module_graph_artifact
+          .side_effects_state_artifact,
+        &compilation.exports_info_artifact,
+      ) {
+        continue;
+      }
       consumers
         .entry(*connection.module_identifier())
         .or_default()

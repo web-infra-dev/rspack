@@ -283,10 +283,10 @@ export default {
 
 ## Node 远端缓存失效
 
-包含编译远端的 enhanced MF Node 产物通过
-`__webpack_require__.federation.remotesLoadingData.cache` 提供依赖图和模块表引用。
-MF bundler runtime 使用这些数据生成清理计划，按计划使远端和消费者模块失效。
-远端 chunk 加载和容器生命周期由 MF Node runtime 插件负责。应用应在调用异步远端替换 API 前排空相关工作。
+当 enhanced MF Node 构建接入 `@module-federation/node` 时，实际消费编译期远端的
+runtime chunk 会通过 `__webpack_require__.federation.remotesLoadingData.cache`
+输出反向依赖映射与模块表引用。MF bundler runtime 据此计算并清理远端及消费者模块缓存，
+远端 chunk 加载与容器生命周期继续由 `@module-federation/node` 维护。
 
 ## 常见问题
 

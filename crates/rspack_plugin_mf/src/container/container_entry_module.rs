@@ -2,17 +2,16 @@ use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
-use rspack_collections::{Identifiable, Identifier, IdentifierSet};
+use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
-  BuildMetaExportsType, ChunkGraph, ChunkGroupOptions, CodeGenerationDataItem,
-  CodeGenerationResultBuilder, CodeGenerationRuntimeRequirementsWrite, Compilation, Context,
-  DependenciesBlock, DependenciesBlockData, Dependency, DependencyType, ExportsArgument,
-  FactoryMetaStore, FreezeLock, GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType,
-  NeedBuildContext, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeSpec, SourceType,
-  StaticExportsDependency, StaticExportsSpec, impl_module_meta_info, impl_source_map_config,
-  module_update_hash,
+  BuildMetaExportsType, ChunkGroupOptions, CodeGenerationDataItem, CodeGenerationResultBuilder,
+  CodeGenerationRuntimeRequirementsWrite, Compilation, Context, DependenciesBlock,
+  DependenciesBlockData, Dependency, DependencyType, ExportsArgument, FactoryMetaStore, FreezeLock,
+  GroupOptions, LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleCodeTemplate,
+  ModuleDependency, ModuleGraph, ModuleIdentifier, ModuleType, NeedBuildContext, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   runtime_mode::RuntimeMode,
 };
@@ -348,50 +347,9 @@ impl Module for ContainerEntryModule {
         runtime_template.render_runtime_globals(&RuntimeGlobals::DEFINE_PROPERTY_GETTERS);
       let get_container = format!("{require_name}.getContainer");
       let init_container = format!("{require_name}.initContainer");
-      let cache_metadata = if compilation.platform.is_node() {
-        // Preserve the dependency closure of all declared/consumed shared modules,
-        // including async dependencies which may execute after remote removal.
-        // Keeping all shares is conservative and avoids depending on framework state.
-        let module_graph = compilation.get_module_graph();
-        let mut pending = module_graph
-          .modules()
-          .filter_map(|(id, module)| {
-            matches!(
-              module.module_type(),
-              ModuleType::ProvideShared | ModuleType::ConsumeShared
-            )
-            .then_some(*id)
-          })
-          .collect::<Vec<_>>();
-        let mut visited = IdentifierSet::default();
-        while let Some(id) = pending.pop() {
-          if !visited.insert(id) {
-            continue;
-          }
-          for connection in module_graph.get_outgoing_connections(&id) {
-            pending.push(*connection.module_identifier());
-          }
-        }
-        let mut retained_ids = visited
-          .iter()
-          .filter_map(|id| {
-            ChunkGraph::get_module_id(&compilation.module_ids_artifact, *id).cloned()
-          })
-          .collect::<Vec<_>>();
-        retained_ids.sort_unstable();
-        retained_ids.dedup();
-        let retained_ids = json_stringify(&retained_ids);
-        let module_cache = runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_CACHE);
-        format!(
-          "{require_name}.federation.containerCache = {{ retainedModuleIds: {retained_ids}, modules: {module_cache} }};"
-        )
-      } else {
-        String::new()
-      };
 
       format!(
         r#"
-{cache_metadata}
 {}({}, {{
 	get: {},
 	init: {}
