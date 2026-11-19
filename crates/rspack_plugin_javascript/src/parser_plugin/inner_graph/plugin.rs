@@ -883,7 +883,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for InnerGraphParserPlugin {
     decl: VariableDeclarator,
     _stmt: VariableDeclaration,
   ) -> Option<bool> {
-    if !parser.inner_graph.is_enabled() {
+    // The pre-walk records declarator and class metadata only in TopLevelScope::Top.
+    // Returning None lets the regular walk handle the declaration.
+    if !parser.inner_graph.is_enabled() || !parser.is_top_level_scope() {
       return None;
     }
 

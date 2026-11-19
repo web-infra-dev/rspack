@@ -31,6 +31,20 @@ use crate::{
 
 pub struct ESMExportDependencyParserPlugin;
 
+#[cold]
+#[inline(never)]
+fn report_duplicate_export(parser: &mut JavascriptParser<'_>, export_name: &Atom, span: Span) {
+  parser.add_error(
+    create_traceable_error(
+      "JavaScript parse error".into(),
+      format!("Duplicate export of '{export_name}'"),
+      parser.source.to_string(),
+      span.into(),
+    )
+    .into(),
+  );
+}
+
 fn create_default_exported_namespace_dependency(
   parser: &mut JavascriptParser,
   statement: ExportDefaultDeclaration,
@@ -138,15 +152,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       .esm_named_exports
       .insert(export_name.clone())
     {
-      parser.add_error(
-        create_traceable_error(
-          "JavaScript parse error".into(),
-          format!("Duplicate export of '{export_name}'"),
-          parser.source.to_string(),
-          export_name_span.into(),
-        )
-        .into(),
-      );
+      report_duplicate_export(parser, export_name, export_name_span);
     }
     let dep = if let Some((source, source_order, ids, phase, attributes, resource_identifier)) =
       parser
@@ -230,15 +236,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         .esm_named_exports
         .insert(export_name.clone())
       {
-        parser.add_error(
-          create_traceable_error(
-            "JavaScript parse error".into(),
-            format!("Duplicate export of '{export_name}'"),
-            parser.source.to_string(),
-            export_name_span.expect("should exist").into(),
-          )
-          .into(),
-        );
+        report_duplicate_export(parser, export_name, export_name_span.expect("should exist"));
       }
       None
     } else {

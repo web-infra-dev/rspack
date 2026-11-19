@@ -9,7 +9,7 @@ use rspack_cacheable::{
   with::{AsInner, Skip},
 };
 use rspack_core::{
-  ArcComputed, AsyncDependenciesBlockIdentifier, BuildMetaExportsType,
+  ArcComputed, AsyncDependenciesBlockIdentifier, BoxLoader, BuildMetaExportsType,
   COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, ChunkGraph, CollectedTypeScriptInfo, Compilation,
   DependenciesBlock, Dependency, GenerateContext, ImportMeta, Module, ModuleArgument,
   ModuleCodeTemplate, ModuleGraph, ModuleType, ParseContext, ParseResult, ParserAndGenerator,
@@ -17,7 +17,7 @@ use rspack_core::{
   SideEffectsBailoutItem, SourceType, TemplateContext, TemplateReplaceSource,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics,
   remove_bom, render_init_fragments,
-  rspack_sources::{BoxSource, ReplaceSource, Source, SourceExt},
+  rspack_sources::{BoxSource, ReplaceSource, SourceExt},
 };
 use rspack_error::{
   Diagnostic, Error, IntoTWithDiagnosticArray, Result, Severity as RspackSeverity,
@@ -59,33 +59,55 @@ static LEGACY_REQUIRE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
   Regex::new("__webpack_require__\\s*(!?\\.)").expect("should init `REQUIRE_FUNCTION_REGEX`")
 });
 
-fn append_swc_next_diagnostics(
-  diagnostics: &mut Vec<Diagnostic>,
-  source: &str,
-  errors: impl IntoIterator<Item = swc_next_ecma_ast::Diagnostic>,
-) {
+#[cold]
+#[inline(never)]
+fn collect_swc_next_diagnostics(source: &str, errors: Vec<SwcDiagnostic>) -> Vec<Diagnostic> {
   let mut visited = FxHashSet::default();
   let mut shared_source = None;
-  diagnostics.extend(errors.into_iter().filter_map(|diagnostic| {
-    let span = diagnostic.span;
-    if !visited.insert((span.start, span.end)) {
-      return None;
-    }
-    let source = shared_source.get_or_insert_with(|| Arc::<str>::from(source));
-    let mut error = Error::from_shared_source(
-      Some(source.clone()),
-      span.start as usize,
-      span.end as usize,
-      "JavaScript parse error".to_string(),
-      diagnostic.message.into_owned(),
-    );
-    error.severity = match diagnostic.severity {
-      SwcSeverity::Error => RspackSeverity::Error,
-      SwcSeverity::Warning => RspackSeverity::Warning,
-      SwcSeverity::Hint | SwcSeverity::Info => RspackSeverity::Warning,
-    };
-    Some(error.into())
-  }));
+  errors
+    .into_iter()
+    .filter_map(|diagnostic| {
+      let span = diagnostic.span;
+      if !visited.insert((span.start, span.end)) {
+        return None;
+      }
+      let source = shared_source.get_or_insert_with(|| Arc::<str>::from(source));
+      let mut error = Error::from_shared_source(
+        Some(source.clone()),
+        span.start as usize,
+        span.end as usize,
+        "JavaScript parse error".to_string(),
+        diagnostic.message.into_owned(),
+      );
+      error.severity = match diagnostic.severity {
+        SwcSeverity::Error => RspackSeverity::Error,
+        SwcSeverity::Warning => RspackSeverity::Warning,
+        SwcSeverity::Hint | SwcSeverity::Info => RspackSeverity::Warning,
+      };
+      Some(error.into())
+    })
+    .collect()
+}
+
+#[cold]
+#[inline(never)]
+fn parse_failure(
+  source: BoxSource,
+  diagnostics: Vec<Diagnostic>,
+  loaders: &[BoxLoader],
+) -> TWithDiagnosticArray<ParseResult> {
+  ParseResult {
+    source,
+    dependencies: vec![],
+    blocks: vec![],
+    presentational_dependencies: vec![],
+    code_generation_dependencies: vec![],
+    side_effects_bailout: None,
+  }
+  .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
+    diagnostics,
+    loaders,
+  ))
 }
 
 impl ParserRuntimeRequirementsData {
@@ -267,8 +289,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       mut parse_meta,
       ..
     } = parse_context;
-    let mut diagnostics: Vec<Diagnostic> = vec![];
-
     if let Some(collected_ts_info) = parse_meta.remove(COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY)
       && let Ok(collected_ts_info) = collected_ts_info
         .into_any()
@@ -276,23 +296,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     {
       build_info.collected_typescript_info = Some(*collected_ts_info);
     }
-
-    let default_with_diagnostics = |source: Arc<dyn Source>, diagnostics: Vec<Diagnostic>| {
-      Ok(
-        ParseResult {
-          source,
-          dependencies: vec![],
-          blocks: vec![],
-          presentational_dependencies: vec![],
-          code_generation_dependencies: vec![],
-          side_effects_bailout: None,
-        }
-        .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
-          diagnostics,
-          loaders,
-        )),
-      )
-    };
 
     let source = remove_bom(source);
     let source_string = source.source().into_string_lossy();
@@ -326,16 +329,16 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     .parse();
 
     if !parse_diagnostics.is_empty() {
-      append_swc_next_diagnostics(&mut diagnostics, &source_string, parse_diagnostics);
-      return default_with_diagnostics(source, diagnostics);
+      let diagnostics = collect_swc_next_diagnostics(&source_string, parse_diagnostics);
+      return Ok(parse_failure(source, diagnostics, loaders));
     }
 
     let mut semicolons = Default::default();
     // SAFETY: The scanner only reads nodes and tokens from this parsed AST.
     let scan_diagnostics = AstScanner::new(&mut semicolons, &tokens).scan(unsafe { ast.ast() });
     if !scan_diagnostics.is_empty() {
-      append_swc_next_diagnostics(&mut diagnostics, &source_string, scan_diagnostics);
-      return default_with_diagnostics(source, diagnostics);
+      let diagnostics = collect_swc_next_diagnostics(&source_string, scan_diagnostics);
+      return Ok(parse_failure(source, diagnostics, loaders));
     }
 
     // Keep the legacy SWC parser's permissive behavior for these semantic checks.
@@ -362,8 +365,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       diagnostics: semantic_diagnostics,
     } = analyze(ast, AnalyzeOptions { check_syntax });
     if !semantic_diagnostics.is_empty() {
-      append_swc_next_diagnostics(&mut diagnostics, &source_string, semantic_diagnostics);
-      return default_with_diagnostics(source, diagnostics);
+      let diagnostics = collect_swc_next_diagnostics(&source_string, semantic_diagnostics);
+      return Ok(parse_failure(source, diagnostics, loaders));
     }
 
     let (ast, semantic) = semantic.into_parts();
@@ -383,7 +386,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       dependencies,
       blocks,
       presentational_dependencies,
-      mut warning_diagnostics,
+      warning_diagnostics,
       mut side_effects_item,
     } = match scan_dependencies(
       &source_string,
@@ -405,12 +408,8 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
       &parser_runtime_requirements,
     ) {
       Ok(result) => result,
-      Err(mut e) => {
-        diagnostics.append(&mut e);
-        return default_with_diagnostics(source, diagnostics);
-      }
+      Err(diagnostics) => return Ok(parse_failure(source, diagnostics, loaders)),
     };
-    diagnostics.append(&mut warning_diagnostics);
     let mut side_effects_bailout = None;
 
     if compiler_options.optimization.side_effects.is_true() {
@@ -435,7 +434,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
         side_effects_bailout,
       }
       .with_diagnostic(map_box_diagnostics_to_module_parse_diagnostics(
-        diagnostics,
+        warning_diagnostics,
         loaders,
       )),
     )

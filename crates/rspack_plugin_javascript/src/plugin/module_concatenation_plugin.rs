@@ -614,7 +614,7 @@ impl ModuleConcatenationPlugin {
           false
         } else {
           // can't determine, need to check
-          cached_connection.connection.is_target_active(
+          cached_connection.connection(mg).is_target_active(
             mg,
             Some(runtime),
             artifacts.mg_cache,
@@ -624,7 +624,7 @@ impl ModuleConcatenationPlugin {
         }
       } else {
         // no runtime, need to check
-        cached_connection.connection.is_target_active(
+        cached_connection.connection(mg).is_target_active(
           mg,
           None,
           artifacts.mg_cache,
@@ -1338,7 +1338,7 @@ impl ModuleConcatenationPlugin {
             );
 
             Some(CachedOutgoingConnection {
-              connection: con.clone(),
+              connection_id: con.id,
               module_identifier: *con.module_identifier(),
               // Empty star targets can join even when usage observes the whole namespace and
               // their side-effect-only import is inactive. Keep the exception on this edge.
@@ -1862,10 +1862,18 @@ impl DifferentChunkModules {
 
 #[derive(Debug)]
 struct CachedOutgoingConnection {
-  connection: ModuleGraphConnection,
+  connection_id: ModuleGraphConnectionId,
   module_identifier: ModuleIdentifier,
   can_concatenate: bool,
   active: bool,
+}
+
+impl CachedOutgoingConnection {
+  fn connection<'a>(&self, module_graph: &'a ModuleGraph) -> &'a ModuleGraphConnection {
+    module_graph
+      .connection_by_id(&self.connection_id)
+      .expect("cached outgoing connection belongs to the current module graph")
+  }
 }
 
 #[derive(Debug)]
