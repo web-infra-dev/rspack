@@ -681,14 +681,18 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   let extracted_tla_shared = extract_tla_shared_modules(compilation);
   if extracted_tla_shared {
-    compilation.push_diagnostic(rspack_error::Diagnostic::warn(
-      "EsmLibraryPlugin".into(),
-      "Top-level await with shared modules caused a circular dependency between async and \
+    let plugin_name = "EsmLibraryPlugin";
+    compilation.push_diagnostic(
+      rspack_error::Diagnostic::warn(
+        plugin_name.into(),
+        "Top-level await with shared modules caused a circular dependency between async and \
        parent chunks. The shared modules have been extracted into separate chunks to break \
        the cycle. After bundling, the execution order of top-level await may differ from the \
        original source, which could lead to incorrect runtime behavior."
-        .into(),
-    ));
+          .into(),
+      )
+      .with_title(plugin_name),
+    );
   }
 
   ensure_entry_exports(compilation);
