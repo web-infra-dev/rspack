@@ -1,1 +1,4 @@
-export default [[/Failed to parse source map/]];
+export default [
+  /Failed to read '.*[/\\]no-source-map\.map':/,
+  /Failed to parse source map '.*[/\\]invalid\.map':/,
+];
