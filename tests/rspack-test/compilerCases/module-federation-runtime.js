@@ -495,14 +495,58 @@ module.exports = [
       expect(containerScopeMap.default).not.toBe(shareScopeMap.secondary);
     },
   },
-  {
-    description:
-      'binds an additional scope by name when the host initializes it, leaving the primary pool alone',
+  ...[false, true].map((primaryFirst) => ({
+    description: `binds an additional scope by name when the host initializes it, leaving the primary pool alone (primary first: ${primaryFirst})`,
     build() {},
     check: async () => {
       // Hosts initialize a container once per shared scope. Initializing the
       // container's additional `layered-components` scope must bind that
       // scope only; aliasing the primary `default` pool to it mixes scopes.
+      const {
+        initializedScopes,
+        runtimeRequire: containerRequire,
+        shareScopeMap: containerScopeMap,
+      } = createRuntime({
+        realInitContainerEntry: true,
+        containerShareScope: 'default',
+        remoteShareScope: 'default',
+        additionalInitScopes: ['layered-components'],
+      });
+      const { runtimeRequire, shareScopeMap } = createRuntime({
+        external: { init: containerRequire.initContainer },
+        hasContainer: false,
+        remoteShareScope: ['default', 'layered-components'],
+      });
+      shareScopeMap.default = { tag: 'host-default' };
+      shareScopeMap['layered-components'] = { tag: 'host-layered' };
+
+      if (primaryFirst) {
+        await runtimeRequire.I('default', []);
+        expect(containerScopeMap.default).toBe(shareScopeMap.default);
+      }
+      await runtimeRequire.I('layered-components', []);
+      expect(containerScopeMap['layered-components']).toBe(
+        shareScopeMap['layered-components'],
+      );
+      expect(containerScopeMap.default).not.toBe(
+        shareScopeMap['layered-components'],
+      );
+      expect(initializedScopes).toContain('layered-components');
+      if (primaryFirst) {
+        expect(containerScopeMap.default).toBe(shareScopeMap.default);
+      }
+
+      await runtimeRequire.I('default', []);
+      expect(containerScopeMap.default).toBe(shareScopeMap.default);
+      expect(containerScopeMap['layered-components']).toBe(
+        shareScopeMap['layered-components'],
+      );
+    },
+  })),
+  {
+    description: 'does not initialize a scalar remote for an unrelated namespace',
+    build() {},
+    check: async () => {
       const {
         initializedScopes,
         runtimeRequire: containerRequire,
@@ -522,19 +566,19 @@ module.exports = [
       shareScopeMap['layered-components'] = { tag: 'host-layered' };
 
       await runtimeRequire.I('layered-components', []);
-      expect(containerScopeMap['layered-components']).toBe(
-        shareScopeMap['layered-components'],
-      );
-      expect(containerScopeMap.default).not.toBe(
-        shareScopeMap['layered-components'],
-      );
-      expect(initializedScopes).toContain('layered-components');
+      expect(containerScopeMap.default).toBeUndefined();
+      expect(containerScopeMap['layered-components']).toBeUndefined();
+      expect(initializedScopes).toEqual([]);
 
+      // A matching scalar scope still initializes the real container, binding
+      // its primary scope and declared additional scopes to the host objects.
       await runtimeRequire.I('default', []);
       expect(containerScopeMap.default).toBe(shareScopeMap.default);
       expect(containerScopeMap['layered-components']).toBe(
         shareScopeMap['layered-components'],
       );
+      expect(initializedScopes).toContain('default');
+      expect(initializedScopes).toContain('layered-components');
     },
   },
   {
@@ -727,17 +771,18 @@ module.exports = [
   },
   {
     description:
-      'waits for a pending scalar scope initialization before consuming from a chunk',
+      'keeps scalar chunk consumes lazy while an unused container promise is pending',
     build() {},
     check: async () => {
-      // A `module`/`promise` remote registers its shares asynchronously; a
-      // chunk's consumes must not resolve to the local fallback before that.
+      // Scalar consumes keep the runtime loadShare contract. An unused
+      // non-script container promise must not gate the chunk's consume handler.
       let resolveExternal;
       const external = new Promise((resolve) => {
         resolveExternal = resolve;
       });
       const consumeCalls = [];
-      const { runtimeRequire } = createRuntime({
+      const initCalls = [];
+      const { runtimeRequire, shareScopeMap } = createRuntime({
         external,
         remoteShareScope: 'default',
         consumeData: {
@@ -750,11 +795,21 @@ module.exports = [
 
       const promises = [];
       runtimeRequire.f.consumes('chunk', promises);
-      expect(promises).toHaveLength(1);
-      expect(consumeCalls).toEqual([]);
-      resolveExternal({ init() {} });
+      expect(promises).toHaveLength(0);
+      expect(consumeCalls).toEqual(['chunk']);
+      expect(initCalls).toEqual([]);
       await Promise.all(promises);
       expect(consumeCalls).toEqual(['chunk']);
+
+      // Explicit initialization still waits for and initializes that container.
+      const initialized = runtimeRequire.I('default', []);
+      resolveExternal({
+        init(scope) {
+          initCalls.push(scope);
+        },
+      });
+      await initialized;
+      expect(initCalls).toEqual([shareScopeMap.default]);
     },
   },
   {

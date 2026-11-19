@@ -798,6 +798,9 @@ impl Chunk {
       .get_chunk_entry_modules_with_chunk_group_iterable(&self.ukey)
     {
       ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module).hash(hasher);
+      if compilation.async_modules_artifact.startup.contains(module) {
+        "async startup".hash(hasher);
+      }
       if let Some(chunk_group) = compilation
         .build_chunk_graph_artifact
         .chunk_group_by_ukey

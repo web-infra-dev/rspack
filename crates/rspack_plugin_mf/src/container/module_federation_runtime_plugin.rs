@@ -188,7 +188,9 @@ async fn optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<
     })
     .map(|(module_identifier, _)| *module_identifier)
     .collect();
-  compilation.async_modules_artifact.extend(async_containers);
+  compilation
+    .async_modules_artifact
+    .extend_startup(async_containers);
   Ok(None)
 }
 
