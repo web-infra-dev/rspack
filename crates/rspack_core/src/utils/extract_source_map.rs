@@ -208,7 +208,7 @@ async fn fetch_from_filesystem(
   fs.read_to_string(&path.assert_utf8())
     .await
     .map(|content| (source_url.to_string(), Some(content)))
-    .map_err(|err| format!("Failed to parse source map from '{source_url}' file: {err}"))
+    .map_err(|err| format!("Failed to read '{source_url}' while loading the source map: {err}"))
 }
 
 /// Fetch from multiple possible file paths
@@ -347,8 +347,13 @@ pub async fn extract_source_map(
   };
 
   // Create SourceMap directly from JSON
-  let mut source_map = SourceMap::from_json(content.to_string())
-    .map_err(|e| format!("Failed to parse source map: {e}"))?;
+  let mut source_map = SourceMap::from_json(content.to_string()).map_err(|e| {
+    if source_url.is_empty() {
+      format!("Failed to parse source map: {e}")
+    } else {
+      format!("Failed to parse source map '{source_url}': {e}")
+    }
+  })?;
 
   let context = if !source_url.is_empty() {
     Utf8Path::new(&source_url).parent().unwrap_or(base_context)

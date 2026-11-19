@@ -16,3 +16,4 @@ it("should extract source map - 1", () => {
 	expect(sources).toContain(sourceUrl("./charset-inline-source-map.txt"));
 	expect(sources).toContain(sourceUrl("./no-source-map.js"));
 });
+//# sourceMappingURL=invalid.map
