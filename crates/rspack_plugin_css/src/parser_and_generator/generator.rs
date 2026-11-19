@@ -3,9 +3,10 @@ use std::borrow::Cow;
 use concat_string::concat_string;
 use rspack_core::{
   ChunkGraph, Compilation, Context, CssBuildInfo, CssExportType, CssModuleRenderCondition,
-  Dependency, DependencyCodeGeneration, DependencyId, DependencyType, GenerateContext, Module,
-  ModuleArgument, ModuleIdentifier, ModuleInitFragments, RESERVED_IDENTIFIER, RuntimeGlobals,
-  SourceType, TemplateContext, UsageState, UsedNameItem, css_module_render_conditions_identifier,
+  Dependency, DependencyCodeGeneration, DependencyId, DependencyType, ExternalModule,
+  GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
+  RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext, UsageState, UsedNameItem,
+  css_module_render_conditions_identifier,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource, ReplaceSource, Source, SourceExt},
   to_identifier,
 };
@@ -1244,6 +1245,21 @@ impl<'g> CssModuleGraphSink<'g> for CssStyleSink<'_, '_, 'g> {
       return Ok(None);
     }
     if module.source().is_none() {
+      // `css-import` external modules have no source or JavaScript output. Their
+      // generated `@import` rule is only emitted into the chunk CSS asset, which
+      // `exportType: "style"` never loads, so inject it as a style element here
+      // to keep the external import in the runtime, like style-loader does.
+      if let Some(external_module) = module.downcast_ref::<ExternalModule>()
+        && let Some(css) = external_module.css_import_source()
+        && self.visited.insert(identifier.as_str().to_string())
+      {
+        let css = json_stringify_str(&css);
+        self.code.push_str(
+          &self
+            .generator
+            .render_inject_style_call(json_stringify_str(module_id.as_str()), &css),
+        );
+      }
       return Ok(None);
     }
     let conditions: Vec<_> = dependency.render_conditions().cloned().collect();
