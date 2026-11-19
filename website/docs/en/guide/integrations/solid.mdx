@@ -10,20 +10,22 @@ import { PackageManagerTabs } from '@theme';
 
 There are two ways to use Solid with Rspack:
 
-- **Use Rsbuild**: Rsbuild configures JSX compilation and hot module replacement (HMR) for Solid projects. To create a project, follow the [Rsbuild guide for Solid](https://rsbuild.rs/guide/framework/solid).
-- **Configure Rspack manually**: Follow this guide to set up `solid-loader`, or start from the [Rspack + Solid example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/solid).
+- **Use Rsbuild** to start a Solid project with JSX compilation and hot module replacement (HMR) already configured. Follow the [Rsbuild guide for Solid](https://rsbuild.rs/guide/framework/solid).
+- **Configure Rspack manually** to add Solid to your own Rspack configuration. Follow the steps below or start from the [Rspack + Solid example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/solid).
 
 ## Configure Solid
 
-`solid-loader` requires Rspack 2.0.0 or later and Solid 2.0.0 or later.
+Solid components are commonly written in JSX or TSX. [solid-loader](https://github.com/rstackjs/solid-loader) lets Rspack compile those components with Solid's native compiler.
+
+The loader requires Rspack 2.0.0 or later and Solid 2.0.0 or later. For an existing Solid 1 project, see [Solid v1](#solid-v1).
 
 ### Compile JSX and TSX
 
-Install [solid-loader](https://github.com/rstackjs/solid-loader) as a development dependency.
+Install `solid-loader` as a development dependency.
 
 <PackageManagerTabs command="add solid-loader -D" />
 
-Use `solid-loader` to compile JSX and TSX and [builtin:swc-loader](/guide/builtin-loaders/swc-loader) to strip TypeScript types.
+Add a rule for JavaScript and TypeScript files. In this rule, `solid-loader` handles JSX and TSX, and [builtin:swc-loader](/guide/builtin-loaders/swc-loader) removes TypeScript types.
 
 ```ts title="rspack.config.ts"
 import { defineConfig } from '@rspack/cli';
@@ -52,11 +54,11 @@ export default defineConfig({
 });
 ```
 
-For TypeScript projects, set `jsx` to `"preserve"` and `jsxImportSource` to `"@solidjs/web"` in `tsconfig.json`.
+If you use TypeScript, set `jsx` to `"preserve"` in `tsconfig.json` so the Solid compiler receives the JSX. Set `jsxImportSource` to `"@solidjs/web"` to use Solid's JSX types.
 
 ### Resolve Solid libraries
 
-In the same configuration, add `'solid'` to [resolve.conditionNames](/config/resolve#resolveconditionnames) so Rspack can compile JSX source from libraries that expose it under the `solid` export condition. Keep `'...'` to include Rspack's default conditions.
+Some Solid component libraries publish their JSX source under the `solid` condition in their package exports. Add `'solid'` to [resolve.conditionNames](/config/resolve#resolveconditionnames) so Rspack can select that source and compile it with the rule above. The `'...'` entry keeps Rspack's default conditions.
 
 ```ts title="rspack.config.ts"
 import { defineConfig } from '@rspack/cli';
@@ -70,7 +72,9 @@ export default defineConfig({
 
 ### Load hydration modules
 
-When the browser hydrates a server-rendered page, `@solidjs/web` reads module URLs from the data sent by the server and loads each module with `import(url)`. Set [parser.importDynamic](/config/module-parser#javascriptimportdynamic) to `false` for `@solidjs/web` so Rspack leaves that call for the browser to execute.
+When Solid makes a server-rendered page interactive, its web runtime (`@solidjs/web`) can load additional modules. The server supplies their URLs, and the browser loads them with `import(url)`.
+
+Add the following rule to `module.rules`. It sets [parser.importDynamic](/config/module-parser#javascriptimportdynamic) to `false` for `@solidjs/web` so Rspack preserves the runtime's native `import()` calls.
 
 ```ts title="rspack.config.ts"
 import { defineConfig } from '@rspack/cli';
@@ -89,8 +93,8 @@ export default defineConfig({
 
 ## Hot module replacement
 
-In development mode, `solid-loader` enables Solid Refresh automatically for browser builds with HMR enabled. Editing a child component then preserves its parent's state.
+In development mode, `solid-loader` automatically enables Solid Refresh for browser builds with HMR enabled. Run `rspack dev` and try editing a child component. The component updates in the browser and its parent keeps its state.
 
 ## Solid v1
 
-Solid 1 projects use `babel-loader` with `babel-preset-solid` to compile JSX and `solid-refresh` for hot updates. See the [Solid v1 example](https://github.com/rstackjs/rstack-examples/tree/260651fd01e490145e7f75f46689654d79e2bd94/rspack/solid) for the full Rspack configuration, or follow the [Rsbuild guide for Solid v1](https://rsbuild.rs/plugins/list/plugin-solid#solid-v1).
+For a Solid 1 project, use `babel-loader` with `babel-preset-solid` to compile JSX and `solid-refresh` for hot updates. The [Solid v1 example](https://github.com/rstackjs/rstack-examples/tree/260651fd01e490145e7f75f46689654d79e2bd94/rspack/solid) shows the complete Rspack configuration. If you use Rsbuild, follow the [Rsbuild guide for Solid v1](https://rsbuild.rs/plugins/list/plugin-solid#solid-v1).
