@@ -77,13 +77,27 @@ pub type TimeInfoEntries = Vec<(String, TimeInfoEntry)>;
 
 pub(crate) type EventBatch = Vec<FsEvent>;
 
-pub(crate) type ImmediateEvents = smallvec::SmallVec<[FsEvent; 1]>;
+pub(crate) enum ImmediateEvent {
+  Change(InternedPath),
+  Remove(InternedPath),
+  ContextRemove(InternedPath),
+}
+
+impl ImmediateEvent {
+  fn from_path(path: InternedPath, kind: FsEventKind) -> Self {
+    match kind {
+      FsEventKind::Change | FsEventKind::Create => Self::Change(path),
+      FsEventKind::Remove => Self::Remove(path),
+    }
+  }
+}
+
+pub(crate) type ImmediateEvents = smallvec::SmallVec<[ImmediateEvent; 1]>;
 
 #[derive(Default)]
 pub(crate) struct ResolvedEvents {
   pub dependencies: EventBatch,
   pub immediate: ImmediateEvents,
-  pub context_removal: Option<InternedPath>,
 }
 
 /// `EventAggregateHandler` is a trait for handling aggregated file system events.

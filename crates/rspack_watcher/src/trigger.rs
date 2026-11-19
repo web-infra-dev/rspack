@@ -5,7 +5,7 @@ use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 use super::{FsEvent, FsEventKind};
 use crate::{
-  EventBatch, ResolvedEvents,
+  EventBatch, ImmediateEvent, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
   paths::{PathManager, followed_metadata, modification_time},
 };
@@ -322,9 +322,6 @@ impl EventProcessor {
       && contexts
         .iter()
         .any(|(_, kind)| *kind == FsEventKind::Change);
-    if context_removal {
-      events.context_removal = Some(path.clone());
-    }
     for (subscribers, context_kind) in contexts {
       for subscriber in subscribers {
         let kind = if context_removal
@@ -342,20 +339,25 @@ impl EventProcessor {
       }
     }
     if has_context && !context_removal && !direct.iter().any(|s| s.path == *path) {
-      events.immediate.push(FsEvent {
-        path: path.clone(),
-        kind,
-      });
+      events
+        .immediate
+        .push(ImmediateEvent::from_path(path.clone(), kind));
     }
     for subscriber in direct {
       if !context_removal || subscriber.file_or_missing {
-        let event = FsEvent {
+        events
+          .immediate
+          .push(ImmediateEvent::from_path(subscriber.path.clone(), kind));
+        events.dependencies.push(FsEvent {
           path: subscriber.path,
           kind,
-        };
-        events.immediate.push(event.clone());
-        events.dependencies.push(event);
+        });
       }
+    }
+    if context_removal {
+      events
+        .immediate
+        .push(ImmediateEvent::ContextRemove(path.clone()));
     }
   }
 }

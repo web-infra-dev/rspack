@@ -3,7 +3,6 @@ use std::sync::{
   atomic::{AtomicBool, AtomicU64, Ordering},
 };
 
-use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use tokio::{
   sync::{
@@ -14,7 +13,7 @@ use tokio::{
 };
 
 use super::{EventAggregateHandler, EventHandler, FsEventKind};
-use crate::{ImmediateEvents, ResolvedEvents};
+use crate::{ImmediateEvent, ImmediateEvents, ResolvedEvents};
 
 type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
 type ThreadSafety<T> = Arc<Mutex<T>>;
@@ -77,7 +76,7 @@ enum ExecAggregateEvent {
 }
 
 enum ExecEvent {
-  Execute(ImmediateEvents, Option<InternedPath>),
+  Execute(ImmediateEvents),
   Aggregate(FilesData),
   Close,
 }
@@ -209,7 +208,7 @@ impl Executor {
                     .collect(),
                 });
             }
-            let _ = exec_tx.send(ExecEvent::Execute(events.immediate, events.context_removal));
+            let _ = exec_tx.send(ExecEvent::Execute(events.immediate));
           }
 
           if !paused.load(Ordering::Relaxed) && !aggregate_running.load(Ordering::Relaxed) {
@@ -274,24 +273,24 @@ fn create_execute_task(
   exec_rx: ThreadSafetyReceiver<ExecEvent>,
 ) -> tokio::task::JoinHandle<()> {
   let future = async move {
-    'deliveries: while let Some(exec_event) = exec_rx.lock().await.recv().await {
+    while let Some(exec_event) = exec_rx.lock().await.recv().await {
       match exec_event {
-        ExecEvent::Execute(immediate, context_removal) => {
+        ExecEvent::Execute(immediate) => {
           for event in immediate {
-            // Handle each event based on its kind
-            let path = event.path.to_string_lossy().to_string();
-            let result = match event.kind {
-              super::FsEventKind::Change | super::FsEventKind::Create => {
-                event_handler.on_change(path)
+            let result = match event {
+              ImmediateEvent::Change(path) => {
+                event_handler.on_change(path.to_string_lossy().into_owned())
               }
-              super::FsEventKind::Remove => event_handler.on_delete(path),
+              ImmediateEvent::Remove(path) => {
+                event_handler.on_delete(path.to_string_lossy().into_owned())
+              }
+              ImmediateEvent::ContextRemove(path) => {
+                event_handler.on_context_remove(path.to_string_lossy().into_owned())
+              }
             };
             if result.is_err() {
-              continue 'deliveries;
+              break;
             }
-          }
-          if let Some(path) = context_removal {
-            let _ = event_handler.on_context_remove(path.to_string_lossy().to_string());
           }
         }
         ExecEvent::Aggregate(files) => {
