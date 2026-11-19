@@ -1346,18 +1346,30 @@ impl ModuleCodeTemplate {
     target: ModuleIdentifier,
     mg: &ModuleGraph,
   ) -> bool {
-    // Import statements are shared by all references to the same target. Collect
-    // the targets once per importing module, including references in async blocks.
+    fn collect_targets(
+      block: &dyn DependenciesBlock,
+      mg: &ModuleGraph,
+      targets: &mut IdentifierSet,
+    ) {
+      for dep in block.get_dependencies() {
+        if dep.may_read_default_export(mg)
+          && let Some(target) = mg.module_identifier_by_dependency_id(dep.id())
+        {
+          targets.insert(*target);
+        }
+      }
+      for child in block.get_block_refs() {
+        collect_targets(child.as_ref(), mg, targets);
+      }
+    }
+
+    // All references to a target share one import statement, including references in async blocks.
     self
       .default_interop_targets
       .get_or_insert_with(|| {
-        mg.get_ordered_outgoing_connections(&module.identifier())
-          .filter(|connection| {
-            mg.dependency_by_id(&connection.dependency_id)
-              .may_read_default_export(mg)
-          })
-          .map(|connection| *connection.module_identifier())
-          .collect()
+        let mut targets = IdentifierSet::default();
+        collect_targets(module, mg, &mut targets);
+        targets
       })
       .contains(&target)
   }
