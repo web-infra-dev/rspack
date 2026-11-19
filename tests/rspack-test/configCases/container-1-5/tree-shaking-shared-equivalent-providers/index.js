@@ -27,17 +27,23 @@ it('attaches fallback metadata when the resolved artifact is unambiguous', () =>
   const fallbacks = __webpack_require__.federation.sharedFallback['same-key'];
   for (const filename of [`${CASE_NAME}-stats.json`, `${CASE_NAME}.json`]) {
     const output = JSON.parse(fs.readFileSync(path.join(__dirname, filename), 'utf-8'));
-    const [shared] = output.shared.filter(({ name }) => name === 'same-key');
-    expect(shared).toBeDefined();
-    if (!CASE_NAME.startsWith('different-')) {
-      const fallback = fallbacks.find(([, version]) => version === shared.version);
-      expect(fallback).toBeDefined();
-      expect(shared.fallback).toBe(fallback[0]);
-      expect(shared.fallbackName).toBe(fallback[2]);
-    } else {
-      expect(shared).not.toHaveProperty('fallback');
-      expect(shared).not.toHaveProperty('fallbackName');
+    const shares = output.shared.filter(({ name }) => name === 'same-key');
+    expect(shares.length).toBeGreaterThan(0);
+    if (CASE_NAME === 'different-scope-shape') expect(shares).toHaveLength(2);
+    for (const shared of shares) {
+      if (CASE_NAME === 'different-filenames') {
+        expect(shared).not.toHaveProperty('fallback');
+        expect(shared).not.toHaveProperty('fallbackName');
+      } else {
+        const fallback = fallbacks.find(([, version, , identity]) =>
+          version === shared.version &&
+          JSON.stringify(identity.shareScope) === JSON.stringify(shared.shareScope ?? 'default'),
+        );
+        expect(fallback).toBeDefined();
+        expect(shared.fallback).toBe(fallback[0]);
+        expect(shared.fallbackName).toBe(fallback[2]);
+      }
+      expect(shared).not.toHaveProperty('providers');
     }
-    expect(shared).not.toHaveProperty('providers');
   }
 });

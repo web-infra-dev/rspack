@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@rspack/cli';
 import { container, DefinePlugin } from '@rspack/core';
 
@@ -28,6 +29,13 @@ export default defineConfig(
           CONSUME_ONLY: consumeOnly,
         }),
         new container.ModuleFederationPlugin({
+          implementation:
+            layer === undefined
+              ? undefined
+              : fileURLToPath(
+                  import.meta
+                    .resolve('@module-federation/runtime-tools-layers'),
+                ),
           name: `container${index}`,
           filename: `${index}-container.js`,
           library: { type: 'commonjs-module' },

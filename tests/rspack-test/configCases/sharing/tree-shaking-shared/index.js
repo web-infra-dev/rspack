@@ -18,13 +18,11 @@ it('should load tree shaking shared via set "runtime-infer" mode', async () => {
   expect(bundleContent).toContain('Badge');
   expect(bundleContent).toContain('List');
 
-  const uiLibShared =
-    __FEDERATION__.__SHARE__['tree_shaking_share'].default['ui-lib'][
-      '1.0.0'
-    ];
-  expect(uiLibShared.loaded).toEqual(undefined);
-  expect(uiLibShared.treeShaking.loaded).toEqual(true);
-  expect(Object.keys(uiLibShared.treeShaking.lib()).sort()).toEqual([
+  expect(__webpack_share_scopes__.default['ui-lib']).toBeUndefined();
+  const uiLibShared = __webpack_require__.federation.initOptions.shared['ui-lib']
+    .find((share) => share.shareConfig.layer === 'ui-layer');
+  const optimized = (await uiLibShared.treeShaking.get())();
+  expect(Object.keys(optimized).sort()).toEqual([
     'Button',
     'default',
     'layer',
