@@ -176,16 +176,6 @@ export const foo = 42;
 
 在这种情况下，由于 `value` 最终被使用，它所依赖的 `foo` 也得以保留。
 
-## 动态导入的空解构
-
-空解构模式不会读取动态导入模块的任何导出：
-
-```js
-const {} = await import('./setup.js');
-```
-
-Rspack 可以删除 `setup.js` 中未使用的导出，同时保留模块求值及其副作用。模块导出的 `then` 函数可能在 Promise 解析时被调用，因此即使使用空解构，该函数及作为其接收者的模块 namespace 仍然可被观察。
-
 ## Pure 注解
 
 通过 [`/*#__PURE__*/`](https://github.com/javascript-compiler-hints/compiler-notations-spec/blob/main/pure-notation-spec.md) 注解可以告诉 Rspack 某个函数调用无副作用。它可以被放到函数调用之前，用来标记此函数调用是无副作用的。

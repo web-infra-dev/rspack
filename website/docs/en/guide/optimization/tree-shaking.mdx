@@ -174,16 +174,6 @@ export const foo = 42;
 
 Since `value` is used, the `foo` it depends on is retained.
 
-## Empty destructuring of dynamic imports
-
-An empty destructuring pattern does not read any exports from a dynamically imported module:
-
-```js
-const {} = await import('./setup.js');
-```
-
-Rspack can remove unused exports from `setup.js` while preserving module evaluation and its side effects. An exported `then` function can be called during Promise resolution, so it and its namespace receiver remain observable even with an empty pattern.
-
 ## Pure annotation
 
 Use the [`/*#__PURE__*/`](https://github.com/javascript-compiler-hints/compiler-notations-spec/blob/main/pure-notation-spec.md) annotation to tell Rspack that a function call is side-effect-free (pure). Place it before function calls to mark them as having no side effects.
