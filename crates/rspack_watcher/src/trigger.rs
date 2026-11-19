@@ -218,6 +218,10 @@ impl EventProcessor {
     if entry.as_ref().is_some_and(std::fs::Metadata::is_dir)
       && (appeared || (matches!(origin, Origin::Disk { .. }) && kind == FsEventKind::Change))
     {
+      // Moving a populated `src/` into place may produce no event for `src/a.js`.
+      // An inotify watch on the old `src/` may report only the move out. If the
+      // replacement is already there when we stat `src/`, the removal becomes a
+      // `Change` with `appeared == false`. Check registered files by mtime.
       self
         .resolve_registered_children(&mut events, path, appeared)
         .await;
