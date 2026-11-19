@@ -7,13 +7,12 @@ Rspack `main` 的 `c44d424a7f422d5be894defb956efb29eb976588`，并与当前 MF
 和 Modern 的本地构建联合验证。下面的初版方案保留为演进记录，涉及加载等待、
 shared 清理和 remote 注册更新的描述以本节为准。
 
-- Rspack 原生 enhanced `ModuleFederationPlugin` 生成反向依赖图、remote/chunk
-  索引及 Node chunk cache controls。Rspack 调用方不需要另外安装 webpack 的
-  `SSRDependencyPlugin`。MF bundler runtime 的 `installClearCache` 消费这些产物。
-- 低层 `clearCache` 先推进代际并失效旧状态，然后有限等待已追踪的 remote load。
-  迟到的 `readFileVm` chunk 会以 `stale` 错误拒绝，不能重新写入 module factories
-  或 `installedChunks`。此 API 不负责业务请求排空。Modern 在调用低层失效前
-  停止相关新请求进入并等待在途工作完成，提供请求层的一致性。
+- Rspack 为 enhanced Node MF 编译生成远端反向依赖图与模块表引用，放在
+  `federation.remotesLoadingData.cache`。生产者 shared 闭包也由 Rust 计算。
+- MF bundler runtime 用同一份计划供 Modern 判断入口覆盖，并按 ID 清理模块执行
+  缓存、MF 生成的 remote factory 和加载记录。MF Node 插件继续提供远端 chunk 加载。
+- Modern 关闭 SSR 请求准入并排空在途工作。MF 等待相关加载完成，换完注册后恢复
+  接收新加载，并复用宿主已经安装的普通 chunk。
 - 只删除未加载的 shared 记录。已加载或正在加载的 shared 保留原对象和 factory
   身份。Rspack 输出生产者 shared 依赖闭包中的 module ID 到
   `federation.containerCache.retainedModuleIds`，由 MF Node bundler adapter 清理

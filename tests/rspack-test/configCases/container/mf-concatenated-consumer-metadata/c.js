@@ -1,7 +1,7 @@
 it("tracks every concatenated remote consumer for c", () => {
   const load = () => import("./page-c");
   expect(typeof load).toBe("function");
-  const data = __webpack_require__.remotesLoadingData;
+  const data = __webpack_require__.federation.remotesLoadingData.cache;
   const remote = data.remoteKeyToRemoteModuleIds.remote[0];
   const consumers = data.remoteModuleIdToConsumerModuleIds[remote];
   // The shared parent is emitted in three concatenated page/loader modules.
