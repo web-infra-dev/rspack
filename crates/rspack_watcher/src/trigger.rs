@@ -7,8 +7,8 @@ use super::{FsEvent, FsEventKind};
 use crate::{
   EventBatch, ImmediateEvent, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
-  paths::{PathManager, followed_metadata, modification_time},
-  subscriptions::ContextSubscribers,
+  paths::{PathManager, followed_metadata, metadata_if_present, modification_time},
+  subscriptions::{ContextSubscribers, SubscriberPaths},
 };
 /// Classifies one raw file system event: drops what the `ignored` filter
 /// rejects, normalizes the kind against the disk, and resolves the paths to notify.
@@ -28,14 +28,7 @@ struct EventProcessor {
 struct ObservedChange {
   kind: FsEventKind,
   target_type: Option<FileType>,
-  // A symlink to a directory can notify directory subscribers without triggering child checks.
-  entry_is_dir: bool,
-}
-
-/// Read the entry itself, even when it is a dangling symlink.
-#[inline]
-fn lstat(path: &InternedPath) -> std::io::Result<std::fs::Metadata> {
-  std::fs::symlink_metadata(path)
+  directory_removed: bool,
 }
 
 /// `Trigger` is responsible for sending file system events to the event channel
@@ -170,11 +163,50 @@ impl Trigger {
 
 impl EventProcessor {
   async fn process(&self, path: &InternedPath, hint: FsEventKind, origin: Origin) {
-    let Some(change) = self.record_change_if_fresh(path, hint, origin).await else {
+    if !matches!(origin, Origin::Scan) && self.path_manager.is_ignored_path(path).await {
       return;
+    }
+    let children = match origin {
+      Origin::Disk { appeared } => {
+        self
+          .path_manager
+          .check_registered_children(path, appeared)
+          .await
+      }
+      Origin::Injected
+        if hint == FsEventKind::Create
+          && path.symlink_metadata().is_ok_and(|entry| entry.is_dir()) =>
+      {
+        self
+          .path_manager
+          .check_registered_children(path, true)
+          .await
+      }
+      _ => EventBatch::new(),
     };
-    let notifications = self.resolve_notifications(path, hint, origin, change).await;
-    let _ = self.tx.send(notifications);
+    let change = self.record_change_if_fresh(path, hint, origin).await;
+    if change.is_none() && children.is_empty() {
+      return;
+    }
+    let mut events = ResolvedEvents::default();
+    if let Some(change) = change {
+      self.append_subscriber_notifications(
+        &mut events,
+        path,
+        &change,
+        matches!(origin, Origin::Scan).then_some(hint),
+      );
+    }
+    for child in children {
+      self.analyzer.invalidate_path(&child.path);
+      if let Some(change) = self
+        .record_change_if_fresh(&child.path, child.kind, Origin::Check)
+        .await
+      {
+        self.append_subscriber_notifications(&mut events, &child.path, &change, None);
+      }
+    }
+    let _ = self.tx.send(events);
   }
 
   async fn record_change_if_fresh(
@@ -184,17 +216,21 @@ impl EventProcessor {
     origin: Origin,
   ) -> Option<ObservedChange> {
     let scanned = matches!(origin, Origin::Scan);
-    if !scanned && self.path_manager.is_ignored_path(path).await {
+    let entry = metadata_if_present(path.symlink_metadata()).ok()?;
+    let target = followed_metadata(path, entry.as_ref()).ok().flatten();
+    let file_dependency = self.path_manager.has_file_or_missing_subscription(path);
+    let directory_removed = target.as_deref().is_some_and(|target| !target.is_dir())
+      && self.path_manager.was_directory(path);
+    if entry.is_none()
+      && file_dependency
+      && matches!(origin, Origin::Disk { .. })
+      && self.path_manager.is_known_absent(path)
+    {
       return None;
     }
-
-    let entry = lstat(path).ok();
-    let target = entry
-      .as_ref()
-      .and_then(|entry| followed_metadata(path, entry));
-    let file_dependency = self.path_manager.has_file_or_missing_subscription(path);
     // An explicit or scanned removal invalidates the baseline even if the path is back.
-    if entry.is_none()
+    if directory_removed
+      || entry.is_none()
       || (hint == FsEventKind::Remove && matches!(origin, Origin::Injected | Origin::Scan))
     {
       self.path_manager.remove_path_records(path);
@@ -207,6 +243,7 @@ impl EventProcessor {
           .path_manager
           .observe_file_mtime(path, target.as_deref().and_then(modification_time))
         && !scanned
+        && !directory_removed
       {
         return None;
       }
@@ -233,123 +270,43 @@ impl EventProcessor {
     Some(ObservedChange {
       kind,
       target_type: target.as_deref().map(std::fs::Metadata::file_type),
-      entry_is_dir: entry.as_ref().is_some_and(std::fs::Metadata::is_dir),
+      directory_removed,
     })
-  }
-
-  async fn resolve_notifications(
-    &self,
-    path: &InternedPath,
-    hint: FsEventKind,
-    origin: Origin,
-    change: ObservedChange,
-  ) -> ResolvedEvents {
-    let mut events = ResolvedEvents::default();
-    self.append_subscriber_notifications(
-      &mut events,
-      path,
-      change.kind,
-      change.target_type,
-      matches!(origin, Origin::Scan).then_some(hint),
-    );
-    let appeared = matches!(origin, Origin::Disk { appeared: true })
-      || (matches!(origin, Origin::Injected) && hint == FsEventKind::Create);
-    if change.entry_is_dir
-      && (appeared || (matches!(origin, Origin::Disk { .. }) && change.kind == FsEventKind::Change))
-    {
-      // Moving a populated `src/` into place may produce no event for `src/a.js`.
-      // An inotify watch on the old `src/` may report only the move out. If the
-      // replacement is already there when we stat `src/`, the removal becomes a
-      // `Change` with `appeared == false`. Check registered files by mtime.
-      self
-        .resolve_registered_children(&mut events, path, appeared)
-        .await;
-    }
-    events
-  }
-
-  /// A moved or changed directory can be the only OS event for its children.
-  async fn resolve_registered_children(
-    &self,
-    events: &mut ResolvedEvents,
-    directory: &InternedPath,
-    appeared: bool,
-  ) {
-    let mut pending = self
-      .path_manager
-      .subscriptions
-      .registered_children(directory);
-    while let Some(child) = pending.pop() {
-      let Ok(entry) = lstat(&child) else {
-        continue;
-      };
-      if self.path_manager.is_ignored_path(&child).await {
-        continue;
-      }
-      if entry.is_dir() {
-        pending.extend(self.path_manager.subscriptions.registered_children(&child));
-      }
-      let file_dependency = self.path_manager.has_file_or_missing_subscription(&child);
-      if !file_dependency && !self.path_manager.access().directories.all.contains(&child) {
-        continue;
-      }
-      let target = followed_metadata(&child, &entry);
-      let mtime = target.as_deref().and_then(modification_time);
-      let kind = if appeared {
-        FsEventKind::Create
-      } else {
-        if !file_dependency || mtime.is_none() {
-          continue;
-        }
-        let Some(kind) = self.path_manager.file_difference(&child, mtime) else {
-          continue;
-        };
-        kind
-      };
-      if file_dependency && !self.path_manager.observe_file_mtime(&child, mtime) {
-        continue;
-      }
-      self.append_subscriber_notifications(
-        events,
-        &child,
-        kind,
-        target.as_deref().map(std::fs::Metadata::file_type),
-        None,
-      );
-    }
   }
 
   fn append_subscriber_notifications(
     &self,
     events: &mut ResolvedEvents,
     path: &InternedPath,
-    kind: FsEventKind,
-    target_type: Option<FileType>,
+    change: &ObservedChange,
     scanned_kind: Option<FsEventKind>,
   ) {
+    let kind = change.kind;
     if scanned_kind.is_some() {
       self.analyzer.invalidate_path(path);
     }
-    let (direct, contexts) = self
-      .path_manager
-      .subscriptions
-      .subscribers(path, target_type);
+    let (direct, contexts) = self.path_manager.subscriptions.subscribers(
+      path,
+      change.target_type,
+      change.directory_removed,
+    );
     let removed_contexts = self.removed_contexts(&contexts, kind, scanned_kind.is_some());
     let context_removal = kind == FsEventKind::Remove
       && scanned_kind != Some(FsEventKind::Remove)
       && removed_contexts.len() < contexts.len();
 
-    let direct_notifies_path = direct.iter().any(|subscriber| subscriber.path == *path);
-    let mut context_removals = 0;
+    let direct_notifies_path = direct
+      .iter()
+      .any(|s| s.path == *path && (!change.directory_removed || s.file_or_missing));
+    let mut notify_observed_path = false;
+    let mut aliases = SubscriberPaths::new();
     for context in contexts {
       let removed = removed_contexts.contains(&context.watched);
       for subscriber in context.requested {
-        if context_removal {
-          context_removals += 1;
-        } else if !direct_notifies_path {
-          events
-            .immediate
-            .push(ImmediateEvent::from_path(path.clone(), kind));
+        if subscriber.path == context.watched {
+          notify_observed_path = true;
+        } else if !aliases.contains(&subscriber.path) {
+          aliases.push(subscriber.path.clone());
         }
         let kind = if removed && (!context_removal || subscriber.file_or_missing) {
           FsEventKind::Remove
@@ -362,8 +319,21 @@ impl EventProcessor {
         });
       }
     }
+    // Nested ordinary contexts share the raw child event. Each alias has its own listener.
+    let context_notifications = aliases.len()
+      + usize::from(notify_observed_path && (context_removal || !direct_notifies_path));
+    if !context_removal {
+      events
+        .immediate
+        .extend((0..context_notifications).map(|_| ImmediateEvent::from_path(path.clone(), kind)));
+    }
     for subscriber in direct {
       if !context_removal || subscriber.file_or_missing {
+        let kind = if change.directory_removed && !subscriber.file_or_missing {
+          FsEventKind::Remove
+        } else {
+          kind
+        };
         events
           .immediate
           .push(ImmediateEvent::from_path(subscriber.path.clone(), kind));
@@ -373,9 +343,11 @@ impl EventProcessor {
         });
       }
     }
-    events
-      .immediate
-      .extend((0..context_removals).map(|_| ImmediateEvent::ContextRemove(path.clone())));
+    if context_removal {
+      events
+        .immediate
+        .extend((0..context_notifications).map(|_| ImmediateEvent::ContextRemove(path.clone())));
+    }
   }
 
   fn removed_contexts(
@@ -390,7 +362,9 @@ impl EventProcessor {
     }
     for context in contexts {
       let path = &context.watched;
-      if kind == FsEventKind::Remove && lstat(path).is_err() {
+      if kind == FsEventKind::Remove
+        && matches!(metadata_if_present(path.symlink_metadata()), Ok(None))
+      {
         self.analyzer.invalidate_path(path);
         self.path_manager.remove_path_records(path);
         removed.push(path.clone());
@@ -431,8 +405,11 @@ impl DependencyFinder<'_> {
     for m in self.missing.iter() {
       subscriptions.update(&m, Subscription::Missing(m.clone()), true);
     }
-    let (direct, contexts) =
-      subscriptions.subscribers(path, std::fs::metadata(path).ok().map(|m| m.file_type()));
+    let (direct, contexts) = subscriptions.subscribers(
+      path,
+      std::fs::metadata(path).ok().map(|m| m.file_type()),
+      false,
+    );
     direct
       .into_iter()
       .map(|s| (s.path, kind))

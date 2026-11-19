@@ -276,6 +276,7 @@ impl DirectorySubscriptions {
     &self,
     path: &InternedPath,
     target_type: Option<std::fs::FileType>,
+    directory_removed: bool,
   ) -> (Subscribers, SmallVec<[ContextSubscribers; 1]>) {
     let dirs = self
       .directories
@@ -285,7 +286,7 @@ impl DirectorySubscriptions {
     let direct = entry.map_or_default(|entry| {
       entry.subscribers(
         target_type.is_none_or(|kind| kind.is_file()),
-        target_type.is_none_or(|kind| kind.is_dir()),
+        directory_removed || target_type.is_none_or(|kind| kind.is_dir()),
       )
     });
     let contexts = contexts

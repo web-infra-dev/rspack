@@ -198,6 +198,23 @@ impl FileTime {
   }
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum FileBaseline {
+  /// An existing missing dependency has an initial mtime, but still needs its first named event.
+  Unreported(SystemTime),
+  Present(SystemTime),
+  Removed,
+}
+
+impl FileBaseline {
+  fn mtime(self) -> Option<SystemTime> {
+    match self {
+      Self::Unreported(mtime) | Self::Present(mtime) => Some(mtime),
+      Self::Removed => None,
+    }
+  }
+}
+
 /// `PathManager` is responsible for managing the set of files, directories, and missing paths.
 #[derive(Default)]
 pub(crate) struct PathManager {
@@ -211,12 +228,9 @@ pub(crate) struct PathManager {
   /// FSEvents are filtered by `baselines` instead.
   /// See: https://gist.github.com/stormslowly/ed758500de6f23211fd63b39eba5ed07
   file_times: InternedPathDashMap<FileTime>,
-  /// The mtime the build already knows for each registered file or missing
-  /// path — through a delivered event, or because it was on disk when it was
-  /// registered. `None` records a reported removal, distinct from a path not
-  /// observed yet. Only this deduplicates a later event carrying the same mtime;
-  /// `file_times` is time info only and anything may write it.
-  baselines: InternedPathDashMap<Option<SystemTime>>,
+  /// Only registration and subscription events establish the baseline for a file check.
+  /// A scan of an overlapping context can refresh `file_times` before the file is notified.
+  baselines: InternedPathDashMap<FileBaseline>,
   /// watchpack's per-`DirectoryWatcher` `lastWatchEvent`: when an event last
   /// reached each registered or discovered context (its own or a
   /// descendant's), in epoch millis. Like watchpack it starts at 0 (absent)
@@ -268,7 +282,18 @@ impl PathManager {
   }
 
   pub fn record_initial_file_mtimes(&self) {
-    let paths: Vec<_> = self.files.added.iter().map(|p| p.clone()).collect();
+    let unrecorded_missing = self
+      .missing
+      .added
+      .iter()
+      .filter(|path| !self.baselines.contains_key(path.key()));
+    let paths: Vec<_> = self
+      .files
+      .added
+      .iter()
+      .chain(unrecorded_missing)
+      .map(|p| p.clone())
+      .collect();
     for path in paths {
       if let Some(mtime) = disk_mtime(&path) {
         self.set_file_time_if_absent(path, mtime);
@@ -280,11 +305,13 @@ impl PathManager {
   /// can still be detected. A path previously reported absent gets a new baseline.
   fn set_file_time_if_absent(&self, path: InternedPath, mtime: SystemTime) {
     self.record(&path, || {
-      self
+      let mut baseline = self
         .baselines
         .entry(path.clone())
-        .or_default()
-        .get_or_insert(mtime);
+        .or_insert(FileBaseline::Unreported(mtime));
+      if self.files.all.contains(&path) {
+        *baseline = FileBaseline::Present(baseline.mtime().unwrap_or(mtime));
+      }
       self
         .file_times
         .entry(path.clone())
@@ -295,22 +322,34 @@ impl PathManager {
   /// The scanner reported `path` as changed: the build will know this mtime,
   /// so it becomes the deduplication baseline as well as the time info.
   pub fn set_reported_file_time(&self, path: &InternedPath, mtime: SystemTime) {
-    self.baselines.insert(path.clone(), Some(mtime));
+    self
+      .baselines
+      .insert(path.clone(), FileBaseline::Present(mtime));
     self.set_file_time(path, mtime, true, true);
   }
 
   /// Whether a removal was already reported for this path. The scanner must
   /// still report an absence with no prior record.
   pub fn is_known_absent(&self, path: &InternedPath) -> bool {
-    self.baselines.get(path).is_some_and(|time| time.is_none())
+    self
+      .baselines
+      .get(path)
+      .is_some_and(|baseline| *baseline == FileBaseline::Removed)
+  }
+
+  pub fn was_directory(&self, path: &InternedPath) -> bool {
+    self.context_directories.contains(path)
+      || (self.directories.all.contains(path) && !self.absent_directories.contains(path))
   }
 
   /// Record a removal the caller is about to deliver. The scanner relies on
   /// this marker to mean the build was told about the absence.
   pub fn set_reported_file_removal(&self, path: &InternedPath) {
-    self.baselines.insert(path.clone(), None);
+    self.baselines.insert(path.clone(), FileBaseline::Removed);
     if !self.has_file_or_missing_subscription(path) || std::fs::symlink_metadata(path).is_ok() {
-      self.baselines.remove_if(path, |_, time| time.is_none());
+      self
+        .baselines
+        .remove_if(path, |_, baseline| *baseline == FileBaseline::Removed);
     }
   }
 
@@ -350,7 +389,9 @@ impl PathManager {
 
   fn clear_time_record(&self, path: &InternedPath) {
     self.file_times.remove(path);
-    self.baselines.remove_if(path, |_, time| time.is_some());
+    self
+      .baselines
+      .remove_if(path, |_, baseline| *baseline != FileBaseline::Removed);
     self.context_files.remove(path);
     self.context_directories.remove(path);
   }
@@ -543,15 +584,19 @@ impl PathManager {
       }
     }
 
-    let registered_directory = self.directories.all.contains(path);
+    let registered_directory =
+      self.directories.all.contains(path) && !self.absent_directories.contains(path);
     if !registered_directory && !self.subscriptions.is_below_context(path) {
       return true;
     }
     // Live events use the link's own metadata. Only a scan descends into links.
-    if metadata.is_dir()
-      && let Ok(mtime) = metadata.modified()
-    {
-      mtime_accuracy(mtime);
+    if metadata.is_dir() {
+      if let Ok(mtime) = metadata.modified() {
+        mtime_accuracy(mtime);
+      }
+      if self.context_files.remove(path).is_some() && !self.has_file_or_missing_subscription(path) {
+        self.file_times.remove(path);
+      }
     }
     if registered_directory {
       return true;
@@ -679,7 +724,9 @@ impl PathManager {
   ) {
     // Seeing the file again clears a reported absence. A time-info-only write
     // must not seed a present baseline and suppress the file's own event.
-    self.baselines.remove_if(path, |_, time| time.is_none());
+    self
+      .baselines
+      .remove_if(path, |_, baseline| *baseline == FileBaseline::Removed);
     if ignore_when_equal
       && self
         .file_times
@@ -729,7 +776,8 @@ impl PathManager {
       return true;
     };
     let mtime_ms = mtime_to_millis(current_mtime);
-    if self.baselines.insert(path.clone(), Some(current_mtime)) == Some(Some(current_mtime))
+    let observed = FileBaseline::Present(current_mtime);
+    if self.baselines.insert(path.clone(), observed) == Some(observed)
       && mtime_ms.saturating_add(mtime_accuracy(current_mtime)) < current_time()
     {
       return false;
@@ -790,7 +838,7 @@ impl PathManager {
       .await;
 
     for dir in self.directories.added.iter() {
-      if dir.exists() {
+      if dir.is_dir() {
         self.absent_directories.remove(&*dir);
       } else {
         self.absent_directories.insert(dir.clone());
@@ -931,7 +979,12 @@ impl PathManager {
       // or `{ safeTime: 0 }`: webpack then sees it as missing and rebuilds
       // once it appears, instead of trusting a time for a directory not there.
       let safe_time = if self.absent_directories.contains(dir) {
-        disk_mtime(dir)
+        dir
+          .metadata()
+          .ok()
+          .filter(std::fs::Metadata::is_dir)
+          .as_ref()
+          .and_then(modification_time)
           .map(mtime_safe_time)
           .map(|own| last_watch_event.map_or(own, |event| own.max(event)))
       } else {
@@ -944,7 +997,8 @@ impl PathManager {
     let mut file_timestamps = TimeInfoEntries::with_capacity(file_paths.len() + dir_paths.len());
     let mut file_safe_times = Vec::with_capacity(file_paths.len());
     let mut add_file = |path: InternedPath, time: Option<FileTime>| {
-      if dir_safe_times.contains_key(&path) {
+      let directory = dir_safe_times.get(&path);
+      if directory.is_some_and(Option::is_some) {
         return;
       }
       let name = path_to_string(&path);
@@ -952,7 +1006,9 @@ impl PathManager {
       if let TimeInfoEntry::Entry { safe_time, .. } = entry {
         file_safe_times.push((path, safe_time));
       }
-      file_timestamps.push((name, entry));
+      if directory.is_none() {
+        file_timestamps.push((name, entry));
+      }
     };
     for path in file_paths {
       let time = self.file_time(&path);
@@ -1011,7 +1067,13 @@ impl PathManager {
           TimeInfoEntry::ExistenceOnlyTimeEntry,
           TimeInfoEntry::OnlySafeTimeEntry { safe_time },
         ),
-        None => (TimeInfoEntry::Null, TimeInfoEntry::Null),
+        None => (
+          self
+            .file_times
+            .get(dir)
+            .map_or(TimeInfoEntry::Null, |time| Self::entry(*time)),
+          TimeInfoEntry::Null,
+        ),
       };
       let path = path_to_string(dir);
       file_timestamps.push((path.clone(), file_entry));
@@ -1022,14 +1084,33 @@ impl PathManager {
   }
 }
 
+/// Only ENOENT and ENOTDIR establish that an entry is missing.
+pub(super) fn metadata_if_present(
+  result: std::io::Result<std::fs::Metadata>,
+) -> std::io::Result<Option<std::fs::Metadata>> {
+  match result {
+    Ok(entry) => Ok(Some(entry)),
+    Err(error)
+      if matches!(
+        error.kind(),
+        std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
+      ) =>
+    {
+      Ok(None)
+    }
+    Err(error) => Err(error),
+  }
+}
+
 pub(super) fn followed_metadata<'a>(
   path: &InternedPath,
-  own: &'a std::fs::Metadata,
-) -> Option<std::borrow::Cow<'a, std::fs::Metadata>> {
-  if own.is_symlink() {
-    path.metadata().ok().map(std::borrow::Cow::Owned)
-  } else {
-    Some(std::borrow::Cow::Borrowed(own))
+  own: Option<&'a std::fs::Metadata>,
+) -> std::io::Result<Option<std::borrow::Cow<'a, std::fs::Metadata>>> {
+  match own {
+    Some(entry) if entry.is_symlink() => {
+      metadata_if_present(path.metadata()).map(|target| target.map(std::borrow::Cow::Owned))
+    }
+    entry => Ok(entry.map(std::borrow::Cow::Borrowed)),
   }
 }
 

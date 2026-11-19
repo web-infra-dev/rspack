@@ -1,46 +1,98 @@
-use std::{path::PathBuf, time::SystemTime};
+use std::{fs::Metadata, path::PathBuf};
 
-use rspack_paths::{InternedPath, InternedPathSet};
+use rspack_paths::{InternedPath, InternedPathIndexMap, InternedPathSet};
 
-use super::{PathManager, followed_metadata, modification_time};
+use super::{PathManager, followed_metadata, metadata_if_present, modification_time};
 use crate::{EventBatch, FsEvent, FsEventKind};
 
 impl PathManager {
   /// Compare an explicitly watched entry with the last delivered observation.
   /// A context scan may have updated its time table before its own event arrives.
-  fn check_file(&self, path: &InternedPath) -> Option<FsEventKind> {
-    let mtime = match std::fs::symlink_metadata(path) {
-      Ok(own) => Some(modification_time(followed_metadata(path, &own)?.as_ref())?),
-      Err(error)
-        if matches!(
-          error.kind(),
-          std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
-        ) =>
-      {
-        None
-      }
-      Err(_) => return None,
-    };
-    self.file_difference(path, mtime)
-  }
-
-  pub(crate) fn file_difference(
+  fn file_difference(
     &self,
     path: &InternedPath,
-    mtime: Option<SystemTime>,
+    present: bool,
+    target: Option<&Metadata>,
   ) -> Option<FsEventKind> {
-    let known = self.baselines.get(path).map_or_else(
-      || self.file_times.get(path).map(|time| time.mtime),
-      |baseline| *baseline,
-    );
-    let Some(mtime) = mtime else {
+    let known = self
+      .baselines
+      .get(path)
+      .and_then(|baseline| baseline.mtime());
+    if !present {
       return known.map(|_| FsEventKind::Remove);
-    };
+    }
+    let mtime = modification_time(target?)?;
     match known {
       Some(previous) if previous == mtime => None,
       Some(_) => Some(FsEventKind::Change),
       None => Some(FsEventKind::Create),
     }
+  }
+
+  fn directory_difference(&self, path: &InternedPath, is_dir: bool) -> Option<FsEventKind> {
+    match (self.absent_directories.contains(path), is_dir) {
+      (true, true) => Some(FsEventKind::Create),
+      (false, false) => Some(FsEventKind::Remove),
+      _ => None,
+    }
+  }
+
+  fn subscription_difference(
+    &self,
+    path: &InternedPath,
+    entry: Option<&Metadata>,
+    appeared: bool,
+  ) -> Option<FsEventKind> {
+    let file = self.has_file_or_missing_subscription(path);
+    let directory = self.directories.all.contains(path);
+    if appeared && entry.is_some() && (file || directory) {
+      return Some(FsEventKind::Create);
+    }
+    let target = followed_metadata(path, entry).ok()?;
+    if directory
+      && let Some(kind) =
+        self.directory_difference(path, target.as_deref().is_some_and(Metadata::is_dir))
+    {
+      return Some(kind);
+    }
+    if file {
+      return self.file_difference(path, entry.is_some(), target.as_deref());
+    }
+    None
+  }
+
+  /// A directory hint can be the only event for its registered descendants.
+  /// Collect differences before processing a removal can clear the subtree's records.
+  pub async fn check_registered_children(
+    &self,
+    directory: &InternedPath,
+    appeared: bool,
+  ) -> EventBatch {
+    let mut pending = self.subscriptions.registered_children(directory);
+    let mut changes = EventBatch::new();
+    if pending.is_empty() {
+      return changes;
+    }
+    let appeared = match metadata_if_present(directory.symlink_metadata()) {
+      Ok(Some(entry)) if !entry.is_symlink() => appeared && entry.is_dir(),
+      Ok(None) => false,
+      _ => return changes,
+    };
+    while let Some(path) = pending.pop() {
+      if self.is_ignored_path(&path).await {
+        continue;
+      }
+      let Ok(entry) = metadata_if_present(path.symlink_metadata()) else {
+        continue;
+      };
+      if entry.as_ref().is_none_or(|entry| !entry.is_symlink()) {
+        pending.extend(self.subscriptions.registered_children(&path));
+      }
+      if let Some(kind) = self.subscription_difference(&path, entry.as_ref(), appeared) {
+        changes.push(FsEvent { path, kind });
+      }
+    }
+    changes
   }
 
   pub async fn check_subscriptions(&self) -> EventBatch {
@@ -51,13 +103,13 @@ impl PathManager {
       .chain(self.missing.all.iter())
       .map(|path| path.clone())
       .collect();
-    let mut changes: EventBatch = registered
+    let mut changes: InternedPathIndexMap<_> = registered
       .iter()
       .filter_map(|path| {
-        self.check_file(path).map(|kind| FsEvent {
-          path: path.clone(),
-          kind,
-        })
+        let entry = metadata_if_present(path.symlink_metadata()).ok()?;
+        self
+          .subscription_difference(path, entry.as_ref(), false)
+          .map(|kind| (path.clone(), kind))
       })
       .collect();
     let contexts: Vec<_> = self
@@ -68,31 +120,14 @@ impl PathManager {
       .collect();
     let mut pending = Vec::new();
     for path in contexts {
-      let absent = self.absent_directories.contains(&path);
-      match path.metadata() {
-        Ok(metadata) if metadata.is_dir() => {
-          if absent {
-            changes.push(FsEvent {
-              path,
-              kind: FsEventKind::Create,
-            });
-          } else {
-            pending.push((path, Vec::<PathBuf>::new()));
-          }
-        }
-        Err(error)
-          if !absent
-            && matches!(
-              error.kind(),
-              std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
-            ) =>
-        {
-          changes.push(FsEvent {
-            path,
-            kind: FsEventKind::Remove,
-          })
-        }
-        _ => {}
+      let Ok(metadata) = metadata_if_present(path.metadata()) else {
+        continue;
+      };
+      let is_dir = metadata.as_ref().is_some_and(Metadata::is_dir);
+      if let Some(kind) = self.directory_difference(&path, is_dir) {
+        changes.insert(path, kind);
+      } else if is_dir {
+        pending.push((path, Vec::<PathBuf>::new()));
       }
     }
     let mut visited = InternedPathSet::default();
@@ -123,10 +158,7 @@ impl PathManager {
           if self.context_directories.contains(&path) || self.directories.all.contains(&path) {
             pending.push((path, ancestors.clone()));
           } else {
-            changes.push(FsEvent {
-              path,
-              kind: FsEventKind::Create,
-            });
+            changes.entry(path).or_insert(FsEventKind::Create);
           }
         } else if !registered.contains(&path)
           && let Some(mtime) = modification_time(&metadata)
@@ -136,7 +168,7 @@ impl PathManager {
             Some(_) => FsEventKind::Change,
             None => FsEventKind::Create,
           };
-          changes.push(FsEvent { path, kind });
+          changes.entry(path).or_insert(kind);
         }
       }
       if complete {
@@ -148,13 +180,13 @@ impl PathManager {
                 && !self.directories.all.contains(p)
                 && (self.context_files.contains(p) || self.context_directories.contains(p))
             })
-            .map(|path| FsEvent {
-              path,
-              kind: FsEventKind::Remove,
-            }),
+            .map(|path| (path, FsEventKind::Remove)),
         );
       }
     }
     changes
+      .into_iter()
+      .map(|(path, kind)| FsEvent { path, kind })
+      .collect()
   }
 }
