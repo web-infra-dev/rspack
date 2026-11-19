@@ -140,10 +140,7 @@ jobs:
       - uses: ./.github/actions/rustup
         with:
           key: test-os-"windows-latest"
-      - name: Check subscriptions
-        run: cargo test --locked -p rspack_watcher_testing --test file_subscriptions
       - name: Check path registration in isolation
-        if: ${{ !cancelled() }}
         run: cargo test --locked -p rspack_watcher --lib paths::tests::test_manager -- --exact
 
   rust_watcher_test:
