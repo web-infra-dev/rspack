@@ -850,6 +850,7 @@ pub struct ModuleCodeTemplate {
   runtime_globals_render_mode: RuntimeGlobalsRenderMode,
   runtime_globals: Arc<RuntimeGlobalsRenderMap>,
   runtime_requirements: RuntimeGlobals,
+  default_interop_targets: Option<IdentifierSet>,
 }
 
 impl ModuleCodeTemplate {
@@ -862,6 +863,7 @@ impl ModuleCodeTemplate {
       runtime_globals_render_mode,
       runtime_globals: get_runtime_globals_render_map(runtime_globals_render_mode),
       runtime_requirements: RuntimeGlobals::default(),
+      default_interop_targets: None,
     }
   }
 
@@ -1338,6 +1340,28 @@ impl ModuleCodeTemplate {
     }
   }
 
+  fn needs_default_interop(
+    &mut self,
+    module: &dyn Module,
+    target: ModuleIdentifier,
+    mg: &ModuleGraph,
+  ) -> bool {
+    // Import statements are shared by all references to the same target. Collect
+    // the targets once per importing module, including references in async blocks.
+    self
+      .default_interop_targets
+      .get_or_insert_with(|| {
+        mg.get_ordered_outgoing_connections(&module.identifier())
+          .filter(|connection| {
+            mg.dependency_by_id(&connection.dependency_id)
+              .may_read_default_export(mg)
+          })
+          .map(|connection| *connection.module_identifier())
+          .collect()
+      })
+      .contains(&target)
+  }
+
   #[allow(clippy::too_many_arguments)]
   pub fn import_statement(
     &mut self,
@@ -1379,7 +1403,9 @@ impl ModuleCodeTemplate {
       "/* import */ {opt_declaration}{import_var} = {annotation}{}({module_id_expr});\n",
       self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
     );
-    if matches!(exports_type, ExportsType::Dynamic) {
+    if matches!(exports_type, ExportsType::Dynamic)
+      && self.needs_default_interop(module, target_module.identifier(), mg)
+    {
       return (
         import_content,
         format!(

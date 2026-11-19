@@ -539,6 +539,10 @@ fn find_type_exports_from_outgoings(
 
 #[cacheable_dyn]
 impl Dependency for ESMImportSideEffectDependency {
+  fn may_read_default_export(&self, _module_graph: &ModuleGraph) -> bool {
+    false
+  }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }

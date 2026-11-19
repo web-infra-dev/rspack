@@ -1,7 +1,5 @@
-asset bundle.js xx KiB [emitted] (name: main)
-runtime modules xx bytes 3 modules
+asset bundle.js xx bytes [emitted] (name: main)
 orphan modules xx bytes [orphan] 1 module
-cacheable modules xx bytes
-  ./index.js xx bytes [built] [code generated]
-  ./raw.png xx bytes [built] [code generated]
+./index.js xx bytes [built] [code generated]
+./raw.png xx bytes [built] [code generated]
 Rspack compiled successfully

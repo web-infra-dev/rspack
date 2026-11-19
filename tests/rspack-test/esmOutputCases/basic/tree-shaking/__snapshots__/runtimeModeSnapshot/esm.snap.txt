@@ -1,5 +1,5 @@
 ```mjs title=main.mjs
-import { rspackRequire, moduleFactories, makeNamespaceObject, compatGetDefaultExport, esmModuleDecorator } from "./runtime.mjs";
+import { rspackRequire, moduleFactories, makeNamespaceObject, esmModuleDecorator } from "./runtime.mjs";
 import * as __rspack_external_fs from "fs";
 moduleFactories.add({
 "./cjs.js"
@@ -8,7 +8,6 @@ moduleFactories.add({
   \****************/
 () {
 /* import */ var _use_other__rspack_import_0 = rspackRequire(/*! ./use-other */ "./use-other.js");
-/* import */ var _use_other__rspack_import_0_default = /*#__PURE__*/compatGetDefaultExport(_use_other__rspack_import_0);
 
 
 // use export readFile
@@ -88,29 +87,6 @@ export { rspackRequire };
 var moduleFactories = modules;
 export { moduleFactories };
 
-// rspack/runtime/compat_get_default_export
-// getDefaultExport function for compatibility with non-ESM modules
-var compatGetDefaultExport = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	definePropertyGetters(getter, { a: getter });
-	return getter;
-};
-;
-export { compatGetDefaultExport };
-// rspack/runtime/define_property_getters
-var definePropertyGetters = (exports, getters, values) => {
-	var define = (defs, kind) => {
-		for(var key in defs) {
-			if(hasOwnProperty(defs, key) && !hasOwnProperty(exports, key)) {
-				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
-			}
-		}
-	};
-	define(getters, "get");
-	define(values, "value");
-};;
 // rspack/runtime/esm_module_decorator
 var esmModuleDecorator = (module) => {
   module = Object.create(module);
@@ -127,8 +103,6 @@ export { esmModuleDecorator };
 // rspack/runtime/esm_register_module
 moduleFactories.add = function registerModules(modules) { Object.assign(moduleFactories, modules) }
 ;
-// rspack/runtime/has_own_property
-var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {

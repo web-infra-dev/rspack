@@ -1,5 +1,5 @@
-runtime modules xx KiB 10 modules
-cacheable modules xx bytes
+runtime modules xx KiB 9 modules
+built modules xx bytes [built]
   code generated modules xx bytes [code generated]
     ./index.js xx bytes [built] [code generated]
       Statement with side_effects in source code at ./index.js<LINE_COL>-26
@@ -20,12 +20,10 @@ cacheable modules xx bytes
     ./module-id.js xx bytes [built] [code generated]
       ExportDefaultExpr with side_effects in source code at ./module-id.js<LINE_COL>-26
       ModuleConcatenation bailout: Module uses module.id
-    ./module-loaded.js xx bytes [built] [code generated]
-      ExportDefaultExpr with side_effects in source code at ./module-loaded.js<LINE_COL>-30
-      ModuleConcatenation bailout: Module uses module.loaded
     + 2 modules
   orphan modules xx bytes [orphan]
     ./concatenated.js xx bytes [orphan] [built]
     ./concatenated1.js xx bytes [orphan] [built]
     ./concatenated2.js xx bytes [orphan] [built]
+./concatenated.js + 2 modules xx bytes [code generated]
 Rspack x.x.x compiled successfully in X s
