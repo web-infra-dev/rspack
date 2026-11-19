@@ -31,11 +31,7 @@ pub struct ContainerExposedDependency {
 }
 
 impl ContainerExposedDependency {
-  pub fn new(exposed_name: String, request: String) -> Self {
-    Self::new_with_layer(exposed_name, request, None)
-  }
-
-  pub fn new_with_layer(exposed_name: String, request: String, layer: Option<ModuleLayer>) -> Self {
+  pub fn new(exposed_name: String, request: String, layer: Option<ModuleLayer>) -> Self {
     let resource_identifier =
       exposed_resource_identifier(&exposed_name, &request, layer.as_deref()).into();
     Self {
