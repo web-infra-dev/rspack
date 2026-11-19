@@ -23,7 +23,7 @@ export default defineConfig({
         }
 
         generate() {
-          return `${RuntimeGlobals.require}.mockNormal = "normal";`;
+          return `${RuntimeGlobals.require}.mockNormal = "normal"; ${RuntimeGlobals.require}.stageOrder = ["normal"];`;
         }
       }
 
@@ -33,7 +33,7 @@ export default defineConfig({
         }
 
         generate() {
-          return `${RuntimeGlobals.require}.mockTrigger = "trigger";`;
+          return `${RuntimeGlobals.require}.mockTrigger = "trigger"; ${RuntimeGlobals.require}.stageOrder.push("trigger");`;
         }
       }
 

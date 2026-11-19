@@ -1,11 +1,15 @@
 use async_trait::async_trait;
+use rayon::prelude::*;
+use rspack_sources::{RawStringSource, SourceExt};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use super::*;
 use crate::{
-  CodeGenerationRuntimeRequirementsWrite, RuntimeProxyMetadata, compilation::pass::PassExt,
-  logger::Logger, runtime_globals::BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS,
+  CodeGenerationRuntimeRequirementsWrite, RuntimeModuleBridge, RuntimeModuleSourceKind,
+  RuntimeProxyMetadata, RuntimeTemplateRenderMode, compilation::pass::PassExt, logger::Logger,
+  runtime_globals::BOOTSTRAP_RUNTIME_CONTEXT_GLOBALS,
   runtime_mode::RuntimeMode as ExperimentRuntimeMode,
+  runtime_module_bridge::classify_runtime_module_source,
 };
 
 pub struct RuntimeRequirementsPass;
@@ -293,8 +297,23 @@ pub async fn process_modules_runtime_requirements(
   Ok(())
 }
 
+// Keep the once-per-pass future out of each caller's (also large) compilation state machine.
+pub fn process_chunks_runtime_requirements(
+  compilation: &mut Compilation,
+  chunks: FxHashSet<ChunkUkey>,
+  entries: FxHashSet<ChunkUkey>,
+  plugin_driver: SharedPluginDriver,
+) -> futures::future::BoxFuture<'_, Result<()>> {
+  Box::pin(process_chunks_runtime_requirements_impl(
+    compilation,
+    chunks,
+    entries,
+    plugin_driver,
+  ))
+}
+
 #[instrument(name = "Compilation:process_chunks_runtime_requirements", target=TRACING_BENCH_TARGET skip_all)]
-pub async fn process_chunks_runtime_requirements(
+async fn process_chunks_runtime_requirements_impl(
   compilation: &mut Compilation,
   chunks: FxHashSet<ChunkUkey>,
   entries: FxHashSet<ChunkUkey>,
@@ -494,7 +513,20 @@ pub async fn process_chunks_runtime_requirements(
   // and overwrite the runtime_module.generate() to get new source in create_chunk_assets
   // this needs full runtime requirements, so run hooks.runtime_module after runtime_requirements_in_tree
   let mut runtime_modules = mem::take(&mut compilation.runtime_modules);
-  for entry_ukey in &entries {
+  let rspack_mode = compilation.options.experiments.runtime_mode == ExperimentRuntimeMode::Rspack;
+  let modern_module =
+    compilation.runtime_template.render_mode() == RuntimeTemplateRenderMode::RspackExport;
+  let hook_chunks = if rspack_mode && !modern_module {
+    compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .keys()
+      .copied()
+      .collect::<Vec<_>>()
+  } else {
+    entries.iter().copied().collect()
+  };
+  for entry_ukey in &hook_chunks {
     let runtime_module_ids: Vec<_> = compilation
       .build_chunk_graph_artifact
       .chunk_graph
@@ -523,6 +555,8 @@ pub async fn process_chunks_runtime_requirements(
     return Ok(());
   }
 
+  let bridges = collect_runtime_module_bridges(compilation, &entries).await?;
+
   let metadata_chunk_ukeys = compilation
     .build_chunk_graph_artifact
     .chunk_by_ukey
@@ -533,7 +567,10 @@ pub async fn process_chunks_runtime_requirements(
         .build_chunk_graph_artifact
         .chunk_by_ukey
         .expect_get(chunk_ukey);
-      chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+      bridges
+        .get(chunk_ukey)
+        .is_some_and(|b| b.intercepted_factories)
+        || chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         || compilation
           .build_chunk_graph_artifact
           .chunk_graph
@@ -554,7 +591,10 @@ pub async fn process_chunks_runtime_requirements(
       Default::default()
     };
     referenced_chunks.insert(chunk_ukey);
-    let mut metadata = RuntimeProxyMetadata::default();
+    let mut metadata = RuntimeProxyMetadata {
+      runtime_module_bridge: bridges.get(&chunk_ukey).copied().unwrap_or_default(),
+      ..Default::default()
+    };
 
     for referenced_chunk_ukey in referenced_chunks.iter() {
       let referenced_chunk = compilation
@@ -631,9 +671,10 @@ pub async fn process_chunks_runtime_requirements(
           &chunk_ukey,
         ));
     }
-    if metadata
-      .tree_runtime_requirements
-      .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST)
+    if metadata.runtime_module_bridge.owner
+      || metadata
+        .tree_runtime_requirements
+        .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST)
     {
       metadata
         .context_setter_fields
@@ -667,3 +708,108 @@ process_runtime_requirement_hook_macro!(
   &mut Compilation,
   &'a mut Compilation
 );
+
+/// Inspect the final hook source once, then share its classification with every attached chunk.
+async fn collect_runtime_module_bridges(
+  compilation: &mut Compilation,
+  entries: &FxHashSet<ChunkUkey>,
+) -> Result<FxHashMap<ChunkUkey, RuntimeModuleBridge>> {
+  let graph = &compilation.build_chunk_graph_artifact;
+  let modern_module =
+    compilation.runtime_template.render_mode() == RuntimeTemplateRenderMode::RspackExport;
+  let mut sources = Vec::new();
+  let mut generated = Vec::new();
+  for (&id, module) in &compilation.runtime_modules {
+    if modern_module
+      && !graph
+        .chunk_graph
+        .get_module_chunks(id)
+        .iter()
+        .any(|chunk| entries.contains(chunk))
+    {
+      continue;
+    }
+    if let Some(source) = module.get_custom_source() {
+      sources.push((id, RawStringSource::from(source).boxed()));
+    } else if let Some(source) = module.generated_source_for_bridge(compilation) {
+      generated.push(async move {
+        let source = source
+          .await
+          .map_err(|e| e.wrap_err(format!("in runtime module {id}")))?;
+        Ok::<_, rspack_error::Error>((id, source))
+      });
+    }
+  }
+  sources.extend(futures::future::try_join_all(generated).await?);
+
+  let source_kinds = sources
+    .into_par_iter()
+    .map(|(id, source)| {
+      let kind = classify_runtime_module_source(&source.source().into_string_lossy())
+        .map_err(|e| e.wrap_err(format!("in runtime module {id}")))?;
+      Ok((id, kind))
+    })
+    .collect::<Result<Vec<_>>>()?;
+
+  let mut bridges = FxHashMap::<ChunkUkey, RuntimeModuleBridge>::default();
+  let mut needs_bridge = false;
+  for (id, kind) in source_kinds {
+    for chunk in graph.chunk_graph.get_module_chunks(id) {
+      if modern_module && !entries.contains(chunk) {
+        continue;
+      }
+      let bridge = bridges.entry(*chunk).or_default();
+      bridge.source = bridge.source.max(kind);
+      if kind == RuntimeModuleSourceKind::NeedsBridge {
+        needs_bridge = true;
+        compilation
+          .cgc_runtime_requirements_artifact
+          .entry(*chunk)
+          .or_default()
+          .insert(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
+      }
+    }
+  }
+  for owner in entries {
+    // Hot updates run against the bootstrap and factories already loaded by the page.
+    let hmr = ChunkGraph::get_tree_runtime_requirements(compilation, owner).contains(
+      RuntimeGlobals::HMR_DOWNLOAD_MANIFEST | RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS,
+    );
+    if !needs_bridge && !hmr {
+      continue;
+    }
+    let mut chunks = graph
+      .chunk_by_ukey
+      .expect_get(owner)
+      .get_all_referenced_chunks(&graph.chunk_group_by_ukey);
+    chunks.insert(*owner);
+    if !hmr
+      && !chunks.iter().any(|chunk| {
+        bridges
+          .get(chunk)
+          .is_some_and(|b| b.source == RuntimeModuleSourceKind::NeedsBridge)
+      })
+    {
+      continue;
+    }
+    // Expose the bootstrap's factory table and module cache as require.m and require.c.
+    let requirements = compilation
+      .cgc_runtime_requirements_artifact
+      .entry(*owner)
+      .or_default();
+    requirements.insert(
+      RuntimeGlobals::REQUIRE
+        | RuntimeGlobals::REQUIRE_SCOPE
+        | RuntimeGlobals::MODULE_FACTORIES
+        | RuntimeGlobals::MODULE_CACHE,
+    );
+    bridges.entry(*owner).or_default().owner = true;
+    if requirements.contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION) {
+      // The owner's interceptors can pass a replacement loader to factories in any of these chunks.
+      for chunk in chunks {
+        bridges.entry(chunk).or_default().intercepted_factories = true;
+      }
+    }
+  }
+  Ok(bridges)
+}
