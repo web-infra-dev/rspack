@@ -154,7 +154,7 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
 
   // Provider versions are authoritative for the same resolved import. Collect
   // them before consumes, whose fallback versions are inferred from packages.
-  let mut modules = module_graph
+  let (providers, consumers): (Vec<_>, Vec<_>) = module_graph
     .modules()
     .filter(|(_, module)| {
       matches!(
@@ -162,11 +162,10 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
         rspack_core::ModuleType::ConsumeShared | rspack_core::ModuleType::ProvideShared
       )
     })
-    .collect::<Vec<_>>();
-  modules.sort_unstable_by_key(|(_, module)| {
-    matches!(module.module_type(), rspack_core::ModuleType::ConsumeShared)
-  });
-  for (id, module) in modules {
+    .partition(|(_, module)| {
+      matches!(module.module_type(), rspack_core::ModuleType::ProvideShared)
+    });
+  for (id, module) in providers.into_iter().chain(consumers) {
     let module_type = module.module_type();
     let share_info = match module_type {
       rspack_core::ModuleType::ConsumeShared => {
