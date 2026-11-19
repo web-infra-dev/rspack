@@ -6,10 +6,11 @@ use rspack_util::json_stringify;
 
 use super::AffectType;
 use crate::{
-  AsContextDependency, AsDependencyCodeGeneration, Context, ContextNameSpaceObject, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ExportsInfoArtifact, ImportAttributes,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ReferencedExport,
-  ReferencedSpecifier, ResourceIdentifier, RuntimeSpec, create_exports_object_referenced,
+  AsContextDependency, AsDependencyCodeGeneration, Context, ContextNameSpaceObject,
+  ContextTypePrefix, Dependency, DependencyCategory, DependencyId, DependencyType,
+  ExportsInfoArtifact, ImportAttributes, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleLayer, ReferencedExport, ReferencedSpecifier, ResourceIdentifier, RuntimeSpec,
+  create_dynamic_import_referenced_exports, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
 
@@ -102,7 +103,15 @@ impl Dependency for ContextElementDependency {
         exports_info_artifact,
         is_strict,
       );
-      create_referenced_exports_by_referenced_specifiers(
+      let create_referenced_exports = if matches!(
+        self.dependency_type,
+        DependencyType::ContextElement(ContextTypePrefix::Import)
+      ) {
+        create_dynamic_import_referenced_exports
+      } else {
+        create_referenced_exports_by_referenced_specifiers
+      };
+      create_referenced_exports(
         referenced_specifiers,
         exports_type,
         exports_info_artifact,

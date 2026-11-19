@@ -10,8 +10,8 @@ use rspack_core::{
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, ImportAttributes, ImportPhase,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection,
   ReferencedSpecifier, ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
-  TemplateReplaceSource, UsedByExports, UsedByExportsCondition, create_exports_object_referenced,
-  create_referenced_exports_by_referenced_specifiers,
+  TemplateReplaceSource, UsedByExports, UsedByExportsCondition,
+  create_dynamic_import_referenced_exports, create_exports_object_referenced,
 };
 
 use super::{ImportEagerDependency, create_resource_identifier_for_esm_dependency};
@@ -65,17 +65,7 @@ impl ImportDependency {
     }
   }
 
-  pub fn set_referenced_specifiers(
-    &mut self,
-    referenced_specifiers: Vec<ReferencedSpecifier>,
-    from_magic_comment: bool,
-  ) {
-    if !from_magic_comment && referenced_specifiers.is_empty() {
-      // If the referenced specifiers are empty, keep it as default (None), since this dependency can't eliminate by side effects optimization,
-      // so if we set it to Some(vec![]), and the dependency still executes, it will cause runtime error because the exports are all tree shaken.
-      // see test case `tests/rspack-test/configCases/tree-shaking/side-effects-free-dynamic-import`
-      return;
-    }
+  pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
     self.referenced_specifiers = Some(referenced_specifiers);
   }
 
@@ -149,7 +139,7 @@ impl Dependency for ImportDependency {
         exports_info_artifact,
         strict,
       );
-      create_referenced_exports_by_referenced_specifiers(
+      create_dynamic_import_referenced_exports(
         referenced_specifiers,
         exports_type,
         exports_info_artifact,

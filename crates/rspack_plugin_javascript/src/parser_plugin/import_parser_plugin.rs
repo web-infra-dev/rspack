@@ -634,7 +634,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           phase,
         );
         if let Some(exports) = exports {
-          dep.set_referenced_specifiers(exports, !is_statical && has_exports_magic_comment);
+          dep.set_referenced_specifiers(exports);
         }
         let dep_id = *dep.id();
         let dep_idx = parser.next_dependency_idx();
@@ -657,7 +657,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           parser.in_try,
         );
         if let Some(exports) = exports {
-          dep.set_referenced_specifiers(exports, !is_statical && has_exports_magic_comment);
+          dep.set_referenced_specifiers(exports);
         }
         let dep_idx = parser.next_dependency_idx();
         parser.add_dependency(BoxDependency::new(dep));
@@ -682,7 +682,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           },
         );
         if let Some(export) = exports {
-          dep.set_referenced_specifiers(export, !is_statical && has_exports_magic_comment);
+          dep.set_referenced_specifiers(export);
         }
         let dep_id = dep.id;
         let range = DependencyRange::from(import_call_span);
@@ -764,7 +764,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         parser.in_try,
       );
       if let Some(export) = exports {
-        dep.set_referenced_specifiers(export, !is_statical && has_exports_magic_comment);
+        dep.set_referenced_specifiers(export);
       }
       dep.set_critical(critical);
       let dep_idx = parser.next_dependency_idx();
@@ -863,25 +863,25 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           let dep = dep
             .downcast_mut::<ImportDependency>()
             .expect("Failed to downcast to ImportDependency");
-          dep.set_referenced_specifiers(references, false);
+          dep.set_referenced_specifiers(references);
         }
         DependencyType::DynamicImportEager => {
           let dep = dep
             .downcast_mut::<ImportEagerDependency>()
             .expect("Failed to downcast to ImportEagerDependency");
-          dep.set_referenced_specifiers(references, false);
+          dep.set_referenced_specifiers(references);
         }
         DependencyType::DynamicImportWeak => {
           let dep = dep
             .downcast_mut::<ImportWeakDependency>()
             .expect("Failed to downcast to ImportWeakDependency");
-          dep.set_referenced_specifiers(references, false);
+          dep.set_referenced_specifiers(references);
         }
         DependencyType::ImportContext => {
           let dep = dep
             .downcast_mut::<ImportContextDependency>()
             .expect("Failed to downcast to ImportContextDependency");
-          dep.set_referenced_specifiers(references, false);
+          dep.set_referenced_specifiers(references);
         }
         _ => unreachable!(),
       };
