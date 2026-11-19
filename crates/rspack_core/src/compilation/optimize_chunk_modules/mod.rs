@@ -16,6 +16,7 @@ impl PassExt for OptimizeChunkModulesPass {
   }
 
   async fn run_pass(&self, compilation: &mut Compilation) -> Result<()> {
+    let previous_async_startup = std::mem::take(&mut compilation.async_modules_artifact.startup);
     compilation
       .plugin_driver
       .clone()
@@ -25,6 +26,17 @@ impl PassExt for OptimizeChunkModulesPass {
       .await
       .map(|_| ())
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeChunkModules"))?;
+
+    if let Some(mut mutations) = compilation.incremental.mutations_write() {
+      let module_graph = compilation.get_module_graph();
+      for module in
+        previous_async_startup.symmetric_difference(&compilation.async_modules_artifact.startup)
+      {
+        if module_graph.module_by_identifier(module).is_some() {
+          mutations.add(Mutation::ModuleSetAsync { module: *module });
+        }
+      }
+    }
 
     Ok(())
   }

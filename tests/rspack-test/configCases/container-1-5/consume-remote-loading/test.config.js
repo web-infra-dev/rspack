@@ -1,5 +1,7 @@
+const path = require('node:path');
+
 module.exports = {
-  findBundle() {
-    return 'main.js';
+  findBundle(_index, options) {
+    return path.join(options.output.path, 'main.js');
   },
 };

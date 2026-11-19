@@ -90,6 +90,10 @@ impl IncrementalArtifacts {
     }
 
     if passes.contains(IncrementalPasses::OPTIMIZE_CHUNK_MODULES) {
+      if incremental.mutations_writable() {
+        compilation.async_modules_artifact.startup =
+          std::mem::take(&mut previous.async_modules_artifact.startup);
+      }
       recover_artifact(
         incremental,
         &mut compilation.imported_by_defer_modules_artifact,
