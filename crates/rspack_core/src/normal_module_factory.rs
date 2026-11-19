@@ -372,226 +372,6 @@ impl ModuleFactory for NormalModuleFactory {
   }
 }
 
-#[cfg(test)]
-mod tests {
-  use super::*;
-  use crate::{
-    AssetGeneratorOptions, AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions,
-    CssGeneratorOptions, CssParserOptions, JavascriptParserCreateRequire, JavascriptParserOptions,
-  };
-
-  #[test]
-  fn reuse_global_parser_options_when_local_options_are_empty() {
-    let global = ParserOptions::Javascript(JavascriptParserOptions {
-      jsx: Some(true),
-      ..Default::default()
-    });
-
-    let resolved = merge_parser_options_with_local(Some(&global), None)
-      .expect("global parser options should be reused");
-
-    assert_eq!(
-      resolved
-        .get_javascript()
-        .expect("javascript parser options should be resolved")
-        .jsx,
-      Some(true)
-    );
-  }
-
-  #[test]
-  fn merge_local_parser_options_into_global_parser_options() {
-    let global = ParserOptions::Javascript(JavascriptParserOptions {
-      jsx: Some(true),
-      require_dynamic: Some(true),
-      ..Default::default()
-    });
-    let local = ParserOptions::JavascriptAuto(JavascriptParserOptions {
-      jsx: Some(false),
-      ..Default::default()
-    });
-
-    let resolved = merge_parser_options_with_local(Some(&global), Some(&local))
-      .expect("merged parser options should exist");
-
-    let options = resolved
-      .get_javascript()
-      .expect("javascript parser options should be resolved");
-    assert_eq!(options.jsx, Some(false));
-    assert_eq!(options.require_dynamic, Some(true));
-  }
-
-  fn asset_rule_effect(max_size: f64, emit: bool) -> ModuleRuleEffect {
-    ModuleRuleEffect {
-      parser: Some(ParserOptions::Asset(AssetParserOptions {
-        data_url_condition: Some(AssetParserDataUrl::Options(AssetParserDataUrlOptions {
-          max_size: Some(max_size),
-        })),
-      })),
-      generator: Some(GeneratorOptions::Asset(AssetGeneratorOptions {
-        emit: Some(emit),
-        ..Default::default()
-      })),
-      ..Default::default()
-    }
-  }
-
-  #[test]
-  fn lazily_reuse_parser_and_generator_options_for_rule_ids() {
-    let mut module_options = crate::ModuleOptions {
-      rules: vec![crate::ModuleRule {
-        effect: asset_rule_effect(200.0, false),
-        ..Default::default()
-      }],
-      ..Default::default()
-    };
-    module_options
-      .assign_rule_ids()
-      .expect("should assign rule ids");
-    let rule = &module_options.rules[0].effect;
-    let options_cache = FxDashMap::default();
-    let module_rules = [rule];
-    let global_parser = ParserOptions::Asset(AssetParserOptions {
-      data_url_condition: Some(AssetParserDataUrl::Options(AssetParserDataUrlOptions {
-        max_size: Some(100.0),
-      })),
-    });
-    let global_generator = GeneratorOptions::Asset(AssetGeneratorOptions {
-      emit: Some(true),
-      ..Default::default()
-    });
-
-    let first = resolve_module_options(
-      &options_cache,
-      &module_rules,
-      &ModuleType::Asset,
-      Some(&global_parser),
-      Some(&global_generator),
-    );
-    let second = resolve_module_options(
-      &options_cache,
-      &module_rules,
-      &ModuleType::Asset,
-      Some(&global_parser),
-      Some(&global_generator),
-    );
-
-    assert!(Arc::ptr_eq(&first, &second));
-    assert_eq!(options_cache.len(), 1);
-    assert_eq!(first.cache_key().rule_ids.as_slice(), &[rule.id]);
-    assert_eq!(first.cache_key().module_type, ModuleType::Asset);
-
-    let parser_options = first
-      .parser_options()
-      .and_then(ParserOptions::get_asset)
-      .expect("asset parser options should exist");
-    let max_size = match parser_options.data_url_condition.as_ref() {
-      Some(AssetParserDataUrl::Options(options)) => options.max_size,
-      _ => None,
-    };
-    assert_eq!(max_size, Some(200.0));
-
-    let generator_options = first
-      .generator_options()
-      .and_then(GeneratorOptions::get_asset)
-      .expect("asset generator options should exist");
-    assert_eq!(generator_options.emit, Some(false));
-  }
-
-  #[test]
-  fn reuse_global_generator_options_when_local_options_are_empty() {
-    let options_cache = FxDashMap::default();
-    let module_rules: [&ModuleRuleEffect; 0] = [];
-    let global_generator = GeneratorOptions::Asset(AssetGeneratorOptions {
-      emit: Some(true),
-      ..Default::default()
-    });
-
-    let options = resolve_module_options(
-      &options_cache,
-      &module_rules,
-      &ModuleType::Asset,
-      None,
-      Some(&global_generator),
-    );
-
-    assert_eq!(
-      options
-        .generator_options()
-        .and_then(GeneratorOptions::get_asset)
-        .expect("asset generator options should exist")
-        .emit,
-      Some(true)
-    );
-  }
-
-  #[test]
-  fn normalize_css_options_for_parser_and_generator_builder() {
-    let options_cache = FxDashMap::default();
-    let module_rules: [&ModuleRuleEffect; 0] = [];
-    for module_type in [
-      ModuleType::Css,
-      ModuleType::CssAuto,
-      ModuleType::CssGlobal,
-      ModuleType::CssModule,
-    ] {
-      let options = resolve_module_options(
-        &options_cache,
-        &module_rules,
-        &module_type,
-        Some(&ParserOptions::Css(CssParserOptions {
-          export_type: None,
-          named_exports: Some(true),
-          url: None,
-          r#import: None,
-          resolve_import: None,
-        })),
-        Some(&GeneratorOptions::Css(CssGeneratorOptions {
-          exports_only: Some(false),
-          runtime_public_path: Some(false),
-          es_module: Some(true),
-        })),
-      );
-
-      let parser_options = options
-        .parser_options()
-        .and_then(ParserOptions::get_css_module)
-        .expect("css parser options should be normalized to CssAutoOrModule");
-      let generator_options = options
-        .generator_options()
-        .and_then(GeneratorOptions::get_css_module)
-        .expect("css generator options should be normalized to CssModule");
-
-      assert_eq!(parser_options.named_exports, Some(true));
-      assert_eq!(generator_options.exports_only, Some(false));
-      assert_eq!(generator_options.runtime_public_path, Some(false));
-      assert_eq!(generator_options.es_module, Some(true));
-    }
-  }
-
-  #[test]
-  fn merge_explicit_disabled_create_require_into_global_parser_options() {
-    let global = ParserOptions::Javascript(JavascriptParserOptions {
-      create_require: Some(JavascriptParserCreateRequire::Enabled(
-        "createRequire from module".to_string(),
-      )),
-      ..Default::default()
-    });
-    let local = ParserOptions::JavascriptAuto(JavascriptParserOptions {
-      create_require: Some(JavascriptParserCreateRequire::Disabled),
-      ..Default::default()
-    });
-
-    let resolved = merge_parser_options_with_local(Some(&global), Some(&local))
-      .expect("merged parser options should exist");
-
-    let options = resolved
-      .get_javascript()
-      .expect("javascript parser options should be resolved");
-    assert!(!options.is_create_require_enabled());
-  }
-}
-
 const HYPHEN: char = '-';
 const EXCLAMATION: char = '!';
 const DOT: char = '.';
@@ -1460,33 +1240,253 @@ fn match_ext(input: &str) -> Option<(&str, &str)> {
   None
 }
 
-#[test]
-fn test_split_element() {
-  assert_eq!(split_element("a!a"), vec!["a", "a"]);
-  assert_eq!(split_element("a!!a"), vec!["a", "a"]);
-  assert_eq!(split_element("!!a!!a!!"), vec!["", "a", "a", ""]);
-}
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::{
+    AssetGeneratorOptions, AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions,
+    CssGeneratorOptions, CssParserOptions, JavascriptParserCreateRequire, JavascriptParserOptions,
+  };
 
-#[test]
-fn test_match_ext() {
-  assert!(match_ext("foo.webpack[type/javascript]").is_some());
-  let cap = match_ext("foo.webpack[type/javascript]").unwrap();
+  #[test]
+  fn test_split_element() {
+    assert_eq!(split_element("a!a"), vec!["a", "a"]);
+    assert_eq!(split_element("a!!a"), vec!["a", "a"]);
+    assert_eq!(split_element("!!a!!a!!"), vec!["", "a", "a", ""]);
+  }
 
-  assert_eq!(cap, ("foo", "type/javascript"));
+  #[test]
+  fn test_match_ext() {
+    assert!(match_ext("foo.webpack[type/javascript]").is_some());
+    let cap = match_ext("foo.webpack[type/javascript]").unwrap();
 
-  assert_eq!(
-    match_ext("foo.css.webpack[javascript/auto]"),
-    Some(("foo.css", "javascript/auto"))
-  );
+    assert_eq!(cap, ("foo", "type/javascript"));
 
-  // Test .rspack support
-  assert!(match_ext("foo.rspack[type/javascript]").is_some());
-  let cap = match_ext("foo.rspack[type/javascript]").unwrap();
+    assert_eq!(
+      match_ext("foo.css.webpack[javascript/auto]"),
+      Some(("foo.css", "javascript/auto"))
+    );
 
-  assert_eq!(cap, ("foo", "type/javascript"));
+    // Test .rspack support
+    assert!(match_ext("foo.rspack[type/javascript]").is_some());
+    let cap = match_ext("foo.rspack[type/javascript]").unwrap();
 
-  assert_eq!(
-    match_ext("foo.css.rspack[javascript/auto]"),
-    Some(("foo.css", "javascript/auto"))
-  );
+    assert_eq!(cap, ("foo", "type/javascript"));
+
+    assert_eq!(
+      match_ext("foo.css.rspack[javascript/auto]"),
+      Some(("foo.css", "javascript/auto"))
+    );
+  }
+
+  #[test]
+  fn reuse_global_parser_options_when_local_options_are_empty() {
+    let global = ParserOptions::Javascript(JavascriptParserOptions {
+      jsx: Some(true),
+      ..Default::default()
+    });
+
+    let resolved = merge_parser_options_with_local(Some(&global), None)
+      .expect("global parser options should be reused");
+
+    assert_eq!(
+      resolved
+        .get_javascript()
+        .expect("javascript parser options should be resolved")
+        .jsx,
+      Some(true)
+    );
+  }
+
+  #[test]
+  fn merge_local_parser_options_into_global_parser_options() {
+    let global = ParserOptions::Javascript(JavascriptParserOptions {
+      jsx: Some(true),
+      require_dynamic: Some(true),
+      ..Default::default()
+    });
+    let local = ParserOptions::JavascriptAuto(JavascriptParserOptions {
+      jsx: Some(false),
+      ..Default::default()
+    });
+
+    let resolved = merge_parser_options_with_local(Some(&global), Some(&local))
+      .expect("merged parser options should exist");
+
+    let options = resolved
+      .get_javascript()
+      .expect("javascript parser options should be resolved");
+    assert_eq!(options.jsx, Some(false));
+    assert_eq!(options.require_dynamic, Some(true));
+  }
+
+  fn asset_rule_effect(max_size: f64, emit: bool) -> ModuleRuleEffect {
+    ModuleRuleEffect {
+      parser: Some(ParserOptions::Asset(AssetParserOptions {
+        data_url_condition: Some(AssetParserDataUrl::Options(AssetParserDataUrlOptions {
+          max_size: Some(max_size),
+        })),
+      })),
+      generator: Some(GeneratorOptions::Asset(AssetGeneratorOptions {
+        emit: Some(emit),
+        ..Default::default()
+      })),
+      ..Default::default()
+    }
+  }
+
+  #[test]
+  fn lazily_reuse_parser_and_generator_options_for_rule_ids() {
+    let mut module_options = crate::ModuleOptions {
+      rules: vec![crate::ModuleRule {
+        effect: asset_rule_effect(200.0, false),
+        ..Default::default()
+      }],
+      ..Default::default()
+    };
+    module_options
+      .assign_rule_ids()
+      .expect("should assign rule ids");
+    let rule = &module_options.rules[0].effect;
+    let options_cache = FxDashMap::default();
+    let module_rules = [rule];
+    let global_parser = ParserOptions::Asset(AssetParserOptions {
+      data_url_condition: Some(AssetParserDataUrl::Options(AssetParserDataUrlOptions {
+        max_size: Some(100.0),
+      })),
+    });
+    let global_generator = GeneratorOptions::Asset(AssetGeneratorOptions {
+      emit: Some(true),
+      ..Default::default()
+    });
+
+    let first = resolve_module_options(
+      &options_cache,
+      &module_rules,
+      &ModuleType::Asset,
+      Some(&global_parser),
+      Some(&global_generator),
+    );
+    let second = resolve_module_options(
+      &options_cache,
+      &module_rules,
+      &ModuleType::Asset,
+      Some(&global_parser),
+      Some(&global_generator),
+    );
+
+    assert!(Arc::ptr_eq(&first, &second));
+    assert_eq!(options_cache.len(), 1);
+    assert_eq!(first.cache_key().rule_ids.as_slice(), &[rule.id]);
+    assert_eq!(first.cache_key().module_type, ModuleType::Asset);
+
+    let parser_options = first
+      .parser_options()
+      .and_then(ParserOptions::get_asset)
+      .expect("asset parser options should exist");
+    let max_size = match parser_options.data_url_condition.as_ref() {
+      Some(AssetParserDataUrl::Options(options)) => options.max_size,
+      _ => None,
+    };
+    assert_eq!(max_size, Some(200.0));
+
+    let generator_options = first
+      .generator_options()
+      .and_then(GeneratorOptions::get_asset)
+      .expect("asset generator options should exist");
+    assert_eq!(generator_options.emit, Some(false));
+  }
+
+  #[test]
+  fn reuse_global_generator_options_when_local_options_are_empty() {
+    let options_cache = FxDashMap::default();
+    let module_rules: [&ModuleRuleEffect; 0] = [];
+    let global_generator = GeneratorOptions::Asset(AssetGeneratorOptions {
+      emit: Some(true),
+      ..Default::default()
+    });
+
+    let options = resolve_module_options(
+      &options_cache,
+      &module_rules,
+      &ModuleType::Asset,
+      None,
+      Some(&global_generator),
+    );
+
+    assert_eq!(
+      options
+        .generator_options()
+        .and_then(GeneratorOptions::get_asset)
+        .expect("asset generator options should exist")
+        .emit,
+      Some(true)
+    );
+  }
+
+  #[test]
+  fn normalize_css_options_for_parser_and_generator_builder() {
+    let options_cache = FxDashMap::default();
+    let module_rules: [&ModuleRuleEffect; 0] = [];
+    for module_type in [
+      ModuleType::Css,
+      ModuleType::CssAuto,
+      ModuleType::CssGlobal,
+      ModuleType::CssModule,
+    ] {
+      let options = resolve_module_options(
+        &options_cache,
+        &module_rules,
+        &module_type,
+        Some(&ParserOptions::Css(CssParserOptions {
+          export_type: None,
+          named_exports: Some(true),
+          url: None,
+          r#import: None,
+          resolve_import: None,
+        })),
+        Some(&GeneratorOptions::Css(CssGeneratorOptions {
+          exports_only: Some(false),
+          runtime_public_path: Some(false),
+          es_module: Some(true),
+        })),
+      );
+
+      let parser_options = options
+        .parser_options()
+        .and_then(ParserOptions::get_css_module)
+        .expect("css parser options should be normalized to CssAutoOrModule");
+      let generator_options = options
+        .generator_options()
+        .and_then(GeneratorOptions::get_css_module)
+        .expect("css generator options should be normalized to CssModule");
+
+      assert_eq!(parser_options.named_exports, Some(true));
+      assert_eq!(generator_options.exports_only, Some(false));
+      assert_eq!(generator_options.runtime_public_path, Some(false));
+      assert_eq!(generator_options.es_module, Some(true));
+    }
+  }
+
+  #[test]
+  fn merge_explicit_disabled_create_require_into_global_parser_options() {
+    let global = ParserOptions::Javascript(JavascriptParserOptions {
+      create_require: Some(JavascriptParserCreateRequire::Enabled(
+        "createRequire from module".to_string(),
+      )),
+      ..Default::default()
+    });
+    let local = ParserOptions::JavascriptAuto(JavascriptParserOptions {
+      create_require: Some(JavascriptParserCreateRequire::Disabled),
+      ..Default::default()
+    });
+
+    let resolved = merge_parser_options_with_local(Some(&global), Some(&local))
+      .expect("merged parser options should exist");
+
+    let options = resolved
+      .get_javascript()
+      .expect("javascript parser options should be resolved");
+    assert!(!options.is_create_require_enabled());
+  }
 }
