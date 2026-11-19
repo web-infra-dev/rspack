@@ -465,6 +465,10 @@ impl ChunkGroupByUkey {
     self.inner.values()
   }
 
+  pub fn values_mut(&mut self) -> impl Iterator<Item = &mut ChunkGroup> {
+    self.inner.values_mut()
+  }
+
   pub fn iter(&self) -> impl Iterator<Item = (&ChunkGroupUkey, &ChunkGroup)> {
     self.inner.iter()
   }
