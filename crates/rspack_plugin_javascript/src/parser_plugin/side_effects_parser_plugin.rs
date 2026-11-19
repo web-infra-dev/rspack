@@ -15,9 +15,9 @@ use swc_next_ecma_ast::{
   CallExpression, Class, ClassElement, ClassElementData, CommentKind, Decl, DeclData,
   ExportDefaultDeclarationKindData, Expr, ExprData, ForStatementInitData, FormalParameterItemData,
   FormalParameterPatternData, Function, GetSpan, MemberExpression, MethodDefinitionKind,
-  ModuleExportName, ModuleExportNameData, NodeKindData, ObjectPropertyKindData, Program,
-  PropertyKey, PropertyKeyData, PropertyKind, ScopeId, SimpleAssignmentTargetData, SourceType,
-  Span, Stmt, StmtData, VariableDeclaration as AstVariableDeclaration, VariableKind,
+  ModuleExportName, ModuleExportNameData, NodeKindData, ObjectExpression, ObjectPropertyKindData,
+  Program, PropertyKey, PropertyKeyData, PropertyKind, ScopeId, SimpleAssignmentTargetData,
+  SourceType, Span, Stmt, StmtData, VariableDeclaration as AstVariableDeclaration, VariableKind,
 };
 use swc_next_ecma_semantic::Semantic;
 
@@ -1160,16 +1160,7 @@ fn is_common_js_export_assignment(
     return true;
   }
 
-  property != "__proto__"
-    && parser.module_exports_is_plain_object
-    && object.as_member_expression(ast).is_some_and(|object| {
-      static_member_property(ast, object) == Some("exports")
-        && object
-          .object(ast)
-          .as_identifier_reference(ast)
-          .is_some_and(|identifier| ast.get_utf8(identifier.name(ast)) == "module")
-    })
-    && is_free_variable(parser, "module")
+  property != "__proto__" && is_plain_module_exports(parser, object)
 }
 
 fn is_free_variable(parser: &mut JavascriptParser, name: &str) -> bool {
@@ -1213,6 +1204,121 @@ fn is_plain_object_literal(ast: &Ast<'_>, expression: Expr) -> bool {
     matches!(ast.expr_data(prototype), ExprData::NullLiteral(_))
       || is_plain_object_literal(ast, prototype)
   })
+}
+
+fn is_plain_module_exports(parser: &mut JavascriptParser, expression: Expr) -> bool {
+  let ast = parser.ast.ast;
+  parser.module_exports_is_plain_object
+    && expression.as_member_expression(ast).is_some_and(|member| {
+      static_member_property(ast, member) == Some("exports")
+        && member
+          .object(ast)
+          .as_identifier_reference(ast)
+          .is_some_and(|identifier| ast.get_utf8(identifier.name(ast)) == "module")
+    })
+    && is_free_variable(parser, "module")
+}
+
+fn is_define_property_target(parser: &mut JavascriptParser, target: Expr) -> bool {
+  let ast = parser.ast.ast;
+  match target.as_identifier_reference(ast) {
+    Some(identifier) => {
+      ast.get_utf8(identifier.name(ast)) == "exports" && is_free_variable(parser, "exports")
+    }
+    None => is_plain_module_exports(parser, target),
+  }
+}
+
+fn is_data_descriptor_key(ast: &Ast<'_>, key: PropertyKey) -> bool {
+  let name = match classify_property_key(ast, key) {
+    PropertyKeyValue::IdentifierName(identifier) => Some(ast.get_utf8(identifier.name(ast))),
+    PropertyKeyValue::StringLiteral(string) => ast.get_wtf8(string.value(ast)).as_str(),
+    _ => None,
+  };
+  matches!(
+    name,
+    Some("value" | "writable" | "enumerable" | "configurable")
+  )
+}
+
+fn common_js_define_property_descriptor(
+  parser: &mut JavascriptParser,
+  call: CallExpression,
+) -> Option<ObjectExpression> {
+  let ast = parser.ast.ast;
+  if parser.is_esm || !parser.is_top_level_scope() {
+    return None;
+  }
+  let callee = call.callee(ast).as_member_expression(ast)?;
+  let object = callee.object(ast).as_identifier_reference(ast)?;
+  if ast.get_utf8(object.name(ast)) != "Object"
+    || static_member_property(ast, callee) != Some("defineProperty")
+  {
+    return None;
+  }
+
+  let arguments = call.arguments(ast);
+  if arguments.len() != 3 {
+    return None;
+  }
+  let target = ast.first(arguments)?.as_expr(ast)?;
+  let ExprData::StringLiteral(name) = ast.expr_data(ast.second(arguments)?.as_expr(ast)?) else {
+    return None;
+  };
+  if ast.get_wtf8(name.value(ast)).as_str()? == "__proto__" {
+    return None;
+  }
+  let descriptor = arguments
+    .get_node(ast, 2)?
+    .as_expr(ast)?
+    .as_object_expression(ast)?;
+  let is_data_descriptor = ast.nodes(descriptor.properties(ast)).all(|property| {
+    property.as_object_property(ast).is_some_and(|property| {
+      property.kind(ast) == PropertyKind::Init
+        && !property.computed(ast)
+        && !property.method(ast)
+        && is_data_descriptor_key(ast, property.key(ast))
+    })
+  });
+  if !is_data_descriptor
+    || !is_free_variable(parser, "Object")
+    || !is_define_property_target(parser, target)
+  {
+    return None;
+  }
+  Some(descriptor)
+}
+
+fn is_module_eval_pure_statement_expression(
+  parser: &mut JavascriptParser,
+  analyze_side_effects_free: bool,
+  expression: Expr,
+  comments: &RspackComments<'_>,
+  mut callees: Option<&mut Vec<(Atom, Span)>>,
+) -> bool {
+  if let ExprData::CallExpression(call) = parser.ast.ast.expr_data(expression)
+    && let Some(descriptor) = common_js_define_property_descriptor(parser, call)
+  {
+    let ast = parser.ast.ast;
+    return ast.nodes(descriptor.properties(ast)).all(|property| {
+      property.as_object_property(ast).is_some_and(|property| {
+        is_pure_expression(
+          parser,
+          analyze_side_effects_free,
+          property.value(ast),
+          comments,
+          callees.as_deref_mut(),
+        )
+      })
+    });
+  }
+  is_module_eval_pure_expression(
+    parser,
+    analyze_side_effects_free,
+    expression,
+    comments,
+    callees,
+  )
 }
 
 /// Keep the CommonJS export-write exception out of `is_pure_expression`,
@@ -1477,7 +1583,7 @@ impl SideEffectsParserPlugin {
             )
           })
       }
-      NodeKindData::ExpressionStatement(statement) => is_module_eval_pure_expression(
+      NodeKindData::ExpressionStatement(statement) => is_module_eval_pure_statement_expression(
         parser,
         self.analyze_side_effects_free,
         statement.expression(ast),
