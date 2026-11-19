@@ -1620,6 +1620,20 @@ impl ModuleCodeTemplate {
     }
   }
 
+  fn require_callback(&mut self, module_id: &str) -> String {
+    let require = self.render_runtime_globals(&RuntimeGlobals::REQUIRE);
+    if self
+      .compiler_options
+      .output
+      .environment
+      .supports_arrow_function()
+    {
+      format!("() => {require}({module_id})")
+    } else {
+      format!("{require}.bind({require}, {module_id})")
+    }
+  }
+
   #[allow(clippy::too_many_arguments)]
   pub fn module_namespace_promise(
     &mut self,
@@ -1746,11 +1760,7 @@ impl ModuleCodeTemplate {
             self.module_raw(compilation, dep_id, request, weak)
           )
         } else {
-          appending = format!(
-            ".then({}.bind({}, {module_id_expr}))",
-            self.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-            self.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-          );
+          appending = format!(".then({})", self.require_callback(&module_id_expr));
         }
       }
       _ => {
@@ -1776,11 +1786,7 @@ return {}
               self.module_raw(compilation, dep_id, request, weak)
             )
           } else {
-            appending = format!(
-              ".then({}.bind({}, {module_id_expr}))",
-              self.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-              self.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-            );
+            appending = format!(".then({})", self.require_callback(&module_id_expr));
           }
           appending.push_str(
             format!(
