@@ -143,6 +143,9 @@ impl RuntimeModuleCommon {
 
   pub fn set_custom_source(&mut self, source: String) {
     self.custom_source = Some(source);
+    if self.cached_generated_code.initialized() {
+      self.cached_generated_code = Default::default();
+    }
   }
 
   pub fn get_custom_source(&self) -> Option<String> {
@@ -239,6 +242,14 @@ pub async fn runtime_module_get_runtime_hash(
 pub trait RuntimeModule:
   Module + CustomSourceRuntimeModule + AttachableRuntimeModule + NamedRuntimeModule
 {
+  /// Only a JavaScript runtime generator supplies opaque source without a hook override.
+  fn generated_source_for_bridge<'a>(
+    &'a self,
+    _compilation: &'a Compilation,
+  ) -> Option<BoxFuture<'a, Result<BoxSource>>> {
+    None
+  }
+
   fn stage(&self) -> RuntimeModuleStage {
     RuntimeModuleStage::Normal
   }

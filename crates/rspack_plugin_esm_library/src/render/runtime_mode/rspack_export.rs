@@ -1,5 +1,6 @@
 use rspack_core::{
-  CodeGenerationRuntimeRequirementsWrite, RuntimeCodeTemplate, RuntimeGlobals, RuntimeVariable,
+  CodeGenerationRuntimeRequirementsWrite, RuntimeCodeTemplate, RuntimeGlobals,
+  RuntimeModuleSourceKind, RuntimeVariable,
   rspack_sources::{ConcatSource, RawStringSource},
 };
 use rspack_plugin_javascript::runtime::should_export_rspack_runtime_globals;
@@ -90,9 +91,15 @@ impl RuntimeModeRenderer for RspackExportRuntimeRenderer {
     );
 
     let mut source = ConcatSource::default();
-    if !context.runtime_requirements.is_empty()
-      && context.runtime_chunk_ukey != context.chunk_ukey
+    if context.runtime_chunk_ukey != context.chunk_ukey
       && !already_imports_runtime(context.chunk_link, &runtime_import_match_idents)
+      // Extension code can have side effects without exporting a helper.
+      && (!runtime_import_idents.is_empty()
+        || context
+          .compilation
+          .runtime_proxy_metadata_artifact
+          .get(context.runtime_chunk_ukey)
+          .is_some_and(|m| m.runtime_module_bridge.source != RuntimeModuleSourceKind::Native))
     {
       source.add(render_runtime_chunk_import(
         context.compilation,
@@ -100,6 +107,7 @@ impl RuntimeModeRenderer for RspackExportRuntimeRenderer {
         &runtime_import_idents,
       ));
     }
+
     source.add(render_raw_import_stmts(
       context.compilation,
       context.chunk_link,
