@@ -121,16 +121,6 @@ fn resolve_global_generator_options(
         },
       )
     }
-    ModuleType::Json => rspack_util::merge_from_optional_with(
-      generator_options.get("json").cloned(),
-      options,
-      |json_options, options| match (json_options, options) {
-        (GeneratorOptions::Json(a), GeneratorOptions::Json(b)) => {
-          GeneratorOptions::Json(a.merge_from(b))
-        }
-        _ => unreachable!(),
-      },
-    ),
     _ => options.cloned(),
   }
 }

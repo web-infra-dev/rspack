@@ -926,6 +926,14 @@ impl GeneratorOptions {
       })
   }
 
+  pub fn asset_import_mode(&self) -> Option<AssetGeneratorImportMode> {
+    match self {
+      Self::Asset(options) => options.import_mode,
+      Self::AssetResource(options) => options.import_mode,
+      _ => None,
+    }
+  }
+
   pub fn asset_data_url(&self) -> Option<&AssetGeneratorDataUrl> {
     self
       .get_asset()

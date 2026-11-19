@@ -8,8 +8,8 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation, CompilerId,
   CompilerMake, DependencyId, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleRule,
-  ModuleRuleEffect, NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
+  ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
+  NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -254,8 +254,7 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
               .build_context
               .compiler_options
               .module;
-            let mut layers = FxHashSet::default();
-            collect_rule_layers(&module_options.rules, &module_options.effects, &mut layers);
+            let layers = collect_rule_layers(&module_options.effects);
             let mut backend = self.backend.lock().await;
             let mut reserved = Vec::new();
             for layer in layers {
@@ -303,19 +302,11 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
   }
 }
 
-fn collect_rule_layers(
-  rules: &[ModuleRule],
-  effects: &[ModuleRuleEffect],
-  layers: &mut FxHashSet<ModuleLayer>,
-) {
-  for rule in rules {
-    if let Some(layer) = &effects[rule.effect].layer {
-      layers.insert(layer.clone());
-    }
-    for nested in rule.rules.iter().chain(&rule.one_of) {
-      collect_rule_layers(nested, effects, layers);
-    }
-  }
+fn collect_rule_layers(effects: &[ModuleRuleEffect]) -> FxHashSet<ModuleLayer> {
+  effects
+    .iter()
+    .filter_map(|effect| effect.layer.clone())
+    .collect()
 }
 
 #[plugin_hook(CompilerMake for LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck>)]
