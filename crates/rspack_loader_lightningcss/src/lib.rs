@@ -202,13 +202,16 @@ impl LightningCssLoader {
         let mut undefined_names = Vec::new();
         let mut undefined = Some(error);
         while let Some(error) = undefined.take() {
-          loader_context.emit_diagnostic(Diagnostic::warn(
-            LIGHTNINGCSS_LOADER_IDENTIFIER.to_string(),
-            format!(
-              "{}, so custom media in this file is left unchanged",
-              error.kind
-            ),
-          ));
+          loader_context.emit_diagnostic(
+            Diagnostic::warn(
+              LIGHTNINGCSS_LOADER_IDENTIFIER.to_string(),
+              format!(
+                "{} in this file. Skipping custom media expansion.",
+                error.kind
+              ),
+            )
+            .with_title(LIGHTNINGCSS_LOADER_IDENTIFIER),
+          );
           if let MinifyErrorKind::CustomMediaNotDefined { name } = error.kind {
             undefined_names.push(name);
           }

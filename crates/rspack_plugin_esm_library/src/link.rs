@@ -19,7 +19,7 @@ use rspack_core::{
   UsageState, UsedName, UsedNameItem, all_runtime_module_variables, analyze_module_scope,
   find_target, get_cached_readable_identifier, get_module_directives, get_module_hashbang,
   property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
-  rspack_sources::ReplaceSource, to_normal_comment,
+  rspack_sources::ReplaceSource, runtime_variable_name, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_intern::{Atom, AtomMap, IndexAtomSet};
@@ -970,6 +970,15 @@ var {} = {{}};
       return used_names;
     }
 
+    used_names.extend(
+      [
+        RuntimeVariable::Require,
+        RuntimeVariable::Modules,
+        RuntimeVariable::ModuleCache,
+        RuntimeVariable::Context,
+      ]
+      .map(|variable| Atom::from(runtime_variable_name(&variable))),
+    );
     used_names.extend(all_runtime_module_variables().map(Atom::from));
 
     for (_, runtime_global) in RuntimeGlobals::all().iter_names() {
