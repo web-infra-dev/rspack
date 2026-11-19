@@ -36,6 +36,8 @@ module.exports = [false, true].map((explicitFirst) => ({
   },
   plugins: [
     new ModuleFederationPlugin({
+      implementation:
+        require.resolve('@module-federation/runtime-tools-layers'),
       name: `tree_shaking_shared_request_origins_${explicitFirst}`,
       treeShakingSharedDir: `independent-packages-${explicitFirst}`,
       library: { type: 'commonjs-module' },
