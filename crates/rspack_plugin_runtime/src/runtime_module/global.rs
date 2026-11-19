@@ -40,8 +40,12 @@ impl RuntimeModule for GlobalRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let source = context.runtime_template.render(self.id(), None)?;
-
-    Ok(source)
+    if context.compilation.options.output.environment.global_this {
+      let global = context
+        .runtime_template
+        .render_runtime_global_definition(&RuntimeGlobals::GLOBAL);
+      return Ok(format!("{global} = globalThis;"));
+    }
+    context.runtime_template.render(self.id(), None)
   }
 }
