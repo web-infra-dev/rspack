@@ -2,6 +2,7 @@ export default [
 	// Definitions in another module are not visible.
 	{
 		moduleName: /component\.css/,
-		message: /Custom media query --wide is not defined, so custom media in this file is left unchanged/,
+		code: /^builtin:lightningcss-loader$/,
+		message: /⚠ builtin:lightningcss-loader: Custom media query --wide is not defined in this file\. Skipping custom media expansion\./,
 	},
 ];
