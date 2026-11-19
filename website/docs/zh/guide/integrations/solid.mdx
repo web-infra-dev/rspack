@@ -54,7 +54,16 @@ export default defineConfig({
 });
 ```
 
-如果使用 TypeScript，请在 `tsconfig.json` 中将 `jsx` 设为 `"preserve"`，把 JSX 留给 Solid 编译器处理。将 `jsxImportSource` 设为 `"@solidjs/web"` 即可使用 Solid 的 JSX 类型。
+在 TypeScript 项目的 `tsconfig.json` 中加入以下配置，即可为 Solid JSX 提供类型检查和编辑器补全。Rspack 构建时仍按上面的 loader 规则编译 JSX 和 TSX。
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "jsx": "preserve",
+    "jsxImportSource": "@solidjs/web"
+  }
+}
+```
 
 ### 解析 Solid 组件库 \{#resolve-solid-libraries}
 

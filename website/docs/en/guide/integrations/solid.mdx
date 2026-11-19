@@ -54,7 +54,16 @@ export default defineConfig({
 });
 ```
 
-If you use TypeScript, set `jsx` to `"preserve"` in `tsconfig.json` so the Solid compiler receives the JSX. Set `jsxImportSource` to `"@solidjs/web"` to use Solid's JSX types.
+For Solid JSX type checking and editor completions, add these options to your `tsconfig.json`. Rspack compiles JSX and TSX using the loader rule above.
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "jsx": "preserve",
+    "jsxImportSource": "@solidjs/web"
+  }
+}
+```
 
 ### Resolve Solid libraries
 
