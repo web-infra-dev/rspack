@@ -45,6 +45,9 @@ module.exports = [
         EXPECTED_ARTIFACTS: name.startsWith('different-') || providers ? 2 : 1,
       }),
       new ModuleFederationPlugin({
+        implementation: name.startsWith('different-')
+          ? require.resolve('@module-federation/runtime-tools-layers')
+          : undefined,
         name: `equivalent_${name}`,
         library: { type: 'commonjs-module' },
         manifest: { fileName: `${name}.json` },
