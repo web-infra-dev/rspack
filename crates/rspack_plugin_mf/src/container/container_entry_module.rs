@@ -242,7 +242,7 @@ impl Module for ContainerEntryModule {
             .import
             .iter()
             .map(|request| {
-              BoxDependency::new(ContainerExposedDependency::new_with_layer(
+              BoxDependency::new(ContainerExposedDependency::new(
                 name.clone(),
                 request.clone(),
                 options.layer.clone(),
