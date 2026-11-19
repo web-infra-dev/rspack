@@ -272,33 +272,6 @@ impl DirectorySubscriptions {
     Self::update_subtree(&mut dirs, path, |state| state.scanned = false);
   }
 
-  pub fn files(&self, path: &InternedPath) -> SubscriberPaths {
-    self.entry_paths(path, |entry| entry.files.clone())
-  }
-
-  pub fn missing(&self, path: &InternedPath) -> SubscriberPaths {
-    self.entry_paths(path, |entry| entry.missing.clone())
-  }
-
-  pub fn directories(&self, path: &InternedPath) -> SubscriberPaths {
-    self.entry_paths(path, |entry| entry.directories.clone())
-  }
-
-  fn entry_paths(
-    &self,
-    path: &InternedPath,
-    select: impl FnOnce(&EntrySubscriptions) -> SubscriberPaths,
-  ) -> SubscriberPaths {
-    let dirs = self
-      .directories
-      .read()
-      .expect("directory subscriptions poisoned");
-    dirs
-      .get(&parent(path))
-      .and_then(|dir| dir.entries.get(path))
-      .map_or_default(select)
-  }
-
   pub fn subscribers(
     &self,
     path: &InternedPath,

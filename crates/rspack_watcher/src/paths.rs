@@ -894,8 +894,7 @@ impl PathManager {
   }
 
   /// watchpack's `collectTimeInfoEntries(fileTimestamps, directoryTimestamps)`
-  /// over every registered path, returned as `(fileTimestamps,
-  /// directoryTimestamps)`.
+  /// keyed by the paths watched or discovered during a directory scan.
   ///
   /// Files — registered, or found below a context — reuse their `file_times`
   /// record. A registered-missing path reads
@@ -915,46 +914,6 @@ impl PathManager {
         .to_str()
         .map_or_else(|| path.to_string_lossy().into_owned(), str::to_owned)
     };
-
-    let file_paths: Vec<InternedPath> = self.files.all.iter().map(|p| p.clone()).collect();
-    let mut file_timestamps = TimeInfoEntries::with_capacity(file_paths.len());
-    let mut file_safe_times: Vec<(InternedPath, u64)> = Vec::with_capacity(file_paths.len());
-    for path in &file_paths {
-      let entry = self
-        .file_time(path)
-        .map_or(TimeInfoEntry::Null, Self::entry);
-      for logical in self.subscriptions.files(path) {
-        if let TimeInfoEntry::Entry { safe_time, .. } = entry {
-          file_safe_times.push((logical.clone(), safe_time));
-        }
-        file_timestamps.push((path_to_string(&logical), entry.clone()));
-      }
-    }
-    // webpack registers `files` and `missing` as disjoint sets, so a null
-    // missing entry never clobbers a real file entry sharing the same key.
-    for path in self.missing.all.iter() {
-      let entry = self
-        .file_times
-        .get(&path)
-        .map_or(TimeInfoEntry::Null, |time| Self::entry(*time));
-      for requested in self.subscriptions.missing(&path) {
-        if let TimeInfoEntry::Entry { safe_time, .. } = entry {
-          file_safe_times.push((requested.clone(), safe_time));
-        }
-        file_timestamps.push((path_to_string(&requested), entry.clone()));
-      }
-    }
-    // Files found below contexts, like watchpack's `DirectoryWatcher.files`.
-    for path in self.context_files.iter() {
-      if self.files.all.contains(&path) && self.subscriptions.files(&path).contains(&path) {
-        continue;
-      }
-      let Some(time) = self.file_times.get(&path).map(|time| *time) else {
-        continue;
-      };
-      file_safe_times.push((path.clone(), time.narrowed().safe_time));
-      file_timestamps.push((path_to_string(path.as_path()), Self::entry(time)));
-    }
 
     let mut dir_paths: Vec<InternedPath> = self.directories.all.iter().map(|p| p.clone()).collect();
     dir_paths.extend(
@@ -980,6 +939,41 @@ impl PathManager {
       };
       dir_safe_times.insert(dir.clone(), safe_time);
     }
+
+    let file_paths: Vec<InternedPath> = self.files.all.iter().map(|p| p.clone()).collect();
+    let mut file_timestamps = TimeInfoEntries::with_capacity(file_paths.len() + dir_paths.len());
+    let mut file_safe_times = Vec::with_capacity(file_paths.len());
+    let mut add_file = |path: InternedPath, time: Option<FileTime>| {
+      if dir_safe_times.contains_key(&path) {
+        return;
+      }
+      let name = path_to_string(&path);
+      let entry = time.map_or(TimeInfoEntry::Null, Self::entry);
+      if let TimeInfoEntry::Entry { safe_time, .. } = entry {
+        file_safe_times.push((path, safe_time));
+      }
+      file_timestamps.push((name, entry));
+    };
+    for path in file_paths {
+      let time = self.file_time(&path);
+      add_file(path, time);
+    }
+    for path in self.missing.all.iter() {
+      if !self.files.all.contains(path.key()) {
+        add_file(
+          path.clone(),
+          self.file_times.get(path.key()).map(|time| *time),
+        );
+      }
+    }
+    for path in self.context_files.iter() {
+      if !self.has_file_or_missing_subscription(path.key())
+        && let Some(time) = self.file_times.get(path.key())
+      {
+        add_file(path.clone(), Some(*time));
+      }
+    }
+
     // Raise each ancestor directory that exists by its descendant files' safe
     // times; a record cannot resurrect a directory gone from disk. Files are
     // folded into their parent first, so each ancestor chain is walked once.
@@ -1012,10 +1006,6 @@ impl PathManager {
     }
     let mut directory_timestamps = TimeInfoEntries::with_capacity(dir_paths.len());
     for dir in &dir_paths {
-      let mut requested = self.subscriptions.directories(dir);
-      if self.context_directories.contains(dir) && !requested.contains(dir) {
-        requested.push(dir.clone());
-      }
       let (file_entry, directory_entry) = match dir_safe_times.get(dir).copied().flatten() {
         Some(safe_time) => (
           TimeInfoEntry::ExistenceOnlyTimeEntry,
@@ -1023,11 +1013,9 @@ impl PathManager {
         ),
         None => (TimeInfoEntry::Null, TimeInfoEntry::Null),
       };
-      for path in requested {
-        let path = path_to_string(&path);
-        file_timestamps.push((path.clone(), file_entry.clone()));
-        directory_timestamps.push((path, directory_entry.clone()));
-      }
+      let path = path_to_string(dir);
+      file_timestamps.push((path.clone(), file_entry));
+      directory_timestamps.push((path, directory_entry));
     }
 
     (file_timestamps, directory_timestamps)

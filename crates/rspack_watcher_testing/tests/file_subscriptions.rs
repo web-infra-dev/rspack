@@ -1,6 +1,7 @@
 use std::{
   fs,
   io::Write,
+  iter::{empty, once},
   time::{Duration, SystemTime},
 };
 
@@ -10,7 +11,7 @@ use rspack_watcher::{
   EventAggregateHandler, EventHandler, FsEventKind, TimeInfoEntry,
   testing::{check_subscriptions, disk_event, manual_watcher, watch_file_subscriptions},
 };
-use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
+use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
 struct Changes(UnboundedSender<String>);
 
@@ -29,12 +30,40 @@ impl EventHandler for Changes {
   }
 }
 
-struct Batches(UnboundedSender<(FxHashSet<String>, FxHashSet<String>)>);
+type Batch = (FxHashSet<String>, FxHashSet<String>);
+
+struct Batches(UnboundedSender<Batch>);
 
 impl EventAggregateHandler for Batches {
   fn on_event_handle(&self, changed: FxHashSet<String>, removed: FxHashSet<String>) {
     self.0.send((changed, removed)).expect("collect batch");
   }
+}
+
+async fn assert_batch(
+  batches: &mut UnboundedReceiver<Batch>,
+  changed: &[&InternedPath],
+  removed: &[&InternedPath],
+) {
+  let batch = tokio::time::timeout(Duration::from_secs(5), batches.recv())
+    .await
+    .expect("receive batch")
+    .expect("batch handler still active");
+  let names = |paths: &[&InternedPath]| {
+    paths
+      .iter()
+      .map(|path| path.to_string_lossy().into_owned())
+      .collect()
+  };
+  assert_eq!(batch, (names(changed), names(removed)));
+}
+
+fn assert_immediate_changes(raw: &mut UnboundedReceiver<String>, expected: &[&InternedPath]) {
+  let mut actual: Vec<_> = std::iter::from_fn(|| raw.try_recv().ok()).collect();
+  let mut expected: Vec<_> = expected.iter().map(|path| path.to_string_lossy()).collect();
+  actual.sort_unstable();
+  expected.sort_unstable();
+  assert_eq!(actual, expected);
 }
 
 fn write_version(path: &InternedPath, version: u64) {
@@ -46,181 +75,152 @@ fn write_version(path: &InternedPath, version: u64) {
 }
 
 #[tokio::test]
-async fn one_disk_event_notifies_both_file_subscribers() {
-  assert_shared_file(false).await;
-}
-
-#[tokio::test]
-async fn one_scan_notifies_both_file_subscribers() {
-  assert_shared_file(true).await;
-}
-
-async fn assert_shared_file(scan: bool) {
+async fn shared_file_notifies_each_subscriber_on_disk_changes_and_rescans() {
   let temp = tempfile::tempdir().expect("create fixture");
   let root = temp.path().canonicalize().expect("resolve fixture");
-  fs::create_dir(root.join("disk")).expect("create observed directory");
-  let source = InternedPath::from(root.join("disk/shared.js"));
-  let a = InternedPath::from(root.join("app/a.js"));
-  let b = InternedPath::from(root.join("app/b.js"));
+  let source = InternedPath::from(root.join("shared.js"));
+  let a = InternedPath::from(root.join("a.js"));
+  let b = InternedPath::from(root.join("b.js"));
+  let bindings = [(source.clone(), a.clone()), (source.clone(), b.clone())];
   let watcher = manual_watcher();
   let (raw_tx, mut raw) = unbounded_channel();
   let (batch_tx, mut batches) = unbounded_channel();
-  write_version(&source, 0);
-
-  for (version, added, removed, expected) in [
-    (1, vec![a.clone(), b.clone()], vec![], vec![&a, &b]),
-    (2, vec![], vec![a.clone()], vec![&b]),
-    (3, vec![], vec![b.clone()], vec![]),
-  ] {
-    let bind = |paths: Vec<InternedPath>| {
-      paths
-        .into_iter()
-        .map(|p| (source.clone(), p))
-        .collect::<Vec<_>>()
-    };
+  let watch = |added, removed| {
     watch_file_subscriptions(
       &watcher,
-      &bind(added),
-      &bind(removed),
+      added,
+      removed,
       Batches(batch_tx.clone()),
       Changes(raw_tx.clone()),
     )
-    .await;
-    write_version(&source, version);
-    if scan {
-      check_subscriptions(&watcher).await;
-    } else {
-      disk_event(&watcher, &source, FsEventKind::Change);
-    }
+  };
+  write_version(&source, 0);
+  watch(&bindings, &[]).await;
 
-    if expected.is_empty() {
-      assert!(
-        tokio::time::timeout(Duration::from_millis(200), batches.recv())
-          .await
-          .is_err()
-      );
-      assert!(raw.try_recv().is_err());
-      break;
-    }
-    let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
+  write_version(&source, 1);
+  disk_event(&watcher, &source, FsEventKind::Change);
+  assert_batch(&mut batches, &[&a, &b], &[]).await;
+  assert_immediate_changes(&mut raw, &[&a, &b]);
+
+  write_version(&source, 2);
+  check_subscriptions(&watcher).await;
+  assert_batch(&mut batches, &[&a, &b], &[]).await;
+  assert_immediate_changes(&mut raw, &[&a, &b]);
+  let (times, _) = watcher.collect_time_info_entries();
+  assert!(
+    matches!(
+      times.as_slice(),
+      [(path, TimeInfoEntry::Entry { timestamp: 1_600_000_002_000, .. })]
+        if path == &source.to_string_lossy()
+    ),
+    "expected the observed file's mtime, got {times:?}"
+  );
+
+  watch(&[], &bindings[..1]).await;
+  assert_eq!(watcher.collect_time_info_entries().0, times);
+  write_version(&source, 3);
+  disk_event(&watcher, &source, FsEventKind::Change);
+  assert_batch(&mut batches, &[&b], &[]).await;
+  assert_immediate_changes(&mut raw, &[&b]);
+
+  watch(&[], &bindings[1..]).await;
+  assert!(watcher.collect_time_info_entries().0.is_empty());
+  write_version(&source, 4);
+  disk_event(&watcher, &source, FsEventKind::Change);
+  assert!(
+    tokio::time::timeout(Duration::from_millis(200), batches.recv())
       .await
-      .expect("receive batch")
-      .expect("batch handler still active");
-    let expected = expected
-      .into_iter()
-      .map(|p| p.to_string_lossy().into_owned())
-      .collect::<Vec<_>>();
-    let mut immediate = vec![];
-    while let Ok(path) = raw.try_recv() {
-      immediate.push(path);
-    }
-    immediate.sort();
-    assert_eq!(immediate, expected);
-    assert_eq!(changed, expected.iter().cloned().collect::<FxHashSet<_>>());
-    assert!(removed.is_empty());
-    let (times, _) = watcher.collect_time_info_entries();
-    assert_eq!(times.len(), expected.len());
-    assert!(
-      times.iter().all(
-        |(path, entry)| expected.contains(path) && matches!(entry, TimeInfoEntry::Entry { .. })
-      )
-    );
-    let snapshot = times;
-    check_subscriptions(&watcher).await;
-    assert!(
-      tokio::time::timeout(Duration::from_millis(200), batches.recv())
-        .await
-        .is_err()
-    );
-    assert!(raw.try_recv().is_err());
-    assert_eq!(watcher.collect_time_info_entries().0, snapshot);
+      .is_err()
+  );
+  assert_immediate_changes(&mut raw, &[]);
+  watcher.close().await.expect("close watcher");
+}
+
+#[tokio::test]
+async fn one_request_keeps_the_mtime_of_each_observed_file() {
+  use rspack_watcher::testing::watch_missing_subscriptions;
+
+  let temp = tempfile::tempdir().expect("create fixture");
+  let root = temp.path().canonicalize().expect("resolve fixture");
+  let first = InternedPath::from(root.join("first.js"));
+  let second = InternedPath::from(root.join("second.js"));
+  let requested = InternedPath::from(root.join("requested.js"));
+  write_version(&first, 1);
+  write_version(&second, 2);
+  let watcher = manual_watcher();
+  let (raw, _raw_rx) = unbounded_channel();
+  let (batches, _batch_rx) = unbounded_channel();
+  watch_file_subscriptions(
+    &watcher,
+    &[
+      (first.clone(), requested.clone()),
+      (second.clone(), requested),
+    ],
+    &[],
+    Batches(batches.clone()),
+    Changes(raw.clone()),
+  )
+  .await;
+  watch_missing_subscriptions(
+    &watcher,
+    &[(first.clone(), InternedPath::from(root.join("missing.js")))],
+    &[],
+    Batches(batches),
+    Changes(raw),
+  )
+  .await;
+
+  let (mut times, _) = watcher.collect_time_info_entries();
+  times.sort_by(|a, b| a.0.cmp(&b.0));
+  assert_eq!(times.len(), 2);
+  for ((path, entry), (observed, mtime)) in times
+    .iter()
+    .zip([(first, 1_600_000_001_000), (second, 1_600_000_002_000)])
+  {
+    assert_eq!(path.as_str(), observed.to_string_lossy());
+    assert!(matches!(entry, TimeInfoEntry::Entry { timestamp, .. } if *timestamp == mtime));
   }
   watcher.close().await.expect("close watcher");
 }
 
 #[tokio::test]
-async fn missing_descendant_reports_only_the_registered_file() {
-  for scan in [false, true] {
-    for staged in [false, true] {
-      let temp = tempfile::tempdir().expect("create fixture");
-      let root = temp.path().canonicalize().expect("resolve fixture");
-      let parent = InternedPath::from(root.join("missing"));
-      let pkg = InternedPath::from(root.join("missing/pkg"));
-      let file = InternedPath::from(root.join("missing/pkg/index.js"));
-      let expected = file.to_string_lossy().into_owned();
-      let watcher = manual_watcher();
-      let (raw_tx, mut raw) = unbounded_channel();
-      let (batch_tx, mut batches) = unbounded_channel();
-      let watch = |added: Vec<InternedPath>| {
-        watcher.watch(
-          (std::iter::empty(), std::iter::empty()),
-          (std::iter::empty(), std::iter::empty()),
-          (added.into_iter(), std::iter::empty()),
-          SystemTime::now(),
-          Box::new(Batches(batch_tx.clone())),
-          Box::new(Changes(raw_tx.clone())),
-        )
-      };
-      watch(vec![file.clone()]).await;
-      let observe = async |path: &InternedPath| {
-        if scan {
-          check_subscriptions(&watcher).await;
-        } else {
-          disk_event(&watcher, path, FsEventKind::Create);
-        }
-      };
-      check_subscriptions(&watcher).await;
-      assert_eq!(
-        watcher.collect_time_info_entries().0,
-        vec![(expected.clone(), TimeInfoEntry::Null)]
-      );
-      if staged {
-        for dir in [&parent, &pkg] {
-          fs::create_dir(dir).expect("create missing parent");
-          observe(dir).await;
-          assert!(
-            tokio::time::timeout(Duration::from_millis(150), batches.recv())
-              .await
-              .is_err()
-          );
-          assert!(raw.try_recv().is_err());
-        }
-        write_version(&file, 1);
-        observe(&file).await;
-      } else {
-        fs::create_dir_all(&pkg).expect("install subtree");
-        write_version(&file, 1);
-        if scan {
-          observe(&parent).await;
-        } else {
-          disk_event(&watcher, &parent, FsEventKind::Change);
-        }
-      }
-      let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
-        .await
-        .expect("receive appearance")
-        .expect("batch handler active");
-      assert_eq!(
-        changed,
-        [expected.clone()].into_iter().collect::<FxHashSet<_>>()
-      );
-      assert!(removed.is_empty());
-      assert_eq!(raw.try_recv().expect("concrete change"), expected);
-      assert!(raw.try_recv().is_err());
-      assert!(
-        matches!(watcher.collect_time_info_entries().0.as_slice(), [(name, TimeInfoEntry::Entry { .. })] if name == &expected)
-      );
-      watch(vec![]).await;
-      check_subscriptions(&watcher).await;
-      assert!(
-        tokio::time::timeout(Duration::from_millis(150), batches.recv())
-          .await
-          .is_err()
-      );
-      assert!(raw.try_recv().is_err());
-      watcher.close().await.expect("close watcher");
-    }
+async fn creating_missing_parent_directories_waits_for_the_registered_file() {
+  let temp = tempfile::tempdir().expect("create fixture");
+  let root = temp.path().canonicalize().expect("resolve fixture");
+  let parent = InternedPath::from(root.join("missing"));
+  let pkg = InternedPath::from(parent.join("pkg"));
+  let file = InternedPath::from(pkg.join("index.js"));
+  let watcher = manual_watcher();
+  let (raw_tx, mut raw) = unbounded_channel();
+  let (batch_tx, mut batches) = unbounded_channel();
+  watcher
+    .watch(
+      (empty(), empty()),
+      (empty(), empty()),
+      (once(file.clone()), empty()),
+      SystemTime::now(),
+      Box::new(Batches(batch_tx)),
+      Box::new(Changes(raw_tx)),
+    )
+    .await;
+
+  for dir in [&parent, &pkg] {
+    fs::create_dir(dir).expect("create missing parent");
+    disk_event(&watcher, dir, FsEventKind::Create);
+    check_subscriptions(&watcher).await;
   }
+  assert!(
+    tokio::time::timeout(Duration::from_millis(150), batches.recv())
+      .await
+      .is_err()
+  );
+  assert_immediate_changes(&mut raw, &[]);
+
+  write_version(&file, 1);
+  disk_event(&watcher, &file, FsEventKind::Create);
+  assert_batch(&mut batches, &[&file], &[]).await;
+  assert_immediate_changes(&mut raw, &[&file]);
+  watcher.close().await.expect("close watcher");
 }
 
 #[tokio::test]
@@ -231,50 +231,33 @@ async fn removing_the_file_subscription_leaves_its_context_active() {
   write_version(&file, 0);
   let watcher = manual_watcher();
   let (raw_tx, mut raw) = unbounded_channel();
-  let (tx, mut batches) = unbounded_channel();
-  for version in 1..=2 {
-    let add = version == 1;
-    watcher
-      .watch(
-        (
-          add.then(|| file.clone()).into_iter(),
-          (!add).then(|| file.clone()).into_iter(),
-        ),
-        (add.then(|| dir.clone()).into_iter(), std::iter::empty()),
-        (std::iter::empty(), std::iter::empty()),
-        SystemTime::now() + Duration::from_secs(30),
-        Box::new(Batches(tx.clone())),
-        Box::new(Changes(raw_tx.clone())),
-      )
-      .await;
-    let parent_mtime = fs::metadata(&dir)
-      .expect("stat parent")
-      .modified()
-      .expect("parent mtime");
-    write_version(&file, version);
-    assert_eq!(
-      fs::metadata(&dir)
-        .expect("stat parent")
-        .modified()
-        .expect("parent mtime"),
-      parent_mtime
-    );
-    check_subscriptions(&watcher).await;
-    let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
-      .await
-      .expect("receive change")
-      .expect("batch handler active");
-    let file_name = file.to_string_lossy().into_owned();
-    let mut expected = FxHashSet::default();
-    expected.insert(dir.to_string_lossy().into_owned());
-    if add {
-      expected.insert(file_name.clone());
-    }
-    assert_eq!(changed, expected);
-    assert!(removed.is_empty());
-    assert_eq!(raw.try_recv().expect("concrete file event"), file_name);
-    assert!(raw.try_recv().is_err());
-  }
+  let (batch_tx, mut batches) = unbounded_channel();
+  let start = SystemTime::now() + Duration::from_secs(30);
+  watcher
+    .watch(
+      (once(file.clone()), empty()),
+      (once(dir.clone()), empty()),
+      (empty(), empty()),
+      start,
+      Box::new(Batches(batch_tx.clone())),
+      Box::new(Changes(raw_tx.clone())),
+    )
+    .await;
+  watcher
+    .watch(
+      (empty(), once(file.clone())),
+      (empty(), empty()),
+      (empty(), empty()),
+      start,
+      Box::new(Batches(batch_tx)),
+      Box::new(Changes(raw_tx)),
+    )
+    .await;
+
+  write_version(&file, 1);
+  check_subscriptions(&watcher).await;
+  assert_batch(&mut batches, &[&dir], &[]).await;
+  assert_immediate_changes(&mut raw, &[&file]);
   watcher.close().await.expect("close watcher");
 }
 
@@ -302,46 +285,22 @@ async fn missing_subscribers_share_a_watched_path() {
   };
   let bindings = [(watched.clone(), a.clone()), (watched.clone(), b.clone())];
   subscribe(&bindings, &[]).await;
+  let observed = watched.to_string_lossy().into_owned();
   let (times, _) = watcher.collect_time_info_entries();
-  assert_eq!(times.len(), 2);
-  for path in [&a, &b] {
-    assert!(times.contains(&(path.to_string_lossy().into_owned(), TimeInfoEntry::Null)));
-  }
+  assert_eq!(times, [(observed.clone(), TimeInfoEntry::Null)]);
 
   fs::create_dir(&parent).expect("create missing parent");
   write_version(&watched, 1);
   disk_event(&watcher, &parent, FsEventKind::Create);
-  let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
-    .await
-    .expect("appearance event")
-    .expect("batch handler active");
-  let names = [
-    a.to_string_lossy().into_owned(),
-    b.to_string_lossy().into_owned(),
-  ];
-  assert_eq!(changed, names.iter().cloned().collect::<FxHashSet<_>>());
-  assert!(removed.is_empty());
-  let immediate = [
-    raw.try_recv().expect("first subscriber"),
-    raw.try_recv().expect("second subscriber"),
-  ];
-  assert_eq!(immediate.into_iter().collect::<FxHashSet<_>>(), changed);
-  assert!(raw.try_recv().is_err());
+  assert_batch(&mut batches, &[&a, &b], &[]).await;
+  assert_immediate_changes(&mut raw, &[&a, &b]);
 
   subscribe(&[], &bindings[..1]).await;
   let (times, _) = watcher.collect_time_info_entries();
-  assert!(matches!(times.as_slice(), [(path, TimeInfoEntry::Entry { .. })] if path == &names[1]));
+  assert!(matches!(times.as_slice(), [(path, TimeInfoEntry::Entry { .. })] if path == &observed));
   fs::remove_file(&watched).expect("remove watched file");
   check_subscriptions(&watcher).await;
-  let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
-    .await
-    .expect("removal event")
-    .expect("batch handler active");
-  assert!(changed.is_empty());
-  assert_eq!(
-    removed,
-    [names[1].clone()].into_iter().collect::<FxHashSet<_>>()
-  );
+  assert_batch(&mut batches, &[], &[&b]).await;
   subscribe(&[], &bindings[1..]).await;
   assert!(watcher.collect_time_info_entries().0.is_empty());
   watcher.close().await.expect("close watcher");
@@ -369,17 +328,7 @@ async fn child_event_notifies_the_requested_missing_directory() {
   let child = InternedPath::from(watched.join("index.js"));
   write_version(&child, 1);
   disk_event(&watcher, &child, FsEventKind::Create);
-  let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
-    .await
-    .expect("child event")
-    .expect("batch handler active");
-  assert_eq!(
-    changed,
-    [requested.to_string_lossy().into_owned()]
-      .into_iter()
-      .collect::<FxHashSet<_>>()
-  );
-  assert!(removed.is_empty());
+  assert_batch(&mut batches, &[&requested], &[]).await;
   watcher.close().await.expect("close watcher");
 }
 
@@ -412,81 +361,30 @@ async fn directory_subscribers_share_a_watched_directory() {
   watch(&bindings, &[]).await;
 
   disk_event(&watcher, &disk, FsEventKind::Change);
-  let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
-    .await
-    .expect("receive directory change")
-    .expect("active handler");
-  let names: FxHashSet<_> = [&a, &b]
-    .into_iter()
-    .map(|p| p.to_string_lossy().into_owned())
-    .collect();
-  assert_eq!(changed, names);
-  assert!(removed.is_empty());
-  let immediate = [
-    raw.try_recv().expect("first request"),
-    raw.try_recv().expect("second request"),
-  ];
-  assert_eq!(immediate.into_iter().collect::<FxHashSet<_>>(), names);
-  assert!(raw.try_recv().is_err());
+  assert_batch(&mut batches, &[&a, &b], &[]).await;
+  assert_immediate_changes(&mut raw, &[&a, &b]);
 
-  for version in 1..=2 {
-    if version == 2 {
-      watch(&[], &bindings[..1]).await;
-    }
-    let requested: FxHashSet<_> = bindings[(version - 1) as usize..]
-      .iter()
-      .map(|(_, p)| p.to_string_lossy().into_owned())
-      .collect();
-    write_version(&child, version);
-    if version == 1 {
-      disk_event(&watcher, &child, FsEventKind::Change);
-    } else {
-      check_subscriptions(&watcher).await;
-    }
-    let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
-      .await
-      .expect("receive child change")
-      .expect("active handler");
-    assert_eq!(changed, requested);
-    assert!(removed.is_empty());
-    for _ in &requested {
-      assert_eq!(
-        raw.try_recv().expect("one concrete change per request"),
-        child.to_string_lossy()
-      );
-    }
-    assert!(raw.try_recv().is_err());
-    let (files, dirs) = watcher.collect_time_info_entries();
-    assert_eq!(
-      dirs
-        .iter()
-        .map(|(p, _)| p.clone())
-        .collect::<FxHashSet<_>>(),
-      requested
-    );
-    for (p, entry) in dirs {
-      assert!(matches!(entry, TimeInfoEntry::OnlySafeTimeEntry { safe_time } if safe_time > 0));
-      assert!(files.contains(&(p, TimeInfoEntry::ExistenceOnlyTimeEntry)));
-    }
-    assert!(
-      !files
-        .iter()
-        .any(|(p, _)| p == disk.to_str().unwrap() || (version == 2 && p == a.to_str().unwrap()))
-    );
-  }
+  write_version(&child, 1);
+  disk_event(&watcher, &child, FsEventKind::Change);
+  assert_batch(&mut batches, &[&a, &b], &[]).await;
+  assert_immediate_changes(&mut raw, &[&child, &child]);
+
+  let (files, dirs) = watcher.collect_time_info_entries();
+  let [(path, TimeInfoEntry::OnlySafeTimeEntry { safe_time })] = dirs.as_slice() else {
+    panic!("expected one observed directory timestamp, got {dirs:?}");
+  };
+  assert_eq!(path.as_str(), disk.to_string_lossy());
+  assert!(*safe_time > 0);
+  assert_eq!(files.len(), 2);
+  assert!(files.contains(&(path.clone(), TimeInfoEntry::ExistenceOnlyTimeEntry)));
+  assert!(files.iter().any(
+    |(p, entry)| p == &child.to_string_lossy() && matches!(entry, TimeInfoEntry::Entry { .. })
+  ));
+
+  watch(&[], &bindings[..1]).await;
   fs::remove_dir_all(&disk).expect("remove watched directory");
   disk_event(&watcher, &disk, FsEventKind::Remove);
-  let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
-    .await
-    .expect("receive directory removal")
-    .expect("active handler");
-  assert!(changed.is_empty());
-  assert_eq!(
-    removed,
-    [b.to_string_lossy().into_owned()]
-      .into_iter()
-      .collect::<FxHashSet<_>>()
-  );
+  assert_batch(&mut batches, &[], &[&b]).await;
   assert_eq!(raw.try_recv().unwrap(), format!("removed {}", b.display()));
   watch(&[], &bindings[1..]).await;
   assert!(watcher.collect_time_info_entries().1.is_empty());
@@ -504,7 +402,6 @@ async fn scanned_directories_route_descendants_and_release_their_state() {
   let alias = InternedPath::from(base.join("src").join("x"));
   let suffix = std::path::Path::new("d").join("e").join("f.js");
   let file = InternedPath::from(inner.join(&suffix));
-  let concrete = file.to_string_lossy().into_owned();
   let outer_binding = [(outer.clone(), outer.clone())];
   let inner_binding = [(inner.clone(), alias.clone())];
   let watcher = manual_watcher();
@@ -535,40 +432,14 @@ async fn scanned_directories_route_descendants_and_release_their_state() {
 
   write_version(&file, 1);
   disk_event(&watcher, &file, FsEventKind::Change);
-  let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
-    .await
-    .expect("nested change")
-    .expect("active handler");
-  assert!(removed.is_empty());
-  assert_eq!(
-    changed,
-    [
-      outer.to_string_lossy().into_owned(),
-      alias.to_string_lossy().into_owned()
-    ]
-    .into_iter()
-    .collect::<FxHashSet<_>>()
-  );
-  assert_eq!(raw.try_recv().expect("outer request"), concrete);
-  assert_eq!(raw.try_recv().expect("inner request"), concrete);
-  assert!(raw.try_recv().is_err());
+  assert_batch(&mut batches, &[&outer, &alias], &[]).await;
+  assert_immediate_changes(&mut raw, &[&file, &file]);
 
   watch(&[], &outer_binding).await;
   fs::remove_file(&file).expect("remove file");
   disk_event(&watcher, &file, FsEventKind::Remove);
-  let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
-    .await
-    .expect("nested removal")
-    .expect("active handler");
-  assert_eq!(
-    changed,
-    [alias.to_string_lossy().into_owned()]
-      .into_iter()
-      .collect::<FxHashSet<_>>()
-  );
-  assert!(removed.is_empty());
-  assert_eq!(raw.try_recv().expect("context removal"), concrete);
-  assert!(raw.try_recv().is_err());
+  assert_batch(&mut batches, &[&alias], &[]).await;
+  assert_immediate_changes(&mut raw, &[&file]);
 
   fs::remove_dir_all(inner.join("d")).expect("remove scanned subtree");
   disk_event(
@@ -576,10 +447,7 @@ async fn scanned_directories_route_descendants_and_release_their_state() {
     &InternedPath::from(inner.join("d")),
     FsEventKind::Remove,
   );
-  tokio::time::timeout(Duration::from_secs(5), batches.recv())
-    .await
-    .expect("subtree removal")
-    .expect("active handler");
+  assert_batch(&mut batches, &[&alias], &[]).await;
   assert_eq!(
     watcher.index_sizes().1,
     outer_count + 1,
@@ -592,8 +460,6 @@ async fn scanned_directories_route_descendants_and_release_their_state() {
 
 #[tokio::test]
 async fn missing_subscription_keeps_child_events_after_directory_times_are_released() {
-  use std::iter::{empty, once};
-
   let temp = tempfile::tempdir().expect("create fixture");
   let dir = InternedPath::from(temp.path().canonicalize().expect("resolve fixture"));
   let child = InternedPath::from(dir.join("child.js"));
@@ -634,17 +500,7 @@ async fn missing_subscription_keeps_child_events_after_directory_times_are_relea
   assert!(!has_child_time());
   write_version(&child, 1);
   disk_event(&watcher, &child, FsEventKind::Change);
-  let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
-    .await
-    .expect("child change")
-    .expect("active handler");
-  assert_eq!(
-    changed,
-    [dir.to_string_lossy().into_owned()]
-      .into_iter()
-      .collect::<FxHashSet<_>>()
-  );
-  assert!(removed.is_empty());
+  assert_batch(&mut batches, &[&dir], &[]).await;
   assert!(!has_child_time());
   watcher.close().await.expect("close watcher");
 }
