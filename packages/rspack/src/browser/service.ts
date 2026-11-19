@@ -32,9 +32,6 @@ export function getCompilerHandle(_compiler: Compiler): number {
   return 0;
 }
 export function registerParallelLoader(..._args: unknown[]): void {}
-export function registerLoaderContext(..._args: unknown[]): never {
-  throw new Error('Parallel loader workers are unavailable in the browser');
-}
 
 export function beginWorkerImport(): () => void {
   return () => {};

@@ -10,11 +10,7 @@ use napi_derive::napi;
 use rspack_core::{LoaderContext, RunnerContext};
 use rustc_hash::FxHashMap;
 
-use super::{
-  JsLoaderContext,
-  bridge::MainObjectHandle,
-  result::{merge_loader_context, merge_loader_hooks},
-};
+use super::{JsLoaderContext, result::merge_loader_context};
 use crate::{
   error::RspackResultToNapiResultExt,
   js_tasks::{LoaderTask as NativeLoaderTask, TimingPoint, js_task_dispatcher},
@@ -30,7 +26,6 @@ use crate::{
 pub(crate) struct ActiveLoaderTask {
   native: NativeLoaderTask,
   _completion: Option<tokio_util::sync::DropGuard>,
-  bridge_handle: Option<MainObjectHandle>,
 }
 
 impl ActiveLoaderTask {
@@ -58,7 +53,6 @@ struct WorkerSlot {
 
 static NEXT_TASK: AtomicU32 = AtomicU32::new(1);
 pub(crate) type TaskCell = Arc<Mutex<Option<ActiveLoaderTask>>>;
-static TASKS: LazyLock<Mutex<FxHashMap<u32, TaskCell>>> = LazyLock::new(Default::default);
 static WORKERS: LazyLock<Mutex<FxHashMap<u32, Arc<WorkerSlot>>>> = LazyLock::new(Default::default);
 
 #[napi]
@@ -90,11 +84,7 @@ pub fn stop_loader_worker(id: u32) {
   if let Some(slot) = slot {
     slot.stopped.store(true, Ordering::Release);
     let tasks = std::mem::take(&mut *slot.tasks.lock().expect("loader tasks lock poisoned"));
-    for (id, cell) in tasks {
-      TASKS
-        .lock()
-        .expect("loader tasks lock poisoned")
-        .remove(&id);
+    for cell in tasks.into_values() {
       if let Some(task) = cell.lock().expect("loader task lock poisoned").take() {
         task.finish(
           Vec::new(),
@@ -120,10 +110,6 @@ pub struct JsLoaderTask {
 
 #[napi]
 impl JsLoaderTask {
-  #[napi(getter)]
-  pub fn id(&self) -> u32 {
-    self.id
-  }
   #[napi(getter)]
   pub fn main_object_handle(&self) -> napi::Result<u32> {
     let guard = self.task.lock().expect("loader task lock poisoned");
@@ -188,7 +174,6 @@ impl JsLoaderTask {
     }
     context.loader_chain_start = task.native.start;
     context.loader_chain_end = task.native.end;
-    context.bridge_handle = task.bridge_handle.as_ref().map(MainObjectHandle::handle);
     self.context_taken = true;
     if let Some(timing) = &task.native.timing {
       timing.mark(TimingPoint::ContextPrepared);
@@ -250,7 +235,6 @@ impl JsLoaderTask {
     let task = ActiveLoaderTask {
       native: task,
       _completion: completion,
-      bridge_handle: None,
     };
     let slot = match worker {
       Some(id) => WORKERS
@@ -281,10 +265,6 @@ impl JsLoaderTask {
     }
     let task = Arc::new(Mutex::new(Some(task)));
     active.insert(id, task.clone());
-    TASKS
-      .lock()
-      .expect("loader tasks lock poisoned")
-      .insert(id, task.clone());
     drop(active);
     Some(Self {
       slot,
@@ -314,10 +294,6 @@ impl JsLoaderTask {
       .lock()
       .expect("loader tasks lock poisoned")
       .remove(&self.id);
-    TASKS
-      .lock()
-      .expect("loader tasks lock poisoned")
-      .remove(&self.id);
   }
 }
 
@@ -334,48 +310,4 @@ impl Drop for JsLoaderTask {
       );
     }
   }
-}
-
-/// Main-isolate hook view. Called through RPC after a worker receives native work.
-#[napi]
-pub fn prepare_loader_task<'env>(
-  env: &'env Env,
-  id: u32,
-  #[napi(ts_arg_type = "(context: JsLoaderContext) => JsLoaderContext")] prepare: Function<
-    'env,
-    Object<'env>,
-    Object<'env>,
-  >,
-) -> napi::Result<u32> {
-  let cell = TASKS
-    .lock()
-    .expect("loader tasks lock poisoned")
-    .get(&id)
-    .cloned()
-    .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?;
-  // Keep the context alive without holding the task lock across JavaScript.
-  // The worker can release its JS task while this callback is running.
-  let mut task = cell
-    .lock()
-    .expect("loader task lock poisoned")
-    .take()
-    .ok_or_else(|| napi::Error::from_reason("Loader task has finished"))?;
-  let result = (|| {
-    let mut context = JsLoaderContext::from_native(task.context_mut(), true)
-      .map_err(|error| napi::Error::from_reason(error.to_string()))?;
-    context.loader_chain_start = task.native.start;
-    context.loader_chain_end = task.native.end;
-    let (context, access) = context.into_jsobject(env)?;
-    let result = prepare.call(context);
-    drop(access);
-    let context = unsafe { JsLoaderContext::from_napi_value(env.raw(), result?.raw())? };
-    let handle = context
-      .bridge_handle
-      .ok_or_else(|| napi::Error::from_reason("Loader hooks did not register their context"))?;
-    merge_loader_hooks(task.context_mut(), context);
-    task.bridge_handle = Some(MainObjectHandle::new(handle));
-    Ok(handle)
-  })();
-  *cell.lock().expect("loader task lock poisoned") = Some(task);
-  result
 }

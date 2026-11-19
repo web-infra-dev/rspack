@@ -1,9 +1,4 @@
-import binding, {
-  type BuildInfo,
-  type Module,
-  type Dependency,
-  type AsyncDependenciesBlock,
-} from '@rspack/binding';
+import binding, { type BuildInfo, type Module } from '@rspack/binding';
 import type { NormalModule } from '../NormalModule';
 import {
   pickCustomBuildInfoFields,
@@ -30,19 +25,16 @@ function restrictBuildInfo(buildInfo: BuildInfo): BuildInfo {
   });
 }
 
-/** Local module data stays on the worker; graph access uses the main-thread bridge. */
 export function createWorkerModule(
   native: Module,
   main?: Pick<
     WorkerLoaderContext,
-    | 'cacheBuildInfo'
-    | 'customBuildInfo'
-    | 'updateCustomBuildInfo'
-    | 'getDependency'
+    'cacheBuildInfo' | 'customBuildInfo' | 'updateCustomBuildInfo'
   >,
 ) {
   let active = true;
   let localBuildInfo: BuildInfo | undefined;
+  let hadCustomBuildInfo = false;
   const getNative = () => {
     if (!active)
       throw new Error(
@@ -55,7 +47,11 @@ export function createWorkerModule(
     if (!localBuildInfo) {
       const info = binding.moduleGetBuildInfo(handle);
       if (main) {
-        replaceCustomBuildInfoFields(info, main.customBuildInfo);
+        if (main.customBuildInfo) {
+          replaceCustomBuildInfoFields(info, main.customBuildInfo);
+        }
+        hadCustomBuildInfo =
+          Object.keys(pickCustomBuildInfoFields(info)).length > 0;
         localBuildInfo = info;
       } else {
         localBuildInfo = restrictBuildInfo(info);
@@ -63,27 +59,6 @@ export function createWorkerModule(
     }
     return localBuildInfo;
   };
-  const wrapDependency = (dependency: Dependency): Dependency => {
-    for (const key of ['ids', '_parentModule'] as const) {
-      Object.defineProperty(dependency, key, {
-        get() {
-          getNative();
-          return main!.getDependency(dependency.__internal__id)[key];
-        },
-      });
-    }
-    return dependency;
-  };
-  const wrapBlock = (block: AsyncDependenciesBlock): AsyncDependenciesBlock =>
-    new Proxy(block, {
-      get(target, key) {
-        getNative();
-        if (key === 'dependencies')
-          return target.dependencies.map(wrapDependency);
-        if (key === 'blocks') return target.blocks.map(wrapBlock);
-        return Reflect.get(target, key, target);
-      },
-    });
   const module = {
     get type() {
       return binding.moduleGetType(getNative());
@@ -163,16 +138,10 @@ export function createWorkerModule(
       get: () => binding.normalModuleGetLoaders(getNative()),
     },
     blocks: {
-      get: () => {
-        const blocks = binding.moduleGetBlocks(getNative());
-        return main ? blocks.map(wrapBlock) : blocks;
-      },
+      get: () => binding.moduleGetBlocks(getNative()),
     },
     dependencies: {
-      get: () => {
-        const dependencies = binding.moduleGetDependencies(getNative());
-        return main ? dependencies.map(wrapDependency) : dependencies;
-      },
+      get: () => binding.moduleGetDependencies(getNative()),
     },
     error: {
       get: () => binding.normalModuleGetError(getNative()),
@@ -194,10 +163,7 @@ export function createWorkerModule(
     commitBuildInfo() {
       if (main && localBuildInfo) {
         const fields = pickCustomBuildInfoFields(localBuildInfo);
-        if (
-          Object.keys(fields).length > 0 ||
-          Object.keys(main.customBuildInfo).length > 0
-        ) {
+        if (Object.keys(fields).length > 0 || hadCustomBuildInfo) {
           if (main.cacheBuildInfo) {
             localBuildInfo[COMMIT_CUSTOM_FIELDS_SYMBOL]();
           }

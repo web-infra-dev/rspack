@@ -11,33 +11,33 @@ import { getRawResolve } from '../config/adapter';
 import { Resolver } from '../Resolver';
 import { createWorkerModule } from './workerModule';
 import {
-  prepareWorkerTask,
-  clearWorkerLoaderContext,
-  createWorkerCompiler,
+  clearWorkerLoaderReferences,
   createStrictWorkerCompiler,
+  getWorkerLoaderContext,
   setLoaderObjectBridge,
   setWorkerImportScheduler,
 } from './service';
 
-let activeTasks = 0;
+let activeBridgeTasks = 0;
 
 async function execute(task: JsLoaderTask): Promise<void> {
-  activeTasks++;
+  let usesObjectBridge = false;
   let module: ReturnType<typeof createWorkerModule> | undefined;
   try {
     const strict = task.strict;
+    const context = task.takeContext();
+    if (!strict) {
+      usesObjectBridge = true;
+      activeBridgeTasks++;
+    }
     const main = strict
       ? undefined
-      : await prepareWorkerTask(task.mainObjectHandle, task.id);
-    const context = task.takeContext();
+      : await getWorkerLoaderContext(task.mainObjectHandle, context);
     const workerModule = createWorkerModule(context._module!, main);
     module = workerModule;
     const result = await runLoaders(
-      main
-        ? createWorkerCompiler(main)
-        : createStrictWorkerCompiler(task.mainObjectHandle),
+      main?.compiler ?? createStrictWorkerCompiler(task.mainObjectHandle),
       context,
-      main?.extensions ?? {},
       workerModule.module,
       strict
         ? {
@@ -61,7 +61,8 @@ async function execute(task: JsLoaderTask): Promise<void> {
     );
   } finally {
     module?.dispose();
-    if (--activeTasks === 0) clearWorkerLoaderContext();
+    if (usesObjectBridge && --activeBridgeTasks === 0)
+      clearWorkerLoaderReferences();
   }
 }
 

@@ -148,7 +148,6 @@ export declare class CodeGenerationResults {
 }
 
 export declare class Dependency {
-  get __internal__id(): number
   get _parentModule(): Module | undefined
   get type(): string
   get category(): string
@@ -344,7 +343,6 @@ export declare class JsExportsInfo {
 }
 
 export declare class JsLoaderTask {
-  get id(): number
   get mainObjectHandle(): number
   get strict(): boolean
   getResolver(options?: RawResolveOptionsWithDependencyType | undefined | null): JsResolver
@@ -629,6 +627,12 @@ export declare function formatDiagnostic(diagnostic: JsDiagnostic): ExternalObje
  * registration is owned by the main subscription and returns an empty holder.
  */
 export declare function getJsTaskSubscription(isWorker: boolean): ExternalObject<'JsTaskSubscription'>
+
+/**
+ * Access only the JS-owned custom fields. The module is owned by its loader
+ * worker and may not be present in the graph on this thread.
+ */
+export declare function getLoaderBuildInfo(compilationId: number, identifier: string, create: boolean): BuildInfo | undefined
 
 /** Read cached V8 bytes in the calling worker env, without a main-thread RPC. */
 export declare function getSerializedLoaderOptions(owner: number, ident?: string | undefined | null): Buffer | null
@@ -947,12 +951,11 @@ export interface JsLinkPreloadData {
 
 export interface JsLoaderContext {
   resource: string
+  compilationId: number
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
   content: string | Buffer | null
   additionalData?: number | Buffer
-  hooksOnly: boolean
-  bridgeHandle?: number
   __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
   cacheable: boolean
@@ -1923,9 +1926,6 @@ export interface PathWithInfo {
   path: string
   info: AssetInfo
 }
-
-/** Main-isolate hook view. Called through RPC after a worker receives native work. */
-export declare function prepareLoaderTask(id: number, prepare: (context: JsLoaderContext) => JsLoaderContext): number
 
 export interface RawAliasOptionItem {
   path: string

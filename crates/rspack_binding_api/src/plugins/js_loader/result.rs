@@ -7,24 +7,6 @@ use super::{
   bridge::{MainObjectHandle, SerializedLoaderData},
 };
 
-pub(super) fn merge_loader_hooks(to: &mut LoaderContext<RunnerContext>, mut from: JsLoaderContext) {
-  to.cacheable = from.cacheable;
-  to.replace_dependencies(
-    from.dependencies.into(),
-    from.added_dependencies.into(),
-    from.removed_dependencies.into(),
-  );
-  for (to, from) in to.loader_items.iter_mut().zip(from.loader_items.drain(..)) {
-    to.set_data(from.data);
-  }
-  to.parse_meta.extend(
-    from
-      .parse_meta
-      .into_iter()
-      .map(|(key, value)| (key, Box::new(value) as _)),
-  );
-}
-
 pub(crate) fn merge_loader_context(
   to: &mut LoaderContext<RunnerContext>,
   mut from: JsLoaderContext,

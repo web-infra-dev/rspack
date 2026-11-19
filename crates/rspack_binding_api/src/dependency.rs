@@ -51,18 +51,12 @@ impl Dependency {
 
 #[napi]
 impl Dependency {
-  // Match local dependencies with their main-thread graph wrappers across the bridge.
-  #[napi(getter, js_name = "__internal__id")]
-  pub fn internal_id(&self) -> u32 {
-    self.dependency_id.as_u32()
-  }
-
   #[napi(
     getter,
     js_name = "_parentModule",
     ts_return_type = "Module | undefined"
   )]
-  pub fn parent_module(&mut self) -> napi::Result<Option<ModuleObject>> {
+  pub fn parent_module(&mut self) -> napi::Result<Either<Option<ModuleObject>, ()>> {
     self
       .with_graph(|compilation, module_graph, dependency| {
         let parent_module = module_graph
@@ -71,7 +65,8 @@ impl Dependency {
           .map(|m| ModuleObject::with_ref(m.as_ref(), compilation.compiler_id()));
         Ok(parent_module)
       })
-      .map(Option::flatten)
+      // Without a graph context, expose the graph property as JS undefined.
+      .map(|parent| parent.map_or(Either::B(()), Either::A))
   }
 
   #[napi(getter)]

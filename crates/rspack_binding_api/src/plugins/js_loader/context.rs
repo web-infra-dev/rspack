@@ -184,14 +184,13 @@ impl From<JsLoaderDependencies> for LoaderDependencies {
 #[napi(object)]
 pub struct JsLoaderContext {
   pub resource: String,
+  pub compilation_id: u32,
   #[napi(ts_type = "Readonly<boolean>")]
   pub hot: bool,
 
   /// Content maybe empty in pitching stage
   pub content: Either3<String, Buffer, Null>,
   pub additional_data: Option<Either<u32, Buffer>>,
-  pub hooks_only: bool,
-  pub bridge_handle: Option<u32>,
   #[napi(js_name = "__internal__parseMeta")]
   pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,
@@ -220,50 +219,25 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   fn try_from(
     cx: &mut rspack_core::LoaderContext<RunnerContext>,
   ) -> std::result::Result<Self, Self::Error> {
-    Self::from_native(cx, false)
-  }
-}
-
-impl JsLoaderContext {
-  pub(super) fn into_jsobject(
-    mut self,
-    env: &Env,
-  ) -> napi::Result<(Object<'_>, Option<ModuleAccess>)> {
-    let module = self
-      .module
-      .take()
-      .ok_or_else(|| Error::from_reason("Loader context has no Module"))?;
-    let mut context = Object::from_raw(env.raw(), unsafe { Self::to_napi_value(env.raw(), self)? });
-    let (module, access) = module.into_jsobject(env)?;
-    context.set_named_property("_module", module)?;
-    Ok((context, access))
-  }
-
-  pub(super) fn from_native(
-    cx: &mut LoaderContext<RunnerContext>,
-    hooks_only: bool,
-  ) -> rspack_error::Result<Self> {
-    let additional_data = (!hooks_only)
-      .then(|| cx.additional_data())
-      .flatten()
-      .and_then(|data| {
-        data
-          .get::<SerializedLoaderData>()
-          .map(|data| Either::B(Buffer::from(data.0.clone())))
-          .or_else(|| {
-            data
-              .get::<MainObjectHandle>()
-              .map(|handle| Either::A(handle.handle()))
-          })
-      });
+    let additional_data = cx.additional_data().and_then(|data| {
+      data
+        .get::<SerializedLoaderData>()
+        .map(|data| Either::B(Buffer::from(data.0.clone())))
+        .or_else(|| {
+          data
+            .get::<MainObjectHandle>()
+            .map(|handle| Either::A(handle.handle()))
+        })
+    });
 
     let execution_span = cx
       .current_chain()
       .map_or(0..cx.loader_items.len(), |chain| chain.start()..chain.end());
     Ok(JsLoaderContext {
       resource: cx.resource_data.resource().to_owned(),
+      compilation_id: cx.context.compilation_id.0,
       hot: cx.hot,
-      content: match if hooks_only { None } else { cx.content() } {
+      content: match cx.content() {
         Some(Content::String(content)) => Either3::A(content.clone()),
         Some(Content::Buffer(content)) => Either3::B(content.clone().into()),
         None => Either3::C(Null),
@@ -272,11 +246,8 @@ impl JsLoaderContext {
       // set values from js side to rust side.
       parse_meta: Default::default(),
       additional_data,
-      hooks_only,
-      bridge_handle: None,
-      source_map: (!hooks_only)
-        .then(|| cx.source_map())
-        .flatten()
+      source_map: cx
+        .source_map()
         .map(|v| v.to_json())
         .map(|v| v.into_bytes().into()),
       cacheable: cx.cacheable,
@@ -299,5 +270,21 @@ impl JsLoaderContext {
         )
       },
     })
+  }
+}
+
+impl JsLoaderContext {
+  pub(super) fn into_jsobject(
+    mut self,
+    env: &Env,
+  ) -> napi::Result<(Object<'_>, Option<ModuleAccess>)> {
+    let module = self
+      .module
+      .take()
+      .ok_or_else(|| Error::from_reason("Loader context has no Module"))?;
+    let mut context = Object::from_raw(env.raw(), unsafe { Self::to_napi_value(env.raw(), self)? });
+    let (module, access) = module.into_jsobject(env)?;
+    context.set_named_property("_module", module)?;
+    Ok((context, access))
   }
 }

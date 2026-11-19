@@ -65,7 +65,6 @@ import {
   beginWorkerImport,
   deserializeAdditionalData,
   serializeAdditionalData,
-  registerLoaderContext,
 } from './service';
 import {
   convertArgs,
@@ -265,7 +264,6 @@ function getCurrentLoader(
 export async function runLoaders(
   compiler: Compiler,
   context: JsLoaderContext,
-  extensions?: Record<string, unknown>,
   workerModule?: JsLoaderContext['_module'],
   strict?: {
     getResolver(options?: ResolveOptionsWithDependencyType): Resolver;
@@ -278,16 +276,15 @@ export async function runLoaders(
   const pitch = loaderState === JsLoaderState.Pitching;
 
   const { resource } = context;
-  const traceData =
-    !context.hooksOnly && JavaScriptTracer.isEnabled()
-      ? {
-          uuid: JavaScriptTracer.uuid(),
-          args: {
-            is_pitch: pitch,
-            resource: resource,
-          },
-        }
-      : undefined;
+  const traceData = JavaScriptTracer.isEnabled()
+    ? {
+        uuid: JavaScriptTracer.uuid(),
+        args: {
+          is_pitch: pitch,
+          resource: resource,
+        },
+      }
+    : undefined;
 
   if (traceData) {
     JavaScriptTracer.startAsync({
@@ -315,7 +312,7 @@ export async function runLoaders(
 
   /// Construct `loaderContext`
   const loaderContext = {} as LoaderContext;
-  if (extensions) Object.assign(loaderContext, { parallel: true });
+  if (workerModule) Object.assign(loaderContext, { parallel: true });
 
   loaderContext.loaders = context.loaderItems.map((item, index) => {
     return new LoaderObject(
@@ -463,7 +460,7 @@ export async function runLoaders(
       ),
     );
   } as LoaderContext['importModule'];
-  if (extensions) {
+  if (workerModule) {
     const importModule = loaderContext.importModule;
     loaderContext.importModule = ((request, options, callback) => {
       const stop = beginWorkerImport();
@@ -817,10 +814,7 @@ export async function runLoaders(
     context.__internal__parseMeta[key] = value;
   };
 
-  const original = context.hooksOnly
-    ? Object.getOwnPropertyDescriptors(loaderContext)
-    : undefined;
-  let compilation: Compilation | undefined = extensions
+  let compilation: Compilation | undefined = workerModule
     ? undefined
     : compiler._lastCompilation;
   let step = 0;
@@ -833,24 +827,6 @@ export async function runLoaders(
     if (++step > 1000) throw new Error('Too many nested child compilers');
   }
   dependencies.mergeChanges();
-  if (context.hooksOnly) {
-    const custom: Record<string, unknown> = {};
-    for (const [key, descriptor] of Object.entries(
-      Object.getOwnPropertyDescriptors(loaderContext),
-    )) {
-      if (
-        'value' in descriptor &&
-        (!original![key] || descriptor.value !== original![key].value)
-      )
-        custom[key] = descriptor.value;
-    }
-    context.bridgeHandle = registerLoaderContext(compiler, module, custom);
-    context.addedDependencies = dependencies.added;
-    context.removedDependencies = dependencies.removed;
-    return context;
-  }
-  if (extensions) Object.assign(loaderContext, extensions);
-  if (workerModule) loaderContext._module = workerModule;
 
   const isomorphoicRun = async (fn: Function, args: any[]) => {
     const currentLoaderObject = getCurrentLoader(loaderContext);

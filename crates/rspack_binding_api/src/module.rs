@@ -15,7 +15,7 @@ use napi_derive::napi;
 use rspack_collections::Identifier;
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationId,
-  CompilerId, Context, FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier,
+  CompilerId, Context, FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, NormalModule,
   RuntimeModuleCommon, RuntimeModuleStage, SourceType, rspack_sources::Source,
 };
 use rspack_napi::{OneShotRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt};
@@ -138,14 +138,22 @@ pub fn module_get_build_info<'env>(
   env: &'env Env,
   module: Object<'env>,
 ) -> napi::Result<Object<'env>> {
-  let mut this = module;
+  let reference = unsafe { module_bridge::retain_handle(env.raw(), module.raw())? };
+  get_or_create_build_info(env, module, &reference, true)
+}
+
+fn get_or_create_build_info<'env>(
+  env: &'env Env,
+  mut module: Object<'env>,
+  reference: &Rc<ModuleHandle>,
+  load_extras: bool,
+) -> napi::Result<Object<'env>> {
   let raw_env = env.raw();
-  let reference = unsafe { module_bridge::retain_handle(raw_env, this.raw())? };
   if let Some(r) = &*reference.build_info_ref.borrow() {
     return r.as_object(env);
   }
-  let mut build_info = BuildInfo::new(&reference).get_jsobject(env)?;
-  this.set_property(
+  let mut build_info = BuildInfo::new(reference, load_extras).get_jsobject(env)?;
+  module.set_property(
     env.symbol_for(symbols::MODULE_BUILD_INFO_SYMBOL)?,
     build_info,
   )?;
@@ -153,6 +161,41 @@ pub fn module_get_build_info<'env>(
   let result = r.as_object(env);
   *reference.build_info_ref.borrow_mut() = Some(r);
   result
+}
+
+/// Access only the JS-owned custom fields. The module is owned by its loader
+/// worker and may not be present in the graph on this thread.
+#[napi(ts_return_type = "BuildInfo | undefined")]
+pub fn get_loader_build_info<'env>(
+  env: &'env Env,
+  compilation_id: u32,
+  identifier: String,
+  create: bool,
+) -> napi::Result<Option<Object<'env>>> {
+  let compiler_id = crate::with_compilation(CompilationId(compilation_id), |compilation| {
+    Ok(compilation.compiler_id())
+  })?;
+  let identifier = ModuleIdentifier::from(identifier);
+  let module = match module_bridge::cached_module(env, compiler_id, identifier)? {
+    Some(module) => module,
+    None if create => {
+      ModuleObject::from_identifier(compiler_id, identifier, TypeId::of::<NormalModule>())
+        .into_jsobject(env)?
+        .0
+    }
+    None => return Ok(None),
+  };
+  let reference = unsafe { module_bridge::retain_handle(env.raw(), module.raw())? };
+  if create {
+    get_or_create_build_info(env, module, &reference, false).map(Some)
+  } else {
+    reference
+      .build_info_ref
+      .borrow()
+      .as_ref()
+      .map(|build_info| build_info.as_object(env))
+      .transpose()
+  }
 }
 
 #[napi(ts_args_type = "module: Module, value: BuildInfo")]
@@ -164,7 +207,7 @@ pub fn module_set_build_info(
   let mut this = module;
   let raw_env = env.raw();
   let reference = unsafe { module_bridge::retain_handle(raw_env, this.raw())? };
-  let new_build_info = BuildInfo::new(&reference);
+  let new_build_info = BuildInfo::new(&reference, true);
   let mut new_instance = new_build_info.get_jsobject(env)?;
 
   let names = input_object.get_all_property_names(
@@ -625,9 +668,17 @@ unsafe impl Sync for ModuleObject {}
 
 impl ModuleObject {
   pub fn with_ref(module: &dyn rspack_core::Module, compiler_id: CompilerId) -> Self {
+    Self::from_identifier(compiler_id, module.identifier(), module.as_any().type_id())
+  }
+
+  fn from_identifier(
+    compiler_id: CompilerId,
+    identifier: ModuleIdentifier,
+    type_id: TypeId,
+  ) -> Self {
     Self {
-      type_id: module.as_any().type_id(),
-      identifier: module.identifier(),
+      type_id,
+      identifier,
       pointer: None,
       compiler_id,
       worker: false,

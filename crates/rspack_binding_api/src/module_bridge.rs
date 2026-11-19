@@ -198,6 +198,23 @@ fn wrap(env: &Env, object: Object<'_>, handle: &Rc<ModuleHandle>) -> Result<()> 
   Ok(())
 }
 
+pub(crate) fn cached_module(
+  env: &Env,
+  compiler_id: CompilerId,
+  identifier: ModuleIdentifier,
+) -> Result<Option<Object<'_>>> {
+  MODULE_INSTANCE_REFS.with_borrow(|instances| {
+    instances
+      .get(&compiler_id)
+      .and_then(|modules| modules.get(&identifier))
+      .map(|instance| {
+        let object = unsafe { ToNapiValue::to_napi_value(env.raw(), &instance.reference)? };
+        Ok(Object::from_raw(env.raw(), object))
+      })
+      .transpose()
+  })
+}
+
 pub(crate) fn cleanup_compiler(compiler_id: &CompilerId) {
   let removed = MODULE_INSTANCE_REFS.with_borrow_mut(|instances| instances.remove(compiler_id));
   if let Some(modules) = &removed {

@@ -143,11 +143,17 @@ impl KnownBuildInfo {
 }
 
 // KnownBuildInfo & Record<string, any>
-pub struct BuildInfo<'a>(&'a Rc<ModuleHandle>);
+pub struct BuildInfo<'a> {
+  module: &'a Rc<ModuleHandle>,
+  load_extras: bool,
+}
 
 impl<'a> BuildInfo<'a> {
-  pub(crate) fn new(module: &'a Rc<ModuleHandle>) -> Self {
-    Self(module)
+  pub(crate) fn new(module: &'a Rc<ModuleHandle>, load_extras: bool) -> Self {
+    Self {
+      module,
+      load_extras,
+    }
   }
 
   pub fn get_jsobject(self, env: &Env) -> napi::Result<Object<'_>> {
@@ -284,7 +290,7 @@ impl ToNapiValue for BuildInfo<'_> {
   ) -> napi::Result<napi::sys::napi_value> {
     unsafe {
       let env_wrapper = Env::from_raw(env);
-      let known = KnownBuildInfo::new(val.0);
+      let known = KnownBuildInfo::new(val.module);
       let napi_val = ToNapiValue::to_napi_value(env, known)?;
       let mut object = Object::from_raw(env, napi_val);
 
@@ -336,19 +342,21 @@ impl ToNapiValue for BuildInfo<'_> {
           Ok(properties)
         })?;
 
-        val.0.with_local_ref(|module| {
-          let extras = &module.build_info().extras;
-          properties.reserve(extras.len());
-          for (key, value) in extras {
-            let napi_val = ToNapiValue::to_napi_value(env, value)?;
-            properties.push(
-              Property::new()
-                .with_utf8_name(key)?
-                .with_value(&Object::from_raw(env, napi_val)),
-            );
-          }
-          Ok(())
-        })?;
+        if val.load_extras {
+          val.module.with_local_ref(|module| {
+            let extras = &module.build_info().extras;
+            properties.reserve(extras.len());
+            for (key, value) in extras {
+              let napi_val = ToNapiValue::to_napi_value(env, value)?;
+              properties.push(
+                Property::new()
+                  .with_utf8_name(key)?
+                  .with_value(&Object::from_raw(env, napi_val)),
+              );
+            }
+            Ok(())
+          })?;
+        }
         object.define_properties(&properties)
       })?;
 
