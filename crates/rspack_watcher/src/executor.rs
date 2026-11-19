@@ -14,70 +14,7 @@ use tokio::{
 };
 
 use super::{EventAggregateHandler, EventHandler, FsEventKind};
-use crate::{EventBatch, FsEvent, ObservedBatch};
-
-type ImmediateEvents = smallvec::SmallVec<[FsEvent; 1]>;
-
-#[derive(Default)]
-pub(crate) struct ResolvedEvents {
-  pub(crate) dependencies: EventBatch,
-  immediate: ImmediateEvents,
-  context_removal: Option<InternedPath>,
-}
-
-impl ResolvedEvents {
-  pub(crate) fn from_observed(observed: ObservedBatch) -> Self {
-    let mut events = Self::default();
-    for change in observed {
-      let kind = change.kind;
-      let direct = change.watched.subscribers(
-        change.file_type.is_none_or(|t| t.is_file()),
-        change.file_type.is_none_or(|t| t.is_dir()),
-      );
-      let path = change.watched.path;
-      let has_context = !change.contexts.is_empty();
-      let context_removal = kind == FsEventKind::Remove
-        && !change.initial_missing
-        && change
-          .contexts
-          .iter()
-          .any(|(_, kind)| *kind == FsEventKind::Change);
-      if context_removal {
-        events.context_removal = Some(path.clone());
-      }
-      for (context, context_kind) in change.contexts {
-        for subscriber in context.subscribers(false, true) {
-          let kind = if context_removal
-            && context_kind == FsEventKind::Remove
-            && !subscriber.file_or_missing
-          {
-            FsEventKind::Change
-          } else {
-            context_kind
-          };
-          events.dependencies.push(FsEvent {
-            path: subscriber.path,
-            kind,
-          });
-        }
-      }
-      if has_context && !context_removal && !direct.iter().any(|s| s.path == path) {
-        events.immediate.push(FsEvent { path, kind });
-      }
-      for subscriber in direct {
-        if !context_removal || subscriber.file_or_missing {
-          let event = FsEvent {
-            path: subscriber.path,
-            kind,
-          };
-          events.immediate.push(event.clone());
-          events.dependencies.push(event);
-        }
-      }
-    }
-    events
-  }
-}
+use crate::{ImmediateEvents, ResolvedEvents};
 
 type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
 type ThreadSafety<T> = Arc<Mutex<T>>;
@@ -112,7 +49,7 @@ struct AggregateTime {
 /// deleted files, and coordinates the event handling logic.
 pub struct Executor {
   aggregate_timeout: u32,
-  rx: ThreadSafetyReceiver<ObservedBatch>,
+  rx: ThreadSafetyReceiver<ResolvedEvents>,
   files_data: Aggregated,
   exec_aggregate_tx: UnboundedSender<ExecAggregateEvent>,
   exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
@@ -150,7 +87,7 @@ impl Executor {
   /// `paused` is shared with [`crate::FsWatcher`] so pausing stays a lock-free
   /// synchronous operation.
   pub fn new(
-    rx: UnboundedReceiver<ObservedBatch>,
+    rx: UnboundedReceiver<ResolvedEvents>,
     aggregate_timeout: Option<u32>,
     paused: Arc<AtomicBool>,
   ) -> Self {
@@ -232,8 +169,7 @@ impl Executor {
       let aggregate_time = Arc::clone(&self.aggregate_time);
 
       let future = async move {
-        while let Some(observed) = rx.lock().await.recv().await {
-          let events = ResolvedEvents::from_observed(observed);
+        while let Some(events) = rx.lock().await.recv().await {
           // Enqueue raw delivery before allowing an aggregate snapshot to consume it.
           {
             let mut files = files_data.lock().expect("aggregated sets poisoned");

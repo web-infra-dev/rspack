@@ -3,14 +3,14 @@ use std::sync::Arc;
 use rspack_paths::InternedPath;
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
-use super::FsEventKind;
+use super::{FsEvent, FsEventKind};
 use crate::{
-  EventBatch, ObservedBatch, ObservedEvent,
+  EventBatch, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
   paths::{PathManager, followed_metadata, modification_time},
 };
 /// Classifies one raw file system event: drops what the `ignored` filter
-/// rejects, normalizes the kind against the disk, and records changes to watched paths.
+/// rejects, normalizes the kind against the disk, and resolves the paths to notify.
 ///
 /// Deliberately NOT run on the thread that reads events from the OS. One event
 /// costs several `stat` calls, and a JS-backed `ignored` predicate costs a full
@@ -20,7 +20,7 @@ use crate::{
 struct EventProcessor {
   /// Shared reference to the path register, which tracks watched files/directories/missing.
   path_manager: Arc<PathManager>,
-  tx: UnboundedSender<ObservedBatch>,
+  tx: UnboundedSender<ResolvedEvents>,
   analyzer: Arc<RecommendedAnalyzer>,
 }
 
@@ -56,7 +56,7 @@ enum Origin {
 }
 
 impl Trigger {
-  pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<ObservedBatch>) -> Self {
+  pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<ResolvedEvents>) -> Self {
     let (pending, mut incoming) = unbounded_channel::<Pending>();
     let analyzer = Arc::default();
     let processor = EventProcessor {
@@ -180,7 +180,7 @@ impl EventProcessor {
     // unchanged aged mtime is suppressed just as it is by watchpack. Explicit and
     // scanned removals already declare the old record invalid.
     let removed = kind == FsEventKind::Remove && matches!(origin, Origin::Injected | Origin::Scan);
-    let initial_missing = removed && matches!(origin, Origin::Scan);
+    let scanned_kind = matches!(origin, Origin::Scan).then_some(kind);
     let own = std::fs::symlink_metadata(path).ok();
     let target = own
       .as_ref()
@@ -240,9 +240,8 @@ impl EventProcessor {
     }
     self.path_manager.set_last_watch_events(path);
 
-    let scanned = matches!(origin, Origin::Scan);
-    let mut events = ObservedBatch::new();
-    events.push(self.observe(path, kind, target.as_deref(), initial_missing, scanned));
+    let mut events = ResolvedEvents::default();
+    self.resolve_into(&mut events, path, kind, target.as_deref(), scanned_kind);
     let directory_hint =
       appeared || (matches!(origin, Origin::Disk { .. }) && kind == FsEventKind::Change);
     if directory_hint && own.as_ref().is_some_and(std::fs::Metadata::is_dir) {
@@ -279,28 +278,29 @@ impl EventProcessor {
         if file && !self.path_manager.observe_file_mtime(&child, mtime) {
           continue;
         }
-        events.push(self.observe(&child, recovered_kind, target.as_deref(), false, false));
+        self.resolve_into(&mut events, &child, recovered_kind, target.as_deref(), None);
       }
     }
     let _ = self.tx.send(events);
   }
 
-  fn observe(
+  fn resolve_into(
     &self,
+    events: &mut ResolvedEvents,
     path: &InternedPath,
     kind: FsEventKind,
     target: Option<&std::fs::Metadata>,
-    initial_missing: bool,
-    scanned: bool,
-  ) -> ObservedEvent {
-    if scanned {
+    scanned_kind: Option<FsEventKind>,
+  ) {
+    if scanned_kind.is_some() {
       self.analyzer.invalidate_path(path);
     }
-    let (watched, contexts) = self.path_manager.subscriptions.observe(path);
-    let contexts = contexts
+    let (direct, contexts) = self.path_manager.subscriptions.subscribers(path, target);
+    let has_context = !contexts.is_empty();
+    let contexts: smallvec::SmallVec<[_; 1]> = contexts
       .into_iter()
       .map(|context| {
-        let watched = &context.path;
+        let watched = &context.watched;
         let kind = if std::fs::symlink_metadata(watched).is_ok() {
           FsEventKind::Change
         } else {
@@ -311,18 +311,51 @@ impl EventProcessor {
           }
           FsEventKind::Remove
         };
-        if scanned || kind == FsEventKind::Remove {
+        if scanned_kind.is_some() || kind == FsEventKind::Remove {
           self.analyzer.invalidate_path(watched);
         }
-        (context, kind)
+        (context.requested, kind)
       })
       .collect();
-    ObservedEvent {
-      watched,
-      kind,
-      file_type: target.map(std::fs::Metadata::file_type),
-      initial_missing,
-      contexts,
+    let context_removal = kind == FsEventKind::Remove
+      && scanned_kind != Some(FsEventKind::Remove)
+      && contexts
+        .iter()
+        .any(|(_, kind)| *kind == FsEventKind::Change);
+    if context_removal {
+      events.context_removal = Some(path.clone());
+    }
+    for (subscribers, context_kind) in contexts {
+      for subscriber in subscribers {
+        let kind = if context_removal
+          && context_kind == FsEventKind::Remove
+          && !subscriber.file_or_missing
+        {
+          FsEventKind::Change
+        } else {
+          context_kind
+        };
+        events.dependencies.push(FsEvent {
+          path: subscriber.path,
+          kind,
+        });
+      }
+    }
+    if has_context && !context_removal && !direct.iter().any(|s| s.path == *path) {
+      events.immediate.push(FsEvent {
+        path: path.clone(),
+        kind,
+      });
+    }
+    for subscriber in direct {
+      if !context_removal || subscriber.file_or_missing {
+        let event = FsEvent {
+          path: subscriber.path,
+          kind,
+        };
+        events.immediate.push(event.clone());
+        events.dependencies.push(event);
+      }
     }
   }
 }
@@ -356,19 +389,14 @@ impl DependencyFinder<'_> {
     for m in self.missing.iter() {
       subscriptions.update(&m, Subscription::Missing(m.clone()), true);
     }
-    let metadata = std::fs::metadata(path).ok();
-    let (watched, contexts) = subscriptions.observe(path);
-    watched
-      .subscribers(
-        metadata.as_ref().is_none_or(std::fs::Metadata::is_file),
-        metadata.as_ref().is_none_or(std::fs::Metadata::is_dir),
-      )
+    let (direct, contexts) = subscriptions.subscribers(path, std::fs::metadata(path).ok().as_ref());
+    direct
       .into_iter()
-      .map(|subscriber| (subscriber.path, kind))
+      .map(|s| (s.path, kind))
       .chain(
         contexts
           .into_iter()
-          .map(|context| (context.path, FsEventKind::Change)),
+          .map(|context| (context.watched, FsEventKind::Change)),
       )
       .collect()
   }

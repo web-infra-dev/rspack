@@ -1,4 +1,4 @@
-use std::sync::{Arc, RwLock};
+use std::sync::RwLock;
 
 use rspack_paths::{InternedPath, InternedPathMap};
 use smallvec::SmallVec;
@@ -25,8 +25,7 @@ pub(crate) enum Subscription {
   Missing(InternedPath),
 }
 
-/// A watch update copies these paths only while a queued observation still uses them.
-#[derive(Clone, Default)]
+#[derive(Default)]
 struct EntrySubscriptions {
   files: SubscriberPaths,
   directories: SubscriberPaths,
@@ -40,18 +39,9 @@ pub(crate) struct Subscriber {
 
 pub(crate) type Subscribers = SmallVec<[Subscriber; 1]>;
 
-pub(crate) struct ObservedPath {
-  pub path: InternedPath,
-  subscriptions: Option<Arc<EntrySubscriptions>>,
-}
-
-impl ObservedPath {
-  pub fn subscribers(&self, file: bool, directory: bool) -> Subscribers {
-    self
-      .subscriptions
-      .as_ref()
-      .map_or_default(|entry| entry.subscribers(file, directory))
-  }
+pub(crate) struct ContextSubscribers {
+  pub watched: InternedPath,
+  pub requested: Subscribers,
 }
 
 impl EntrySubscriptions {
@@ -94,7 +84,7 @@ impl EntrySubscriptions {
 
 #[derive(Default)]
 struct DirectoryState {
-  entries: InternedPathMap<Arc<EntrySubscriptions>>,
+  entries: InternedPathMap<EntrySubscriptions>,
   /// Contexts (including registered missing directories) that receive child events.
   contexts: SubscriberPaths,
 }
@@ -146,7 +136,6 @@ impl DirectorySubscriptions {
     } else {
       return false;
     };
-    let entry = Arc::make_mut(entry);
     let recursive = entry.recursive();
     let changed = match subscription {
       Subscription::File(requested) => update_paths(&mut entry.files, requested, add),
@@ -207,7 +196,7 @@ impl DirectorySubscriptions {
       if state
         .entries
         .get(&child)
-        .is_some_and(|entry| entry.is_empty())
+        .is_some_and(EntrySubscriptions::is_empty)
       {
         state.entries.remove(&child);
       }
@@ -246,56 +235,61 @@ impl DirectorySubscriptions {
     dirs
       .get(&parent(path))
       .and_then(|dir| dir.entries.get(path))
-      .map_or_default(|entry| select(entry))
+      .map_or_default(select)
   }
 
-  pub fn observe(&self, path: &InternedPath) -> (ObservedPath, SmallVec<[ObservedPath; 1]>) {
+  /// The hot path reads the parent once for both the named entry and its contexts.
+  pub fn subscribers(
+    &self,
+    path: &InternedPath,
+    metadata: Option<&std::fs::Metadata>,
+  ) -> (Subscribers, SmallVec<[ContextSubscribers; 1]>) {
     let dirs = self
       .directories
       .read()
       .expect("directory subscriptions poisoned");
-    let contexts = |paths: &SubscriberPaths| {
-      paths
+    let context_subscribers = |contexts: &SubscriberPaths| {
+      contexts
         .iter()
-        .filter_map(|path| {
-          let entry = dirs.get(&parent(path))?.entries.get(path)?;
-          Some(ObservedPath {
-            path: path.clone(),
-            subscriptions: Some(Arc::clone(entry)),
+        .filter_map(|watched| {
+          let entry = dirs.get(&parent(watched))?.entries.get(watched)?;
+          Some(ContextSubscribers {
+            watched: watched.clone(),
+            requested: entry.subscribers(false, true),
           })
         })
         .collect()
     };
     let dir = parent(path);
-    let state = dirs.get(&dir);
-    let direct = ObservedPath {
-      path: path.clone(),
-      subscriptions: state.and_then(|state| state.entries.get(path)).cloned(),
-    };
-    if let Some(state) = state {
-      return (
-        direct,
-        if dir == *path {
-          SmallVec::new()
-        } else {
-          contexts(&state.contexts)
-        },
-      );
+    if let Some(state) = dirs.get(&dir) {
+      let direct = state.entries.get(path).map_or_default(|entry| {
+        entry.subscribers(
+          metadata.is_none_or(std::fs::Metadata::is_file),
+          metadata.is_none_or(std::fs::Metadata::is_dir),
+        )
+      });
+      let contexts = if dir == *path {
+        SmallVec::new()
+      } else {
+        context_subscribers(&state.contexts)
+      };
+      return (direct, contexts);
     }
     // An event may name an as-yet unregistered directory inside a context.
     for child in dir.ancestors().map(InternedPath::from) {
       if let Some(state) = dirs.get(&parent(&child)) {
-        let mut watched = contexts(&state.contexts);
-        if let Some(entry) = state.entries.get(&child).filter(|entry| entry.recursive()) {
-          watched.push(ObservedPath {
-            path: child,
-            subscriptions: Some(Arc::clone(entry)),
-          });
+        let mut contexts = state.contexts.clone();
+        if state
+          .entries
+          .get(&child)
+          .is_some_and(EntrySubscriptions::recursive)
+        {
+          contexts.push(child);
         }
-        return (direct, watched);
+        return (Subscribers::new(), context_subscribers(&contexts));
       }
     }
-    (direct, SmallVec::new())
+    Default::default()
   }
 
   pub fn children(&self, path: &InternedPath) -> Vec<InternedPath> {
