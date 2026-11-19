@@ -17,6 +17,7 @@ const commonMF = {
   },
   shared: {
     react: {
+      shareScope: ['default'],
       version: '17.0.0',
       requiredVersion: '^17.0.0',
       singleton: true,
