@@ -55,7 +55,7 @@ moduleFactories.add({
 
 module.exports = {
 
-  "./modules-a/a.js": function() { return ensureChunk(/*! esm */ "a").then(rspackRequire.bind(rspackRequire, /*! ./modules-a/a.js */ "./modules-a/a.js")); }
+  "./modules-a/a.js": function() { return ensureChunk(/*! esm */ "a").then(() => rspackRequire(/*! ./modules-a/a.js */ "./modules-a/a.js")); }
 };
 
 
@@ -86,7 +86,7 @@ moduleFactories.add({
 
 module.exports = {
 
-  "./modules-b/b.js": function() { return ensureChunk(/*! esm */ "b").then(rspackRequire.bind(rspackRequire, /*! ./modules-b/b.js */ "./modules-b/b.js")); }
+  "./modules-b/b.js": function() { return ensureChunk(/*! esm */ "b").then(() => rspackRequire(/*! ./modules-b/b.js */ "./modules-b/b.js")); }
 };
 
 

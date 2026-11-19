@@ -178,19 +178,17 @@ impl AssetParserAndGenerator {
     {
       return Ok(format!("{mimetype}{parameters}"));
     }
-    if let Some(resource_path) = resource_data.path() {
-      return mime_guess::MimeGuess::from_path(resource_path)
-        .first_raw()
-        .map(ToOwned::to_owned)
-        .ok_or_else(|| {
-          error!(
-            "DataUrl can't be generated automatically, because there is no mimetype for \"{ext:?}\" in mimetype database. Either pass a mimetype via \"generator.mimetype\" or use type: \"asset/resource\" to create a resource file instead of a DataUrl",
-            ext = resource_path.extension()
-          )
-        });
+    let path = resource_data.path();
+    if let Some(mimetype) = path.and_then(|path| mime_guess::MimeGuess::from_path(path).first_raw())
+    {
+      return Ok(mimetype.to_owned());
     }
+    let extension = match path.and_then(|path| path.extension()) {
+      Some(ext) if !ext.is_empty() => format!(" for extension '.{ext}'"),
+      _ => String::new(),
+    };
     Err(error!(
-      "DataUrl can't be generated automatically. Either pass a mimetype via \"generator.mimetype\" or use type: \"asset/resource\" to create a resource file instead of a DataUrl"
+      "Cannot infer the MIME type{extension}. Set 'generator.dataUrl.mimetype' to inline the asset as a data URL, or use 'asset/resource' to emit a separate file."
     ))
   }
 

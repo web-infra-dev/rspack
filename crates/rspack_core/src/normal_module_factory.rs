@@ -731,7 +731,7 @@ async fn resolve_each(
     .resolve_loader
     .call(context, loader_resolver, l, data)
     .await?
-    .ok_or_else(|| error!("Unable to resolve loader {}", l.loader))
+    .ok_or_else(|| error!("Can't resolve loader '{}' in '{context}'", l.loader))
 }
 
 struct ResolvedLoader {
