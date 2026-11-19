@@ -1,4 +1,6 @@
 @import url("https://example.com/external.css");
+@import "./nested.css" print;
+@import "./screen.css" screen;
 
 .lazy {
 	color: red;

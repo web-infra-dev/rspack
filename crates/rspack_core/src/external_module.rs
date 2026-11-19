@@ -569,6 +569,141 @@ pub struct DependencyMeta {
   pub css_import_conditions: Option<CssModuleRenderCondition>,
 }
 
+/// Renders an `@import` rule for an external stylesheet.
+///
+/// Conditions are ordered from the outermost to the innermost context and are
+/// folded into the `@import` prelude: nested layers become a single layer path,
+/// supports conditions are combined with `and`, and media query lists are
+/// intersected.
+pub fn render_css_import_source<'a>(
+  request: &str,
+  conditions: impl IntoIterator<Item = &'a CssModuleRenderCondition>,
+) -> String {
+  let mut layer: Option<CssLayer> = None;
+  let mut supports: Vec<&str> = Vec::new();
+  let mut media: Option<String> = None;
+
+  for condition in conditions {
+    if let Some(condition_layer) = &condition.layer {
+      layer = Some(match (layer.take(), condition_layer.clone()) {
+        (None, layer) => layer,
+        (Some(outer), inner) => merge_css_layers(outer, inner),
+      });
+    }
+    if let Some(value) = condition
+      .supports
+      .as_deref()
+      .filter(|value| !value.is_empty())
+    {
+      supports.push(value);
+    }
+    if let Some(value) = condition.media.as_deref().filter(|value| !value.is_empty()) {
+      media = Some(match media {
+        Some(outer) => merge_media_query_lists(&outer, value),
+        None => value.to_string(),
+      });
+    }
+  }
+
+  let mut source = format!("@import url({})", json_stringify_str(request));
+  match layer {
+    Some(CssLayer::Anonymous) => source.push_str(" layer()"),
+    Some(CssLayer::Named(layer)) => {
+      source.push_str(" layer(");
+      source.push_str(&layer);
+      source.push(')');
+    }
+    None => {}
+  }
+  if let Some((first, rest)) = supports.split_first() {
+    source.push_str(" supports(");
+    if rest.is_empty() {
+      source.push_str(first);
+    } else {
+      source.push('(');
+      source.push_str(first);
+      source.push(')');
+      for value in rest {
+        source.push_str(" and (");
+        source.push_str(value);
+        source.push(')');
+      }
+    }
+    source.push(')');
+  }
+  if let Some(media) = media {
+    source.push(' ');
+    source.push_str(&media);
+  }
+  source.push(';');
+  source
+}
+
+/// Merges a nested layer into its outer layer.
+///
+/// Anonymous layers have no addressable name, so they fall back to the closest
+/// representable form: an anonymous outer layer stays anonymous, while an
+/// anonymous inner layer keeps the named outer layer.
+fn merge_css_layers(outer: CssLayer, inner: CssLayer) -> CssLayer {
+  match (outer, inner) {
+    (CssLayer::Named(outer), CssLayer::Named(inner)) => {
+      CssLayer::Named(format!("{outer}.{inner}").into())
+    }
+    (CssLayer::Anonymous, _) => CssLayer::Anonymous,
+    (CssLayer::Named(outer), CssLayer::Anonymous) => CssLayer::Named(outer),
+  }
+}
+
+/// Intersects two media query lists, mirroring nested `@media` rules.
+fn merge_media_query_lists(outer: &str, inner: &str) -> String {
+  let outer = split_media_query_list(outer);
+  let inner = split_media_query_list(inner);
+  if outer.is_empty() {
+    return inner.join(", ");
+  }
+  if inner.is_empty() {
+    return outer.join(", ");
+  }
+  let mut merged = Vec::with_capacity(outer.len() * inner.len());
+  for outer in &outer {
+    for inner in &inner {
+      merged.push(format!("{outer} and {inner}"));
+    }
+  }
+  merged.join(", ")
+}
+
+fn split_media_query_list(media: &str) -> Vec<&str> {
+  let mut queries = Vec::new();
+  let mut depth = 0usize;
+  let mut quote: Option<char> = None;
+  let mut start = 0;
+  for (index, ch) in media.char_indices() {
+    match quote {
+      Some(q) if ch == q => quote = None,
+      Some(_) => {}
+      None => match ch {
+        '"' | '\'' => quote = Some(ch),
+        '(' | '[' => depth += 1,
+        ')' | ']' => depth = depth.saturating_sub(1),
+        ',' if depth == 0 => {
+          let query = media[start..index].trim();
+          if !query.is_empty() {
+            queries.push(query);
+          }
+          start = index + 1;
+        }
+        _ => {}
+      },
+    }
+  }
+  let query = media[start..].trim();
+  if !query.is_empty() {
+    queries.push(query);
+  }
+  queries
+}
+
 impl ExternalModule {
   fn create_identifier(
     request: &ExternalRequest,
@@ -663,38 +798,10 @@ impl ExternalModule {
       return None;
     }
     let request = self.try_get_request()?;
-    let mut source = format!(
-      "@import url({})",
-      rspack_util::json_stringify_str(request.primary())
-    );
-    if let Some(conditions) = &self.dependency_meta.css_import_conditions {
-      if let Some(layer) = &conditions.layer {
-        source.push_str(" layer(");
-        if let CssLayer::Named(layer) = layer {
-          source.push_str(layer);
-        }
-        source.push(')');
-      }
-      if let Some(supports) = conditions
-        .supports
-        .as_deref()
-        .filter(|value| !value.is_empty())
-      {
-        source.push_str(" supports(");
-        source.push_str(supports);
-        source.push(')');
-      }
-      if let Some(media) = conditions
-        .media
-        .as_deref()
-        .filter(|value| !value.is_empty())
-      {
-        source.push(' ');
-        source.push_str(media);
-      }
-    }
-    source.push(';');
-    Some(source)
+    Some(render_css_import_source(
+      request.primary(),
+      self.dependency_meta.css_import_conditions.iter(),
+    ))
   }
 
   pub async fn chunk_condition_with_hooks(
