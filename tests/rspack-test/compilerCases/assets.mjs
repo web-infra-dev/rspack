@@ -68,7 +68,7 @@ export default [{
 	},
 	async check({ stats }) {
 		expect(stats.errors[0].message).toMatchInlineSnapshot(
-			`× Conflict: Multiple assets emit different content to the same filename main.js`
+			`× Multiple assets produce different content for the same output file "main.js".`
 		);
 	}
 }, (() => {

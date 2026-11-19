@@ -846,15 +846,22 @@ impl Compilation {
           filename,
           is_source_equal
         );
-        self.push_diagnostic(
-          rspack_error::error!(
-            "Conflict: Multiple assets emit different content to the same filename {}{}",
-            filename,
-            // TODO: source file name
-            ""
-          )
-          .into(),
-        );
+        let mut sources = [
+          original.info.source_filename.as_deref(),
+          asset.info.source_filename.as_deref(),
+        ]
+        .map(|source| source.filter(|name| !name.is_empty()));
+        sources.sort_unstable();
+        let source_info = match sources {
+          [Some(a), Some(b)] if a != b => format!(" (from {a:?} and {b:?})"),
+          [_, Some(source)] => format!(" (known source: {source:?})"),
+          _ => String::new(),
+        };
+        let mut diagnostic = Diagnostic::from(rspack_error::error!(
+          "Multiple assets{source_info} produce different content for the same output file {filename:?}."
+        ));
+        diagnostic.file = Some(filename.as_str().into());
+        self.push_diagnostic(diagnostic);
         self.set_asset_info(&filename, Some(asset.get_info()), None);
         self.assets.insert(filename, asset);
         return;
