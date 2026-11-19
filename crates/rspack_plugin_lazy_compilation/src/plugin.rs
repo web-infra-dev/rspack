@@ -8,8 +8,8 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation, CompilerId,
   CompilerMake, DependencyId, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, NormalModuleCreateData,
-  NormalModuleFactoryModule, Plugin, Rule, RuleEffect,
+  ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleRule,
+  ModuleRuleEffect, NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
@@ -304,8 +304,8 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
 }
 
 fn collect_rule_layers(
-  rules: &[Rule],
-  effects: &[RuleEffect],
+  rules: &[ModuleRule],
+  effects: &[ModuleRuleEffect],
   layers: &mut FxHashSet<ModuleLayer>,
 ) {
   for rule in rules {

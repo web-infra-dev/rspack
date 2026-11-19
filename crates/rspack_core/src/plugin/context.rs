@@ -9,9 +9,8 @@ use crate::{
   AssetGeneratorOptions, AssetParserOptions, AssetResourceGeneratorOptions, CompilationHooks,
   CompilerHooks, CompilerOptions, ConcatenatedModuleHooks, ContextModuleFactoryHooks,
   CssAutoOrModuleParserOptions, CssModuleGeneratorOptions, GeneratorOptions, ImportMeta,
-  JavascriptParserOptions, JsonGeneratorOptions, JsonParserOptions, ModuleType,
-  NormalModuleFactoryHooks, NormalModuleHooks, ParserAndGenerator, ParserOptions,
-  RuleEffectIndices,
+  JavascriptParserOptions, JsonGeneratorOptions, JsonParserOptions, ModuleRuleEffectIndices,
+  ModuleType, NormalModuleFactoryHooks, NormalModuleHooks, ParserAndGenerator, ParserOptions,
 };
 
 pub type BoxedParserAndGenerator = Box<dyn ParserAndGenerator>;
@@ -179,7 +178,7 @@ impl<'a> From<&'a ResolvedModuleOptions> for &'a JsonGeneratorOptions {
 #[cacheable]
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub struct ResolvedModuleOptionsCacheKey {
-  pub effect_indices: RuleEffectIndices,
+  pub effect_indices: ModuleRuleEffectIndices,
   pub module_type: ModuleType,
 }
 

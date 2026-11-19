@@ -1,9 +1,9 @@
 use std::{path::PathBuf, sync::Arc};
 
-use rspack::builder::{Builder, CompilerBuilder, RuleBuilder};
+use rspack::builder::{Builder, CompilerBuilder, ModuleRuleBuilder};
 use rspack_core::{
-  Compiler, Experiments, Mode, ModuleOptions, ModuleRuleUse, ModuleRuleUseLoader, Optimization,
-  OutputOptions, Resolve, RuleEffect, RuleMatcher, RuleSetCondition,
+  Compiler, Experiments, Mode, ModuleOptions, ModuleRuleEffect, ModuleRuleMatcher, ModuleRuleUse,
+  ModuleRuleUseLoader, Optimization, OutputOptions, Resolve, RuleSetCondition,
 };
 use rspack_fs::{MemoryFileSystem, NativeFileSystem, WritableFileSystem};
 use rspack_regex::RspackRegex;
@@ -54,14 +54,14 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
 
   if options.swc_loader {
     builder
-      .module(ModuleOptions::builder().rule(RuleBuilder {
-        matcher: RuleMatcher {
+      .module(ModuleOptions::builder().rule(ModuleRuleBuilder {
+        matcher: ModuleRuleMatcher {
           test: Some(RuleSetCondition::Regexp(
             RspackRegex::new("\\.(j|t)s(x)?$").unwrap(),
           )),
           ..Default::default()
         },
-        effect: RuleEffect {
+        effect: ModuleRuleEffect {
           r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
             loader: "builtin:swc-loader".to_string(),
             options: Some(

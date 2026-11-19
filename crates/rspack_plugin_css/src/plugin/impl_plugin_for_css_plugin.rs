@@ -8,9 +8,9 @@ use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssModuleRenderCondition,
-  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph, ModuleType,
-  NormalModuleCreateData, NormalModuleFactoryAfterResolve, NormalModuleFactoryModule,
-  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, Rule, RuleEffect,
+  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph, ModuleRule,
+  ModuleRuleEffect, ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
+  NormalModuleFactoryModule, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
   RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SourceType,
   css_module_render_conditions_identifier, get_css_chunk_filename_template, is_source_equal,
   rspack_sources::{BoxSource, CachedSource, ReplaceSource, Source, SourceExt},
@@ -388,7 +388,7 @@ async fn compilation(
 // chunk must carry the css hmr handler whenever such a rule exists, even before any
 // stylesheet is imported. Otherwise the first stylesheet added via HMR is emitted but
 // never requested, because the runtime baked at the initial build lacks `hmrC.css`.
-fn has_css_module_rule(rules: &[Rule], effects: &[RuleEffect]) -> bool {
+fn has_css_module_rule(rules: &[ModuleRule], effects: &[ModuleRuleEffect]) -> bool {
   rules.iter().any(|rule| {
     matches!(
       effects[rule.effect].r#type,

@@ -18,13 +18,13 @@ use crate::{
   CompilerOptions, Context, CssAutoOrModuleParserOptions, CssModuleGeneratorOptions,
   CssModuleParserOptions, Dependency, DependencyCategory, DependencyType, FactoryMeta, FuncUseCtx,
   GeneratorOptions, MatchContext, ModuleExt, ModuleFactory, ModuleFactoryCreateData,
-  ModuleFactoryResult, ModuleIdentifier, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader,
-  ModuleType, NormalModule, ParserAndGenerator, ParserOptions, ParserOptionsMap, RawModule,
-  Resolve, ResolveArgs, ResolveOptionsWithDependencyType, ResolveResult, ResolvedModuleOptions,
+  ModuleFactoryResult, ModuleIdentifier, ModuleRuleEffect, ModuleRuleEffectIndices,
+  ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader, ModuleType, NormalModule,
+  ParserAndGenerator, ParserOptions, ParserOptionsMap, RawModule, Resolve, ResolveArgs,
+  ResolveOptionsWithDependencyType, ResolveResult, ResolvedModuleOptions,
   ResolvedModuleOptionsCacheKey, Resolver, ResolverFactory, ResourceData, ResourceParsedData,
-  RuleEffect, RuleEffectIndices, RunnerContext, RuntimeGlobals, SharedPluginDriver,
-  diagnostics::EmptyDependency, module_rules_matcher, parse_resource, resolve,
-  stringify_loaders_and_resource,
+  RunnerContext, RuntimeGlobals, SharedPluginDriver, diagnostics::EmptyDependency,
+  module_rules_matcher, parse_resource, resolve, stringify_loaders_and_resource,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -287,8 +287,8 @@ fn normalize_css_generator_options(
 
 fn resolve_module_options(
   options_cache: &FxDashMap<ResolvedModuleOptionsCacheKey, Arc<ResolvedModuleOptions>>,
-  effects: &[RuleEffect],
-  effect_indices: RuleEffectIndices,
+  effects: &[ModuleRuleEffect],
+  effect_indices: ModuleRuleEffectIndices,
   module_type: &ModuleType,
   global_parser: Option<&ParserOptions>,
   global_generator: Option<&GeneratorOptions>,
@@ -686,7 +686,7 @@ module.exports = "data:,";
       match_module_type = Some(module_type.into());
       match_resource_data.set_resource(module.into());
 
-      RuleEffectIndices::new()
+      ModuleRuleEffectIndices::new()
     } else {
       //TODO: with contextScheme
       self
@@ -975,8 +975,8 @@ module.exports = "data:,";
     dependency: &dyn Dependency,
     issuer: Option<&str>,
     issuer_layer: Option<&str>,
-  ) -> Result<RuleEffectIndices> {
-    let mut effect_indices = RuleEffectIndices::new();
+  ) -> Result<ModuleRuleEffectIndices> {
+    let mut effect_indices = ModuleRuleEffectIndices::new();
     let match_ctx = MatchContext {
       resource_data,
       issuer,
@@ -992,7 +992,7 @@ module.exports = "data:,";
   fn resolve_module_options(
     &self,
     module_type: &ModuleType,
-    effect_indices: RuleEffectIndices,
+    effect_indices: ModuleRuleEffectIndices,
   ) -> Arc<ResolvedModuleOptions> {
     let global_parser = self.global_parser_options.get(module_type.as_str());
     let global_generator = self.global_generator_options.get(module_type.as_str());
@@ -1275,8 +1275,8 @@ mod tests {
     assert_eq!(options.require_dynamic, Some(true));
   }
 
-  fn asset_rule_effect(max_size: f64, emit: bool) -> RuleEffect {
-    RuleEffect {
+  fn asset_rule_effect(max_size: f64, emit: bool) -> ModuleRuleEffect {
+    ModuleRuleEffect {
       parser: Some(ParserOptions::Asset(AssetParserOptions {
         data_url_condition: Some(AssetParserDataUrl::Options(AssetParserDataUrlOptions {
           max_size: Some(max_size),
@@ -1357,7 +1357,7 @@ mod tests {
     let options = resolve_module_options(
       &options_cache,
       &[],
-      RuleEffectIndices::new(),
+      ModuleRuleEffectIndices::new(),
       &ModuleType::Asset,
       None,
       Some(&global_generator),
@@ -1385,7 +1385,7 @@ mod tests {
       let options = resolve_module_options(
         &options_cache,
         &[],
-        RuleEffectIndices::new(),
+        ModuleRuleEffectIndices::new(),
         &module_type,
         Some(&ParserOptions::Css(CssParserOptions {
           export_type: None,

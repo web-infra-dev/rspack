@@ -24,9 +24,9 @@ use rspack_core::{
   JavascriptParserCreateRequire, JavascriptParserOptions, JavascriptParserOrder,
   JavascriptParserUrl, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
   JsonGeneratorOptions, JsonParserOptions, LoaderFilter, ModuleNoParseRule, ModuleNoParseRules,
-  ModuleNoParseTestFn, ModuleOptions, ModuleRuleEnforce, ModuleRuleUse, ModuleRuleUseLoader,
-  OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap, Rule, RuleEffect, RuleMatcher,
-  TypeReexportPresenceMode,
+  ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleEnforce,
+  ModuleRuleMatcher, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption,
+  ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
 use rspack_regex::RspackRegex;
@@ -1032,15 +1032,15 @@ impl From<FuncUseCtx> for RawFuncUseCtx {
 impl RawModuleRule {
   fn into_rules(
     rules: Vec<Self>,
-    effects: &mut Vec<RuleEffect>,
-  ) -> rspack_error::Result<Vec<Rule>> {
+    effects: &mut Vec<ModuleRuleEffect>,
+  ) -> rspack_error::Result<Vec<ModuleRule>> {
     rules
       .into_iter()
       .map(|rule| rule.into_rule(effects))
       .collect()
   }
 
-  fn into_rule(self, effects: &mut Vec<RuleEffect>) -> rspack_error::Result<Rule> {
+  fn into_rule(self, effects: &mut Vec<ModuleRuleEffect>) -> rspack_error::Result<ModuleRule> {
     let uses = self.r#use.map(|raw| match raw {
       Either::A(array) => {
         let uses = array
@@ -1110,7 +1110,7 @@ impl RawModuleRule {
       .transpose()?
       .unwrap_or_default();
 
-    let effect = RuleEffect {
+    let effect = ModuleRuleEffect {
       r#use: uses.transpose()?.unwrap_or_default(),
       r#type: module_type,
       layer: self.layer,
@@ -1131,9 +1131,9 @@ impl RawModuleRule {
       .map(|rules| Self::into_rules(rules, effects))
       .transpose()?;
 
-    Ok(Rule {
+    Ok(ModuleRule {
       r#as: self.r#as.map(Into::into),
-      matcher: RuleMatcher {
+      matcher: ModuleRuleMatcher {
         rspack_resource: self.rspack_resource.map(|raw| raw.try_into()).transpose()?,
         test: self.test.map(|raw| raw.try_into()).transpose()?,
         include: self.include.map(|raw| raw.try_into()).transpose()?,

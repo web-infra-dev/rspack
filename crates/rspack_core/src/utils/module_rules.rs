@@ -7,7 +7,7 @@ use rspack_paths::Utf8Path;
 
 use crate::{
   DataRef, DependencyCategory, Filename, FilenameRenderValue, ImportAttributes, ImportPhase,
-  PlaceholderKind, Rule, RuleEffectIndices, RuleSetConditionWithEmpty,
+  ModuleRule, ModuleRuleEffectIndices, PlaceholderKind, RuleSetConditionWithEmpty,
 };
 
 pub struct MatchContext<'ctx> {
@@ -20,9 +20,9 @@ pub struct MatchContext<'ctx> {
 }
 
 pub async fn module_rules_matcher<'ctx>(
-  rules: &[Rule],
+  rules: &[ModuleRule],
   ctx: &MatchContext<'ctx>,
-  matched_rules: &mut RuleEffectIndices,
+  matched_rules: &mut ModuleRuleEffectIndices,
 ) -> Result<()> {
   let matched_rules_len = matched_rules.len();
   let mut resource_data = Cow::Borrowed(ctx.resource_data);
@@ -35,10 +35,10 @@ pub async fn module_rules_matcher<'ctx>(
 }
 
 fn module_rules_matcher_sync<'ctx>(
-  rules: &[Rule],
+  rules: &[ModuleRule],
   ctx: &MatchContext<'ctx>,
   resource_data: &mut Cow<'ctx, ResourceData>,
-  matched_rules: &mut RuleEffectIndices,
+  matched_rules: &mut ModuleRuleEffectIndices,
 ) -> Option<Result<()>> {
   for rule in rules {
     match module_rule_matcher_sync(rule, ctx, resource_data, matched_rules) {
@@ -51,10 +51,10 @@ fn module_rules_matcher_sync<'ctx>(
 }
 
 async fn module_rules_matcher_async<'ctx>(
-  rules: &[Rule],
+  rules: &[ModuleRule],
   ctx: &MatchContext<'ctx>,
   resource_data: &mut Cow<'ctx, ResourceData>,
-  matched_rules: &mut RuleEffectIndices,
+  matched_rules: &mut ModuleRuleEffectIndices,
 ) -> Result<()> {
   for rule in rules {
     module_rule_matcher_async(rule, ctx, resource_data, matched_rules).await?;
@@ -131,10 +131,10 @@ async fn check_optional_async(
 
 /// Append matched effect indices and report whether the rule matched.
 pub async fn module_rule_matcher<'ctx>(
-  module_rule: &Rule,
+  module_rule: &ModuleRule,
   ctx: &MatchContext<'ctx>,
   resource_data: &mut Cow<'ctx, ResourceData>,
-  matched_rules: &mut RuleEffectIndices,
+  matched_rules: &mut ModuleRuleEffectIndices,
 ) -> Result<bool> {
   let matched_rules_len = matched_rules.len();
   let original_resource_data = resource_data.clone();
@@ -147,10 +147,10 @@ pub async fn module_rule_matcher<'ctx>(
 }
 
 fn module_rule_matcher_sync<'ctx>(
-  module_rule: &Rule,
+  module_rule: &ModuleRule,
   ctx: &MatchContext<'ctx>,
   resource_data: &mut Cow<'ctx, ResourceData>,
-  matched_rules: &mut RuleEffectIndices,
+  matched_rules: &mut ModuleRuleEffectIndices,
 ) -> Option<Result<bool>> {
   let matcher = &module_rule.matcher;
   if let Some(test_rule) = &matcher.rspack_resource {
@@ -303,10 +303,10 @@ fn module_rule_matcher_sync<'ctx>(
 
 #[async_recursion]
 async fn module_rule_matcher_async<'ctx>(
-  module_rule: &Rule,
+  module_rule: &ModuleRule,
   ctx: &MatchContext<'ctx>,
   resource_data: &mut Cow<'ctx, ResourceData>,
-  matched_rules: &mut RuleEffectIndices,
+  matched_rules: &mut ModuleRuleEffectIndices,
 ) -> Result<bool> {
   let matcher = &module_rule.matcher;
   if let Some(test_rule) = &matcher.rspack_resource {

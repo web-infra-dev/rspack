@@ -1,10 +1,10 @@
 use std::{path::PathBuf, sync::Arc};
 
 use criterion::Criterion;
-use rspack::builder::{Builder, CompilerBuilder, Devtool, RuleBuilder};
+use rspack::builder::{Builder, CompilerBuilder, Devtool, ModuleRuleBuilder};
 use rspack_core::{
-  AliasMap, CssModuleGeneratorOptions, GeneratorOptions, Mode, ModuleOptions, ModuleType, Resolve,
-  RuleEffect, RuleMatcher, RuleSetCondition,
+  AliasMap, CssModuleGeneratorOptions, GeneratorOptions, Mode, ModuleOptions, ModuleRuleEffect,
+  ModuleRuleMatcher, ModuleType, Resolve, RuleSetCondition,
 };
 use rspack_regex::RspackRegex;
 use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_context_sync};
@@ -30,14 +30,14 @@ fn compiler() -> CompilerBuilder {
   // Adapt css-loader/rspack.config.mjs to the native Rust benchmark. foo.less
   // contains only CSS, so it can use the CSS parser without a JavaScript loader.
   let mut module = ModuleOptions::builder();
-  module.rule(RuleBuilder {
-    matcher: RuleMatcher {
+  module.rule(ModuleRuleBuilder {
+    matcher: ModuleRuleMatcher {
       test: Some(RuleSetCondition::Regexp(
         RspackRegex::new("\\.(css|less)$").unwrap(),
       )),
       ..Default::default()
     },
-    effect: RuleEffect {
+    effect: ModuleRuleEffect {
       r#type: Some(ModuleType::CssModule),
       ..Default::default()
     },
@@ -76,8 +76,8 @@ fn compiler() -> CompilerBuilder {
   .into_iter()
   .enumerate()
   {
-    module.rule(RuleBuilder {
-      matcher: RuleMatcher {
+    module.rule(ModuleRuleBuilder {
+      matcher: ModuleRuleMatcher {
         test: Some(RuleSetCondition::Regexp(
           RspackRegex::new("\\.css$").unwrap(),
         )),
@@ -89,7 +89,7 @@ fn compiler() -> CompilerBuilder {
         ),
         ..Default::default()
       },
-      effect: RuleEffect {
+      effect: ModuleRuleEffect {
         generator: Some(GeneratorOptions::CssModule(CssModuleGeneratorOptions {
           local_ident_name: Some(name.into()),
           local_ident_hash_function: function.map(Into::into),

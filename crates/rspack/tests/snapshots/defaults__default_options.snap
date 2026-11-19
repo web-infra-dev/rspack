@@ -653,16 +653,16 @@ CompilerOptions {
     },
     module: ModuleOptions {
         rules: [
-            Rule {
+            ModuleRule {
                 as: None,
                 one_of: None,
                 rules: Some(
                     [
-                        Rule {
+                        ModuleRule {
                             as: None,
                             one_of: None,
                             rules: None,
-                            matcher: RuleMatcher {
+                            matcher: ModuleRuleMatcher {
                                 rspack_resource: None,
                                 test: None,
                                 include: None,
@@ -688,11 +688,11 @@ CompilerOptions {
                             },
                             effect: 1,
                         },
-                        Rule {
+                        ModuleRule {
                             as: None,
                             one_of: None,
                             rules: None,
-                            matcher: RuleMatcher {
+                            matcher: ModuleRuleMatcher {
                                 rspack_resource: None,
                                 test: Some(
                                     RspackRegex {
@@ -716,11 +716,11 @@ CompilerOptions {
                             },
                             effect: 2,
                         },
-                        Rule {
+                        ModuleRule {
                             as: None,
                             one_of: None,
                             rules: None,
-                            matcher: RuleMatcher {
+                            matcher: ModuleRuleMatcher {
                                 rspack_resource: None,
                                 test: None,
                                 include: None,
@@ -746,11 +746,11 @@ CompilerOptions {
                             },
                             effect: 3,
                         },
-                        Rule {
+                        ModuleRule {
                             as: None,
                             one_of: None,
                             rules: None,
-                            matcher: RuleMatcher {
+                            matcher: ModuleRuleMatcher {
                                 rspack_resource: None,
                                 test: Some(
                                     RspackRegex {
@@ -774,11 +774,11 @@ CompilerOptions {
                             },
                             effect: 4,
                         },
-                        Rule {
+                        ModuleRule {
                             as: None,
                             one_of: None,
                             rules: None,
-                            matcher: RuleMatcher {
+                            matcher: ModuleRuleMatcher {
                                 rspack_resource: None,
                                 test: Some(
                                     RspackRegex {
@@ -811,11 +811,11 @@ CompilerOptions {
                             },
                             effect: 5,
                         },
-                        Rule {
+                        ModuleRule {
                             as: None,
                             one_of: None,
                             rules: None,
-                            matcher: RuleMatcher {
+                            matcher: ModuleRuleMatcher {
                                 rspack_resource: None,
                                 test: Some(
                                     RspackRegex {
@@ -839,11 +839,11 @@ CompilerOptions {
                             },
                             effect: 6,
                         },
-                        Rule {
+                        ModuleRule {
                             as: None,
                             one_of: None,
                             rules: None,
-                            matcher: RuleMatcher {
+                            matcher: ModuleRuleMatcher {
                                 rspack_resource: None,
                                 test: Some(
                                     RspackRegex {
@@ -876,11 +876,11 @@ CompilerOptions {
                             },
                             effect: 7,
                         },
-                        Rule {
+                        ModuleRule {
                             as: None,
                             one_of: None,
                             rules: None,
-                            matcher: RuleMatcher {
+                            matcher: ModuleRuleMatcher {
                                 rspack_resource: None,
                                 test: None,
                                 include: None,
@@ -915,16 +915,16 @@ CompilerOptions {
                             },
                             effect: 8,
                         },
-                        Rule {
+                        ModuleRule {
                             as: None,
                             one_of: None,
                             rules: Some(
                                 [
-                                    Rule {
+                                    ModuleRule {
                                         as: None,
                                         one_of: None,
                                         rules: None,
-                                        matcher: RuleMatcher {
+                                        matcher: ModuleRuleMatcher {
                                             rspack_resource: None,
                                             test: None,
                                             include: None,
@@ -954,7 +954,7 @@ CompilerOptions {
                                     },
                                 ],
                             ),
-                            matcher: RuleMatcher {
+                            matcher: ModuleRuleMatcher {
                                 rspack_resource: None,
                                 test: Some(
                                     RspackRegex {
@@ -978,16 +978,16 @@ CompilerOptions {
                             },
                             effect: 9,
                         },
-                        Rule {
+                        ModuleRule {
                             as: None,
                             one_of: None,
                             rules: Some(
                                 [
-                                    Rule {
+                                    ModuleRule {
                                         as: None,
                                         one_of: None,
                                         rules: None,
-                                        matcher: RuleMatcher {
+                                        matcher: ModuleRuleMatcher {
                                             rspack_resource: None,
                                             test: None,
                                             include: None,
@@ -1017,7 +1017,7 @@ CompilerOptions {
                                     },
                                 ],
                             ),
-                            matcher: RuleMatcher {
+                            matcher: ModuleRuleMatcher {
                                 rspack_resource: None,
                                 test: None,
                                 include: None,
@@ -1043,15 +1043,15 @@ CompilerOptions {
                             },
                             effect: 11,
                         },
-                        Rule {
+                        ModuleRule {
                             as: None,
                             one_of: Some(
                                 [
-                                    Rule {
+                                    ModuleRule {
                                         as: None,
                                         one_of: None,
                                         rules: None,
-                                        matcher: RuleMatcher {
+                                        matcher: ModuleRuleMatcher {
                                             rspack_resource: None,
                                             test: None,
                                             include: None,
@@ -1077,11 +1077,11 @@ CompilerOptions {
                                         },
                                         effect: 14,
                                     },
-                                    Rule {
+                                    ModuleRule {
                                         as: None,
                                         one_of: None,
                                         rules: None,
-                                        matcher: RuleMatcher {
+                                        matcher: ModuleRuleMatcher {
                                             rspack_resource: None,
                                             test: None,
                                             include: None,
@@ -1103,7 +1103,7 @@ CompilerOptions {
                                 ],
                             ),
                             rules: None,
-                            matcher: RuleMatcher {
+                            matcher: ModuleRuleMatcher {
                                 rspack_resource: None,
                                 test: None,
                                 include: None,
@@ -1124,11 +1124,11 @@ CompilerOptions {
                             },
                             effect: 13,
                         },
-                        Rule {
+                        ModuleRule {
                             as: None,
                             one_of: None,
                             rules: None,
-                            matcher: RuleMatcher {
+                            matcher: ModuleRuleMatcher {
                                 rspack_resource: None,
                                 test: None,
                                 include: None,
@@ -1158,7 +1158,7 @@ CompilerOptions {
                         },
                     ],
                 ),
-                matcher: RuleMatcher {
+                matcher: ModuleRuleMatcher {
                     rspack_resource: None,
                     test: None,
                     include: None,
@@ -1177,13 +1177,13 @@ CompilerOptions {
                 },
                 effect: 0,
             },
-            Rule {
+            ModuleRule {
                 as: None,
                 one_of: None,
                 rules: Some(
                     [],
                 ),
-                matcher: RuleMatcher {
+                matcher: ModuleRuleMatcher {
                     rspack_resource: None,
                     test: None,
                     include: None,
@@ -1204,7 +1204,7 @@ CompilerOptions {
             },
         ],
         effects: [
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: None,
                 layer: None,
@@ -1215,7 +1215,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: Some(
                     JsAuto,
@@ -1228,7 +1228,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: Some(
                     Json,
@@ -1241,7 +1241,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: Some(
                     Json,
@@ -1254,7 +1254,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: Some(
                     JsEsm,
@@ -1325,7 +1325,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: Some(
                     JsEsm,
@@ -1396,7 +1396,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: Some(
                     JsDynamic,
@@ -1409,7 +1409,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: Some(
                     JsDynamic,
@@ -1422,7 +1422,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: Some(
                     JsEsm,
@@ -1493,7 +1493,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: Some(
                     WasmAsync,
@@ -1506,7 +1506,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: None,
                 layer: None,
@@ -1545,7 +1545,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: Some(
                     WasmAsync,
@@ -1558,7 +1558,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: None,
                 layer: None,
@@ -1597,7 +1597,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: None,
                 layer: None,
@@ -1608,7 +1608,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: Some(
                     AssetInline,
@@ -1621,7 +1621,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: Some(
                     AssetResource,
@@ -1634,7 +1634,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: Some(
                     Json,
@@ -1647,7 +1647,7 @@ CompilerOptions {
                 enforce: Normal,
                 extract_source_map: None,
             },
-            RuleEffect {
+            ModuleRuleEffect {
                 side_effects: None,
                 type: None,
                 layer: None,

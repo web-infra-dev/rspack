@@ -1702,17 +1702,17 @@ pub type FnUse =
   Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<ModuleRuleUseLoader>>> + Sync + Send>;
 
 #[derive(Debug)]
-pub struct Rule {
+pub struct ModuleRule {
   pub r#as: Option<Filename>,
-  pub one_of: Option<Vec<Rule>>,
-  pub rules: Option<Vec<Rule>>,
-  pub matcher: RuleMatcher,
+  pub one_of: Option<Vec<ModuleRule>>,
+  pub rules: Option<Vec<ModuleRule>>,
+  pub matcher: ModuleRuleMatcher,
   /// Index into the owning `ModuleOptions::effects`.
-  pub effect: RuleEffectIndex,
+  pub effect: ModuleRuleEffectIndex,
 }
 
 #[derive(Debug, Default)]
-pub struct RuleMatcher {
+pub struct ModuleRuleMatcher {
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:
   ///   This is a custom matching rule not initially designed by webpack.
@@ -1737,11 +1737,11 @@ pub struct RuleMatcher {
   pub with: Option<With>,
 }
 
-pub type RuleEffectIndex = usize;
-pub type RuleEffectIndices = SmallVec<[RuleEffectIndex; 4]>;
+pub type ModuleRuleEffectIndex = usize;
+pub type ModuleRuleEffectIndices = SmallVec<[ModuleRuleEffectIndex; 4]>;
 
 #[derive(Debug, Default)]
-pub struct RuleEffect {
+pub struct ModuleRuleEffect {
   pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
@@ -1754,8 +1754,8 @@ pub struct RuleEffect {
   pub extract_source_map: Option<bool>,
 }
 
-impl RuleEffect {
-  pub fn push(self, effects: &mut Vec<Self>) -> RuleEffectIndex {
+impl ModuleRuleEffect {
+  pub fn push(self, effects: &mut Vec<Self>) -> ModuleRuleEffectIndex {
     let index = effects.len();
     effects.push(self);
     index
@@ -1844,8 +1844,8 @@ pub enum ModuleRuleEnforce {
 
 #[derive(Debug, Default)]
 pub struct ModuleOptions {
-  pub rules: Vec<Rule>,
-  pub effects: Vec<RuleEffect>,
+  pub rules: Vec<ModuleRule>,
+  pub effects: Vec<ModuleRuleEffect>,
   pub parser: Option<ParserOptionsMap>,
   pub generator: Option<GeneratorOptionsMap>,
   pub no_parse: Option<ModuleNoParseRules>,
