@@ -1,1 +1,4 @@
-export default { lazy: () => import("./lazy").then((m) => m.default) };
+export default {
+  id: module.id,
+  lazy: () => import("./lazy").then((m) => m.id),
+};

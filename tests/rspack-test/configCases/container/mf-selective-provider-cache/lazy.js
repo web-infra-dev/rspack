@@ -1,1 +1,1 @@
-export default { value: "lazy" };
+export const id = module.id;

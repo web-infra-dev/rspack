@@ -1,1 +1,1 @@
-export default { value: "payload" };
+export const id = module.id;

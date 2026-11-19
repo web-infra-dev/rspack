@@ -2,7 +2,7 @@
 
 ## 当前集成契约（2026-11-11）
 
-本次将完整 `feat/mf-ssr-clear-cache` PoC（包括 Node entry exports 更新）迁移到
+本次将 `feat/mf-ssr-clear-cache` PoC 迁移到
 Rspack `main` 的 `c44d424a7f422d5be894defb956efb29eb976588`，并与当前 MF
 和 Modern 的本地构建联合验证。下面的初版方案保留为演进记录，涉及加载等待、
 shared 清理和 remote 注册更新的描述以本节为准。
@@ -15,16 +15,14 @@ shared 清理和 remote 注册更新的描述以本节为准。
   或 `installedChunks`。此 API 不负责业务请求排空。Modern 在调用低层失效前
   停止相关新请求进入并等待在途工作完成，提供请求层的一致性。
 - 只删除未加载的 shared 记录。已加载或正在加载的 shared 保留原对象和 factory
-  身份，provider 通过 `__webpack_clear_exposed_cache__` 选择性清理非 shared
-  的 exposed 缓存。包装 provider entry 时必须保留该方法。
+  身份。Rspack 输出生产者 shared 依赖闭包中的 module ID 到
+  `federation.containerCache.retainedModuleIds`，由 MF Node bundler adapter 清理
+  `federation.containerCache.modules` 中的模块执行缓存。
 - MF 保留现有 `registerRemotes(..., { force: true })` 的同步兼容契约。需要等待
   旧缓存清理的调用方使用新的异步 `updateRemotes`，不能把 force register 的
   返回值当作完成清理的 Promise。
-- Node entry namespace 通过 `RuntimeGlobals.updateEntryExports` 发布新的同步
-  ESM 导出。保留 namespace 的调用方可见新值，已经单独保存的旧导出值保持
-  原值。入口依赖异步加载的初始公共 chunk 时，CommonJS 导出仍保留启动
-  Promise，完成后再返回可更新的 namespace。没有受支持的 entry owner 时
-  能力返回 `false`。
+- Modern 的 SSR 入口导出固定的 `loadSSR()`。更新时它按当前缓存重新加载
+  渲染模块，准备并发布新的 handler。CommonJS 启动导出继续遵循普通 Rspack 行为。
 
 主分支新增的 persistent-cache harness 要求模块缓存全部复用。其 `RemoteModule`
 和 `ConsumeSharedModule` 仍保守重建，现有 MF cases 已对这项额外检查做精确排除。
@@ -697,7 +695,7 @@ MF runtime 负责定义语义和清理顺序；bundler runtime 负责清 remote 
 
 ## 2026-09-10：选择性 provider 清理与完整静态父链
 
-增强 container 新增导出 `__webpack_clear_exposed_cache__()`。它删除模块执行缓存中不属于 shared 依赖闭包的条目；旧的 `__webpack_clear_cache__()` 继续完整删除执行缓存。
+Node enhanced container 提供 shared 依赖闭包的模块 ID。MF Node bundler adapter 用该数据选择性清除非 shared 模块，整代释放时清除该容器全部模块执行缓存。
 
 编译期从 `ProvideShared` 和 `ConsumeShared` 模块出发，遍历出向依赖（包含异步依赖），生成需要保留的模块 ID 集合。所有声明的 shared 都保守保留，不依赖 Modern 路由或运行时框架状态。因此已加载的 shared 及之后首次执行的 lazy 依赖可以继续使用，独立的非 shared exports 可以释放。如果业务模块同时也是 shared 的依赖，它会保留；模块工厂、业务已持有的 exports 和任意全局副作用不在清理范围内。
 

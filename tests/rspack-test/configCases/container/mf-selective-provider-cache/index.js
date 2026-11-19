@@ -1,15 +1,12 @@
-it("should clear unshared exports but keep shared and async dependency identity", async () => {
+it("should emit the Node provider's shared dependency IDs", async () => {
   const container = require("./container.js");
   await container.init({});
-  const load = async (key) => (await container.get(key))().default;
-  const shared = await load("./Shared");
-  // First lazy execution happens after clearing the provider cache.
-  const payload = await load("./Payload");
-  expect(typeof container.__webpack_clear_exposed_cache__).toBe("function");
-  container.__webpack_clear_exposed_cache__();
-  expect(await load("./Payload")).not.toBe(payload);
-  expect(await load("./Shared")).toBe(shared);
-  const lazy = await shared.lazy();
-  container.__webpack_clear_exposed_cache__();
-  expect(await shared.lazy()).toBe(lazy);
+  const { default: shared, cache } = (await container.get("./Shared"))();
+  const { id: payload } = (await container.get("./Payload"))();
+  expect(cache.retainedModuleIds.map(String)).toEqual(
+    expect.arrayContaining([String(shared.id), String(await shared.lazy())]),
+  );
+  expect(cache.retainedModuleIds.map(String)).not.toContain(String(payload));
+  expect(cache.modules).toHaveProperty(String(payload));
+  expect(Object.keys(container).sort()).toEqual(["get", "init"]);
 });
