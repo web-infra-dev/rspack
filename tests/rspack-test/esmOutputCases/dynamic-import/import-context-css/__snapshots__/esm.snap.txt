@@ -78,7 +78,7 @@ module.exports = __rspack_async_context;
 
 module.exports = {
 
-  "./modules/a.js": function() { return __webpack_require__.e(/*! esm */ "a").then(__webpack_require__.bind(__webpack_require__, /*! ./modules/a.js */ "./modules/a.js")); }
+  "./modules/a.js": function() { return __webpack_require__.e(/*! esm */ "a").then(() => __webpack_require__(/*! ./modules/a.js */ "./modules/a.js")); }
 };
 
 

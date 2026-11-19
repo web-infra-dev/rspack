@@ -76,7 +76,7 @@ module.exports = __rspack_async_context;
 
 module.exports = {
 
-  "./modules/a.js": function() { return ensureChunk(/*! esm */ "a").then(rspackRequire.bind(rspackRequire, /*! ./modules/a.js */ "./modules/a.js")); }
+  "./modules/a.js": function() { return ensureChunk(/*! esm */ "a").then(() => rspackRequire(/*! ./modules/a.js */ "./modules/a.js")); }
 };
 
 
