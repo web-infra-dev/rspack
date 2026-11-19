@@ -439,6 +439,7 @@ impl PathManager {
   /// `onDirectoryRemoved` marks them all missing), walking only its subtree.
   pub fn remove_file_times_under(&self, dir: &InternedPath) {
     let _index = self.lock_index();
+    self.subscriptions.forget_scanned_subtree(dir);
     let mut pending = vec![dir.clone()];
     while let Some(path) = pending.pop() {
       if let Some((_, children)) = self.recorded_children.remove(&path) {
@@ -720,7 +721,14 @@ impl PathManager {
       }
       ancestors.push(real);
     }
-    std::fs::read_dir(dir).ok()
+    self.subscriptions.scan_directory(dir);
+    match std::fs::read_dir(dir) {
+      Ok(entries) => Some(entries),
+      Err(_) => {
+        self.subscriptions.forget_scanned_subtree(dir);
+        None
+      }
+    }
   }
 
   async fn context_metadata(

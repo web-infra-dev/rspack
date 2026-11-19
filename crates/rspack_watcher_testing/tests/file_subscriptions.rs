@@ -449,10 +449,12 @@ async fn directory_subscribers_share_a_watched_directory() {
       .expect("active handler");
     assert_eq!(changed, requested);
     assert!(removed.is_empty());
-    assert_eq!(
-      raw.try_recv().expect("concrete child"),
-      child.to_string_lossy()
-    );
+    for _ in &requested {
+      assert_eq!(
+        raw.try_recv().expect("one concrete change per request"),
+        child.to_string_lossy()
+      );
+    }
     assert!(raw.try_recv().is_err());
     let (files, dirs) = watcher.collect_time_info_entries();
     assert_eq!(
@@ -488,5 +490,102 @@ async fn directory_subscribers_share_a_watched_directory() {
   assert_eq!(raw.try_recv().unwrap(), format!("removed {}", b.display()));
   watch(&[], &bindings[1..]).await;
   assert!(watcher.collect_time_info_entries().1.is_empty());
+  watcher.close().await.expect("close watcher");
+}
+
+#[tokio::test]
+async fn scanned_directories_route_descendants_and_release_their_state() {
+  use rspack_watcher::testing::watch_directory_subscriptions;
+
+  let temp = tempfile::tempdir().expect("create fixture");
+  let base = temp.path().canonicalize().expect("resolve fixture");
+  let outer = InternedPath::from(base.join("b"));
+  let inner = InternedPath::from(outer.join("c"));
+  let alias = InternedPath::from(base.join("src").join("x"));
+  let suffix = std::path::Path::new("d").join("e").join("f.js");
+  let file = InternedPath::from(inner.join(&suffix));
+  let concrete = file.to_string_lossy().into_owned();
+  let outer_binding = [(outer.clone(), outer.clone())];
+  let inner_binding = [(inner.clone(), alias.clone())];
+  let watcher = manual_watcher();
+  let (raw_tx, mut raw) = unbounded_channel();
+  let (batch_tx, mut batches) = unbounded_channel();
+  let watch = |added, removed| {
+    watch_directory_subscriptions(
+      &watcher,
+      added,
+      removed,
+      SystemTime::now() + Duration::from_secs(60),
+      Batches(batch_tx.clone()),
+      Changes(raw_tx.clone()),
+    )
+  };
+
+  fs::create_dir(&outer).expect("create outer context");
+  watch(&outer_binding, &[]).await;
+  let outer_count = watcher.index_sizes().1;
+  fs::create_dir_all(file.parent().expect("parent")).expect("create nested directories");
+  write_version(&file, 0);
+  watch(&inner_binding, &[]).await;
+  assert_eq!(
+    watcher.index_sizes().1,
+    outer_count + 3,
+    "scan creates c, d and e"
+  );
+
+  write_version(&file, 1);
+  disk_event(&watcher, &file, FsEventKind::Change);
+  let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
+    .await
+    .expect("nested change")
+    .expect("active handler");
+  assert!(removed.is_empty());
+  assert_eq!(
+    changed,
+    [
+      outer.to_string_lossy().into_owned(),
+      alias.to_string_lossy().into_owned()
+    ]
+    .into_iter()
+    .collect::<FxHashSet<_>>()
+  );
+  assert_eq!(raw.try_recv().expect("outer request"), concrete);
+  assert_eq!(raw.try_recv().expect("inner request"), concrete);
+  assert!(raw.try_recv().is_err());
+
+  watch(&[], &outer_binding).await;
+  fs::remove_file(&file).expect("remove file");
+  disk_event(&watcher, &file, FsEventKind::Remove);
+  let (changed, removed) = tokio::time::timeout(Duration::from_secs(5), batches.recv())
+    .await
+    .expect("nested removal")
+    .expect("active handler");
+  assert_eq!(
+    changed,
+    [alias.to_string_lossy().into_owned()]
+      .into_iter()
+      .collect::<FxHashSet<_>>()
+  );
+  assert!(removed.is_empty());
+  assert_eq!(raw.try_recv().expect("context removal"), concrete);
+  assert!(raw.try_recv().is_err());
+
+  fs::remove_dir_all(inner.join("d")).expect("remove scanned subtree");
+  disk_event(
+    &watcher,
+    &InternedPath::from(inner.join("d")),
+    FsEventKind::Remove,
+  );
+  tokio::time::timeout(Duration::from_secs(5), batches.recv())
+    .await
+    .expect("subtree removal")
+    .expect("active handler");
+  assert_eq!(
+    watcher.index_sizes().1,
+    outer_count + 1,
+    "d and e were released"
+  );
+  watch(&[], &inner_binding).await;
+  assert_eq!(watcher.index_sizes().1, 0);
   watcher.close().await.expect("close watcher");
 }

@@ -84,6 +84,9 @@ impl EntrySubscriptions {
 
 #[derive(Default)]
 struct DirectoryState {
+  scanned: bool,
+  /// Number of explicitly registered entries below this directory.
+  registered_entries: usize,
   entries: InternedPathMap<EntrySubscriptions>,
   /// Contexts (including registered missing directories) that receive child events.
   contexts: SubscriberPaths,
@@ -136,29 +139,60 @@ impl DirectorySubscriptions {
     } else {
       return false;
     };
+    let was_empty = entry.is_empty();
     let recursive = entry.recursive();
     let changed = match subscription {
       Subscription::File(requested) => update_paths(&mut entry.files, requested, add),
       Subscription::Missing(requested) => update_paths(&mut entry.missing, requested, add),
       Subscription::Directory(requested) => update_paths(&mut entry.directories, requested, add),
     };
-    if recursive != entry.recursive() {
-      let mut pending = vec![path.clone()];
-      while let Some(dir) = pending.pop() {
-        if let Some(state) = dirs.get_mut(&dir) {
-          if add {
-            state.contexts.push(path.clone());
-          } else {
-            state.contexts.retain(|p| p != path);
-          }
-          pending.extend(state.entries.keys().filter(|p| **p != dir).cloned());
+    let recursive_changed = recursive != entry.recursive();
+    if was_empty != entry.is_empty() {
+      for ancestor in dir.ancestors().map(InternedPath::from) {
+        let state = dirs.get_mut(&ancestor).expect("registered ancestor");
+        if add {
+          state.registered_entries += 1;
+        } else {
+          state.registered_entries -= 1;
         }
       }
+    }
+    if recursive_changed {
+      Self::update_subtree(&mut dirs, path, |state| {
+        if add {
+          state.contexts.push(path.clone());
+        } else {
+          state.contexts.retain(|p| p != path);
+          state.scanned &= !state.contexts.is_empty();
+        }
+      });
     }
     if !add {
       Self::prune(&mut dirs, path);
     }
     changed
+  }
+
+  fn update_subtree(
+    dirs: &mut InternedPathMap<DirectoryState>,
+    root: &InternedPath,
+    mut update: impl FnMut(&mut DirectoryState),
+  ) {
+    let mut pending = vec![root.clone()];
+    let mut released = Vec::new();
+    while let Some(dir) = pending.pop() {
+      if let Some(state) = dirs.get_mut(&dir) {
+        let scanned = state.scanned;
+        update(state);
+        if scanned && !state.scanned {
+          released.push(dir.clone());
+        }
+        pending.extend(state.entries.keys().filter(|p| **p != dir).cloned());
+      }
+    }
+    for dir in released.into_iter().rev() {
+      Self::prune(dirs, &dir);
+    }
   }
 
   fn ensure_directory(dirs: &mut InternedPathMap<DirectoryState>, path: &InternedPath) {
@@ -187,8 +221,13 @@ impl DirectorySubscriptions {
     let mut child = path.clone();
     loop {
       let parent = parent(&child);
-      if child != parent && dirs.contains_key(&child) {
-        break;
+      if child != parent
+        && let Some(state) = dirs.get(&child)
+      {
+        if state.scanned || !state.entries.is_empty() {
+          break;
+        }
+        dirs.remove(&child);
       }
       let Some(state) = dirs.get_mut(&parent) else {
         break;
@@ -200,7 +239,7 @@ impl DirectorySubscriptions {
       {
         state.entries.remove(&child);
       }
-      if !state.entries.is_empty() {
+      if state.scanned || !state.entries.is_empty() {
         break;
       }
       dirs.remove(&parent);
@@ -209,6 +248,28 @@ impl DirectorySubscriptions {
       }
       child = parent;
     }
+  }
+
+  pub fn scan_directory(&self, path: &InternedPath) {
+    let mut dirs = self
+      .directories
+      .write()
+      .expect("directory subscriptions poisoned");
+    Self::ensure_directory(&mut dirs, path);
+    let state = dirs.get_mut(path).expect("directory just inserted");
+    if state.contexts.is_empty() {
+      Self::prune(&mut dirs, path);
+    } else {
+      state.scanned = true;
+    }
+  }
+
+  pub fn forget_scanned_subtree(&self, path: &InternedPath) {
+    let mut dirs = self
+      .directories
+      .write()
+      .expect("directory subscriptions poisoned");
+    Self::update_subtree(&mut dirs, path, |state| state.scanned = false);
   }
 
   pub fn files(&self, path: &InternedPath) -> SubscriberPaths {
@@ -292,18 +353,26 @@ impl DirectorySubscriptions {
     Default::default()
   }
 
-  pub fn children(&self, path: &InternedPath) -> Vec<InternedPath> {
-    self
+  pub fn registered_children(&self, path: &InternedPath) -> Vec<InternedPath> {
+    let dirs = self
       .directories
       .read()
-      .expect("directory subscriptions poisoned")
+      .expect("directory subscriptions poisoned");
+    dirs
       .get(path)
+      .filter(|dir| dir.registered_entries != 0)
       .map_or_default(|dir| {
         dir
           .entries
-          .keys()
-          .filter(|child| *child != path)
-          .cloned()
+          .iter()
+          .filter(|(child, entry)| {
+            *child != path
+              && (!entry.is_empty()
+                || dirs
+                  .get(*child)
+                  .is_some_and(|state| state.registered_entries != 0))
+          })
+          .map(|(child, _)| child.clone())
           .collect()
       })
   }

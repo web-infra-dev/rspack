@@ -8,6 +8,7 @@ use crate::{
   EventBatch, ImmediateEvent, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
   paths::{PathManager, followed_metadata, modification_time},
+  subscriptions::ContextSubscribers,
 };
 /// Classifies one raw file system event: drops what the `ignored` filter
 /// rejects, normalizes the kind against the disk, and resolves the paths to notify.
@@ -247,7 +248,7 @@ impl EventProcessor {
     if directory_hint && own.as_ref().is_some_and(std::fs::Metadata::is_dir) {
       // A directory moved into place can have just one OS event. Follow only
       // registered child names, even when their on-disk mtimes are old.
-      let mut pending = self.path_manager.subscriptions.children(path);
+      let mut pending = self.path_manager.subscriptions.registered_children(path);
       while let Some(child) = pending.pop() {
         let Ok(metadata) = std::fs::symlink_metadata(&child) else {
           continue;
@@ -256,7 +257,7 @@ impl EventProcessor {
           continue;
         }
         if metadata.is_dir() {
-          pending.extend(self.path_manager.subscriptions.children(&child));
+          pending.extend(self.path_manager.subscriptions.registered_children(&child));
         }
         let file = accessor.files().0.contains(&child) || accessor.missing().0.contains(&child);
         if !(file || accessor.directories().0.contains(&child)) {
@@ -296,52 +297,33 @@ impl EventProcessor {
       self.analyzer.invalidate_path(path);
     }
     let (direct, contexts) = self.path_manager.subscriptions.subscribers(path, target);
-    let has_context = !contexts.is_empty();
-    let contexts: smallvec::SmallVec<[_; 1]> = contexts
-      .into_iter()
-      .map(|context| {
-        let watched = &context.watched;
-        let kind = if std::fs::symlink_metadata(watched).is_ok() {
-          FsEventKind::Change
-        } else {
-          let descendants = self.path_manager.may_contain_records(watched);
-          self.path_manager.remove_file_time(watched);
-          if descendants {
-            self.path_manager.remove_file_times_under(watched);
-          }
-          FsEventKind::Remove
-        };
-        if scanned_kind.is_some() || kind == FsEventKind::Remove {
-          self.analyzer.invalidate_path(watched);
-        }
-        (context.requested, kind)
-      })
-      .collect();
+    let removed_contexts = self.removed_contexts(&contexts, kind, scanned_kind.is_some());
     let context_removal = kind == FsEventKind::Remove
       && scanned_kind != Some(FsEventKind::Remove)
-      && contexts
-        .iter()
-        .any(|(_, kind)| *kind == FsEventKind::Change);
-    for (subscribers, context_kind) in contexts {
-      for subscriber in subscribers {
-        let kind = if context_removal
-          && context_kind == FsEventKind::Remove
-          && !subscriber.file_or_missing
-        {
-          FsEventKind::Change
+      && removed_contexts.len() < contexts.len();
+
+    let direct_notifies_path = direct.iter().any(|subscriber| subscriber.path == *path);
+    let mut context_removals = 0;
+    for context in contexts {
+      let removed = removed_contexts.contains(&context.watched);
+      for subscriber in context.requested {
+        if context_removal {
+          context_removals += 1;
+        } else if !direct_notifies_path {
+          events
+            .immediate
+            .push(ImmediateEvent::from_path(path.clone(), kind));
+        }
+        let kind = if removed && (!context_removal || subscriber.file_or_missing) {
+          FsEventKind::Remove
         } else {
-          context_kind
+          FsEventKind::Change
         };
         events.dependencies.push(FsEvent {
           path: subscriber.path,
           kind,
         });
       }
-    }
-    if has_context && !context_removal && !direct.iter().any(|s| s.path == *path) {
-      events
-        .immediate
-        .push(ImmediateEvent::from_path(path.clone(), kind));
     }
     for subscriber in direct {
       if !context_removal || subscriber.file_or_missing {
@@ -354,11 +336,36 @@ impl EventProcessor {
         });
       }
     }
-    if context_removal {
-      events
-        .immediate
-        .push(ImmediateEvent::ContextRemove(path.clone()));
+    events
+      .immediate
+      .extend((0..context_removals).map(|_| ImmediateEvent::ContextRemove(path.clone())));
+  }
+
+  fn removed_contexts(
+    &self,
+    contexts: &[ContextSubscribers],
+    kind: FsEventKind,
+    scanned: bool,
+  ) -> smallvec::SmallVec<[InternedPath; 1]> {
+    let mut removed = smallvec::SmallVec::new();
+    if !scanned && kind != FsEventKind::Remove {
+      return removed;
     }
+    for context in contexts {
+      let path = &context.watched;
+      if kind == FsEventKind::Remove && std::fs::symlink_metadata(path).is_err() {
+        self.analyzer.invalidate_path(path);
+        let descendants = self.path_manager.may_contain_records(path);
+        self.path_manager.remove_file_time(path);
+        if descendants {
+          self.path_manager.remove_file_times_under(path);
+        }
+        removed.push(path.clone());
+      } else if scanned {
+        self.analyzer.invalidate_path(path);
+      }
+    }
+    removed
   }
 }
 
