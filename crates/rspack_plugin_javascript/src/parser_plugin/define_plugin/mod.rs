@@ -29,11 +29,12 @@ impl ConflictingValuesError {
   fn into_diagnostic(self) -> Diagnostic {
     let Self(key, previous, current) = self;
     // String definitions are JavaScript expressions serialized as JSON for the cache.
+    // Decode the outer JSON string so "\"production\"" is displayed as "production".
     let (previous, current) = match (
       serde_json::from_str::<String>(&previous),
       serde_json::from_str::<String>(&current),
     ) {
-      (Ok(previous), Ok(current)) => (previous, current),
+      (Ok(decoded_previous), Ok(decoded_current)) => (decoded_previous, decoded_current),
       _ => (previous, current),
     };
     let mut warning = Error::warning(format!(
