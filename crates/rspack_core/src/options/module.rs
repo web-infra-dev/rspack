@@ -1729,7 +1729,6 @@ pub struct ModuleRule {
   pub one_of: Option<Vec<ModuleRule>>,
   pub rules: Option<Vec<ModuleRule>>,
   pub effect: ModuleRuleEffect,
-  pub extract_source_map: Option<bool>,
 }
 
 pub type ModuleRuleId = u16;

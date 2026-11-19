@@ -23,7 +23,7 @@ pub struct ExtractSourceMapResult {
 }
 
 /// Source mapping URL information
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct SourceMappingURL {
   pub source_mapping_url: String,
   pub replacement_string: String,
@@ -40,42 +40,24 @@ static URI_REGEX: Lazy<Regex> = Lazy::new(|| {
 
 /// Extract source mapping URL from code comments
 pub fn get_source_mapping_url(code: &str) -> SourceMappingURL {
-  get_source_mapping_url_with_range(code).0
+  let Some((url, range)) = get_source_mapping_url_with_range(code) else {
+    return SourceMappingURL::default();
+  };
+  SourceMappingURL {
+    source_mapping_url: url.into_owned(),
+    replacement_string: code[range].to_owned(),
+  }
 }
 
-// Retain the public result shape; only extraction needs the byte range.
-fn get_source_mapping_url_with_range(code: &str) -> (SourceMappingURL, Option<Range<usize>>) {
-  let mut match_result = None;
-  let mut replacement_string = String::new();
-  let mut replacement_range = None;
-
-  if let Some(range) = trailing_source_mapping_url_range(code)
-    && let Some(captures) = SOURCE_MAPPING_URL_REGEX
-      .captures(code[range.clone()].trim_end_matches(is_source_map_whitespace))
-  {
-    match_result = captures
-      .get(1)
-      .or_else(|| captures.get(2))
-      .map(|m| m.as_str());
-
-    // Get the complete match string for replacement
-    replacement_string = code[range.clone()].to_string();
-    replacement_range = Some(range);
-  }
-
-  let source_mapping_url = match_result.unwrap_or("").to_string();
-
-  let source_mapping_url = SourceMappingURL {
-    source_mapping_url: if !source_mapping_url.is_empty() {
-      urlencoding::decode(&source_mapping_url)
-        .unwrap_or(Cow::Borrowed(&source_mapping_url))
-        .to_string()
-    } else {
-      source_mapping_url
-    },
-    replacement_string,
-  };
-  (source_mapping_url, replacement_range)
+fn get_source_mapping_url_with_range(code: &str) -> Option<(Cow<'_, str>, Range<usize>)> {
+  let range = trailing_source_mapping_url_range(code)?;
+  let captures = SOURCE_MAPPING_URL_REGEX
+    .captures(code[range.clone()].trim_end_matches(is_source_map_whitespace))?;
+  let url = captures.get(1).or_else(|| captures.get(2))?.as_str();
+  Some((
+    urlencoding::decode(url).unwrap_or(Cow::Borrowed(url)),
+    range,
+  ))
 }
 
 fn trailing_source_mapping_url_range(code: &str) -> Option<Range<usize>> {
@@ -233,11 +215,8 @@ async fn fetch_from_filesystem(
 async fn fetch_paths_from_filesystem(
   fs: &Arc<dyn ReadableFileSystem>,
   possible_requests: &[String],
-  mut errors_accumulator: String,
 ) -> Result<(String, Option<String>), String> {
-  if possible_requests.is_empty() {
-    return Err(errors_accumulator);
-  }
+  let mut errors_accumulator = String::new();
 
   // Use iteration instead of recursion to avoid Box::pin and dynamic dispatch overhead
   for (i, request) in possible_requests.iter().enumerate() {
@@ -310,7 +289,7 @@ async fn fetch_from_url(
         possible_requests.push(absolute_path.to_string());
       }
 
-      return fetch_paths_from_filesystem(fs, &possible_requests, String::new()).await;
+      return fetch_paths_from_filesystem(fs, &possible_requests).await;
     }
 
     return Ok((source_url, None));
@@ -321,8 +300,7 @@ async fn fetch_from_url(
   let source_url_str = source_url.to_string();
 
   if !skip_reading {
-    let (_, content) = fetch_from_filesystem(fs, &source_url_str).await?;
-    return Ok((source_url_str, content));
+    return fetch_from_filesystem(fs, &source_url_str).await;
   }
 
   Ok((source_url_str, None))
@@ -334,20 +312,15 @@ pub async fn extract_source_map(
   input: &str,
   resource_path: &str,
 ) -> Result<ExtractSourceMapResult, String> {
-  let (
-    SourceMappingURL {
-      source_mapping_url, ..
-    },
-    replacement_range,
-  ) = get_source_mapping_url_with_range(input);
-
-  if source_mapping_url.is_empty() {
+  let Some((source_mapping_url, replacement_range)) =
+    get_source_mapping_url_with_range(input).filter(|(url, _)| !url.is_empty())
+  else {
     return Ok(ExtractSourceMapResult {
       source: input.to_string(),
       source_map: None,
       file_dependencies: None,
     });
-  }
+  };
 
   let base_context = Utf8Path::new(resource_path)
     .parent()
@@ -457,9 +430,7 @@ pub async fn extract_source_map(
 
   // Optimize string replacement to avoid unnecessary cloning
   let mut new_source = input.to_string();
-  if let Some(range) = replacement_range {
-    new_source.replace_range(range, "");
-  }
+  new_source.replace_range(replacement_range, "");
 
   Ok(ExtractSourceMapResult {
     source: new_source,

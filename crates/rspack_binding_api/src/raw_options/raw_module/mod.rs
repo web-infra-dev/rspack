@@ -1159,7 +1159,6 @@ impl TryFrom<RawModuleRule> for ModuleRule {
         extract_source_map: value.extract_source_map,
         ..Default::default()
       },
-      extract_source_map: value.extract_source_map,
     })
   }
 }
