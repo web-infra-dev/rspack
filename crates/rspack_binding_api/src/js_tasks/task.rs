@@ -33,7 +33,7 @@ impl JsTask {
 
 pub(crate) struct LoaderTask {
   pub context: JsLoaderContext,
-  pub compiler_handle: u32,
+  pub compiler_id: u32,
   pub resolver_factory: Option<Arc<ResolverFactory>>,
   pub result: oneshot::Sender<Result<JsLoaderContext>>,
 }
@@ -42,7 +42,7 @@ impl LoaderTask {
   async fn run(self, worker: &DynThreadsafeFunction, cancel: CancellationToken) {
     let Self {
       context,
-      compiler_handle,
+      compiler_id,
       resolver_factory,
       result,
     } = self;
@@ -55,7 +55,7 @@ impl LoaderTask {
         let mut task = Object::new(env)?;
         task.set("type", "loader")?;
         task.set("context", context)?;
-        task.set("compilerHandle", compiler_handle)?;
+        task.set("compilerId", compiler_id)?;
         if let Some(factory) = resolver_factory {
           let get_resolver: Function<Unknown, JsResolver> =
             env.create_function_from_closure("getResolver", move |call| {

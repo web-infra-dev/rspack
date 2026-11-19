@@ -860,14 +860,13 @@ impl<'a> BuiltinPlugin<'a> {
       }
       BuiltinPluginName::JsLoaderRspackPlugin => {
         let options = self.options.coerce_to_object()?;
-        let main_object_handle = options.get_named_property::<u32>("mainObjectHandle")?;
         // Keep the runner owned by the JS compiler, as on main.
         compiler_object.set_named_property(
           "_runLoader",
           options.get_named_property::<napi::Unknown>("runner")?,
         )?;
         let runner_getter = JsLoaderRunnerGetter::new(&env)?;
-        plugins.push(JsLoaderRspackPlugin::new(runner_getter, main_object_handle).boxed());
+        plugins.push(JsLoaderRspackPlugin::new(runner_getter).boxed());
       }
       BuiltinPluginName::LazyCompilationPlugin => {
         let options = downcast_into::<RawLazyCompilationOption>(self.options)

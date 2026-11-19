@@ -292,7 +292,7 @@ export declare class JsCompiler {
   rebuild(changed_files: string[], removed_files: string[], callback: (err: null | Error) => void): void
   close(): Promise<void>
   getVirtualFileStore(): VirtualFileStore | null
-  getCompilerId(): ExternalObject<CompilerId>
+  getCompilerId(): number
 }
 
 export declare class JsContextModuleFactoryAfterResolveData {
@@ -3473,15 +3473,11 @@ export interface RegisterJsTaps {
 }
 
 /** Register one compiler-independent entry point in the current JS env. */
-export declare function registerJsTaskRunner(runner: (task: { type: 'loader'; context: JsLoaderContext; compilerHandle: number; getResolver?: (options: RawResolveOptionsWithDependencyType) => JsResolver }) => Promise<JsLoaderContext>, workerId?: number | undefined | null): void
+export declare function registerJsTaskRunner(runner: (task: { type: 'loader'; context: JsLoaderContext; compilerId: number; getResolver?: (options: RawResolveOptionsWithDependencyType) => JsResolver }) => Promise<JsLoaderContext>, workerId?: number | undefined | null): void
 
 export declare function registerLoaderReference(owner: number, ident: string, parallel: boolean, serialized?: Buffer | undefined | null, strict?: boolean | undefined | null, compilerOptions?: Buffer | undefined | null): boolean
 
 export declare function registerLoaderWorker(id: number): void
-
-export declare function registerMainObjectRelease(release: (value: number) => void): void
-
-export declare function releaseLoaderReferences(owner: number): void
 
 export interface ResolveResult {
   path?: string

@@ -580,8 +580,8 @@ impl JsCompiler {
   }
 
   #[napi]
-  pub fn get_compiler_id(&self) -> External<CompilerId> {
-    External::new(self.compiler.id())
+  pub fn get_compiler_id(&self) -> u32 {
+    self.compiler.id().as_u32()
   }
 }
 
@@ -672,6 +672,7 @@ impl ObjectFinalize for JsCompiler {
       let mut references = ref_cell.borrow_mut();
       references.remove(&compiler_id);
     });
+    crate::plugins::js_loader::release_loader_references(compiler_id.as_u32());
 
     // Pool strings, dependency arrays and JS helpers are owned by JS objects.
     self.cleanup_last_compilation(&self.compiler.compilation);

@@ -13,15 +13,13 @@ pub(super) enum ExecutionMode {
 /// Per-compiler JavaScript loader metadata, independent of JS object lifetimes.
 #[derive(Debug)]
 pub struct JsLoaderRuntime {
-  pub(super) main_object_handle: u32,
   parallel_loaders: Mutex<FxHashMap<String, ExecutionMode>>,
   pub(super) loaders_without_pitch: Mutex<FxHashSet<String>>,
 }
 
 impl JsLoaderRuntime {
-  pub fn new(main_object_handle: u32) -> Self {
+  pub fn new() -> Self {
     Self {
-      main_object_handle,
       parallel_loaders: Default::default(),
       loaders_without_pitch: Default::default(),
     }

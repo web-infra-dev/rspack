@@ -24,7 +24,7 @@ thread_local! {
 pub fn register_js_task_runner(
   env: Env,
   #[napi(
-    ts_arg_type = "(task: { type: 'loader'; context: JsLoaderContext; compilerHandle: number; getResolver?: (options: RawResolveOptionsWithDependencyType) => JsResolver }) => Promise<JsLoaderContext>"
+    ts_arg_type = "(task: { type: 'loader'; context: JsLoaderContext; compilerId: number; getResolver?: (options: RawResolveOptionsWithDependencyType) => JsResolver }) => Promise<JsLoaderContext>"
   )]
   runner: Function<Unknown<'static>, Unknown<'static>>,
   worker_id: Option<u32>,

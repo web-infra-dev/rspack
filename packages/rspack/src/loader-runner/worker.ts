@@ -24,7 +24,7 @@ let activeBridgeTasks = 0;
 
 async function executeLoader(
   context: JsLoaderContext,
-  compilerHandle: number,
+  compilerId: number,
   getResolver?: (options: RawResolveOptionsWithDependencyType) => JsResolver,
 ): Promise<JsLoaderContext> {
   const usesObjectBridge = !getResolver;
@@ -32,12 +32,12 @@ async function executeLoader(
   let module: ReturnType<typeof createWorkerModule> | undefined;
   try {
     const main = usesObjectBridge
-      ? await getWorkerLoaderContext(compilerHandle, context)
+      ? await getWorkerLoaderContext(compilerId, context)
       : undefined;
     const workerModule = createWorkerModule(context._module!, main);
     module = workerModule;
     return await runLoaders(
-      main?.compiler ?? createStrictWorkerCompiler(compilerHandle),
+      main?.compiler ?? createStrictWorkerCompiler(compilerId),
       context,
       workerModule.module,
       getResolver
@@ -85,11 +85,7 @@ export default async function initialize({
     registerJsTaskRunner((task) => {
       switch (task.type) {
         case 'loader':
-          return executeLoader(
-            task.context,
-            task.compilerHandle,
-            task.getResolver,
-          );
+          return executeLoader(task.context, task.compilerId, task.getResolver);
       }
     }, threadId);
     initialized = true;

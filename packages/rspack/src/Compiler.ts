@@ -41,6 +41,7 @@ import type {
 import ExecuteModulePlugin from './ExecuteModulePlugin';
 import ConcurrentCompilationError from './error/ConcurrentCompilationError';
 import * as rspackExports from './exports';
+import { registerCompilerInstance } from './loader-runner/service';
 import {
   ThreadsafeInputNodeFS,
   ThreadsafeIntermediateNodeFS,
@@ -1009,6 +1010,7 @@ class Compiler {
       Object.defineProperty(this.#instance, '_getCompiler', {
         value: () => compilerRef.deref(),
       });
+      registerCompilerInstance(this, this.#instance.getCompilerId());
 
       callback(null, this.#instance);
     } catch (err) {

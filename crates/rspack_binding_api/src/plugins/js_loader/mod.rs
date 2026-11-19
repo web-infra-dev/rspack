@@ -21,7 +21,6 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
-use runtime::JsLoaderRuntime;
 use tokio::sync::OnceCell;
 
 use crate::{COMPILER_REFERENCES, error::RspackResultToNapiResultExt};
@@ -110,20 +109,23 @@ pub(crate) struct JsLoaderRspackPlugin {
   /// This complex data structure is used to avoid deadlock when running loaders which contain `importModule`
   /// See: https://github.com/web-infra-dev/rspack/pull/10632
   pub(crate) runner: Mutex<Arc<tokio::sync::OnceCell<JsLoaderRunner>>>,
-  pub(crate) runtime: Arc<JsLoaderRuntime>,
   pub(crate) resolved_loaders: resolver::LoaderResolveCache,
 }
 
 impl JsLoaderRspackPlugin {
-  pub fn new(runner_getter: JsLoaderRunnerGetter, main_object_handle: u32) -> Self {
+  pub fn new(runner_getter: JsLoaderRunnerGetter) -> Self {
     Self::new_inner(
       Default::default(),
       runner_getter,
       Mutex::default(),
-      bridge::loader_runtime(main_object_handle),
       Default::default(),
     )
   }
+}
+
+/// Drop loader reference state once the owning native compiler is finalized.
+pub(crate) fn release_loader_references(compiler_id: u32) {
+  bridge::release_loader_references(compiler_id);
 }
 
 impl Debug for JsLoaderRspackPlugin {

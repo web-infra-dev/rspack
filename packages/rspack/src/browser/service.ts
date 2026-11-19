@@ -15,9 +15,10 @@ export function writeAdditionalData(
   context.additionalDataSerialized = undefined;
 }
 
-export function getCompilerHandle(_compiler: Compiler): number {
-  return 0;
-}
+export function registerCompilerInstance(
+  _compiler: Compiler,
+  _compilerId: number,
+): void {}
 export function registerParallelLoader(..._args: unknown[]): void {}
 
 export function beginWorkerImport(): () => void {

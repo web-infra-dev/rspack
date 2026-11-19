@@ -16,7 +16,11 @@ pub(crate) async fn loader_yield(
   &self,
   loader_context: &mut LoaderContext<RunnerContext>,
 ) -> Result<()> {
-  let runtime = &self.runtime;
+  let compiler_id = *self
+    .compiler_id
+    .get()
+    .expect("compiler is initialized before loaders");
+  let runtime = super::bridge::loader_runtime(compiler_id.as_u32());
   if loader_context.state() == State::Pitching {
     let without_pitch = runtime
       .loaders_without_pitch
@@ -80,13 +84,7 @@ pub(crate) async fn loader_yield(
   let context = if mode == ExecutionMode::Main {
     let runner = self.runner.lock().expect("should get lock").clone();
     let runner = runner
-      .get_or_try_init(|| async {
-        let compiler_id = self
-          .compiler_id
-          .get()
-          .expect("compiler is initialized before loaders");
-        self.runner_getter.call(compiler_id).await
-      })
+      .get_or_try_init(|| async { self.runner_getter.call(&compiler_id).await })
       .await
       .to_rspack_result()?;
     runner
@@ -102,7 +100,7 @@ pub(crate) async fn loader_yield(
     let (result, reply) = oneshot::channel();
     js_task_dispatcher().dispatch_worker(JsTask::Loader(LoaderTask {
       context,
-      compiler_handle: runtime.main_object_handle,
+      compiler_id: compiler_id.as_u32(),
       resolver_factory: (mode == ExecutionMode::Strict)
         .then(|| loader_context.context.resolver_factory.clone()),
       result,

@@ -6,8 +6,6 @@ import {
   registerLoaderReference,
   getSerializedLoaderOptions,
   registerLoaderWorker,
-  registerMainObjectRelease,
-  releaseLoaderReferences,
   stopLoaderWorker,
 } from '@rspack/binding';
 import type { JsLoaderContext } from '@rspack/binding';
@@ -38,10 +36,6 @@ type Request = {
     | 'keys'
     | 'has'
     | 'call'
-    | 'main'
-    | 'store'
-    | 'retain'
-    | 'release'
     | 'loaderCompiler'
     | 'loaderBuildInfo'
     | 'moduleExecutionResult'
@@ -67,14 +61,29 @@ const values = new Map<number, unknown>();
 const referenceFinalizer = new FinalizationRegistry<number>((id) =>
   values.delete(id),
 );
-const retainedReferences = new Map<number, { value: unknown; count: number }>();
-const foreignReferences = new Map<number, Reference[]>();
 const workerBridges = new Map<number, ObjectBridge>();
 const valueIds = new WeakMap<object, number>();
 const remoteReferences = new WeakMap<object, Reference>();
 const remoteRoots = new WeakSet<object>();
-const compilerHandles = new WeakMap<Compiler, number>();
+const compilerIds = new WeakMap<Compiler, number>();
+const compilersById = new Map<number, WeakRef<Compiler>>();
+const compilerFinalizer = new FinalizationRegistry<number>((compilerId) =>
+  compilersById.delete(compilerId),
+);
+const pendingLoaderReferences = new WeakMap<
+  Compiler,
+  PendingLoaderReference[]
+>();
 const parallelCompilers = new WeakSet<Compiler>();
+
+type PendingLoaderReference = {
+  ident: string;
+  parallel: boolean;
+  serialized?: Buffer;
+  strict: boolean;
+  compilerOptions?: Buffer;
+  workerOptions?: { maxWorkers?: number };
+};
 
 function serializeLoaderValue(value: unknown): Buffer | undefined {
   if (IS_BROWSER || process.env.WASM) return undefined;
@@ -139,14 +148,9 @@ export interface WorkerLoaderContext {
   cacheBuildInfo: boolean;
   updateCustomBuildInfo(fields: Record<string, unknown>): void;
 }
-const compilerFinalizer = new FinalizationRegistry<number>((handle) => {
-  releaseMainObject(handle);
-  releaseLoaderReferences(handle);
-});
 let nextHandle = 1;
 let owner = 0;
 let bridge: ObjectBridge | undefined;
-let registeredRelease = false;
 
 function store(value: unknown): number {
   if (nextHandle > 0xffffffff)
@@ -168,57 +172,59 @@ function lookup(handle: number): unknown {
   return value;
 }
 
-export function releaseMainObject(handle: number): void {
-  values.delete(handle);
-  const references = foreignReferences.get(handle);
-  foreignReferences.delete(handle);
-  if (references)
-    for (const ref of references)
-      workerBridges.get(ref.owner)?.releaseReference(ref.id);
+function lookupCompiler(compilerId: number): Compiler {
+  const compiler = compilersById.get(compilerId)?.deref();
+  if (!compiler)
+    throw new Error(`Loader compiler ${compilerId} has been released`);
+  return compiler;
 }
 
-export function registerMainObject(value: unknown): number {
-  if (bridge)
-    return bridge.sync({
-      operation: 'store',
-      target: 0,
-      args: [bridge.encode(value)],
-    });
-  if (!registeredRelease) {
-    registerMainObjectRelease(releaseMainObject);
-    registeredRelease = true;
+function registerLoaderReferenceFor(
+  compiler: Compiler,
+  compilerId: number,
+  reference: PendingLoaderReference,
+): void {
+  const useWorker = registerLoaderReference(
+    compilerId,
+    reference.ident,
+    reference.parallel,
+    reference.serialized,
+    reference.strict,
+    reference.compilerOptions,
+  );
+  if (useWorker && !IS_BROWSER && !process.env.WASM) {
+    parallelCompilers.add(compiler);
+    ensureNativeLoaderWorkers(reference.workerOptions);
   }
-  return store(value);
 }
 
-export function getMainObject<T = unknown>(handle: number): T {
-  return (bridge ? bridge.main(handle) : lookup(handle)) as T;
-}
-
-export function getCompilerHandle(compiler: Compiler): number {
-  let handle = compilerHandles.get(compiler);
-  if (handle !== undefined) return handle;
-  handle = registerMainObject(new WeakRef(compiler));
-  compilerHandles.set(compiler, handle);
-  compilerFinalizer.register(compiler, handle, compiler);
-  const id = handle;
-  const compilerRef = new WeakRef(compiler);
-  compiler.hooks.shutdown.tap('rspack:loader-objects', () => {
-    releaseMainObject(id);
-    releaseLoaderReferences(id);
+export function registerCompilerInstance(
+  compiler: Compiler,
+  compilerId: number,
+): void {
+  compilerIds.set(compiler, compilerId);
+  compilersById.set(compilerId, new WeakRef(compiler));
+  compilerFinalizer.register(compiler, compilerId, compiler);
+  compiler.hooks.shutdown.tap('rspack:loader-references', () => {
+    compilersById.delete(compilerId);
   });
   compiler.hooks.make.tapPromise(
     { name: 'rspack:loader-workers', stage: -Infinity },
     async () => {
       // Dynamic Rule.use functions may enable workers later during make.
       compiling = true;
-      const compiler = compilerRef.deref();
-      if (compiler && parallelCompilers.has(compiler)) {
+      if (parallelCompilers.has(compiler)) {
         await startNativeLoaderWorkers();
       }
     },
   );
-  return handle;
+
+  const pending = pendingLoaderReferences.get(compiler);
+  if (!pending) return;
+  pendingLoaderReferences.delete(compiler);
+  for (const reference of pending) {
+    registerLoaderReferenceFor(compiler, compilerId, reference);
+  }
 }
 
 export function registerParallelLoader(
@@ -252,20 +258,25 @@ export function registerParallelLoader(
       "parallel: 'strict' requires native workers and serializable loader options",
     );
   }
-  const useWorker = registerLoaderReference(
-    getCompilerHandle(compiler),
+  const reference: PendingLoaderReference = {
     ident,
-    !!parallel,
+    parallel: !!parallel,
     serialized,
     strict,
     compilerOptions,
-  );
-  if (useWorker && !IS_BROWSER && !process.env.WASM) {
-    parallelCompilers.add(compiler);
-    ensureNativeLoaderWorkers(
-      typeof parallel === 'object' ? parallel : undefined,
-    );
+    workerOptions: typeof parallel === 'object' ? parallel : undefined,
+  };
+  const compilerId = compilerIds.get(compiler);
+  if (compilerId !== undefined) {
+    registerLoaderReferenceFor(compiler, compilerId, reference);
+    return;
   }
+  let pending = pendingLoaderReferences.get(compiler);
+  if (!pending) {
+    pending = [];
+    pendingLoaderReferences.set(compiler, pending);
+  }
+  pending.push(reference);
 }
 
 function getLoaderCompiler(
@@ -316,7 +327,6 @@ class ObjectBridge {
     { resolve(value: unknown): void; reject(error: Error): void }
   >();
   private proxies = new Map<string, object>();
-  private mainObjects = new Map<number, unknown>();
   private depth = 0;
   private closed = false;
   private handles = new Map<number, object>();
@@ -341,24 +351,12 @@ class ObjectBridge {
   private clear(): void {
     this.handles.clear();
     this.proxies.clear();
-    this.mainObjects.clear();
   }
 
   idle(): void {
     this.clear();
     // The port delivers this after the last request using these references.
     this.port.postMessage({ type: 'idle' });
-  }
-
-  releaseReference(id: number): void {
-    void this.async({ operation: 'release', target: id }).catch(() => {});
-  }
-
-  main(handle: number): unknown {
-    if (this.mainObjects.has(handle)) return this.mainObjects.get(handle);
-    const value = this.sync({ operation: 'main', target: handle });
-    this.mainObjects.set(handle, value);
-    return value;
   }
 
   encode(value: unknown, reference = false): WireValue {
@@ -643,11 +641,16 @@ class ObjectBridge {
     let response: Response;
     try {
       const args = message.args?.map((value) => this.decode(value)) ?? [];
+      const isCompilerOperation =
+        message.operation === 'loaderCompiler' ||
+        message.operation === 'loaderBuildInfo' ||
+        message.operation === 'moduleExecutionResult';
       const target =
-        message.operation === 'store' ||
-        (message.owner !== undefined && message.owner !== owner)
+        message.owner !== undefined && message.owner !== owner
           ? undefined
-          : lookup(message.target);
+          : isCompilerOperation
+            ? lookupCompiler(message.target)
+            : lookup(message.target);
       let result: unknown;
       let reference = false;
       if (message.owner !== undefined && message.owner !== owner) {
@@ -698,12 +701,6 @@ class ObjectBridge {
               args.slice(1),
             );
             break;
-          case 'main':
-            result = target;
-            reference =
-              result !== null &&
-              (typeof result === 'object' || typeof result === 'function');
-            break;
           case 'loaderCompiler':
             result = getLoaderCompiler(
               target as Compiler,
@@ -723,62 +720,6 @@ class ObjectBridge {
               args[0] as number,
             );
             break;
-          case 'store': {
-            const handle = store(args[0]);
-            const refs = new Map<string, Reference>();
-            const seen = new WeakSet<object>();
-            const collect = (value: unknown): void => {
-              if (
-                !value ||
-                (typeof value !== 'object' && typeof value !== 'function') ||
-                seen.has(value) ||
-                ArrayBuffer.isView(value) ||
-                value instanceof ArrayBuffer
-              )
-                return;
-              seen.add(value);
-              const ref =
-                remoteReferences.get(value) ??
-                ('__rspackReference' in value
-                  ? (value.__rspackReference as Reference)
-                  : undefined);
-              if (ref && ref.owner !== 0)
-                refs.set(`${ref.owner}:${ref.id}`, ref);
-              else if (value instanceof Map)
-                for (const [key, item] of value) {
-                  collect(key);
-                  collect(item);
-                }
-              else if (value instanceof Set)
-                for (const item of value) collect(item);
-              else for (const item of Object.values(value)) collect(item);
-            };
-            collect(message.args);
-            collect(args[0]);
-            for (const ref of refs.values())
-              workerBridges
-                .get(ref.owner)!
-                .sync({ operation: 'retain', target: ref.id });
-            foreignReferences.set(handle, [...refs.values()]);
-            result = handle;
-            break;
-          }
-          case 'retain': {
-            const retained = retainedReferences.get(message.target);
-            if (retained) retained.count++;
-            else
-              retainedReferences.set(message.target, {
-                value: target,
-                count: 1,
-              });
-            break;
-          }
-          case 'release': {
-            const retained = retainedReferences.get(message.target);
-            if (retained && --retained.count === 0)
-              retainedReferences.delete(message.target);
-            break;
-          }
         }
       response = {
         type: 'response',
@@ -811,7 +752,7 @@ export function setLoaderObjectBridge(port: Port, workerId: number): void {
 }
 
 export async function getWorkerLoaderContext(
-  compilerHandle: number,
+  compilerId: number,
   context: JsLoaderContext,
 ): Promise<WorkerLoaderContext> {
   const port = bridge!;
@@ -824,7 +765,7 @@ export async function getWorkerLoaderContext(
   const identifier = port.encode(moduleGetIdentifier(context._module!));
   const main = (await port.async({
     operation: 'loaderCompiler',
-    target: compilerHandle,
+    target: compilerId,
     args: [port.encode([...idents]), compilation, identifier],
   })) as ReturnType<typeof getLoaderCompiler>;
   const references = new Map<string, unknown>();
@@ -842,7 +783,7 @@ export async function getWorkerLoaderContext(
       __internal__takeModuleExecutionResult: (id: number) =>
         port.sync({
           operation: 'moduleExecutionResult',
-          target: compilerHandle,
+          target: compilerId,
           args: [port.encode(id)],
         }),
     } as unknown as Compiler,
@@ -851,7 +792,7 @@ export async function getWorkerLoaderContext(
     updateCustomBuildInfo(fields) {
       port.sync({
         operation: 'loaderBuildInfo',
-        target: compilerHandle,
+        target: compilerId,
         args: [compilation, identifier, port.encode(fields)],
       });
     },
@@ -1047,8 +988,8 @@ export function beginWorkerImport(): () => void {
   return beginImport?.() ?? (() => {});
 }
 
-export function createStrictWorkerCompiler(handle: number): Compiler {
-  const bytes = getSerializedLoaderOptions(handle);
+export function createStrictWorkerCompiler(compilerId: number): Compiler {
+  const bytes = getSerializedLoaderOptions(compilerId);
   if (!bytes) throw new Error('Strict compiler options are unavailable');
   const compiler = deserializeLoaderValue(bytes) as Compiler & {
     hashFunction: string;
@@ -1061,7 +1002,7 @@ export function createStrictWorkerCompiler(handle: number): Compiler {
           const suffix = '$$parallelism';
           const parallel = ident.endsWith(suffix);
           const key = parallel ? ident.slice(0, -suffix.length) : ident;
-          const bytes = getSerializedLoaderOptions(handle, key);
+          const bytes = getSerializedLoaderOptions(compilerId, key);
           if (!bytes)
             throw new Error(
               "Non-serializable options are unavailable with parallel: 'strict'",
