@@ -39,6 +39,7 @@ pub enum Mutation {
   ModuleSetId { module: ModuleIdentifier },
   ModuleSetHashes { module: ModuleIdentifier },
   ChunkSetId { chunk: ChunkUkey },
+  ChunkSetAsyncStartup { chunk: ChunkUkey },
   ChunkAdd { chunk: ChunkUkey },
   ChunkSplit { from: ChunkUkey, to: ChunkUkey },
   ChunksIntegrate { to: ChunkUkey },
@@ -59,6 +60,9 @@ impl fmt::Display for Mutation {
       Mutation::ModuleSetId { module } => write!(f, "set id module {module}"),
       Mutation::ModuleSetHashes { module } => write!(f, "set hashes module {module}"),
       Mutation::ChunkSetId { chunk } => write!(f, "set id chunk {}", chunk.as_u32()),
+      Mutation::ChunkSetAsyncStartup { chunk } => {
+        write!(f, "set async startup chunk {}", chunk.as_u32())
+      }
       Mutation::ChunkAdd { chunk } => write!(f, "add chunk {}", chunk.as_u32()),
       Mutation::ChunkSplit { from, to } => {
         write!(f, "split chunk {} to {}", from.as_u32(), to.as_u32())
@@ -234,7 +238,7 @@ impl Mutations {
             Mutation::ChunkRemove { chunk } => {
               acc.remove(chunk);
             }
-            Mutation::ChunkSetId { chunk } => {
+            Mutation::ChunkSetId { chunk } | Mutation::ChunkSetAsyncStartup { chunk } => {
               acc.insert(*chunk);
             }
             _ => {}
