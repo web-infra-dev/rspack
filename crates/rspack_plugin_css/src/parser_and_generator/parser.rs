@@ -553,7 +553,7 @@ impl<'context> CssModuleParser<'context> {
       | css_module_lexer::Dependency::LocalId { name, range, .. } => {
         self.reset_current_composes_rule();
         let (_prefix, name) = name.split_at(1);
-        self.handle_local_ident_declaration(name, range.start + 1, range.end)
+        self.handle_local_class_or_id_declaration(name, range.start + 1, range.end)
       }
       css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => self
         .handle_optional_local_ident_usage(
@@ -962,6 +962,39 @@ impl<'context> CssModuleParser<'context> {
 
   fn handle_local_ident_declaration(&mut self, name: &str, start: u32, end: u32) -> Result<()> {
     let name = unescape_identifier(name);
+    self.add_local_declaration(name.as_ref(), (start, end).into(), LocalCssIdentKind::Ident)
+  }
+
+  fn handle_local_class_or_id_declaration(
+    &mut self,
+    name: &str,
+    start: u32,
+    end: u32,
+  ) -> Result<()> {
+    let name = unescape_identifier(name);
+    // A class/id selector can name an imported ICSS value, for example
+    // `@value content as sendMarkdownContent from "./content.module.css"`
+    // used as `.sendMarkdownContent`. Substitute the imported scoped name when
+    // it resolves to a local identifier; otherwise keep the local class as a
+    // fallback, matching the pre-existing behavior for plain `@value` strings.
+    let target = self
+      .icss_definitions
+      .get(name.as_ref())
+      .map(|binding| binding.dependency);
+    if let Some(target) = target
+      && self.binding_resolves_to_import(target)
+    {
+      // Keep the local identifier as a rendering fallback. Declaring it keeps
+      // the existing JS export composition for plain `@value` imports, whose
+      // selector still uses this local class.
+      let fallback = self.ensure_local_definition(name.as_ref(), LocalCssIdentKind::Ident, true);
+      self.add_dependency(CssIcssSymbolDependency::new_icss_reference(
+        target,
+        (start, end).into(),
+        Some(fallback),
+      ));
+      return Ok(());
+    }
     self.add_local_declaration(name.as_ref(), (start, end).into(), LocalCssIdentKind::Ident)
   }
 
@@ -1433,10 +1466,10 @@ impl<'context> CssModuleParser<'context> {
     let Some(binding) = self.icss_definitions.get(name) else {
       return;
     };
-    self.add_dependency(CssIcssSymbolDependency::new(
+    self.add_dependency(CssIcssSymbolDependency::new_icss_reference(
       binding.dependency,
       (range.start, range.end).into(),
-      CssIcssSymbolKind::IcssReference,
+      None,
     ));
   }
 
@@ -1467,6 +1500,32 @@ impl<'context> CssModuleParser<'context> {
         })
       })
       .collect()
+  }
+
+  /// Whether the binding resolves through `@value`/`:import` reexports to an
+  /// import of another module, rather than to a value declared in this file.
+  fn binding_resolves_to_import(&self, mut id: DependencyId) -> bool {
+    let mut seen = FxHashSet::default();
+    while seen.insert(id) {
+      let Some(dep) = self.dependencies.get(&id) else {
+        return false;
+      };
+      if dep.downcast_ref::<CssIcssImportDependency>().is_some() {
+        return true;
+      }
+      let Some(export) = dep.downcast_ref::<CssIcssExportDependency>() else {
+        return false;
+      };
+      if export.local_ident || export.references.len() != 1 || !export.composes.is_empty() {
+        return false;
+      }
+      let reference = &export.references[0];
+      if reference.range.start != 0 || reference.range.end as usize != export.value.len() {
+        return false;
+      }
+      id = reference.dependency_id;
+    }
+    false
   }
 
   fn literal_definition(&self, mut id: DependencyId) -> Option<&str> {

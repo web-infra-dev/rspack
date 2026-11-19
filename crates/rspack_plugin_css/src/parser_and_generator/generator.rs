@@ -383,6 +383,42 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     .into_owned()
   }
 
+  /// Whether an imported ICSS binding ultimately resolves to a local
+  /// identifier (a class/id/keyframes name) rather than a plain `@value`
+  /// string. Only the former can be substituted into a class/id selector as-is.
+  fn resolved_is_local_ident(compilation: &Compilation, mut id: DependencyId) -> bool {
+    let graph = compilation.get_module_graph();
+    let mut seen = HashSet::default();
+    while seen.insert(id) {
+      let dependency = graph.dependency_by_id(&id);
+      if let Some(import) = dependency.downcast_ref::<CssIcssImportDependency>() {
+        let Some(module) = find_css_export_target(compilation, import.id()) else {
+          return false;
+        };
+        let Some(export) = find_export(module, import.import_name()) else {
+          return false;
+        };
+        id = export;
+        continue;
+      }
+      let Some(export) = dependency.downcast_ref::<CssIcssExportDependency>() else {
+        return false;
+      };
+      if export.local_ident {
+        return true;
+      }
+      if export.references.len() != 1 || !export.composes.is_empty() {
+        return false;
+      }
+      let reference = &export.references[0];
+      if reference.range.start != 0 || reference.range.end as usize != export.value.len() {
+        return false;
+      }
+      id = reference.dependency_id;
+    }
+    false
+  }
+
   fn render_css_dependencies(&mut self, css_values: &HashMap<DependencyId, Option<String>>) {
     let mut local_idents = HashMap::default();
     let mut init_fragments = ModuleInitFragments::default();
@@ -400,7 +436,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     // its sorted replacement vector for interleaved occurrences.
     for dependency in self.module.get_dependencies() {
       if let Some(symbol) = dependency.downcast_ref::<CssIcssSymbolDependency>() {
-        let value = match symbol.kind {
+        let value: Option<Cow<'_, str>> = match symbol.kind {
           CssIcssSymbolKind::LocalDeclaration
           | CssIcssSymbolKind::LocalReference
           | CssIcssSymbolKind::LocalGridStart
@@ -410,14 +446,33 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
                 css_export_dependency(context.compilation.get_module_graph(), &symbol.target);
               Self::render_local_ident(context.compilation, context.module, definition)
             });
-            Some(value.as_str())
+            Some(Cow::Borrowed(value.as_str()))
           }
-          CssIcssSymbolKind::IcssReference => {
-            css_values.get(&symbol.target).and_then(Option::as_deref)
-          }
+          CssIcssSymbolKind::IcssReference => match symbol.fallback {
+            None => css_values
+              .get(&symbol.target)
+              .and_then(Option::as_deref)
+              .map(Cow::Borrowed),
+            Some(fallback) => {
+              if Self::resolved_is_local_ident(context.compilation, symbol.target) {
+                css_values
+                  .get(&symbol.target)
+                  .and_then(Option::as_deref)
+                  .map(Cow::Borrowed)
+              } else {
+                self.used_local_idents.insert(fallback);
+                let value = local_idents.entry(fallback).or_insert_with(|| {
+                  let definition =
+                    css_export_dependency(context.compilation.get_module_graph(), &fallback);
+                  Self::render_local_ident(context.compilation, context.module, definition)
+                });
+                Some(Cow::Borrowed(value.as_str()))
+              }
+            }
+          },
         };
         if let Some(value) = value {
-          let mut value = value.to_owned();
+          let mut value = value.into_owned();
           match symbol.kind {
             CssIcssSymbolKind::LocalGridStart => value.push_str("-start"),
             CssIcssSymbolKind::LocalGridEnd => value.push_str("-end"),
