@@ -950,15 +950,7 @@ impl ModuleGraph {
     module_id: ModuleIdentifier,
     is_async: bool,
   ) -> bool {
-    let original = Self::is_async(async_modules_artifact, &module_id);
-    if original == is_async {
-      return false;
-    }
-    if original {
-      async_modules_artifact.remove(&module_id)
-    } else {
-      async_modules_artifact.insert(module_id)
-    }
+    async_modules_artifact.set_inferred(module_id, is_async)
   }
 
   pub fn get_outgoing_connections(

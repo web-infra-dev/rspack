@@ -1,53 +1,42 @@
-use std::ops::{Deref, DerefMut};
+use std::mem;
 
 use rspack_collections::IdentifierSet;
 
-use crate::{ArtifactExt, incremental::IncrementalPasses};
+use crate::{
+  ArtifactExt, ModuleIdentifier,
+  incremental::{Incremental, IncrementalPasses},
+};
 
 #[derive(Debug, Default)]
-pub struct AsyncModulesArtifact(IdentifierSet);
+pub struct AsyncModulesArtifact {
+  inferred: IdentifierSet,
+  pub(crate) startup: IdentifierSet,
+}
 
 impl ArtifactExt for AsyncModulesArtifact {
   const PASS: IncrementalPasses = IncrementalPasses::FINISH_MODULES;
-}
 
-impl Deref for AsyncModulesArtifact {
-  type Target = IdentifierSet;
-
-  fn deref(&self) -> &Self::Target {
-    &self.0
+  fn recover(incremental: &Incremental, new: &mut Self, old: &mut Self) {
+    if Self::should_recover(incremental) {
+      mem::swap(&mut new.inferred, &mut old.inferred);
+    }
   }
 }
 
-impl DerefMut for AsyncModulesArtifact {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.0
+impl AsyncModulesArtifact {
+  pub(crate) fn contains(&self, module: &ModuleIdentifier) -> bool {
+    self.inferred.contains(module) || self.startup.contains(module)
   }
-}
 
-impl From<IdentifierSet> for AsyncModulesArtifact {
-  fn from(value: IdentifierSet) -> Self {
-    Self(value)
+  pub(crate) fn set_inferred(&mut self, module: ModuleIdentifier, is_async: bool) -> bool {
+    if is_async {
+      self.inferred.insert(module)
+    } else {
+      self.inferred.remove(&module)
+    }
   }
-}
 
-impl From<AsyncModulesArtifact> for IdentifierSet {
-  fn from(value: AsyncModulesArtifact) -> Self {
-    value.0
-  }
-}
-
-impl FromIterator<<IdentifierSet as IntoIterator>::Item> for AsyncModulesArtifact {
-  fn from_iter<T: IntoIterator<Item = <IdentifierSet as IntoIterator>::Item>>(iter: T) -> Self {
-    Self(IdentifierSet::from_iter(iter))
-  }
-}
-
-impl IntoIterator for AsyncModulesArtifact {
-  type Item = <IdentifierSet as IntoIterator>::Item;
-  type IntoIter = <IdentifierSet as IntoIterator>::IntoIter;
-
-  fn into_iter(self) -> Self::IntoIter {
-    self.0.into_iter()
+  pub fn extend_startup(&mut self, modules: impl IntoIterator<Item = ModuleIdentifier>) {
+    self.startup.extend(modules);
   }
 }
