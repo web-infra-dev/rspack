@@ -8,6 +8,7 @@ const common = {
 };
 
 const commonMF = {
+  implementation: require.resolve('@module-federation/runtime-tools-layers'),
   runtime: false,
   exposes: {
     './ComponentB': './ComponentB',
@@ -16,6 +17,7 @@ const commonMF = {
   },
   shared: {
     react: {
+      shareScope: ['default'],
       version: '17.0.0',
       requiredVersion: '^17.0.0',
       singleton: true,

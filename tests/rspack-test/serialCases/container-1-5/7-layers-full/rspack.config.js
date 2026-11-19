@@ -2,6 +2,7 @@ const { ModuleFederationPlugin } = require('@rspack/core').container;
 const path = require('path');
 
 const common = {
+  implementation: require.resolve('@module-federation/runtime-tools-layers'),
   name: 'container_7',
   filename: 'container.js',
   exposes: {

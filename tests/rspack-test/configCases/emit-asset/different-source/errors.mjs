@@ -1,7 +1,6 @@
 export default [
-	[
-		/Conflict/,
-		/Multiple assets emit different content to the same filename/,
-		/same-name\.txt/
-	]
+	{
+		file: /^same-name\.txt$/,
+		message: /Multiple assets \(from "test1\.txt" and "test2\.txt"\) produce different content for the same output file "same-name\.txt"\./
+	}
 ];

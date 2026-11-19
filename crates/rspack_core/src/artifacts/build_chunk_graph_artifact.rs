@@ -4,7 +4,7 @@ use futures::Future;
 use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use tracing::instrument;
 
 use crate::{
@@ -26,6 +26,7 @@ pub struct BuildChunkGraphArtifact {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) code_splitter: CodeSplitter,
   pub module_idx: IdentifierMap<(u32, u32)>,
+  pub(crate) runtime_chunks: Option<FxHashSet<ChunkUkey>>,
 }
 
 impl BuildChunkGraphArtifact {
@@ -132,6 +133,7 @@ impl BuildChunkGraphArtifact {
     self.named_chunks.clear();
     self.set_code_splitter(Default::default());
     self.module_idx.clear();
+    self.runtime_chunks = None;
   }
 }
 
@@ -209,6 +211,7 @@ impl ArtifactExt for BuildChunkGraphArtifact {
   }
   fn recover(_incremental: &crate::incremental::Incremental, new: &mut Self, old: &mut Self) {
     new.code_splitter = mem::take(&mut old.code_splitter);
+    new.runtime_chunks = None;
     rayon::scope(|s| {
       s.spawn(|_| new.chunk_by_ukey.clone_from(&old.chunk_by_ukey));
       s.spawn(|_| new.chunk_graph.clone_from(&old.chunk_graph));

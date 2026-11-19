@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use rspack_error::Result;
 
 use super::*;
-use crate::compilation::pass::PassExt;
+use crate::{ChunkGroup, compilation::pass::PassExt};
 
 pub struct AssignRuntimeIdsPass;
 
@@ -56,6 +56,18 @@ impl PassExt for AssignRuntimeIdsPass {
         &mut compilation.build_chunk_graph_artifact.chunk_graph,
       )
     }
+
+    let graph = &mut compilation.build_chunk_graph_artifact;
+    let runtime_chunks =
+      ChunkGroup::collect_runtime_chunks(&graph.chunk_group_by_ukey, &graph.chunk_by_ukey);
+    if compilation.hot {
+      ChunkGroup::assign_hmr_loading_chunks(
+        &mut graph.chunk_group_by_ukey,
+        &graph.chunk_by_ukey,
+        &runtime_chunks,
+      );
+    }
+    graph.runtime_chunks = Some(runtime_chunks);
 
     Ok(())
   }

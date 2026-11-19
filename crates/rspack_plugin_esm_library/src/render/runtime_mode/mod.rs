@@ -152,20 +152,23 @@ fn render_runtime_chunk_import(
   runtime_import_idents: &FxIndexSet<String>,
 ) -> ConcatSource {
   let mut source = ConcatSource::default();
-  if runtime_import_idents.is_empty() {
-    return source;
-  }
-
   let runtime_chunk = get_chunk(compilation, *runtime_chunk_ukey);
-  source.add(RawStringSource::from(format!(
-    "import {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
-    runtime_import_idents
-      .iter()
-      .map(String::as_str)
-      .collect::<Vec<_>>()
-      .join(", "),
+  let request = format!(
+    "\"__RSPACK_ESM_CHUNK_{}\"",
     runtime_chunk.expect_id().as_str()
-  )));
+  );
+  if runtime_import_idents.is_empty() {
+    source.add(RawStringSource::from(format!("import {request};\n")));
+  } else {
+    source.add(RawStringSource::from(format!(
+      "import {{ {} }} from {request};\n",
+      runtime_import_idents
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .join(", "),
+    )));
+  }
   source
 }
 

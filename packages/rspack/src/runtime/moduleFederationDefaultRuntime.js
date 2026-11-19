@@ -583,27 +583,30 @@ export default function () {
         initTokens: initializeSharingInitTokens,
         webpackRequire: createShareScopeRequire(name, initRemotes),
       });
-    // Only ordered consumes need bundler scope initialization. Scalar consumes
-    // retain the runtime loadShare path, including lazy non-script remotes.
-    const initializeConsumeShareScopes = (moduleIds) => {
+    const initializeConsumeShareScopes = (moduleIds, initial = false) => {
       if (!moduleIds?.length) return [];
       const initPromises = [];
       const initializedScopes = new Set();
       for (const moduleId of moduleIds) {
-        const shareScope =
-          consumesLoadingModuleToConsumeDataMapping[moduleId]?.shareScope ||
-          'default';
-        const ordered = Array.isArray(shareScope);
-        if (!ordered) continue;
+        const data = consumesLoadingModuleToConsumeDataMapping[moduleId];
+        if (!data) continue;
+        const shareScope = data.shareScope || 'default';
+        const initRemotes =
+          runtimeRequire.federation.instance.options.shareStrategy !==
+          'loaded-first';
+        if (
+          !Array.isArray(shareScope) &&
+          (initial ||
+            !initRemotes ||
+            data.import !== null ||
+            runtimeRequire.S?.[shareScope]?.[data.shareKey])
+        ) {
+          continue;
+        }
         const scopeKey = JSON.stringify(shareScope);
         if (initializedScopes.has(scopeKey)) continue;
         initializedScopes.add(scopeKey);
-        const initialized = initializeSharing(
-          shareScope,
-          [],
-          runtimeRequire.federation.instance.options.shareStrategy !==
-            'loaded-first',
-        );
+        const initialized = initializeSharing(shareScope, [], initRemotes);
         if (initialized?.then) initPromises.push(initialized);
       }
       return initPromises;
@@ -742,6 +745,7 @@ export default function () {
         });
       const initPromises = initializeConsumeShareScopes(
         runtimeRequire.consumesLoadingData.initialConsumes,
+        true,
       );
       if (initPromises.length === 0) {
         installInitialConsumes();

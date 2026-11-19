@@ -34,6 +34,9 @@ use runtime::{create_link, create_script, handle_chunk_runtime, handle_runtime, 
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::RwLock;
 
+const DIAGNOSTIC_CODE: &str = "SubresourceIntegrity";
+const DIAGNOSTIC_TITLE: &str = "SubresourceIntegrityPlugin";
+
 type CompilationIntegrityMap =
   LazyLock<FxDashMap<CompilationId, Arc<RwLock<HashMap<String, String>>>>>;
 
@@ -102,10 +105,13 @@ async fn warn_non_web(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  compilation.push_diagnostic(Diagnostic::warn(
-    "SubresourceIntegrity".to_string(),
-    "This plugin is not useful for non-web targets.".to_string(),
-  ));
+  compilation.push_diagnostic(
+    Diagnostic::warn(
+      DIAGNOSTIC_CODE.into(),
+      "This plugin is not useful for non-web targets.".into(),
+    )
+    .with_title(DIAGNOSTIC_TITLE),
+  );
   Ok(())
 }
 
@@ -115,14 +121,17 @@ async fn validate_error(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  compilation.push_diagnostic(Diagnostic::error(
-    "SubresourceIntegrity".to_string(),
-    self
-      .validate_error
-      .as_ref()
-      .expect("should have validate error")
-      .to_string(),
-  ));
+  compilation.push_diagnostic(
+    Diagnostic::error(
+      DIAGNOSTIC_CODE.into(),
+      self
+        .validate_error
+        .as_ref()
+        .expect("should have validate error")
+        .to_string(),
+    )
+    .with_title(DIAGNOSTIC_TITLE),
+  );
   Ok(())
 }
 
@@ -173,10 +182,15 @@ async fn handle_compilation(
     compilation.options.output.cross_origin_loading,
     CrossOriginLoading::Disable
   ) {
-    compilation.push_diagnostic(Diagnostic::error(
-      "SubresourceIntegrity".to_string(),
-      "Subresource integrity is not applied to async chunks because the \"output.crossOriginLoading\" option is not set.".to_string(),
-    ));
+    compilation.push_diagnostic(
+      Diagnostic::error(
+        DIAGNOSTIC_CODE.into(),
+        "Subresource integrity is not applied to async chunks because the \
+         \"output.crossOriginLoading\" option is not set."
+          .into(),
+      )
+      .with_title(DIAGNOSTIC_TITLE),
+    );
   }
 
   {
