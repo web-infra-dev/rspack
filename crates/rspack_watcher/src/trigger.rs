@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{fs::FileType, sync::Arc};
 
 use rspack_paths::InternedPath;
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
@@ -23,6 +23,19 @@ struct EventProcessor {
   path_manager: Arc<PathManager>,
   tx: UnboundedSender<ResolvedEvents>,
   analyzer: Arc<RecommendedAnalyzer>,
+}
+
+struct ObservedChange {
+  kind: FsEventKind,
+  target_type: Option<FileType>,
+  // A symlink to a directory can notify directory subscribers without triggering child checks.
+  entry_is_dir: bool,
+}
+
+/// Read the entry itself, even when it is a dangling symlink.
+#[inline]
+fn lstat(path: &InternedPath) -> std::io::Result<std::fs::Metadata> {
+  std::fs::symlink_metadata(path)
 }
 
 /// `Trigger` is responsible for sending file system events to the event channel
@@ -157,12 +170,25 @@ impl Trigger {
 
 impl EventProcessor {
   async fn process(&self, path: &InternedPath, hint: FsEventKind, origin: Origin) {
+    let Some(change) = self.record_change_if_fresh(path, hint, origin).await else {
+      return;
+    };
+    let notifications = self.resolve_notifications(path, hint, origin, change).await;
+    let _ = self.tx.send(notifications);
+  }
+
+  async fn record_change_if_fresh(
+    &self,
+    path: &InternedPath,
+    hint: FsEventKind,
+    origin: Origin,
+  ) -> Option<ObservedChange> {
     let scanned = matches!(origin, Origin::Scan);
     if !scanned && self.path_manager.is_ignored_path(path).await {
-      return;
+      return None;
     }
 
-    let entry = std::fs::symlink_metadata(path).ok();
+    let entry = lstat(path).ok();
     let target = entry
       .as_ref()
       .and_then(|entry| followed_metadata(path, entry));
@@ -182,14 +208,14 @@ impl EventProcessor {
           .observe_file_mtime(path, target.as_deref().and_then(modification_time))
         && !scanned
       {
-        return;
+        return None;
       }
       if !self
         .path_manager
         .observe_context_entry(path, entry, scanned || file_dependency)
         .await
       {
-        return;
+        return None;
       }
       // An unlink followed by a recreate can deliver a late removal.
       if hint == FsEventKind::Remove {
@@ -204,19 +230,32 @@ impl EventProcessor {
       FsEventKind::Remove
     };
     self.path_manager.set_last_watch_events(path);
+    Some(ObservedChange {
+      kind,
+      target_type: target.as_deref().map(std::fs::Metadata::file_type),
+      entry_is_dir: entry.as_ref().is_some_and(std::fs::Metadata::is_dir),
+    })
+  }
 
+  async fn resolve_notifications(
+    &self,
+    path: &InternedPath,
+    hint: FsEventKind,
+    origin: Origin,
+    change: ObservedChange,
+  ) -> ResolvedEvents {
     let mut events = ResolvedEvents::default();
-    self.resolve_into(
+    self.append_subscriber_notifications(
       &mut events,
       path,
-      kind,
-      target.as_deref(),
-      scanned.then_some(hint),
+      change.kind,
+      change.target_type,
+      matches!(origin, Origin::Scan).then_some(hint),
     );
     let appeared = matches!(origin, Origin::Disk { appeared: true })
       || (matches!(origin, Origin::Injected) && hint == FsEventKind::Create);
-    if entry.as_ref().is_some_and(std::fs::Metadata::is_dir)
-      && (appeared || (matches!(origin, Origin::Disk { .. }) && kind == FsEventKind::Change))
+    if change.entry_is_dir
+      && (appeared || (matches!(origin, Origin::Disk { .. }) && change.kind == FsEventKind::Change))
     {
       // Moving a populated `src/` into place may produce no event for `src/a.js`.
       // An inotify watch on the old `src/` may report only the move out. If the
@@ -226,7 +265,7 @@ impl EventProcessor {
         .resolve_registered_children(&mut events, path, appeared)
         .await;
     }
-    let _ = self.tx.send(events);
+    events
   }
 
   /// A moved or changed directory can be the only OS event for its children.
@@ -241,7 +280,7 @@ impl EventProcessor {
       .subscriptions
       .registered_children(directory);
     while let Some(child) = pending.pop() {
-      let Ok(entry) = std::fs::symlink_metadata(&child) else {
+      let Ok(entry) = lstat(&child) else {
         continue;
       };
       if self.path_manager.is_ignored_path(&child).await {
@@ -270,22 +309,31 @@ impl EventProcessor {
       if file_dependency && !self.path_manager.observe_file_mtime(&child, mtime) {
         continue;
       }
-      self.resolve_into(events, &child, kind, target.as_deref(), None);
+      self.append_subscriber_notifications(
+        events,
+        &child,
+        kind,
+        target.as_deref().map(std::fs::Metadata::file_type),
+        None,
+      );
     }
   }
 
-  fn resolve_into(
+  fn append_subscriber_notifications(
     &self,
     events: &mut ResolvedEvents,
     path: &InternedPath,
     kind: FsEventKind,
-    target: Option<&std::fs::Metadata>,
+    target_type: Option<FileType>,
     scanned_kind: Option<FsEventKind>,
   ) {
     if scanned_kind.is_some() {
       self.analyzer.invalidate_path(path);
     }
-    let (direct, contexts) = self.path_manager.subscriptions.subscribers(path, target);
+    let (direct, contexts) = self
+      .path_manager
+      .subscriptions
+      .subscribers(path, target_type);
     let removed_contexts = self.removed_contexts(&contexts, kind, scanned_kind.is_some());
     let context_removal = kind == FsEventKind::Remove
       && scanned_kind != Some(FsEventKind::Remove)
@@ -342,7 +390,7 @@ impl EventProcessor {
     }
     for context in contexts {
       let path = &context.watched;
-      if kind == FsEventKind::Remove && std::fs::symlink_metadata(path).is_err() {
+      if kind == FsEventKind::Remove && lstat(path).is_err() {
         self.analyzer.invalidate_path(path);
         self.path_manager.remove_path_records(path);
         removed.push(path.clone());
@@ -383,7 +431,8 @@ impl DependencyFinder<'_> {
     for m in self.missing.iter() {
       subscriptions.update(&m, Subscription::Missing(m.clone()), true);
     }
-    let (direct, contexts) = subscriptions.subscribers(path, std::fs::metadata(path).ok().as_ref());
+    let (direct, contexts) =
+      subscriptions.subscribers(path, std::fs::metadata(path).ok().map(|m| m.file_type()));
     direct
       .into_iter()
       .map(|s| (s.path, kind))

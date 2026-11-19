@@ -275,7 +275,7 @@ impl DirectorySubscriptions {
   pub fn subscribers(
     &self,
     path: &InternedPath,
-    metadata: Option<&std::fs::Metadata>,
+    target_type: Option<std::fs::FileType>,
   ) -> (Subscribers, SmallVec<[ContextSubscribers; 1]>) {
     let dirs = self
       .directories
@@ -284,8 +284,8 @@ impl DirectorySubscriptions {
     let (entry, contexts) = Self::entry_and_contexts(&dirs, path);
     let direct = entry.map_or_default(|entry| {
       entry.subscribers(
-        metadata.is_none_or(std::fs::Metadata::is_file),
-        metadata.is_none_or(std::fs::Metadata::is_dir),
+        target_type.is_none_or(|kind| kind.is_file()),
+        target_type.is_none_or(|kind| kind.is_dir()),
       )
     });
     let contexts = contexts
