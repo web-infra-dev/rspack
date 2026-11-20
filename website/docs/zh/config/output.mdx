@@ -1166,7 +1166,7 @@ export default {
 - `modern-module` 当前是为补齐库场景 ESM 能力而单独引入的类型；等能力进一步稳定后，计划与 `module` 收敛为同一个 `library.type`。
 - `preserveModules` 仅在 `modern-module` 下可用。
 - 当你配置了 `output.library` 且 `output.module = true` 时，如果没有显式指定 `output.library.type`，Rspack 当前默认会使用 `modern-module`。
-- 不允许在同一次编译中把 `modern-module` 和其他 `library.type` 混用，因为它会同时影响 chunk loading、chunk 渲染和 scope hoisting 的行为。
+- 如果在同一次编译中混用 `modern-module` 和其他 `library.type` 值，Rspack 会发出警告，因为 `modern-module` 的 chunk 格式和加载方式会影响整个编译。
 
 :::
 
@@ -1600,30 +1600,63 @@ define('MyLibrary', [], factory);
 - **类型：** `string`
 - **默认值：** `undefined`
 
-:::info
-仅在 `library.type` 为 `modern-module` 时生效。
-:::
+构建 ESM 库时，`output.library.preserveModules` 可以将指定目录下的模块分别输出为文件，并保留它们的相对路径。
 
-当启用后，Rspack 会保留传入目录下模块的原始文件结构。每个模块会被输出为单独的文件，保持与源码相同的相对路径。
+保留模块边界有助于使用这个库的应用进行 [tree shaking](/guide/optimization/tree-shaking)。例如，组件库从同一入口导出 `Button` 和 `DatePicker`，两个组件各自保留为独立文件。如果应用只使用 `Button`，并且打包器能确定跳过 `DatePicker` 不会影响应用行为（例如库已通过 `package.json` 的 `sideEffects` 正确标注副作用），就可以从应用产物中排除整个 `DatePicker` 模块及其独有的依赖。
 
-`preserveModules` 是一种特殊的打包形式——可以将其理解为 **bundle + splitChunks，其中每个模块会被拆分为单独的 chunk**。与 bundleless 工具不同，Rspack 仍然会执行完整的打包流程（tree shaking、scope hoisting、代码压缩等），只是将输出拆分为每个模块对应一个输出文件。
+下面以一个提供组件和工具函数的库为例。用户可以这样导入：
 
-:::warning
-**Barrel 文件可能会丢失导出。** 由于 `preserveModules` 仍然是一种打包形式，只有 entry 的导出会被保留。如果 barrel 文件（例如从其他模块重新导出的 `index.ts`）不是 entry，其重新导出的内容不会被保留在输出中。如果确实需要严格暴露导出，请将对应模块设为 entry。
-:::
+```js
+import { Button } from 'my-lib';
+import { formatDate } from 'my-lib/utils';
+```
+
+将这两个导入路径对应的源文件都列入 `entry`，这样 Rspack 会保留它们各自的导出。将 `preserveModules` 设为 `src` 的绝对路径，Rspack 就会按模块在 `src` 下的相对路径输出文件。
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
 
 export default {
+  entry: {
+    index: './src/index.js',
+    'utils/index': './src/utils/index.js',
+  },
   output: {
     library: {
       type: 'modern-module',
-      preserveModules: path.resolve('./src'),
+      preserveModules: path.resolve(import.meta.dirname, 'src'),
     },
   },
 };
 ```
+
+假设 `src/utils/index.js` 从同目录的 `formatDate.js` 重新导出 `formatDate`，这三个模块的输出路径如下。
+
+```text
+src/index.js             → dist/index.mjs
+src/utils/index.js       → dist/utils/index.mjs
+src/utils/formatDate.js  → dist/utils/formatDate.mjs
+```
+
+最后，在 `package.json` 的 `exports` 中指定 `my-lib` 和 `my-lib/utils` 分别加载哪个产物：
+
+```json title="package.json"
+{
+  "name": "my-lib",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./utils": "./dist/utils/index.mjs"
+  }
+}
+```
+
+:::tip 注意事项
+
+- 此选项仅适用于 `output.library.type: 'modern-module'`。
+- Rspack 从入口开始构建，只处理入口及其依赖。非入口模块中未使用的导出可能会被 tree shaking 移除。
+- 保留目录中的同一个文件只能用作一个入口。例如，`main` 和 `alias` 都使用 `./src/index.js` 作为入口文件时，构建会报错。
+
+:::
 
 ## output.module
 

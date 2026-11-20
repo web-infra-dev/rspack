@@ -12,7 +12,7 @@
 - Bundle: vendors-node_modules_vendor_js.js
 - Manifest: runtime~main.LAST_HASH.hot-update.json, size: 172
 - Update: main.LAST_HASH.hot-update.js, size: 640
-- Update: runtime~main.LAST_HASH.hot-update.js, size: 25178
+- Update: runtime~main.LAST_HASH.hot-update.js, size: 25134
 - Update: vendors-node_modules_vendor_js.LAST_HASH.hot-update.js, size: 374
 
 ## Manifest
@@ -170,8 +170,6 @@ if (installedChunkData !== 0) {
 			var promise = new Promise((resolve, reject) => (installedChunkData = jsonpInstalledChunks[chunkId] = [resolve, reject]));
 			promises.push((installedChunkData[2] = promise));
 
-			// start chunk loading
-			var url = __webpack_require__.p + __webpack_require__.u(chunkId);
 			// create error before stack unwound to get useful stacktrace later
 			var error = new Error();
 			var loadingEnded = function (event) {
@@ -202,7 +200,7 @@ if (installedChunkData !== 0) {
 					}
 				}
 			};
-			__webpack_require__.l(url, loadingEnded, "chunk-" + chunkId, chunkId);
+			__webpack_require__.l(__webpack_require__.p + __webpack_require__.u(chunkId), loadingEnded, "chunk-" + chunkId, chunkId);
 		} else jsonpInstalledChunks[chunkId] = 0;
 	}
 }

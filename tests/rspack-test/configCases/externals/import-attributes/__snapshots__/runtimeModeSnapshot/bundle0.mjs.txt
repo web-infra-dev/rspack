@@ -169,12 +169,7 @@ var ensureChunk = (chunkId) => {
 __rspack_context.e = ensureChunk;
 // rspack/runtime/get javascript chunk filename
 // This function allow to reference chunks
-var getChunkScriptFilename = (chunkId) => {
-  // return url for filenames not based on template
-
-  // return url for filenames based on template
-  return chunkId + ".bundle0.mjs"
-};
+var getChunkScriptFilename = (chunkId) => (chunkId + ".bundle0.mjs");
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 __rspack_context.o = hasOwnProperty;
@@ -202,7 +197,7 @@ __rspack_context.o = hasOwnProperty;
         if (hasOwnProperty(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
-        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
+        moduleInstalledChunks[chunkId] = 0;
     }
 
 };

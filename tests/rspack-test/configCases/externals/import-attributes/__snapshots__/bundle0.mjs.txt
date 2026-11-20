@@ -166,12 +166,7 @@ __webpack_require__.e = (chunkId) => {
 // webpack/runtime/get javascript chunk filename
 (() => {
 // This function allow to reference chunks
-__webpack_require__.u = (chunkId) => {
-  // return url for filenames not based on template
-
-  // return url for filenames based on template
-  return chunkId + ".bundle0.mjs"
-}
+__webpack_require__.u = (chunkId) => (chunkId + ".bundle0.mjs")
 })();
 // webpack/runtime/has_own_property
 (() => {
@@ -202,7 +197,7 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
         if (__webpack_require__.o(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
-        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
+        moduleInstalledChunks[chunkId] = 0;
     }
 
 };

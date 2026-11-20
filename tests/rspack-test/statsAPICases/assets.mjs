@@ -39,7 +39,7 @@ export default {
 			        related: Object {},
 			      },
 			      name: entryB.js,
-			      size: 3093,
+			      size: 3046,
 			      type: asset,
 			    },
 			    Object {

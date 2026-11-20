@@ -1175,7 +1175,7 @@ This configuration enables Rspack's dedicated rendering pipeline for ESM librari
 - `modern-module` currently exists as a separate type to fill the ESM library capability gap; once it is mature enough, the long-term direction is to converge it with `module` into a single `library.type`.
 - `preserveModules` is only available with `modern-module`.
 - When `output.library` is configured and `output.module = true`, Rspack currently defaults `output.library.type` to `modern-module` if you don't specify one explicitly.
-- Do not mix `modern-module` with other library types in the same compilation, because it also changes chunk loading, chunk rendering, and scope-hoisting behavior.
+- Mixing `modern-module` with other `library.type` values in the same compilation triggers a warning because its chunk format and loading mechanism apply to the whole compilation.
 
 :::
 
@@ -1609,30 +1609,63 @@ define('MyLibrary', [], factory);
 - **Type:** `string`
 - **Default:** `undefined`
 
-:::info
-Only available when `library.type` is set to `modern-module`.
-:::
+When building an ESM library, use `output.library.preserveModules` to emit modules in a source directory as separate files and preserve their relative paths.
 
-When enabled, Rspack will preserve the original directory structure of modules within the specified directory. Each module will be emitted as a separate file, maintaining the same relative path as the source.
+Keeping modules separate lets an application’s bundler apply [tree shaking](/guide/optimization/tree-shaking) to whole modules. For example, a component library might export `Button` and `DatePicker` from the same entry while keeping each component in its own file. If an application uses only `Button` and its bundler can safely skip `DatePicker` (for example, based on the library's `sideEffects` declaration in `package.json`), it can omit the entire `DatePicker` module and any dependencies used only by that component.
 
-`preserveModules` is a special form of bundling — it can be thought of as **bundle + splitChunks where each module gets its own chunk**. Unlike a bundleless tool, Rspack still applies its full bundling pipeline (tree shaking, scope hoisting, minification, etc.), but splits the output so that each module in the specified directory becomes its own output file.
+The following configuration is for a library that provides a component and a utility function through these import paths:
 
-:::warning
-**Barrel files may not be emitted or exposed as you expect.** Since `preserveModules` is still a form of bundling, Rspack only emits modules that are reachable from the configured entries. Non-entry barrel files (for example, an `index.ts` that re-exports from other modules) can still be emitted with their re-exports if they are part of the module graph, but only the configured entry exports are exposed through the main library entry. Unused barrel re-exports may be tree-shaken, and a barrel file may not be emitted at all if nothing references it. If you need to expose exports from a barrel file via your library entry, configure it as an entry point.
-:::
+```js
+import { Button } from 'my-lib';
+import { formatDate } from 'my-lib/utils';
+```
+
+List the source file for each import path in `entry` so Rspack preserves the exports of both files. Set `preserveModules` to the absolute path of `src` to emit modules at their paths relative to that directory.
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
 
 export default {
+  entry: {
+    index: './src/index.js',
+    'utils/index': './src/utils/index.js',
+  },
   output: {
     library: {
       type: 'modern-module',
-      preserveModules: path.resolve('./src'),
+      preserveModules: path.resolve(import.meta.dirname, 'src'),
     },
   },
 };
 ```
+
+If `src/utils/index.js` re-exports `formatDate` from its sibling `formatDate.js`, the three modules map to these output files.
+
+```text
+src/index.js             → dist/index.mjs
+src/utils/index.js       → dist/utils/index.mjs
+src/utils/formatDate.js  → dist/utils/formatDate.mjs
+```
+
+In `package.json`, use `exports` to specify which output file each import path loads.
+
+```json title="package.json"
+{
+  "name": "my-lib",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./utils": "./dist/utils/index.mjs"
+  }
+}
+```
+
+:::tip Usage notes
+
+- This option requires `output.library.type: 'modern-module'`.
+- Rspack builds only the entries and their dependencies. Tree shaking can remove unused exports from non-entry modules.
+- Each file in the preserved directory can serve as an entry point only once. For example, the build fails if both `main` and `alias` use `./src/index.js` as their entry file.
+
+:::
 
 ## output.module
 

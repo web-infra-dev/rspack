@@ -5,12 +5,7 @@ var rspackRequire = {};
 var hasOwnProperty, baseUri;
 // rspack/runtime/get javascript chunk filename
 // This function allow to reference chunks
-var getChunkScriptFilename = (chunkId) => {
-  // return url for filenames not based on template
-
-  // return url for filenames based on template
-  return chunkId + ".mjs"
-};
+var getChunkScriptFilename = (chunkId) => (chunkId + ".mjs");
 // rspack/runtime/public_path
 var publicPath = "";;
 // rspack/runtime/module_chunk_loading
@@ -126,7 +121,7 @@ var wrapDeps = (deps) => {
 			}
 		}
 		var ret = {};
-		ret[rspackQueues] = () => {};
+		ret[rspackQueues] = x => {};
 		ret[rspackExports] = dep;
 		return ret;
 	});
@@ -144,7 +139,7 @@ var asyncModule = (module, body, hasAwait, useModuleExports) => {
 		outerResolve = resolve;
 	});
 	promise[rspackExports] = exports;
-	promise[rspackQueues] = (fn) => { queue && fn(queue), depQueues.forEach(fn), promise["catch"](() => {}); };
+	promise[rspackQueues] = (fn) => { queue && fn(queue), depQueues.forEach(fn), promise["catch"](x => {}); };
 	module.exports = promise;
 	var asyncModule = module;
 	if (useModuleExports) {

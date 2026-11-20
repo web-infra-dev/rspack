@@ -251,12 +251,7 @@ moduleFactories.add = function registerModules(modules) { Object.assign(moduleFa
 ;
 // rspack/runtime/get javascript chunk filename
 // This function allow to reference chunks
-var getChunkScriptFilename = (chunkId) => {
-  // return url for filenames not based on template
-
-  // return url for filenames based on template
-  return chunkId + ".mjs"
-};
+var getChunkScriptFilename = (chunkId) => (chunkId + ".mjs");
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 export { hasOwnProperty };
