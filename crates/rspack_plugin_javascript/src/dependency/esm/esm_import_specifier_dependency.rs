@@ -12,7 +12,7 @@ use rspack_core::{
   ExportPresenceMode, ExportProvided, ExportsInfoArtifact, ExportsType, ForwardId,
   ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
-  ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
+  ReferencedExportPath, ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
   TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
   property_access, should_reference_call_receiver, to_normal_comment,
 };
@@ -122,26 +122,23 @@ impl ESMImportSpecifierDependency {
     ids: Option<&[Atom]>,
   ) -> Vec<ReferencedExport> {
     if let Some(referenced_properties) = &self.referenced_properties_in_destructuring {
+      let prefix = ids.unwrap_or_default();
+      let ns_access = self.ns_access;
       let mut refs = Vec::new();
       referenced_properties.traverse_on_leaf(&mut |stack| {
-        let ids_in_destructuring = stack.iter().map(|p| p.id.clone());
-        if let Some(ids) = ids {
-          let mut ids = ids.to_vec();
-          ids.extend(ids_in_destructuring);
-          refs.push(ids);
-        } else {
-          refs.push(ids_in_destructuring.collect::<Vec<_>>());
-        }
+        let name = prefix
+          .iter()
+          .cloned()
+          .chain(stack.iter().map(|property| property.id.clone()))
+          .collect::<ReferencedExportPath>();
+        refs.push(
+          ReferencedExport::from(name)
+            // Do not inline if there are any places where used as destructuring
+            .with_can_inline(false)
+            .with_ns_access(ns_access),
+        );
       });
       refs
-        .into_iter()
-        // Do not inline if there are any places where used as destructuring
-        .map(|name| {
-          ReferencedExport::from(name)
-            .with_can_inline(false)
-            .with_ns_access(self.ns_access)
-        })
-        .collect::<Vec<_>>()
     } else if let Some(v) = ids {
       vec![
         ReferencedExport::from(v)
