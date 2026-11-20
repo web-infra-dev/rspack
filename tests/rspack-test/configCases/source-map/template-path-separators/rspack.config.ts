@@ -91,9 +91,14 @@ export default defineConfig(
                       if (content === 'module-identifier') {
                         const actual = map.sources[index];
                         if (variant === 'fields') {
+                          // Existing contextify behavior normalizes the layer separator on Windows.
                           expect(
                             actual.slice('fields:///'.length).split(':::')[2],
-                          ).toContain(String.raw`|layer\value`);
+                          ).toContain(
+                            process.platform === 'win32'
+                              ? '|layer/value'
+                              : String.raw`|layer\value`,
+                          );
                         } else if (variant === 'absolute') {
                           expect(actual).toBe(
                             path
