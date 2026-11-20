@@ -140,7 +140,7 @@ pub async fn resolve_for_error_hints(
         .as_std_path()
         .relative(args.context)
         .assert_utf8();
-      let suggestion = if let Some((_, [prefix])) = CURRENT_DIR_REGEX
+      let suggested_path = if let Some((_, [prefix])) = CURRENT_DIR_REGEX
         .captures_iter(args.specifier)
         .next()
         .map(|c| c.extract())
@@ -157,6 +157,8 @@ pub async fn resolve_for_error_hints(
         // then we return the full path.
         resource.path.as_str().to_string()
       };
+      let suggestion =
+        format_resolved_resource(&suggested_path, &resource.query, &resource.fragment);
       return Some(format!("Did you mean '{}'?
 
 The request '{}' failed to resolve only because it was resolved as fully specified,
