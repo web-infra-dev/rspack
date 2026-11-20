@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsCacheable, AsOption, AsVec},
@@ -7,11 +9,13 @@ use rspack_core::{
   DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
   DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ReferencedExport, ReferencedSpecifier, ResourceIdentifier, RuntimeSpec,
-  TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  TemplateContext, TemplateReplaceSource, UsedByExports, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
 
-use super::create_resource_identifier_for_contextual_commonjs_dependency;
+use super::{
+  create_resource_identifier_for_contextual_commonjs_dependency, used_by_exports_condition,
+};
 use crate::dependency::{DependencyBranchGuard, compose_dependency_condition};
 
 #[cacheable]
@@ -27,6 +31,7 @@ pub struct CommonJsRequireDependency {
   referenced_specifiers: Option<Vec<ReferencedSpecifier>>,
   #[cacheable(with=AsOption<AsCacheable>)]
   branch_guard: Option<DependencyBranchGuard>,
+  used_by_exports: Option<Arc<UsedByExports>>,
   context: Option<Context>,
   resource_identifier: ResourceIdentifier,
 }
@@ -48,6 +53,7 @@ impl CommonJsRequireDependency {
       loc,
       referenced_specifiers: None,
       branch_guard: None,
+      used_by_exports: None,
       context: None,
       resource_identifier: Default::default(),
     }
@@ -89,6 +95,10 @@ impl CommonJsRequireDependency {
       Some(old_guard) => old_guard.and(guard),
       None => guard,
     });
+  }
+
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<Arc<UsedByExports>>) {
+    self.used_by_exports = used_by_exports;
   }
 
   pub fn request_range(&self) -> DependencyRange {
@@ -177,7 +187,10 @@ impl ModuleDependency for CommonJsRequireDependency {
   }
 
   fn get_condition(&self) -> Option<DependencyCondition> {
-    compose_dependency_condition(None, self.branch_guard.as_ref())
+    compose_dependency_condition(
+      used_by_exports_condition(self.used_by_exports.as_ref()),
+      self.branch_guard.as_ref(),
+    )
   }
 }
 
