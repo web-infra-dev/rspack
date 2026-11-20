@@ -79,7 +79,9 @@ module.exports = (env, { testPath }) => [
     output: {
       path: path.join(testPath, scenario),
       filename: 'main.js',
-      publicPath: `${path.join(testPath, scenario)}/`,
+      // Forward slashes: a Windows path such as `...\unused-issuer-layer`
+      // would otherwise reach the runtime as an invalid `\u` escape.
+      publicPath: `${path.join(testPath, scenario).replaceAll('\\', '/')}/`,
       library: { type: 'commonjs-module' },
     },
     plugins: [
