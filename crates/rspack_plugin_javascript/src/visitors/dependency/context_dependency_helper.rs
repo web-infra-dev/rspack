@@ -3,29 +3,81 @@ use std::borrow::Cow;
 use concat_string::concat_string;
 use itertools::Itertools;
 use rspack_core::parse_resource;
-use rspack_error::{Diagnostic, Severity};
+use rspack_error::{Diagnostic, Error, Label};
 use rspack_util::{json_stringify_str, quote_meta};
 
-use super::create_traceable_error;
+use super::JavascriptParser;
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
 
-fn walk_evaluated_expression(
-  evaluated: &BasicEvaluatedExpression,
-  parser: &mut crate::visitors::JavascriptParser,
-) {
+fn walk_evaluated_expression(evaluated: &BasicEvaluatedExpression, parser: &mut JavascriptParser) {
   let Some(expression) = evaluated.expression() else {
     return;
   };
   parser.walk_expression_in_ast(expression, evaluated.expression_ast());
 }
 
-// Match webpack by walking only the dynamic parts retained by evaluation. SWC
-// Next expression handles carry their owning flat AST through `BasicEvaluatedExpression`.
 pub fn create_context_dependency(
   param: &BasicEvaluatedExpression,
-  parser: &mut crate::visitors::JavascriptParser,
+  parser: &mut JavascriptParser,
 ) -> ContextModuleScanResult {
-  let mut critical = None;
+  scan_context_dependency(
+    param,
+    parser,
+    (
+      "Critical dependency: a part of the request of a dependency is an expression",
+      None,
+    ),
+    (
+      "Critical dependency: the request of a dependency is an expression",
+      None,
+    ),
+  )
+}
+
+pub(crate) fn create_import_context_dependency(
+  param: &BasicEvaluatedExpression,
+  parser: &mut JavascriptParser,
+) -> ContextModuleScanResult {
+  scan_context_dependency(
+    param,
+    parser,
+    (
+      "Rspack may include multiple modules because part of this import path is dynamic.",
+      Some("If you only need a few modules, import each one with a literal path."),
+    ),
+    (
+      "Rspack cannot determine which modules to bundle for this import.",
+      Some(
+        "To bundle local modules, use a literal path or a pattern such as `./locales/${name}.js`.\n\
+            To load the module at runtime, use `import(/* rspackIgnore: true */ path)`.\n\
+            See https://rspack.rs/api/runtime-api/module-methods#dynamic-expressions-in-import",
+      ),
+    ),
+  )
+}
+
+// Match webpack by walking only the dynamic parts retained by evaluation. SWC
+// Next expression handles carry their owning flat AST through `BasicEvaluatedExpression`.
+fn scan_context_dependency(
+  param: &BasicEvaluatedExpression,
+  parser: &mut JavascriptParser,
+  wrapped_warning: (&str, Option<&str>),
+  expression_warning: (&str, Option<&str>),
+) -> ContextModuleScanResult {
+  let create_warning = |parser: &JavascriptParser, (message, help): (&str, Option<&str>)| {
+    let (start, end) = param.range();
+    let mut error = Error::warning(message.into());
+    error.src = Some(parser.source.into());
+    error.labels = Some(vec![Label {
+      name: None,
+      offset: start as usize,
+      len: end.saturating_sub(start) as usize,
+    }]);
+    error.help = help.map(str::to_owned);
+    let mut diagnostic = Diagnostic::from(error);
+    diagnostic.module_identifier = Some(*parser.module_identifier);
+    diagnostic
+  };
   let wrapped_context_reg_exp = parser
     .javascript_options
     .wrapped_context_reg_exp
@@ -101,17 +153,8 @@ pub fn create_context_dependency(
       }
     }
 
-    if let Some(true) = parser.javascript_options.wrapped_context_critical {
-      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
-        "Critical dependency".into(),
-        "a part of the request of a dependency is an expression".to_string(),
-        parser.source.to_string(),
-        param.range().into(),
-      ));
-      warn.severity = Severity::Warning;
-      warn.module_identifier = Some(*parser.module_identifier);
-      critical = Some(warn);
-    }
+    let critical = (parser.javascript_options.wrapped_context_critical == Some(true))
+      .then(|| create_warning(parser, wrapped_warning));
 
     ContextModuleScanResult {
       context,
@@ -173,17 +216,8 @@ pub fn create_context_dependency(
       ))
     }
 
-    if let Some(true) = parser.javascript_options.wrapped_context_critical {
-      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
-        "Critical dependency".into(),
-        "a part of the request of a dependency is an expression".to_string(),
-        parser.source.to_string(),
-        param.range().into(),
-      ));
-      warn.severity = Severity::Warning;
-      warn.module_identifier = Some(*parser.module_identifier);
-      critical = Some(warn);
-    }
+    let critical = (parser.javascript_options.wrapped_context_critical == Some(true))
+      .then(|| create_warning(parser, wrapped_warning));
 
     if let Some(inner_expressions) = param.wrapped_inner_expressions() {
       for part in inner_expressions {
@@ -200,17 +234,8 @@ pub fn create_context_dependency(
       critical,
     }
   } else {
-    if let Some(true) = parser.javascript_options.expr_context_critical {
-      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
-        "Critical dependency".into(),
-        "the request of a dependency is an expression".to_string(),
-        parser.source.to_string(),
-        param.range().into(),
-      ));
-      warn.severity = Severity::Warning;
-      warn.module_identifier = Some(*parser.module_identifier);
-      critical = Some(warn);
-    }
+    let critical = (parser.javascript_options.expr_context_critical == Some(true))
+      .then(|| create_warning(parser, expression_warning));
 
     walk_evaluated_expression(param, parser);
 

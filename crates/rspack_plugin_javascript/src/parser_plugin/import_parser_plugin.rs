@@ -32,9 +32,9 @@ use crate::{
   visitors::{
     ContextModuleScanResult, DestructuringAssignmentProperties, HookMemberExpression,
     JavascriptParser, PatRef, SymbolBinding, TagInfoData, TopLevelScope, VariableInfoFlags,
-    context_reg_exp, create_context_dependency, create_traceable_error, formal_parameter_pattern,
-    formal_parameter_patterns, formal_parameter_patterns_with_defaults, get_non_optional_part,
-    parse_order_string,
+    context_reg_exp, create_import_context_dependency, create_traceable_error,
+    formal_parameter_pattern, formal_parameter_patterns, formal_parameter_patterns_with_defaults,
+    get_non_optional_part, parse_order_string,
   },
 };
 
@@ -717,32 +717,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         return None;
       }
 
-      let result = create_context_dependency(&param, parser);
+      let result = create_import_context_dependency(&param, parser);
       let request = result.request();
       let ContextModuleScanResult {
         reg,
         replaces,
-        mut critical,
+        critical,
         ..
       } = result;
-
-      if let Some(warning) = &mut critical {
-        let (message, help) = if reg.is_empty() {
-          (
-            "Rspack cannot determine which modules to bundle for this import.",
-            "To bundle local modules, use a literal path or a pattern such as `./locales/${name}.js`.\n\
-             To load the module at runtime, use `import(/* rspackIgnore: true */ path)`.\n\
-             See https://rspack.rs/api/runtime-api/module-methods#dynamic-expressions-in-import",
-          )
-        } else {
-          (
-            "Rspack may include multiple modules because part of this import path is dynamic.",
-            "If you only need a few modules, import each one with a literal path.",
-          )
-        };
-        warning.message = message.into();
-        warning.help = Some(help.into());
-      }
 
       let reg_exp = context_reg_exp(&reg, "", Some(dyn_imported_span.into()), parser);
       let mut dep = ImportContextDependency::new(
