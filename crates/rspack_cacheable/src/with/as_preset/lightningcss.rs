@@ -1,4 +1,3 @@
-use lightningcss::targets::Browsers;
 use rkyv::{
   Place,
   rancor::Fallible,
@@ -6,6 +5,7 @@ use rkyv::{
   string::{ArchivedString, StringResolver},
   with::{ArchiveWith, DeserializeWith, SerializeWith},
 };
+use rspack_lightningcss::targets::Browsers;
 
 use super::AsPreset;
 use crate::{Error, Result};
