@@ -1175,7 +1175,7 @@ This configuration enables Rspack's dedicated rendering pipeline for ESM librari
 - `modern-module` currently exists as a separate type to fill the ESM library capability gap; once it is mature enough, the long-term direction is to converge it with `module` into a single `library.type`.
 - `preserveModules` is only available with `modern-module`.
 - When `output.library` is configured and `output.module = true`, Rspack currently defaults `output.library.type` to `modern-module` if you don't specify one explicitly.
-- Do not mix `modern-module` with other library types in the same compilation, because it also changes chunk loading, chunk rendering, and scope-hoisting behavior.
+- Mixing `modern-module` with other `library.type` values in the same compilation triggers a warning because its chunk format and loading mechanism apply to the whole compilation.
 
 :::
 
@@ -1614,6 +1614,8 @@ Only available when `library.type` is set to `modern-module`.
 :::
 
 When enabled, Rspack will preserve the original directory structure of modules within the specified directory. Each module will be emitted as a separate file, maintaining the same relative path as the source.
+
+Each file in the preserved directory can serve as an entry point only once. For example, if you preserve `src` and use `./src/index.js` as the entry file for both `main` and `alias`, the build fails.
 
 `preserveModules` is a special form of bundling — it can be thought of as **bundle + splitChunks where each module gets its own chunk**. Unlike a bundleless tool, Rspack still applies its full bundling pipeline (tree shaking, scope hoisting, minification, etc.), but splits the output so that each module in the specified directory becomes its own output file.
 
