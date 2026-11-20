@@ -281,13 +281,6 @@ export default {
 };
 ```
 
-## Node 远端缓存失效
-
-当 enhanced MF Node 构建接入 `@module-federation/node` 时，实际消费编译期远端的
-runtime chunk 会通过 `__webpack_require__.federation.remotesLoadingData.cache`
-输出反向依赖映射与模块表引用。MF bundler runtime 据此计算并清理远端及消费者模块缓存，
-远端 chunk 加载与容器生命周期继续由 `@module-federation/node` 维护。
-
 ## 常见问题
 
 - 构建产物中存在未降级语法？
