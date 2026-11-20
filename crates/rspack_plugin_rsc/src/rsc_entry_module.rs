@@ -257,7 +257,7 @@ impl Module for RscEntryModule {
           ImportPhase::Evaluation,
         );
         if let Some(referenced_specifiers) = referenced_specifiers {
-          dep.set_referenced_specifiers(referenced_specifiers, true);
+          dep.set_referenced_specifiers(referenced_specifiers);
         }
         dependencies.push(BoxDependency::new(dep));
       }
