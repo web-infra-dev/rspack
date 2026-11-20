@@ -612,6 +612,7 @@ impl SplitChunksPlugin {
           &placed_module_chunks,
           &mut module_group_map,
           &module_sizes,
+          compilation.options.context.as_ref(),
         );
 
         if has_named_groups && (has_lower_priority || !module_group_map.is_empty()) {

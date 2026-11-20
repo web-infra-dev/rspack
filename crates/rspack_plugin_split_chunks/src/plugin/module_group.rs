@@ -1430,6 +1430,7 @@ impl SplitChunksPlugin {
     placed_module_chunks: &ModuleChunkMap,
     module_group_map: &mut ModuleGroupMap,
     module_sizes: &ModuleSizes,
+    context: &str,
   ) {
     // remove all modules from other entries and update size
     let placed_chunk_mask = placed_module_chunks.chunk_mask();
@@ -1447,6 +1448,7 @@ impl SplitChunksPlugin {
           placed_module_chunks,
           cache_group,
           module_sizes,
+          context,
           duplicated_modules,
         ) {
           CandidateUpdate::Unchanged => return None,

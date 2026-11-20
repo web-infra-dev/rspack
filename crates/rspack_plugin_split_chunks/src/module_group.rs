@@ -46,9 +46,8 @@ impl ModulesForCompare {
 
   fn sorted_relative_identifiers(&mut self, context: &str) -> &[Box<str>] {
     self.relative_identifiers.get_or_insert_with(|| {
-      let mut identifiers = self
-        .identifiers
-        .iter()
+      let mut identifiers = std::mem::take(&mut self.identifiers)
+        .into_iter()
         .map(|module| make_paths_relative(context, module.as_str()).into_boxed_str())
         .collect::<Vec<_>>();
       identifiers.sort_unstable();
@@ -445,6 +444,7 @@ impl ModuleGroup {
     placed: &ModuleChunkMap,
     cache: &CacheGroup,
     module_sizes: &ModuleSizes,
+    context: &str,
     scratch: &mut Vec<ModuleIdentifier>,
   ) -> CandidateUpdate {
     let minimum = (cache.min_chunks as usize).max(1);
@@ -600,7 +600,8 @@ impl ModuleGroup {
             .filter(|module| self.modules.contains(module))
             .copied(),
         );
-        scratch.sort_unstable_by_key(|module| (module.precomputed_hash(), *module));
+        scratch
+          .sort_by_cached_key(|module| (make_paths_relative(context, module.as_str()), *module));
         for module in scratch.iter().copied() {
           let removed = &placed[&module];
           let overlap = self.chunks.intersection(removed).count();
@@ -697,6 +698,7 @@ impl ModuleGroup {
       // The comparison snapshot is captured before any module is removed and
       // before the first size comparison. It also supplies the initial size
       // accumulation in the original iteration order without a second copy.
+      debug_assert!(!self.modules_for_compare.identifiers.is_empty());
       for module in &self.modules_for_compare.identifiers {
         let module_sizes = module_sizes.get(module).expect("should have module size");
         self.has_modules_without_source_types |= module_sizes.is_empty();
