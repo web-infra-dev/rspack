@@ -70,7 +70,7 @@ const scenarios = {
 };
 
 module.exports = (env, { testPath }) => [
-  // bundle0.js holds the assertions; it loads each scenario bundle on demand.
+  // bundle0.js holds the assertions and loads each scenario bundle on demand.
   { entry: './index.js' },
   ...Object.entries(scenarios).map(([scenario, [entry, shared]]) => ({
     entry,
@@ -79,8 +79,9 @@ module.exports = (env, { testPath }) => [
     output: {
       path: path.join(testPath, scenario),
       filename: 'main.js',
-      // Forward slashes: a Windows path such as `...\unused-issuer-layer`
-      // would otherwise reach the runtime as an invalid `\u` escape.
+      // Use forward slashes. The runtime writes publicPath into a string
+      // unescaped, so a Windows path such as `...\unused-issuer-layer` would
+      // be an invalid `\u` escape.
       publicPath: `${path.join(testPath, scenario).replaceAll('\\', '/')}/`,
       library: { type: 'commonjs-module' },
     },
