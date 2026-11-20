@@ -371,7 +371,7 @@ impl EventProcessor {
         direct = requested;
         return;
       }
-      let removed = kind == FsEventKind::Remove && std::fs::symlink_metadata(watched).is_err();
+      let removed = std::fs::symlink_metadata(watched).is_err();
       if removed || scan_hint.is_some() {
         self.analyzer.invalidate_path(watched);
       }

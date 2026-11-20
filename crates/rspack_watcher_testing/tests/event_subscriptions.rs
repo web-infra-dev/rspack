@@ -273,3 +273,48 @@ async fn queued_notification_keeps_its_file_and_directory_recipients() {
     vec![(outer, FsEventKind::Change), (file, FsEventKind::Change)]
   );
 }
+
+#[tokio::test]
+async fn context_moved_while_processing_a_child_change_is_reported_removed() {
+  use std::{path::Path, sync::Arc};
+
+  use rspack_watcher::{FsWatcherIgnored, TimeInfoEntry, testing::manual_watcher_with_ignored};
+
+  let temp = tempfile::tempdir().expect("create fixture");
+  let root = temp.path().canonicalize().expect("resolve fixture");
+  let context = InternedPath::from(root.join("ctx"));
+  let child = InternedPath::from(context.join("new"));
+  let marker = child.join("marker");
+  fs::create_dir(&context).expect("create context");
+
+  let watcher = manual_watcher_with_ignored(FsWatcherIgnored::Function(Arc::new({
+    let context = context.clone();
+    let marker = marker.clone();
+    move |path| {
+      if Path::new(&path) == marker {
+        fs::rename(&context, root.join("moved")).expect("move context during child scan");
+      }
+      Box::pin(async { false })
+    }
+  })));
+  let (tx, mut notices) = unbounded_channel();
+  watch_subscriptions(
+    &watcher,
+    (&[], &[]),
+    (&[(context.clone(), context.clone())], &[]),
+    (&[], &[]),
+    SystemTime::now() + Duration::from_secs(60),
+    Handler(tx.clone()),
+    Handler(tx),
+  )
+  .await;
+
+  fs::create_dir(&child).expect("create child directory");
+  fs::write(marker, "").expect("create scan marker");
+  disk_event(&watcher, &child, FsEventKind::Change);
+  expect_batch(&mut notices, &[], &[&context], &[&child], &[]).await;
+  let (_, directories) = watcher.collect_time_info_entries();
+  assert!(directories.contains(&(name(&context), TimeInfoEntry::Null)));
+  assert!(!directories.iter().any(|(path, _)| path == &name(&child)));
+  watcher.close().await.expect("close watcher");
+}

@@ -126,7 +126,11 @@ impl DirectoryAnalyzer {
 
 /// A full watcher whose disk events are supplied by the test.
 pub fn manual_watcher() -> FsWatcher {
-  FsWatcher::with_backend(Default::default(), Default::default(), |_, _, _| {
+  manual_watcher_with_ignored(Default::default())
+}
+
+pub fn manual_watcher_with_ignored(ignored: crate::FsWatcherIgnored) -> FsWatcher {
+  FsWatcher::with_backend(Default::default(), ignored, |_, _, _| {
     crate::DiskWatcher::manual()
   })
 }
