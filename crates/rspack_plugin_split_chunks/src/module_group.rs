@@ -3,6 +3,7 @@ use std::{cmp::Ordering, fmt};
 use derive_more::Debug;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
+use rspack_util::identifier::make_paths_relative;
 use rustc_hash::FxHashSet;
 use smallvec::SmallVec;
 
@@ -30,45 +31,29 @@ impl<'a> IndexedCacheGroup<'a> {
   }
 }
 
-#[derive(Debug)]
-enum ModulesForCompare {
-  Unsorted(Vec<ModuleIdentifier>),
-  Sorted(Vec<ModuleIdentifier>),
-}
-
-impl Default for ModulesForCompare {
-  fn default() -> Self {
-    Self::Unsorted(Default::default())
-  }
+#[derive(Debug, Default)]
+struct ModulesForCompare {
+  identifiers: Vec<ModuleIdentifier>,
+  relative_identifiers: Option<Vec<Box<str>>>,
 }
 
 impl ModulesForCompare {
-  fn as_slice(&self) -> &[ModuleIdentifier] {
-    match self {
-      Self::Unsorted(modules) | Self::Sorted(modules) => modules,
-    }
-  }
-
   fn prepare(&mut self, modules: Vec<ModuleIdentifier>) {
-    if modules.is_empty() {
-      return;
-    }
-
-    if matches!(self, Self::Unsorted(modules_for_compare) if modules_for_compare.is_empty()) {
-      *self = Self::Unsorted(modules);
+    if self.identifiers.is_empty() && self.relative_identifiers.is_none() {
+      self.identifiers = modules;
     }
   }
 
-  fn sorted(&mut self) -> &[ModuleIdentifier] {
-    if let Self::Unsorted(modules) = self {
-      modules.sort_unstable_by_key(|module| module.precomputed_hash());
-      *self = Self::Sorted(std::mem::take(modules));
-    }
-
-    let Self::Sorted(modules) = self else {
-      unreachable!("modules for compare should be sorted");
-    };
-    modules
+  fn sorted_relative_identifiers(&mut self, context: &str) -> &[Box<str>] {
+    self.relative_identifiers.get_or_insert_with(|| {
+      let mut identifiers = self
+        .identifiers
+        .iter()
+        .map(|module| make_paths_relative(context, module.as_str()).into_boxed_str())
+        .collect::<Vec<_>>();
+      identifiers.sort_unstable();
+      identifiers
+    })
   }
 }
 
@@ -669,10 +654,6 @@ impl ModuleGroup {
     self.modules_for_compare.prepare(modules);
   }
 
-  pub fn sorted_modules_for_compare(&mut self) -> &[ModuleIdentifier] {
-    self.modules_for_compare.sorted()
-  }
-
   pub fn may_have_chunks_in_mask(&self, mask: u64) -> bool {
     self.chunk_mask & mask != 0
   }
@@ -716,7 +697,7 @@ impl ModuleGroup {
       // The comparison snapshot is captured before any module is removed and
       // before the first size comparison. It also supplies the initial size
       // accumulation in the original iteration order without a second copy.
-      for module in self.modules_for_compare.as_slice() {
+      for module in &self.modules_for_compare.identifiers {
         let module_sizes = module_sizes.get(module).expect("should have module size");
         self.has_modules_without_source_types |= module_sizes.is_empty();
         for (ty, s) in module_sizes.iter() {
@@ -774,6 +755,7 @@ pub(crate) fn compare_entries(
   (a_key, a): (&ModuleGroupKey, &mut ModuleGroup),
   (b_key, b): (&ModuleGroupKey, &mut ModuleGroup),
   module_sizes: &ModuleSizes,
+  context: &str,
 ) -> f64 {
   // 1. by priority
   // no need to compare priority anymore because we already pick all cache groups with same priority
@@ -811,24 +793,12 @@ pub(crate) fn compare_entries(
     return diff;
   }
 
-  let mut modules_a = a.sorted_modules_for_compare().iter();
-  let mut modules_b = b.sorted_modules_for_compare().iter();
-
-  loop {
-    match (modules_a.next(), modules_b.next()) {
-      (None, None) => break,
-      (Some(a), Some(b)) => {
-        let res = a.cmp(b);
-        if !res.is_eq() {
-          return res as i32 as f64;
-        }
-      }
-      (None, Some(_)) => return -1.0,
-      (Some(_), None) => return 1.0,
-    }
-  }
-
-  match a_key.cmp(b_key) {
+  match a
+    .modules_for_compare
+    .sorted_relative_identifiers(context)
+    .cmp(b.modules_for_compare.sorted_relative_identifiers(context))
+    .then_with(|| a_key.cmp(b_key))
+  {
     Ordering::Less => -1.0,
     Ordering::Equal => 0.0,
     Ordering::Greater => 1.0,

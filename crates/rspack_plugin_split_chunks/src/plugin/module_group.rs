@@ -885,6 +885,7 @@ impl SplitChunksPlugin {
     &self,
     module_group_map: &mut ModuleGroupMap,
     module_sizes: &ModuleSizes,
+    context: &str,
   ) -> Option<(ModuleGroupKey, ModuleGroup)> {
     let mut best_entry_index = module_group_map
       .iter()
@@ -898,6 +899,7 @@ impl SplitChunksPlugin {
           (entry_key, entry),
           (best_entry_key, best_entry),
           module_sizes,
+          context,
         ) > 0f64
       {
         best_entry_index = entry_index;

@@ -308,9 +308,11 @@ impl SplitChunksPlugin {
         .for_each(|(_, module_group)| module_group.prepare_modules_for_sizes_and_compare());
       self.ensure_min_size_fit(&mut module_group_map, &module_sizes);
 
-      while let Some((module_group_key, mut module_group)) =
-        self.find_best_module_group(&mut module_group_map, &module_sizes)
-      {
+      while let Some((module_group_key, mut module_group)) = self.find_best_module_group(
+        &mut module_group_map,
+        &module_sizes,
+        compilation.options.context.as_ref(),
+      ) {
         tracing::trace!(
           "ModuleGroup({}) wins, {:?} `ModuleGroup` remains",
           module_group_key,
