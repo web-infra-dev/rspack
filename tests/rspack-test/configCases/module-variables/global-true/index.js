@@ -3,6 +3,11 @@ it("global true", function () {
 	expect(__webpack_require__.g).not.toBe(undefined);
 });
 
+it("should use globalThis directly when the target supports it", function () {
+	const source = require("fs").readFileSync(__filename, "utf-8");
+	expect(source).toMatch(/=\s*globalThis;/);
+});
+
 it("should keep the property name when `global` is used in shorthand", function () {
 	const obj = { global };
 	expect(obj.global).toBe(globalThis);
