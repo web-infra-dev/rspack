@@ -166,12 +166,7 @@ __webpack_require__.e = (chunkId) => {
 // webpack/runtime/get javascript chunk filename
 (() => {
 // This function allow to reference chunks
-__webpack_require__.u = (chunkId) => {
-  // return url for filenames not based on template
-
-  // return url for filenames based on template
-  return chunkId + ".bundle0.mjs"
-}
+__webpack_require__.u = (chunkId) => (chunkId + ".bundle0.mjs")
 })();
 // webpack/runtime/has_own_property
 (() => {
