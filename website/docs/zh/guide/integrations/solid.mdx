@@ -13,12 +13,6 @@ import { PackageManagerTabs } from '@theme';
 - **使用 Rsbuild**：Rsbuild 为 Solid 项目提供开箱即用的 JSX 编译和模块热替换（HMR）支持。创建项目请参考 [Rsbuild 的 Solid 指南](https://rsbuild.rs/zh/guide/framework/solid)。
 - **手动配置 Rspack**：要在现有的 Rspack 项目中使用 Solid，可以按下文配置，也可以参考完整的 [Rspack + Solid 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/solid)。
 
-使用 create-rspack 创建 Solid 项目时，TypeScript 模板为 `solid-ts`，JavaScript 模板为 `solid-js`。
-
-```bash
-npx create-rspack --dir my-app --template solid-ts
-```
-
 ## 配置 Solid \{#configure-solid}
 
 Solid 组件通常使用 JSX 或 TSX 编写。[solid-loader](https://github.com/rstackjs/solid-loader) 将 Solid 的原生编译器接入 Rspack，用来编译这些组件。

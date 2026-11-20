@@ -163,7 +163,7 @@ hook bridge, and lifecycle relationships between these crates and `@rspack/core`
 ### CLI tools
 
 - **`@rspack/cli`**: Command-line interface providing build, serve, and preview commands for running Rspack from the terminal
-- **`create-rspack`**: Project scaffolding tool for creating new Rspack projects with various templates (vanilla, React, Vue, Solid) supporting both JavaScript and TypeScript
+- **`create-rspack`**: Project scaffolding tool for creating new Rspack projects with various templates
 
 ### Browser support
 

@@ -13,12 +13,6 @@ There are two ways to use Solid with Rspack:
 - **Use Rsbuild** to start a Solid project with JSX compilation and hot module replacement (HMR) already configured. Follow the [Rsbuild guide for Solid](https://rsbuild.rs/guide/framework/solid).
 - **Configure Rspack manually** to add Solid to your own Rspack configuration. Follow the steps below or start from the [Rspack + Solid example](https://github.com/rstackjs/rstack-examples/tree/main/rspack/solid).
 
-To scaffold a Rspack project with Solid, use `solid-ts` for TypeScript or `solid-js` for JavaScript.
-
-```bash
-npx create-rspack --dir my-app --template solid-ts
-```
-
 ## Configure Solid
 
 Solid components are commonly written in JSX or TSX. [solid-loader](https://github.com/rstackjs/solid-loader) lets Rspack compile those components with Solid's native compiler.
