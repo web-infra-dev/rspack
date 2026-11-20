@@ -570,15 +570,52 @@ pub struct DependencyMeta {
 }
 
 #[derive(Debug, Clone)]
+struct MediaType {
+  decoded: String,
+  output: String,
+}
+
+impl MediaType {
+  fn from_ident(ident: &ParsedIdent<'_>) -> Self {
+    let decoded = ident.decoded.as_ref();
+    let output = if is_plain_ident(decoded) {
+      decoded.to_string()
+    } else {
+      ident.raw.to_string()
+    };
+    Self {
+      decoded: decoded.to_string(),
+      output,
+    }
+  }
+
+  fn from_plain(name: &str) -> Self {
+    Self {
+      decoded: name.to_string(),
+      output: name.to_string(),
+    }
+  }
+
+  fn eq_ignore_ascii_case(&self, other: &str) -> bool {
+    self.decoded.eq_ignore_ascii_case(other)
+  }
+}
+
+struct ParsedIdent<'a> {
+  decoded: Cow<'a, str>,
+  raw: &'a str,
+}
+
+#[derive(Debug, Clone)]
 enum ParsedMediaQuery {
   Never,
   Positive {
     only: bool,
-    media_type: Option<String>,
+    media_type: Option<MediaType>,
     condition: Option<String>,
   },
   Negated {
-    media_type: String,
+    media_type: MediaType,
     condition: Option<String>,
   },
 }
@@ -704,6 +741,54 @@ fn merge_media_query_lists(outer: &str, inner: &str) -> String {
   }
 }
 
+fn consume_css_escape(s: &str, backslash_idx: usize) -> Option<(char, usize)> {
+  let bytes = s.as_bytes();
+  if bytes.get(backslash_idx) != Some(&b'\\') {
+    return None;
+  }
+  let after_bs = backslash_idx + 1;
+  let Some(ch) = s[after_bs..].chars().next() else {
+    return Some((char::REPLACEMENT_CHARACTER, after_bs));
+  };
+  if matches!(ch, '\n' | '\r' | '\x0c') {
+    return None;
+  }
+  if ch.is_ascii_hexdigit() {
+    let mut pos = after_bs;
+    let mut value = 0u32;
+    let mut digits = 0;
+    while digits < 6
+      && let Some(&byte) = bytes.get(pos)
+      && byte.is_ascii_hexdigit()
+    {
+      value = value * 16
+        + match byte {
+          b'0'..=b'9' => u32::from(byte - b'0'),
+          b'a'..=b'f' => u32::from(byte - b'a' + 10),
+          b'A'..=b'F' => u32::from(byte - b'A' + 10),
+          _ => 0,
+        };
+      pos += 1;
+      digits += 1;
+    }
+    if let Some(&ws) = bytes.get(pos)
+      && matches!(ws, b' ' | b'\t' | b'\n' | b'\r' | 0x0C)
+    {
+      pos += 1;
+      if ws == b'\r' && bytes.get(pos) == Some(&b'\n') {
+        pos += 1;
+      }
+    }
+    let decoded = if value == 0 {
+      char::REPLACEMENT_CHARACTER
+    } else {
+      char::from_u32(value).unwrap_or(char::REPLACEMENT_CHARACTER)
+    };
+    return Some((decoded, pos));
+  }
+  Some((ch, after_bs + ch.len_utf8()))
+}
+
 fn split_media_query_list(media: &str) -> Vec<&str> {
   let mut queries = Vec::new();
   let mut depth = 0usize;
@@ -740,6 +825,12 @@ fn split_media_query_list(media: &str) -> Vec<&str> {
     let Some(ch) = media[i..].chars().next() else {
       break;
     };
+    if ch == '\\'
+      && let Some((_, next)) = consume_css_escape(media, i)
+    {
+      i = next;
+      continue;
+    }
     match ch {
       '"' | '\'' => quote = Some(ch),
       '(' | '[' => depth += 1,
@@ -785,7 +876,7 @@ fn is_ident_continue(ch: char) -> bool {
   ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' || !ch.is_ascii()
 }
 
-fn ident_prefix_len(s: &str) -> Option<usize> {
+fn plain_ident_prefix_len(s: &str) -> Option<usize> {
   let mut chars = s.char_indices();
   let (_, first) = chars.next()?;
   let mut end = if is_ident_start(first) {
@@ -810,9 +901,71 @@ fn ident_prefix_len(s: &str) -> Option<usize> {
   Some(end)
 }
 
-fn take_leading_ident(s: &str) -> Option<(&str, &str)> {
-  let end = ident_prefix_len(s)?;
-  let (ident, rest) = s.split_at(end);
+fn is_plain_ident(s: &str) -> bool {
+  !s.is_empty() && plain_ident_prefix_len(s) == Some(s.len())
+}
+
+fn consume_ident(s: &str) -> Option<(ParsedIdent<'_>, usize)> {
+  let first = s.chars().next()?;
+  let mut decoded: Option<String> = None;
+  let mut i = if is_ident_start(first) {
+    first.len_utf8()
+  } else if first == '\\' {
+    let (ch, next) = consume_css_escape(s, 0)?;
+    let mut buf = String::with_capacity(s.len().min(32));
+    buf.push(ch);
+    decoded = Some(buf);
+    next
+  } else if first == '-' {
+    let second = s[1..].chars().next()?;
+    if is_ident_start(second) || second == '-' {
+      1 + second.len_utf8()
+    } else if second == '\\' {
+      let (ch, next) = consume_css_escape(s, 1)?;
+      let mut buf = String::with_capacity(s.len().min(32));
+      buf.push('-');
+      buf.push(ch);
+      decoded = Some(buf);
+      next
+    } else {
+      return None;
+    }
+  } else {
+    return None;
+  };
+
+  while i < s.len() {
+    let Some(ch) = s[i..].chars().next() else {
+      break;
+    };
+    if is_ident_continue(ch) {
+      if let Some(buf) = &mut decoded {
+        buf.push(ch);
+      }
+      i += ch.len_utf8();
+    } else if ch == '\\' {
+      let Some((escaped_ch, next)) = consume_css_escape(s, i) else {
+        break;
+      };
+      let buf = decoded.get_or_insert_with(|| s[..i].to_string());
+      buf.push(escaped_ch);
+      i = next;
+    } else {
+      break;
+    }
+  }
+
+  let raw = &s[..i];
+  let decoded = match decoded {
+    Some(buf) => Cow::Owned(buf),
+    None => Cow::Borrowed(raw),
+  };
+  Some((ParsedIdent { decoded, raw }, i))
+}
+
+fn take_leading_ident(s: &str) -> Option<(ParsedIdent<'_>, &str)> {
+  let (ident, end) = consume_ident(s)?;
+  let rest = &s[end..];
   if rest.is_empty()
     || rest.starts_with(|ch: char| ch.is_ascii_whitespace())
     || rest.starts_with("/*")
@@ -824,13 +977,13 @@ fn take_leading_ident(s: &str) -> Option<(&str, &str)> {
 }
 
 fn starts_with_media_in_parens(s: &str) -> bool {
-  s.starts_with('(') || ident_prefix_len(s).is_some_and(|len| s[len..].starts_with('('))
+  s.starts_with('(') || consume_ident(s).is_some_and(|(_, len)| s[len..].starts_with('('))
 }
 
 fn consume_media_in_parens(s: &str) -> Option<(&str, &str)> {
   let open_idx = if s.starts_with('(') {
     0
-  } else if let Some(len) = ident_prefix_len(s)
+  } else if let Some((_, len)) = consume_ident(s)
     && s[len..].starts_with('(')
   {
     len
@@ -867,6 +1020,12 @@ fn consume_media_in_parens(s: &str) -> Option<(&str, &str)> {
     }
 
     let ch = s[i..].chars().next()?;
+    if ch == '\\'
+      && let Some((_, next)) = consume_css_escape(s, i)
+    {
+      i = next;
+      continue;
+    }
     match ch {
       '"' | '\'' => quote = Some(ch),
       '(' => depth += 1,
@@ -888,7 +1047,7 @@ fn consume_media_in_parens(s: &str) -> Option<(&str, &str)> {
 fn is_valid_media_condition(s: &str, allow_or: bool) -> bool {
   let rest = skip_ws_and_comments(s);
   if let Some((ident, after)) = take_leading_ident(rest)
-    && ident.eq_ignore_ascii_case("not")
+    && ident.decoded.eq_ignore_ascii_case("not")
   {
     let after = skip_ws_and_comments(after);
     let Some((_, tail)) = consume_media_in_parens(after) else {
@@ -909,12 +1068,12 @@ fn is_valid_media_condition(s: &str, allow_or: bool) -> bool {
     let Some((kw, after_kw)) = take_leading_ident(tail) else {
       return false;
     };
-    if kw.eq_ignore_ascii_case("and") {
+    if kw.decoded.eq_ignore_ascii_case("and") {
       if is_and_chain == Some(false) {
         return false;
       }
       is_and_chain = Some(true);
-    } else if allow_or && kw.eq_ignore_ascii_case("or") {
+    } else if allow_or && kw.decoded.eq_ignore_ascii_case("or") {
       if is_and_chain == Some(true) {
         return false;
       }
@@ -944,7 +1103,7 @@ fn parse_media_query_tail(s: &str) -> Option<Option<String>> {
     return Some(None);
   }
   let (kw, after_kw) = take_leading_ident(rest)?;
-  if !kw.eq_ignore_ascii_case("and") {
+  if !kw.decoded.eq_ignore_ascii_case("and") {
     return None;
   }
   let cond = skip_ws_and_comments(after_kw);
@@ -972,7 +1131,7 @@ fn parse_media_query(raw: &str) -> ParsedMediaQuery {
     };
   };
 
-  if first.eq_ignore_ascii_case("not") {
+  if first.decoded.eq_ignore_ascii_case("not") {
     let rest = skip_ws_and_comments(after_first);
     if starts_with_media_in_parens(rest) {
       return if is_valid_media_condition(s, true) {
@@ -989,13 +1148,14 @@ fn parse_media_query(raw: &str) -> ParsedMediaQuery {
     let Some((mt, after_mt)) = take_leading_ident(rest) else {
       return ParsedMediaQuery::Never;
     };
-    if !is_valid_media_type(mt) {
+    if !is_valid_media_type(&mt.decoded) {
       return ParsedMediaQuery::Never;
     }
     let Some(cond) = parse_media_query_tail(after_mt) else {
       return ParsedMediaQuery::Never;
     };
-    return if mt.eq_ignore_ascii_case("all") {
+    let media_type = MediaType::from_ident(&mt);
+    return if media_type.eq_ignore_ascii_case("all") {
       match cond {
         None => ParsedMediaQuery::Never,
         Some(c) => ParsedMediaQuery::Positive {
@@ -1006,18 +1166,18 @@ fn parse_media_query(raw: &str) -> ParsedMediaQuery {
       }
     } else {
       ParsedMediaQuery::Negated {
-        media_type: mt.to_string(),
+        media_type,
         condition: cond,
       }
     };
   }
 
-  if first.eq_ignore_ascii_case("only") {
+  if first.decoded.eq_ignore_ascii_case("only") {
     let rest = skip_ws_and_comments(after_first);
     let Some((mt, after_mt)) = take_leading_ident(rest) else {
       return ParsedMediaQuery::Never;
     };
-    if !is_valid_media_type(mt) {
+    if !is_valid_media_type(&mt.decoded) {
       return ParsedMediaQuery::Never;
     }
     let Some(cond) = parse_media_query_tail(after_mt) else {
@@ -1025,18 +1185,18 @@ fn parse_media_query(raw: &str) -> ParsedMediaQuery {
     };
     return ParsedMediaQuery::Positive {
       only: true,
-      media_type: Some(mt.to_string()),
+      media_type: Some(MediaType::from_ident(&mt)),
       condition: cond,
     };
   }
 
-  if is_valid_media_type(first) {
+  if is_valid_media_type(&first.decoded) {
     let Some(cond) = parse_media_query_tail(after_first) else {
       return ParsedMediaQuery::Never;
     };
     return ParsedMediaQuery::Positive {
       only: false,
-      media_type: Some(first.to_string()),
+      media_type: Some(MediaType::from_ident(&first)),
       condition: cond,
     };
   }
@@ -1055,7 +1215,7 @@ fn needs_parens_in_and(s: &str) -> bool {
     return false;
   }
   if let Some((kw, _)) = take_leading_ident(trimmed)
-    && kw.eq_ignore_ascii_case("not")
+    && kw.decoded.eq_ignore_ascii_case("not")
   {
     return true;
   }
@@ -1070,7 +1230,7 @@ fn needs_parens_in_and(s: &str) -> bool {
     let Some((kw, after_kw)) = take_leading_ident(tail) else {
       return true;
     };
-    if !kw.eq_ignore_ascii_case("and") {
+    if !kw.decoded.eq_ignore_ascii_case("and") {
       return true;
     }
     let Some((_, next_tail)) = consume_media_in_parens(skip_ws_and_comments(after_kw)) else {
@@ -1124,13 +1284,13 @@ fn is_unconstrained_all(query: &ParsedMediaQuery) -> bool {
   )
 }
 
-fn expand_negated_query(media_type: &str, condition: Option<&str>) -> Vec<ParsedMediaQuery> {
+fn expand_negated_query(media_type: &MediaType, condition: Option<&str>) -> Vec<ParsedMediaQuery> {
   let mut expanded = Vec::new();
   for known in ["screen", "print", "speech"] {
-    if !known.eq_ignore_ascii_case(media_type) {
+    if !media_type.eq_ignore_ascii_case(known) {
       expanded.push(ParsedMediaQuery::Positive {
         only: false,
-        media_type: Some(known.to_string()),
+        media_type: Some(MediaType::from_plain(known)),
         condition: None,
       });
     }
@@ -1138,7 +1298,7 @@ fn expand_negated_query(media_type: &str, condition: Option<&str>) -> Vec<Parsed
   if let Some(cond) = condition {
     expanded.push(ParsedMediaQuery::Positive {
       only: false,
-      media_type: Some(media_type.to_string()),
+      media_type: Some(media_type.clone()),
       condition: Some(negate_condition(cond)),
     });
   }
@@ -1169,12 +1329,12 @@ fn intersect_parsed_queries(a: &ParsedMediaQuery, b: &ParsedMediaQuery) -> Vec<P
         condition: c2,
       },
     ) => {
-      let merged_type = match (t1.as_deref(), t2.as_deref()) {
-        (None, Some(t)) | (Some(t), None) => Some(t.to_string()),
+      let merged_type = match (t1.as_ref(), t2.as_ref()) {
+        (None, Some(t)) | (Some(t), None) => Some(t.clone()),
         (None, None) => None,
-        (Some(a), Some(b)) if a.eq_ignore_ascii_case("all") => Some(b.to_string()),
-        (Some(a), Some(b)) if b.eq_ignore_ascii_case("all") => Some(a.to_string()),
-        (Some(a), Some(b)) if a.eq_ignore_ascii_case(b) => Some(a.to_string()),
+        (Some(a), Some(b)) if a.eq_ignore_ascii_case("all") => Some(b.clone()),
+        (Some(a), Some(b)) if b.eq_ignore_ascii_case("all") => Some(a.clone()),
+        (Some(a), Some(b)) if a.eq_ignore_ascii_case(&b.decoded) => Some(a.clone()),
         (Some(_), Some(_)) => return Vec::new(),
       };
       let merged_cond = combine_conditions(c1.as_deref(), c2.as_deref());
@@ -1207,7 +1367,7 @@ fn intersect_parsed_queries(a: &ParsedMediaQuery, b: &ParsedMediaQuery) -> Vec<P
         condition: nc,
       },
     ) if !pt.eq_ignore_ascii_case("all") => {
-      if !nt.eq_ignore_ascii_case(pt) {
+      if !nt.eq_ignore_ascii_case(&pt.decoded) {
         vec![ParsedMediaQuery::Positive {
           only: *only,
           media_type: Some(pt.clone()),
@@ -1232,7 +1392,7 @@ fn intersect_parsed_queries(a: &ParsedMediaQuery, b: &ParsedMediaQuery) -> Vec<P
         media_type: t2,
         condition: None,
       },
-    ) if t1.eq_ignore_ascii_case(t2) => {
+    ) if t1.eq_ignore_ascii_case(&t2.decoded) => {
       vec![ParsedMediaQuery::Negated {
         media_type: t1.clone(),
         condition: None,
@@ -1270,15 +1430,16 @@ fn format_media_query(query: &ParsedMediaQuery) -> Option<String> {
       media_type: Some(mt),
       condition: Some(cond),
     } => Some(format!(
-      "{}{mt} and {}",
+      "{}{} and {}",
       if *only { "only " } else { "" },
+      mt.output,
       wrap_for_and(cond)
     )),
     ParsedMediaQuery::Positive {
       only,
       media_type: Some(mt),
       condition: None,
-    } => Some(format!("{}{mt}", if *only { "only " } else { "" })),
+    } => Some(format!("{}{}", if *only { "only " } else { "" }, mt.output)),
     ParsedMediaQuery::Positive {
       media_type: None,
       condition: Some(cond),
@@ -1292,11 +1453,15 @@ fn format_media_query(query: &ParsedMediaQuery) -> Option<String> {
     ParsedMediaQuery::Negated {
       media_type,
       condition: Some(cond),
-    } => Some(format!("not {media_type} and {}", wrap_for_and(cond))),
+    } => Some(format!(
+      "not {} and {}",
+      media_type.output,
+      wrap_for_and(cond)
+    )),
     ParsedMediaQuery::Negated {
       media_type,
       condition: None,
-    } => Some(format!("not {media_type}")),
+    } => Some(format!("not {}", media_type.output)),
   }
 }
 

@@ -135,3 +135,59 @@ it("should intersect nested media query syntax properly", async () => {
 		)
 	).toBe(true);
 });
+
+it("should decode CSS escapes in media query identifiers and keywords", async () => {
+	await import("./lazy.js");
+
+	const allCSS = Array.from(window.document.getElementsByTagName("style")).map(
+		s => s.textContent
+	);
+
+	expect(
+		allCSS.some(c => c.includes('@import url("https://example.com/escaped-screen.css") screen;'))
+	).toBe(true);
+
+	expect(
+		allCSS.some(c =>
+			c.includes(
+				'@import url("https://example.com/escaped-and.css") screen and (max-width: 1200px);'
+			)
+		)
+	).toBe(true);
+
+	expect(
+		allCSS.some(c =>
+			c.includes(
+				'@import url("https://example.com/escaped-only.css") only screen and (min-width: 600px);'
+			)
+		)
+	).toBe(true);
+
+	expect(
+		allCSS.some(c =>
+			c.includes('@import url("https://example.com/escaped-not-print.css") screen;')
+		)
+	).toBe(true);
+
+	expect(
+		allCSS.some(c =>
+			c.includes(
+				'@import url("https://example.com/escaped-or.css") ((min-width: 600px) \\6f r (orientation: landscape)) and (hover: hover);'
+			)
+		)
+	).toBe(true);
+
+	expect(
+		allCSS.some(c =>
+			c.includes(
+				'@import url("https://example.com/escaped-not-cond.css") (min-width: 600px) and (\\6e ot (color));'
+			)
+		)
+	).toBe(true);
+
+	expect(
+		allCSS.some(c =>
+			c.includes('@import url("https://example.com/escaped-nonplain.css") \\31 custom;')
+		)
+	).toBe(true);
+});

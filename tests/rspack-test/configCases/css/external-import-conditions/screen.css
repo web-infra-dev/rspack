@@ -1,4 +1,5 @@
 @import url("https://example.com/screen-same.css") screen;
+@import url("https://example.com/escaped-screen.css") \73 creen;
 
 .screen {
 	color: green;
