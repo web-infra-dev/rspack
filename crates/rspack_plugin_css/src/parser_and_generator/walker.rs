@@ -4,8 +4,10 @@ use rspack_error::Result;
 use rustc_hash::FxHashSet;
 
 use crate::{
-  css_exports::find_css_export_target,
-  dependency::{CssIcssExportDependency, CssIcssImportDependency, CssImportDependency},
+  css_exports::{find_css_export_target, resolve_imported_local_ident},
+  dependency::{
+    CssExportKind, CssIcssExportDependency, CssIcssImportDependency, CssImportDependency,
+  },
 };
 
 #[derive(Default, Clone, Copy)]
@@ -239,31 +241,47 @@ fn visit_definition<'g, S: CssModuleGraphSink<'g>>(
   requirements: CssExportRequirements,
   follow_self_imports: bool,
 ) -> Result<S::ExportValue> {
-  let mut resolved = if export.local_ident {
-    sink.local(export, requirements)
-  } else {
-    let mut resolved = S::ExportValue::default();
-    let mut cursor = 0;
-    for reference in &export.references {
-      sink.reference(*export.id(), reference.dependency_id);
-      let text = &export.value[cursor..reference.range.start as usize];
-      if (requirements.css || requirements.js) && !text.is_empty() {
-        sink.append_literal(&mut resolved, text, requirements);
+  let mut resolved = match export.kind {
+    CssExportKind::LocalIdent | CssExportKind::LocalDashedIdent => sink.local(export, requirements),
+    CssExportKind::ImportedSelector {
+      import,
+      already_exported,
+    } => {
+      if resolve_imported_local_ident(walker.compilation, import).is_some() {
+        if already_exported {
+          S::ExportValue::default()
+        } else {
+          walker.visit_css_export_dependency(sink, import, requirements, follow_self_imports)?
+        }
+      } else {
+        sink.local(export, requirements)
       }
-      let value = walker.visit_css_export_dependency(
-        sink,
-        reference.dependency_id,
-        requirements,
-        follow_self_imports,
-      )?;
-      sink.append_reference(&mut resolved, value);
-      cursor = reference.range.end as usize;
     }
-    let tail = &export.value[cursor..];
-    if (requirements.css || requirements.js) && (!tail.is_empty() || export.references.is_empty()) {
-      sink.append_literal(&mut resolved, tail, requirements);
+    CssExportKind::Value => {
+      let mut resolved = S::ExportValue::default();
+      let mut cursor = 0;
+      for reference in &export.references {
+        sink.reference(*export.id(), reference.dependency_id);
+        let text = &export.value[cursor..reference.range.start as usize];
+        if (requirements.css || requirements.js) && !text.is_empty() {
+          sink.append_literal(&mut resolved, text, requirements);
+        }
+        let value = walker.visit_css_export_dependency(
+          sink,
+          reference.dependency_id,
+          requirements,
+          follow_self_imports,
+        )?;
+        sink.append_reference(&mut resolved, value);
+        cursor = reference.range.end as usize;
+      }
+      let tail = &export.value[cursor..];
+      if (requirements.css || requirements.js) && (!tail.is_empty() || export.references.is_empty())
+      {
+        sink.append_literal(&mut resolved, tail, requirements);
+      }
+      resolved
     }
-    resolved
   };
   for id in &export.composes {
     sink.compose(*export.id(), *id);

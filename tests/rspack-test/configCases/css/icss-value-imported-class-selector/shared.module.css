@@ -1,0 +1,27 @@
+.shared-class {
+	color: rebeccapurple;
+}
+
+.base {
+	display: flex;
+}
+
+.composed-class {
+	composes: base;
+	color: navy;
+}
+
+.u-1\/2 {
+	width: 50%;
+}
+
+#shared-id {
+	min-height: 10px;
+}
+
+@value plain-token: 12px;
+@value unused-plain: 20px;
+
+:root {
+	--accent: teal;
+}

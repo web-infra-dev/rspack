@@ -4,12 +4,12 @@ mod dependency_types;
 mod lexer;
 mod parser;
 
-pub use dependencies::{DashedIdentCollector, LexDependencies, ModeData};
+pub use dependencies::{LexDependencies, ModeData};
 pub use dependency_types::{
   Dependency, DependencyContext, DependencyIndex, DependencyListRange, ImportAttributes, Mode,
-  Range, UrlRangeKind, ValueAtRuleImportItem, Warning, WarningKind,
+  Range, UrlRangeKind, Warning, WarningKind,
 };
-pub use lexer::{Lexer, LexerVisitor, Pos, Token, TokenFlags, TokenKind, TokenWithTrivia, Trivia};
+pub use lexer::{Lexer, Pos, Token, TokenFlags, TokenKind, TokenWithTrivia, Trivia};
 
 pub trait HandleWarning<'s> {
   fn handle_warning(&mut self, warning: Warning<'s>);
@@ -27,7 +27,7 @@ pub fn lex_dependencies<'s>(
   mut handle_dependency: impl FnMut(&Dependency<'s>),
   handle_warning: impl HandleWarning<'s>,
 ) -> DependencyContext<'s> {
-  let mut lexer = Lexer::new(input, DashedIdentCollector::default());
+  let mut lexer = Lexer::new(input);
   let mut visitor = LexDependencies::new(handle_warning, mode);
   visitor.lex_streaming(&mut lexer);
   let dependency_context = visitor.into_dependency_context();
@@ -39,7 +39,7 @@ pub fn lex_dependencies<'s>(
 
 pub fn collect_dependencies(input: &str, mode: Mode) -> (DependencyContext<'_>, Vec<Warning<'_>>) {
   let mut warnings = Vec::with_capacity(estimate_warning_capacity(input.len(), mode));
-  let mut lexer = Lexer::new(input, DashedIdentCollector::default());
+  let mut lexer = Lexer::new(input);
   let mut visitor = LexDependencies::new(|v| warnings.push(v), mode);
   visitor.lex_streaming(&mut lexer);
   (visitor.into_dependency_context(), warnings)

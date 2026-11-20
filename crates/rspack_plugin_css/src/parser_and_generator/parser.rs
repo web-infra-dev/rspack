@@ -20,8 +20,8 @@ use super::is_css_module;
 use crate::{
   css_syntax::{normalize_url, unescape_identifier},
   dependency::{
-    CssIcssExportDependency, CssIcssImportDependency, CssIcssReference, CssIcssSymbolDependency,
-    CssIcssSymbolKind, CssImportDependency, CssUrlDependency,
+    CssExportKind, CssIcssExportDependency, CssIcssImportDependency, CssIcssReference,
+    CssIcssSymbolDependency, CssIcssSymbolKind, CssImportDependency, CssUrlDependency,
   },
   utils::{
     LocalIdentOptions, css_parsing_traceable_error, export_locals_convention,
@@ -84,6 +84,7 @@ enum IcssInterpolation {
 struct IcssBinding {
   dependency: DependencyId,
   interpolation: IcssInterpolation,
+  import: Option<DependencyId>,
 }
 
 /// Orders imported CSS modules for the cascade before chunk graph construction.
@@ -972,26 +973,17 @@ impl<'context> CssModuleParser<'context> {
     end: u32,
   ) -> Result<()> {
     let name = unescape_identifier(name);
-    // A class/id selector can name an imported ICSS value, for example
-    // `@value content as sendMarkdownContent from "./content.module.css"`
-    // used as `.sendMarkdownContent`. Substitute the imported scoped name when
-    // it resolves to a local identifier; otherwise keep the local class as a
-    // fallback, matching the pre-existing behavior for plain `@value` strings.
-    let target = self
+    if let Some(import) = self
       .icss_definitions
       .get(name.as_ref())
-      .map(|binding| binding.dependency);
-    if let Some(target) = target
-      && self.binding_resolves_to_import(target)
+      .filter(|binding| matches!(binding.interpolation, IcssInterpolation::Identifier))
+      .and_then(|binding| binding.import)
     {
-      // Keep the local identifier as a rendering fallback. Declaring it keeps
-      // the existing JS export composition for plain `@value` imports, whose
-      // selector still uses this local class.
-      let fallback = self.ensure_local_definition(name.as_ref(), LocalCssIdentKind::Ident, true);
-      self.add_dependency(CssIcssSymbolDependency::new_icss_reference(
-        target,
+      let id = self.ensure_imported_selector_definition(name.as_ref(), import);
+      self.add_dependency(CssIcssSymbolDependency::new(
+        id,
         (start, end).into(),
-        Some(fallback),
+        CssIcssSymbolKind::LocalDeclaration,
       ));
       return Ok(());
     }
@@ -1180,11 +1172,15 @@ impl<'context> CssModuleParser<'context> {
           format!("--{}", ident.strip_prefix("_--").unwrap_or(&ident))
         }
       };
+      let export_kind = match kind {
+        LocalCssIdentKind::Ident => CssExportKind::LocalIdent,
+        LocalCssIdentKind::DashedIdent => CssExportKind::LocalDashedIdent,
+      };
       let id = self.add_dependency(CssIcssExportDependency::new(
         name.into(),
         ident.into(),
         vec![],
-        true,
+        export_kind,
         None,
       ));
       match kind {
@@ -1234,7 +1230,7 @@ impl<'context> CssModuleParser<'context> {
               range: (0, 0).into(),
               dependency_id: previous,
             }],
-            false,
+            CssExportKind::Value,
             Some(previous_definition.can_mangle.unwrap_or(true)),
           );
           export.composes.push(id);
@@ -1247,6 +1243,148 @@ impl<'context> CssModuleParser<'context> {
       };
       self.css_exports.insert(alias.into(), export);
     }
+    id
+  }
+
+  fn definition_exports_import(&self, mut id: DependencyId, target_import: DependencyId) -> bool {
+    let mut seen = FxHashSet::default();
+    while seen.insert(id) {
+      if id == target_import {
+        return true;
+      }
+      let Some(definition) = self.definition(id) else {
+        return false;
+      };
+      if matches!(
+        definition.kind,
+        CssExportKind::ImportedSelector { import, .. } if import == target_import
+      ) {
+        return true;
+      }
+      if definition
+        .composes
+        .iter()
+        .any(|compose_id| self.definition_exports_import(*compose_id, target_import))
+      {
+        return true;
+      }
+      let [reference] = definition.references.as_slice() else {
+        return false;
+      };
+      if reference.range.start != 0 || reference.range.end as usize != definition.value.len() {
+        return false;
+      }
+      id = reference.dependency_id;
+    }
+    false
+  }
+
+  fn ensure_imported_selector_definition(
+    &mut self,
+    name: &str,
+    import: DependencyId,
+  ) -> DependencyId {
+    let mut unexported_id = None;
+    let mut exported_id = None;
+    if let Some(&existing_id) = self.local_ident_definitions.get(name)
+      && let Some(dep) = self.definition(existing_id)
+      && let CssExportKind::ImportedSelector {
+        import: existing_import,
+        already_exported,
+      } = dep.kind
+      && existing_import == import
+    {
+      if already_exported {
+        exported_id = Some(existing_id);
+      } else {
+        unexported_id = Some(existing_id);
+      }
+    }
+
+    let mut fallback_ident: Option<SmolStr> = None;
+    let mut get_or_create_selector = |this: &mut Self, already_exported: bool| -> DependencyId {
+      let slot = if already_exported {
+        &mut exported_id
+      } else {
+        &mut unexported_id
+      };
+      if let Some(id) = *slot {
+        return id;
+      }
+      let ident = fallback_ident
+        .get_or_insert_with(|| this.get_local_ident_options().get_local_ident(name).into())
+        .clone();
+      let id = this.add_dependency(CssIcssExportDependency::new(
+        name.into(),
+        ident,
+        vec![],
+        CssExportKind::ImportedSelector {
+          import,
+          already_exported,
+        },
+        Some(true),
+      ));
+      *slot = Some(id);
+      id
+    };
+
+    let mut primary_id = None;
+    let mut appended = FxHashMap::default();
+    for alias in export_locals_convention(name, self.convention()) {
+      let custom_export = self
+        .css_exports
+        .get(alias.as_str())
+        .and_then(|id| self.definition(*id))
+        .is_some_and(|dep| {
+          dep.value.starts_with("--")
+            || dep
+              .value
+              .strip_prefix("_--")
+              .is_some_and(is_custom_property_name)
+        });
+      if custom_export {
+        continue;
+      }
+      let previous = self.css_exports.get(alias.as_str()).copied();
+      let already_exported =
+        previous.is_some_and(|prev| self.definition_exports_import(prev, import));
+      let selector_id = get_or_create_selector(self, already_exported);
+      primary_id.get_or_insert(selector_id);
+
+      let export = if let Some(previous) = previous {
+        if self.contains_local_definition(previous, selector_id) {
+          continue;
+        }
+        let previous_definition = self
+          .definition(previous)
+          .expect("CSS export definition should exist");
+        if let Some(export) = appended.get(&(previous, selector_id)) {
+          *export
+        } else {
+          let mut export = CssIcssExportDependency::new(
+            name.into(),
+            "".into(),
+            vec![CssIcssReference {
+              range: (0, 0).into(),
+              dependency_id: previous,
+            }],
+            CssExportKind::Value,
+            Some(previous_definition.can_mangle.unwrap_or(true)),
+          );
+          export.composes.push(selector_id);
+          let export = self.add_dependency(export);
+          appended.insert((previous, selector_id), export);
+          export
+        }
+      } else {
+        selector_id
+      };
+      self.css_exports.insert(alias.into(), export);
+    }
+
+    let id = primary_id.unwrap_or_else(|| get_or_create_selector(self, false));
+    self.local_ident_definitions.insert(name.into(), id);
+    self.css_local_names.entry(name.into()).or_insert(id);
     id
   }
 
@@ -1294,7 +1432,7 @@ impl<'context> CssModuleParser<'context> {
             name.as_ref().into(),
             name.as_ref().into(),
             vec![],
-            false,
+            CssExportKind::Value,
             None,
           ));
           self.global_composes.insert(name.as_ref().into(), id);
@@ -1341,7 +1479,7 @@ impl<'context> CssModuleParser<'context> {
           name.clone(),
           name,
           vec![],
-          false,
+          CssExportKind::Value,
           None,
         ))
       };
@@ -1396,12 +1534,16 @@ impl<'context> CssModuleParser<'context> {
     is_at_value: bool,
     identifiers: &[css_module_lexer::Range],
   ) {
+    let import = self
+      .icss_definitions
+      .get(value)
+      .and_then(|binding| binding.import);
     let references = self.icss_references(value, identifiers);
     let id = self.add_dependency(CssIcssExportDependency::new(
       prop.into(),
       value.into(),
       references,
-      false,
+      CssExportKind::Value,
       Some(false),
     ));
     self.bind_icss(
@@ -1412,16 +1554,24 @@ impl<'context> CssModuleParser<'context> {
       } else {
         IcssInterpolation::WholeValue
       },
+      import,
     );
     self.index_definition(prop, id);
   }
 
-  fn bind_icss(&mut self, name: &str, dependency: DependencyId, interpolation: IcssInterpolation) {
+  fn bind_icss(
+    &mut self,
+    name: &str,
+    dependency: DependencyId,
+    interpolation: IcssInterpolation,
+    import: Option<DependencyId>,
+  ) {
     self
       .icss_definitions
       .entry(name.into())
       .and_modify(|binding| {
         binding.dependency = dependency;
+        binding.import = import;
         // Once introduced by @value or :import, the name remains eligible for
         // interpolation even when a later :export replaces its value.
         if matches!(interpolation, IcssInterpolation::Identifier) {
@@ -1431,6 +1581,7 @@ impl<'context> CssModuleParser<'context> {
       .or_insert(IcssBinding {
         dependency,
         interpolation,
+        import,
       });
   }
 
@@ -1445,9 +1596,9 @@ impl<'context> CssModuleParser<'context> {
     let dep = CssIcssImportDependency::new(request, value.into(), prop.into(), (0, 0).into());
     let id = *dep.id();
     self.add_dependency(dep);
-    self.bind_icss(prop, id, IcssInterpolation::Identifier);
+    self.bind_icss(prop, id, IcssInterpolation::Identifier, Some(id));
     if let Some(name) = prop.strip_prefix("--") {
-      self.bind_icss(name, id, IcssInterpolation::WholeValue);
+      self.bind_icss(name, id, IcssInterpolation::WholeValue, None);
       let export = self.add_dependency(CssIcssExportDependency::new(
         name.into(),
         "".into(),
@@ -1455,7 +1606,7 @@ impl<'context> CssModuleParser<'context> {
           range: (0, 0).into(),
           dependency_id: id,
         }],
-        false,
+        CssExportKind::Value,
         None,
       ));
       self.index_definition(name, export);
@@ -1466,10 +1617,10 @@ impl<'context> CssModuleParser<'context> {
     let Some(binding) = self.icss_definitions.get(name) else {
       return;
     };
-    self.add_dependency(CssIcssSymbolDependency::new_icss_reference(
+    self.add_dependency(CssIcssSymbolDependency::new(
       binding.dependency,
       (range.start, range.end).into(),
-      None,
+      CssIcssSymbolKind::IcssReference,
     ));
   }
 
@@ -1500,32 +1651,6 @@ impl<'context> CssModuleParser<'context> {
         })
       })
       .collect()
-  }
-
-  /// Whether the binding resolves through `@value`/`:import` reexports to an
-  /// import of another module, rather than to a value declared in this file.
-  fn binding_resolves_to_import(&self, mut id: DependencyId) -> bool {
-    let mut seen = FxHashSet::default();
-    while seen.insert(id) {
-      let Some(dep) = self.dependencies.get(&id) else {
-        return false;
-      };
-      if dep.downcast_ref::<CssIcssImportDependency>().is_some() {
-        return true;
-      }
-      let Some(export) = dep.downcast_ref::<CssIcssExportDependency>() else {
-        return false;
-      };
-      if export.local_ident || export.references.len() != 1 || !export.composes.is_empty() {
-        return false;
-      }
-      let reference = &export.references[0];
-      if reference.range.start != 0 || reference.range.end as usize != export.value.len() {
-        return false;
-      }
-      id = reference.dependency_id;
-    }
-    false
   }
 
   fn literal_definition(&self, mut id: DependencyId) -> Option<&str> {

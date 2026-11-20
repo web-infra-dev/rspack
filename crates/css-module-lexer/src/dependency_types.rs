@@ -124,7 +124,7 @@ pub enum Mode {
 }
 
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
-pub struct ValueAtRuleImportItem<'s> {
+pub(crate) struct ValueAtRuleImportItem<'s> {
   local_name: &'s str,
   import_name: &'s str,
 }
@@ -137,11 +137,11 @@ impl<'s> ValueAtRuleImportItem<'s> {
     }
   }
 
-  pub fn local_name(&self) -> &'s str {
+  pub(crate) fn local_name(&self) -> &'s str {
     self.local_name
   }
 
-  pub fn import_name(&self) -> &'s str {
+  pub(crate) fn import_name(&self) -> &'s str {
     self.import_name
   }
 }
@@ -317,11 +317,9 @@ pub enum Dependency<'s> {
 #[derive(Debug, Clone, Default)]
 pub struct DependencyContext<'s> {
   dependencies: Vec<Dependency<'s>>,
-  dashed_ident_occurrences: Vec<Range>,
   import_attributes: Vec<ImportAttributes<'s>>,
   composes_local_classes: Vec<&'s str>,
   composes_names: Vec<&'s str>,
-  value_at_rule_import_items: Vec<ValueAtRuleImportItem<'s>>,
   value_at_rule_identifiers: Vec<Range>,
 }
 
@@ -342,28 +340,22 @@ impl<'s> DependencyContext<'s> {
       estimate.composes_local_classes as usize,
     );
     reserve_estimated_capacity(&mut self.composes_names, estimate.composes_names as usize);
-    reserve_estimated_capacity(
-      &mut self.value_at_rule_import_items,
-      estimate.value_at_rule_import_items as usize,
-    );
   }
 
-  pub(crate) fn checkpoint(&self) -> [usize; 5] {
+  pub(crate) fn checkpoint(&self) -> [usize; 4] {
     [
       self.dependencies.len(),
       self.import_attributes.len(),
       self.composes_local_classes.len(),
       self.composes_names.len(),
-      self.value_at_rule_import_items.len(),
     ]
   }
 
-  pub(crate) fn rollback(&mut self, checkpoint: [usize; 5]) {
+  pub(crate) fn rollback(&mut self, checkpoint: [usize; 4]) {
     self.dependencies.truncate(checkpoint[0]);
     self.import_attributes.truncate(checkpoint[1]);
     self.composes_local_classes.truncate(checkpoint[2]);
     self.composes_names.truncate(checkpoint[3]);
-    self.value_at_rule_import_items.truncate(checkpoint[4]);
   }
 
   pub fn len(&self) -> usize {
@@ -386,18 +378,6 @@ impl<'s> DependencyContext<'s> {
     &self.dependencies
   }
 
-  pub fn dashed_ident_name_ranges(&self) -> &[Range] {
-    &self.dashed_ident_occurrences
-  }
-
-  pub(crate) fn set_dashed_ident_occurrences(&mut self, occurrences: Vec<Range>) {
-    self.dashed_ident_occurrences = occurrences;
-  }
-
-  pub(crate) fn estimated_dashed_ident_capacity(input_len: usize, mode: Mode) -> usize {
-    DependencyContextCapacity::estimate(input_len, mode).dashed_ident_occurrences
-  }
-
   pub fn import_attributes(
     &self,
     index: DependencyIndex<ImportAttributes<'s>>,
@@ -411,10 +391,6 @@ impl<'s> DependencyContext<'s> {
 
   pub fn composes_names(&self, range: DependencyListRange<&'s str>) -> &[&'s str] {
     &self.composes_names[range.as_usize_range()]
-  }
-
-  pub fn value_at_rule_import_items(&self) -> &[ValueAtRuleImportItem<'s>] {
-    &self.value_at_rule_import_items
   }
 
   pub fn value_at_rule_identifiers(&self, range: DependencyListRange<Range>) -> &[Range] {
@@ -480,30 +456,6 @@ impl<'s> DependencyContext<'s> {
     });
   }
 
-  pub(crate) fn push_value_at_rule_import_item(&mut self, item: ValueAtRuleImportItem<'s>) {
-    self.value_at_rule_import_items.push(item);
-  }
-
-  pub(crate) fn value_at_rule_import_item(&self, index: usize) -> ValueAtRuleImportItem<'s> {
-    self.value_at_rule_import_items[index]
-  }
-
-  pub(crate) fn value_at_rule_import_items_checkpoint(&self) -> usize {
-    self.value_at_rule_import_items.len()
-  }
-
-  pub(crate) fn truncate_value_at_rule_import_items(&mut self, checkpoint: usize) {
-    self.value_at_rule_import_items.truncate(checkpoint);
-  }
-
-  pub(crate) fn finish_value_at_rule_import_items(
-    &self,
-    checkpoint: usize,
-  ) -> DependencyListRange<ValueAtRuleImportItem<'s>> {
-    debug_assert!(checkpoint <= self.value_at_rule_import_items.len());
-    DependencyListRange::from_bounds(checkpoint, self.value_at_rule_import_items.len())
-  }
-
   pub(crate) fn push_composes(
     &mut self,
     local_classes: impl IntoIterator<Item = &'s str>,
@@ -536,11 +488,9 @@ impl<'s> DependencyContext<'s> {
 impl PartialEq for DependencyContext<'_> {
   fn eq(&self, other: &Self) -> bool {
     self.dependencies == other.dependencies
-      && self.dashed_ident_occurrences == other.dashed_ident_occurrences
       && self.import_attributes == other.import_attributes
       && self.composes_local_classes == other.composes_local_classes
       && self.composes_names == other.composes_names
-      && self.value_at_rule_import_items == other.value_at_rule_import_items
   }
 }
 
@@ -549,22 +499,18 @@ impl Eq for DependencyContext<'_> {}
 impl Hash for DependencyContext<'_> {
   fn hash<H: Hasher>(&self, state: &mut H) {
     self.dependencies.hash(state);
-    self.dashed_ident_occurrences.hash(state);
     self.import_attributes.hash(state);
     self.composes_local_classes.hash(state);
     self.composes_names.hash(state);
-    self.value_at_rule_import_items.hash(state);
   }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
 struct DependencyContextCapacity {
   dependencies: usize,
-  dashed_ident_occurrences: usize,
   import_attributes: u16,
   composes_local_classes: u16,
   composes_names: u16,
-  value_at_rule_import_items: u16,
 }
 
 impl DependencyContextCapacity {
@@ -575,32 +521,23 @@ impl DependencyContextCapacity {
       Mode::Css => 4096,
     };
     let dependencies = estimate_capacity(input_len, dependency_denominator, 4, 8192);
-    let dashed_ident_occurrences = if mode != Mode::Css {
-      estimate_capacity(input_len, 64, 2, 8192)
-    } else {
-      0
-    };
     let import_attributes = estimate_capacity(input_len, 8192, 2, 1024);
-    let (composes_local_classes, composes_names, value_at_rule_import_items) = match mode {
+    let (composes_local_classes, composes_names) = match mode {
       Mode::Local | Mode::Pure => (
         estimate_capacity(input_len, 640, 2, 4096),
         estimate_capacity(input_len, 576, 2, 4096),
-        estimate_capacity(input_len, 1792, 2, 4096),
       ),
       Mode::Global => (
         estimate_capacity(input_len, 3880, 2, 4096),
         estimate_capacity(input_len, 3880, 2, 4096),
-        estimate_capacity(input_len, 1774, 2, 4096),
       ),
-      Mode::Css => (0, 0, 0),
+      Mode::Css => (0, 0),
     };
     Self {
       dependencies,
-      dashed_ident_occurrences,
       import_attributes: import_attributes as u16,
       composes_local_classes: composes_local_classes as u16,
       composes_names: composes_names as u16,
-      value_at_rule_import_items: value_at_rule_import_items as u16,
     }
   }
 }
