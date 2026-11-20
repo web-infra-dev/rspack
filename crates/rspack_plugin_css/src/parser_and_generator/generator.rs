@@ -17,11 +17,14 @@ use smol_str::SmolStr;
 
 use super::walker::{CssExportRequirements, CssModuleGraphSink, CssModuleGraphWalker};
 use crate::{
-  css_exports::{css_export_dependency, css_export_name, find_css_export_target, find_export},
+  css_exports::{
+    css_export_dependency, css_export_name, find_css_export_target, find_export,
+    resolve_imported_local_ident,
+  },
   css_syntax::{escape_identifier, unescape_identifier},
   dependency::{
-    CssIcssExportDependency, CssIcssImportDependency, CssIcssSymbolDependency, CssIcssSymbolKind,
-    CssImportDependency,
+    CssExportKind, CssIcssExportDependency, CssIcssImportDependency, CssIcssSymbolDependency,
+    CssIcssSymbolKind, CssImportDependency,
   },
   parser_and_generator::{
     CodeGenerationDataUnusedLocalIdent, CssExportsRef, CssSourceBuilder, get_used_exports,
@@ -375,48 +378,18 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     module: &dyn Module,
     definition: &CssIcssExportDependency,
   ) -> String {
+    let (target_module, target_definition) = match definition.kind {
+      CssExportKind::ImportedSelector { import, .. } => {
+        resolve_imported_local_ident(compilation, import).unwrap_or((module, definition))
+      }
+      _ => (module, definition),
+    };
     escape_identifier(&replace_css_module_id_placeholder(
-      &definition.value,
+      &target_definition.value,
       compilation,
-      module,
+      target_module,
     ))
     .into_owned()
-  }
-
-  /// Whether an imported ICSS binding ultimately resolves to a local
-  /// identifier (a class/id/keyframes name) rather than a plain `@value`
-  /// string. Only the former can be substituted into a class/id selector as-is.
-  fn resolved_is_local_ident(compilation: &Compilation, mut id: DependencyId) -> bool {
-    let graph = compilation.get_module_graph();
-    let mut seen = HashSet::default();
-    while seen.insert(id) {
-      let dependency = graph.dependency_by_id(&id);
-      if let Some(import) = dependency.downcast_ref::<CssIcssImportDependency>() {
-        let Some(module) = find_css_export_target(compilation, import.id()) else {
-          return false;
-        };
-        let Some(export) = find_export(module, import.import_name()) else {
-          return false;
-        };
-        id = export;
-        continue;
-      }
-      let Some(export) = dependency.downcast_ref::<CssIcssExportDependency>() else {
-        return false;
-      };
-      if export.local_ident {
-        return true;
-      }
-      if export.references.len() != 1 || !export.composes.is_empty() {
-        return false;
-      }
-      let reference = &export.references[0];
-      if reference.range.start != 0 || reference.range.end as usize != export.value.len() {
-        return false;
-      }
-      id = reference.dependency_id;
-    }
-    false
   }
 
   fn render_css_dependencies(&mut self, css_values: &HashMap<DependencyId, Option<String>>) {
@@ -436,7 +409,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     // its sorted replacement vector for interleaved occurrences.
     for dependency in self.module.get_dependencies() {
       if let Some(symbol) = dependency.downcast_ref::<CssIcssSymbolDependency>() {
-        let value: Option<Cow<'_, str>> = match symbol.kind {
+        let value = match symbol.kind {
           CssIcssSymbolKind::LocalDeclaration
           | CssIcssSymbolKind::LocalReference
           | CssIcssSymbolKind::LocalGridStart
@@ -446,33 +419,14 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
                 css_export_dependency(context.compilation.get_module_graph(), &symbol.target);
               Self::render_local_ident(context.compilation, context.module, definition)
             });
-            Some(Cow::Borrowed(value.as_str()))
+            Some(value.as_str())
           }
-          CssIcssSymbolKind::IcssReference => match symbol.fallback {
-            None => css_values
-              .get(&symbol.target)
-              .and_then(Option::as_deref)
-              .map(Cow::Borrowed),
-            Some(fallback) => {
-              if Self::resolved_is_local_ident(context.compilation, symbol.target) {
-                css_values
-                  .get(&symbol.target)
-                  .and_then(Option::as_deref)
-                  .map(Cow::Borrowed)
-              } else {
-                self.used_local_idents.insert(fallback);
-                let value = local_idents.entry(fallback).or_insert_with(|| {
-                  let definition =
-                    css_export_dependency(context.compilation.get_module_graph(), &fallback);
-                  Self::render_local_ident(context.compilation, context.module, definition)
-                });
-                Some(Cow::Borrowed(value.as_str()))
-              }
-            }
-          },
+          CssIcssSymbolKind::IcssReference => {
+            css_values.get(&symbol.target).and_then(Option::as_deref)
+          }
         };
         if let Some(value) = value {
-          let mut value = value.into_owned();
+          let mut value = value.to_owned();
           match symbol.kind {
             CssIcssSymbolKind::LocalGridStart => value.push_str("-start"),
             CssIcssSymbolKind::LocalGridEnd => value.push_str("-end"),
@@ -501,11 +455,20 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let Some(local_names) = self.css_build_info.local_names() else {
       return;
     };
-    let graph = self.generate_context.compilation.get_module_graph();
+    let compilation = self.generate_context.compilation;
+    let graph = compilation.get_module_graph();
     let idents = local_names
       .values()
       .filter(|id| !self.used_local_idents.contains(id))
-      .map(|id| css_export_dependency(graph, id).value.clone())
+      .filter_map(|id| {
+        let dep = css_export_dependency(graph, id);
+        if let CssExportKind::ImportedSelector { import, .. } = dep.kind
+          && resolve_imported_local_ident(compilation, import).is_some()
+        {
+          return None;
+        }
+        Some(dep.value.clone())
+      })
       .collect();
     // Only the top-level generator publishes data; children share its context
     // but track identifiers belonging to their own module.

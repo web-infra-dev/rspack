@@ -1,0 +1,5 @@
+@value shared-class from "./shared.module.css";
+
+.shared-class {
+	border-color: orange;
+}

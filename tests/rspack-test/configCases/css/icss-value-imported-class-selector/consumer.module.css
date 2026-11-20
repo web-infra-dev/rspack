@@ -1,0 +1,61 @@
+@value shared-class from "./reexport.module.css";
+@value (shared-class as shared-class-alias, composed-class) from "./shared.module.css";
+@value u-1\/2 as half-alias from "./shared.module.css";
+@value shared-id from "./shared.module.css";
+@value plain-token, unused-plain from "./shared.module.css";
+@value accent from "./shared.module.css";
+@value local-chain: shared-class;
+@value global-target: real-global-btn;
+
+:import("./shared.module.css") {
+	icss-alias: shared-class;
+	icss-half: u-1/2;
+}
+
+.shared-class {
+	color: green;
+}
+
+article .shared-class-alias {
+	background: yellow;
+}
+
+.local-chain {
+	padding: 4px;
+}
+
+.composed-class {
+	margin: 8px;
+}
+
+.half-alias {
+	width: 25%;
+}
+
+.icss-alias {
+	opacity: 0.9;
+}
+
+.icss-half {
+	height: 50%;
+}
+
+#shared-id {
+	min-height: 20px;
+}
+
+.plain-token {
+	gap: plain-token;
+}
+
+.unused-plain {
+	gap: unused-plain;
+}
+
+.accent {
+	outline-color: red;
+}
+
+:global(.global-target) {
+	z-index: 2;
+}
