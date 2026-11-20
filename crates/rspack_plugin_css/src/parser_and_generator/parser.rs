@@ -1246,14 +1246,18 @@ impl<'context> CssModuleParser<'context> {
     id
   }
 
-  fn definition_exports_import(&self, mut id: DependencyId, target_import: DependencyId) -> bool {
+  fn definition_exports_import(&self, root: DependencyId, target_import: DependencyId) -> bool {
     let mut seen = FxHashSet::default();
-    while seen.insert(id) {
+    let mut stack = vec![root];
+    while let Some(id) = stack.pop() {
+      if !seen.insert(id) {
+        continue;
+      }
       if id == target_import {
         return true;
       }
       let Some(definition) = self.definition(id) else {
-        return false;
+        continue;
       };
       if matches!(
         definition.kind,
@@ -1263,20 +1267,13 @@ impl<'context> CssModuleParser<'context> {
       ) {
         return true;
       }
-      if definition
-        .composes
-        .iter()
-        .any(|compose_id| self.definition_exports_import(*compose_id, target_import))
+      stack.extend(definition.composes.iter().copied());
+      if let [reference] = definition.references.as_slice()
+        && reference.range.start == 0
+        && reference.range.end as usize == definition.value.len()
       {
-        return true;
+        stack.push(reference.dependency_id);
       }
-      let [reference] = definition.references.as_slice() else {
-        return false;
-      };
-      if reference.range.start != 0 || reference.range.end as usize != definition.value.len() {
-        return false;
-      }
-      id = reference.dependency_id;
     }
     false
   }

@@ -40,6 +40,9 @@ it("should resolve imported @value and :import class/id selectors to the shared 
 	expect(consumer["forward-value-only"]).toBe(
 		`${consumerJsPrefix}forward-value-only ${sharedJsPrefix}shared-class`
 	);
+	expect(consumer["self-cycle"]).toBe(
+		`${consumerJsPrefix}self-cycle ${sharedJsPrefix}shared-class`
+	);
 
 	// Escaped class names keep unescaped JS values and escaped CSS selectors.
 	expect(consumer["half-alias"]).toBe(`${sharedJsPrefix}u-1/2`);
