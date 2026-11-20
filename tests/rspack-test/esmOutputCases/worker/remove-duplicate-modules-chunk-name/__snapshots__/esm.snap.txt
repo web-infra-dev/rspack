@@ -175,7 +175,7 @@ __webpack_require__.O = (result, chunkIds, fn, priority) => {
 		var fulfilled = true;
 		for (var j = 0; j < chunkIds.length; j++) {
 			if (
-				(priority & (1 === 0) || notFulfilled >= priority) &&
+				((priority & 1) === 0 || notFulfilled >= priority) &&
 				Object.keys(__webpack_require__.O).every((key) => (__webpack_require__.O[key](chunkIds[j])))
 			) {
 				chunkIds.splice(j--, 1);
@@ -333,7 +333,7 @@ __webpack_require__.O = (result, chunkIds, fn, priority) => {
 		var fulfilled = true;
 		for (var j = 0; j < chunkIds.length; j++) {
 			if (
-				(priority & (1 === 0) || notFulfilled >= priority) &&
+				((priority & 1) === 0 || notFulfilled >= priority) &&
 				Object.keys(__webpack_require__.O).every((key) => (__webpack_require__.O[key](chunkIds[j])))
 			) {
 				chunkIds.splice(j--, 1);
