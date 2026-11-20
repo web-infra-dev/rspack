@@ -1672,11 +1672,7 @@ In `package.json`, use `exports` to specify which output file each import path l
 - **Type:** `boolean`
 - **Default:** `false`
 
-Output JavaScript files as module type.
-
-When enabled, [`output.iife`](#outputiife) defaults to `false` and [`output.scriptType`](#outputscripttype) defaults to `'module'`. Explicit values for these options take precedence over the defaults.
-
-If you set [`output.library.type`](#outputlibrarytype) to 'module' or 'modern-module', Rspack will set `output.module` to `true` for you automatically.
+Set to `true` to emit JavaScript as ES modules (ESM). When building a library, setting [`output.library.type`](#outputlibrarytype) to `'module'` or `'modern-module'` enables this option automatically.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1685,6 +1681,18 @@ export default {
   },
 };
 ```
+
+For examples of building a browser application or an ESM library, see the [ESM output guide](/guide/features/esm).
+
+### Affected defaults
+
+When you enable `output.module`, Rspack automatically adjusts some related defaults to produce output that conforms to the ESM specification. For example:
+
+- [`output.filename`](#outputfilename) defaults to `'[name].mjs'`.
+- [`output.iife`](#outputiife) defaults to `false`, so Rspack omits the immediately invoked function expression (IIFE) around the whole bundle.
+- [`output.scriptType`](#outputscripttype) defaults to `'module'` for script tags created by the runtime.
+- When building a browser application for a target that supports dynamic `import()`, [`output.chunkFormat`](#outputchunkformat) defaults to `'module'` and [`output.chunkLoading`](#outputchunkloading) defaults to `'import'`.
+- If you configure [`output.library`](#outputlibrary) and omit `type`, Rspack defaults to `'modern-module'`.
 
 ## output.path
 
