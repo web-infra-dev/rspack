@@ -49,23 +49,11 @@ export default {
 
 Unlike application-oriented `output.module: true`, `modern-module` switches Rspack onto a dedicated ESM library rendering path. It automatically enables `output.module` and moves chunk loading to `import`, so you usually do not need to manually set `chunkFormat: 'module'` or `chunkLoading: 'import'`. If your library also needs ESM worker chunk loading, configure `workerChunkLoading: 'import'` explicitly. Also, do not enable `optimization.concatenateModules`, because `modern-module` uses its own linking and scope-hoisting pipeline.
 
+`modern-module` supports code splitting with `optimization.splitChunks` and re-exporting from external modules with `export *` and `export * as`. To preserve your library’s source directory structure in the output, use [`output.library.preserveModules`](/config/output#outputlibrarypreservemodules).
+
 You can check out this [rspack-examples](https://github.com/rstackjs/rstack-examples/tree/main/rspack/library-esm) ESM library example.
 
 Building ESM output also requires handling various detailed issues, which are not listed exhaustively here. You can refer to the [ESM format related configurations in Rslib](https://github.com/web-infra-dev/rslib/blob/f727b18805767b99fb85ae67ebff959aa644536e/packages/core/src/config.ts), or use Rslib directly for out-of-the-box library building.
-
-## Future plans for ESM output
-
-Compared with earlier versions, `modern-module` now covers the more important library capabilities, including code splitting, custom splitChunks, [`output.library.preserveModules`](/config/output#outputlibrarypreservemodules), and external-module re-exports such as `export *` / `export * as`.
-
-The remaining work is now more about spec alignment and edge cases than basic ESM availability:
-
-1. Better application-oriented ESM output and development experience, including HMR and lazy compilation
-2. Namespace objects still differ from native ESM in a few places, such as `null` prototype behavior, frozen / non-extensible semantics, and observable own-key ordering
-3. Some string-export-name edge cases are still being completed, for example quoted names that affect temporary identifier generation
-4. `preserveModules` currently only works with `modern-module`; using the same module as the output root of multiple entries is also discouraged, and currently errors
-5. `modern-module` cannot be mixed with other `library.type` values in the same compilation, because it takes over chunk rendering, chunk loading, and splitChunks behavior
-
-In other words, the focus has been shifting from "can Rspack emit ESM at all?" to "can Rspack make library ESM closer to native semantics across more edge cases?".
 
 ## Configuration checklist
 

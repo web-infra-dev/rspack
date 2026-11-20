@@ -1166,7 +1166,7 @@ export default {
 - `modern-module` 当前是为补齐库场景 ESM 能力而单独引入的类型；等能力进一步稳定后，计划与 `module` 收敛为同一个 `library.type`。
 - `preserveModules` 仅在 `modern-module` 下可用。
 - 当你配置了 `output.library` 且 `output.module = true` 时，如果没有显式指定 `output.library.type`，Rspack 当前默认会使用 `modern-module`。
-- 不允许在同一次编译中把 `modern-module` 和其他 `library.type` 混用，因为它会同时影响 chunk loading、chunk 渲染和 scope hoisting 的行为。
+- 如果在同一次编译中混用 `modern-module` 和其他库类型，Rspack 会发出警告，因为 `modern-module` 的 chunk 格式和加载方式会影响整个编译。
 
 :::
 
@@ -1601,7 +1601,7 @@ define('MyLibrary', [], factory);
 - **默认值：** `undefined`
 
 :::info
-仅在 `library.type` 为 `modern-module` 时生效。
+仅在 `library.type` 为 `modern-module` 时生效。如果多个入口指向该目录下的同一个模块，构建会报错。
 :::
 
 当启用后，Rspack 会保留传入目录下模块的原始文件结构。每个模块会被输出为单独的文件，保持与源码相同的相对路径。
