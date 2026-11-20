@@ -1601,10 +1601,12 @@ define('MyLibrary', [], factory);
 - **默认值：** `undefined`
 
 :::info
-仅在 `library.type` 为 `modern-module` 时生效。如果多个入口指向该目录下的同一个模块，构建会报错。
+仅在 `library.type` 为 `modern-module` 时生效。
 :::
 
 当启用后，Rspack 会保留传入目录下模块的原始文件结构。每个模块会被输出为单独的文件，保持与源码相同的相对路径。
+
+保留目录中的每个文件只能用作一个入口。例如，保留 `src` 目录时，如果 `main` 和 `alias` 都用 `./src/index.js` 作为入口文件，构建会报错。
 
 `preserveModules` 是一种特殊的打包形式——可以将其理解为 **bundle + splitChunks，其中每个模块会被拆分为单独的 chunk**。与 bundleless 工具不同，Rspack 仍然会执行完整的打包流程（tree shaking、scope hoisting、代码压缩等），只是将输出拆分为每个模块对应一个输出文件。
 
