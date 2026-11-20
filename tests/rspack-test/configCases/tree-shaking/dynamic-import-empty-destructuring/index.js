@@ -53,3 +53,36 @@ it("should reject an unavailable weak import", async () => {
 		const {} = await import(/* webpackMode: "weak" */ "./weak-missing.js");
 	})()).rejects.toThrow(/weak dependency/);
 });
+
+it("should not collide empty-destructured and full-namespace context imports", async () => {
+	async function preload(name) {
+		const {} = await import(`./mixed-context/${name}.js`);
+	}
+	async function load(name) {
+		return import(`./mixed-context/${name}.js`);
+	}
+	await preload("target");
+	const key = "kept";
+	const mod = await load("target");
+	expect(mod[key]).toBe("MIXED_CONTEXT_KEPT");
+});
+
+it("should preserve default export for destructured source-phase imports", async () => {
+	const {} = await import.source("./source-phase.js");
+	const { value } = await import.source("./source-phase-prop.js");
+	expect(value).toBe("source-prop-kept");
+});
+
+it("should remove unused exports from an unused dynamic import binding", async () => {
+	globalThis.__rspack_empty_destructuring_unused_binding__ = 0;
+	const _unused = await import("./unused-binding.js");
+	expect(globalThis.__rspack_empty_destructuring_unused_binding__).toBe(1);
+	delete globalThis.__rspack_empty_destructuring_unused_binding__;
+});
+
+it("should remove unused exports from an empty destructured then callback", async () => {
+	globalThis.__rspack_empty_destructuring_then_cb__ = 0;
+	await import("./then-empty.js").then(({}) => {});
+	expect(globalThis.__rspack_empty_destructuring_then_cb__).toBe(1);
+	delete globalThis.__rspack_empty_destructuring_then_cb__;
+});

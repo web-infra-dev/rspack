@@ -1,3 +1,5 @@
-globalThis.__rspack_empty_destructuring_declared__++;
+import { markDeclared } from "./declared-helper.js";
+
+markDeclared();
 
 export const unused = "EMPTY_DECLARED_UNUSED";

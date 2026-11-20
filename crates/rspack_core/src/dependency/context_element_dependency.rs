@@ -90,6 +90,13 @@ impl Dependency for ContextElementDependency {
       else {
         return create_exports_object_referenced();
       };
+      if parent_module
+        .get_context_options()
+        .phase
+        .is_some_and(|phase| phase.is_source())
+      {
+        return create_exports_object_referenced();
+      }
       let Some(imported_module) = module_graph.get_module_by_dependency_id(&self.id) else {
         return create_exports_object_referenced();
       };

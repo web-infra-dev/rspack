@@ -122,6 +122,9 @@ impl Dependency for ImportDependency {
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&rspack_core::RuntimeSpec>,
   ) -> Vec<rspack_core::ReferencedExport> {
+    if self.phase.is_source() {
+      return create_exports_object_referenced();
+    }
     if let Some(referenced_specifiers) = &self.referenced_specifiers {
       let module = module_graph
         .get_module_by_dependency_id(&self.id)

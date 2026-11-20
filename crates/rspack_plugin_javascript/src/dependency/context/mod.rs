@@ -60,10 +60,13 @@ fn create_resource_identifier_for_context_dependency(
     .referenced_specifiers
     .as_ref()
     .map_or_default(|specifiers| {
-      specifiers
-        .iter()
-        .map(ReferencedSpecifier::to_identifier_string)
-        .join(", ")
+      format!(
+        "referencedExports: {}",
+        specifiers
+          .iter()
+          .map(ReferencedSpecifier::to_identifier_string)
+          .join(", ")
+      )
     });
   let glob_import = options
     .glob_import
