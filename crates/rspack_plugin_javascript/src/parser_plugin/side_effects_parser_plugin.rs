@@ -21,7 +21,9 @@ use swc_next_ecma_ast::{
 };
 use swc_next_ecma_semantic::Semantic;
 
-use super::side_effects_analysis::{SideEffectsContext, may_have_side_effects};
+use super::side_effects_analysis::{
+  SideEffectsContext, is_pure_global_callee, is_pure_global_new, may_have_side_effects,
+};
 use crate::{
   Atom, JavascriptParserPlugin,
   dependency::ESMImportSideEffectDependency,
@@ -68,7 +70,12 @@ fn expr_ctx<'a, 'parser>(
   parser: &'a JavascriptParser<'parser>,
   is_unresolved_ref_safe: bool,
 ) -> SideEffectsContext<'a, 'parser> {
-  SideEffectsContext::new(parser.ast.ast, parser.ast.semantic, is_unresolved_ref_safe)
+  SideEffectsContext::new(
+    parser.ast.ast,
+    parser.ast.semantic,
+    is_unresolved_ref_safe,
+    parser.active_synthetic_ast.is_some(),
+  )
 }
 
 fn has_pure_comment(comments: &RspackComments<'_>, pos: u32) -> bool {
@@ -720,6 +727,16 @@ fn is_pure_call_expression(
     );
   }
 
+  if is_pure_global_callee(callee, expr_ctx(parser, false)) {
+    return arguments_are_pure(
+      parser,
+      analyze_side_effects_free,
+      call.arguments(ast),
+      comments,
+      callees,
+    );
+  }
+
   if analyze_side_effects_free && let Some(identifier) = callee.as_identifier_reference(ast) {
     let name = ast.get_utf8(identifier.name(ast));
     match resolve_explicit_side_effects_free_callee(
@@ -835,7 +852,9 @@ pub fn is_pure_expression(
       callees,
     ),
     ExprData::NewExpression(new_expression) => {
-      if has_pure_comment(comments, expression.span(ast).start) {
+      if has_pure_comment(comments, expression.span(ast).start)
+        || is_pure_global_new(new_expression, expr_ctx(parser, false))
+      {
         arguments_are_pure(
           parser,
           analyze_side_effects_free,

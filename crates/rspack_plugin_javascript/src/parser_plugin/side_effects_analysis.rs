@@ -22,6 +22,7 @@ pub(super) struct SideEffectsContext<'a, 'ast> {
   ast: &'a Ast<'ast>,
   semantic: &'a Semantic<'ast>,
   is_unresolved_ref_safe: bool,
+  is_synthetic_ast: bool,
   in_strict: bool,
   remaining_depth: u8,
 }
@@ -31,11 +32,13 @@ impl<'a, 'ast> SideEffectsContext<'a, 'ast> {
     ast: &'a Ast<'ast>,
     semantic: &'a Semantic<'ast>,
     is_unresolved_ref_safe: bool,
+    is_synthetic_ast: bool,
   ) -> Self {
     Self {
       ast,
       semantic,
       is_unresolved_ref_safe,
+      is_synthetic_ast,
       in_strict: false,
       remaining_depth: 4,
     }
@@ -181,7 +184,8 @@ pub(super) fn may_have_side_effects(expression: Expr, ctx: SideEffectsContext<'_
       _ => true,
     },
     ExprData::NewExpression(new_expression)
-      if is_pure_new_callee(new_expression.callee(ast), ctx) =>
+      if is_pure_new_callee(new_expression.callee(ast), ctx)
+        || is_pure_global_new(new_expression, ctx) =>
     {
       arguments_may_have_side_effects(new_expression.arguments(ast), ctx)
     }
@@ -223,7 +227,7 @@ pub(super) fn may_have_side_effects(expression: Expr, ctx: SideEffectsContext<'_
 }
 
 fn is_pure_callee(expression: Expr, ctx: SideEffectsContext<'_, '_>) -> bool {
-  if is_global_ref_to(expression, ctx, "Date") {
+  if is_pure_global_callee(expression, ctx) {
     return true;
   }
 
@@ -235,14 +239,8 @@ fn is_pure_callee(expression: Expr, ctx: SideEffectsContext<'_, '_>) -> bool {
         return false;
       };
       let property = ast.get_utf8(property.name(ast));
-      let object = member.object(ast);
 
-      if is_global_ref_to(object, ctx, "Math") {
-        return true;
-      }
-
-      match ast.expr_data(object) {
-        ExprData::IdentifierReference(identifier) => ast.get_utf8(identifier.name(ast)) == "Math",
+      match ast.expr_data(member.object(ast)) {
         ExprData::StringLiteral(_) => is_pure_string_method(property),
         ExprData::TemplateLiteral(template) if template.expressions(ast).is_empty() => {
           is_pure_string_method(property)
@@ -255,6 +253,172 @@ fn is_pure_callee(expression: Expr, ctx: SideEffectsContext<'_, '_>) -> bool {
   }
 }
 
+pub(super) fn is_pure_global_callee(expression: Expr, ctx: SideEffectsContext<'_, '_>) -> bool {
+  if let Some(name) = global_reference_name(expression, ctx) {
+    return is_pure_global_function(name);
+  }
+
+  let ast = ctx.ast;
+  let ExprData::MemberExpression(member) = ast.expr_data(expression) else {
+    return false;
+  };
+  if member.computed(ast) {
+    return false;
+  }
+  let PropertyKeyData::IdentifierName(property) = ast.property_key_data(member.property(ast))
+  else {
+    return false;
+  };
+  global_reference_name(member.object(ast), ctx)
+    .is_some_and(|object| is_pure_global_method(object, ast.get_utf8(property.name(ast))))
+}
+
+pub(super) fn is_pure_global_new(
+  new_expression: swc_next_ecma_ast::NewExpression,
+  ctx: SideEffectsContext<'_, '_>,
+) -> bool {
+  let ast = ctx.ast;
+  let Some(name) = global_reference_name(new_expression.callee(ast), ctx) else {
+    return false;
+  };
+  if is_pure_global_constructor(name) {
+    return true;
+  }
+
+  let first = match ast.nodes(new_expression.arguments(ast)).next() {
+    None => None,
+    Some(argument) => match ast.argument_data(argument) {
+      ArgumentData::SpreadElement(_) => return false,
+      ArgumentData::Expr(expression) => Some(ast.expr_data(expression)),
+    },
+  };
+  match name {
+    "Set" | "WeakSet" => first.is_none_or(|first| matches!(first, ExprData::ArrayExpression(_))),
+    "Map" | "WeakMap" => first.is_none_or(|first| match first {
+      ExprData::ArrayExpression(array) => ast.optional_nodes(array.elements(ast)).all(|element| {
+        element.is_some_and(|element| match ast.argument_data(element) {
+          ArgumentData::Expr(entry) => {
+            matches!(ast.expr_data(entry), ExprData::ArrayExpression(_))
+          }
+          ArgumentData::SpreadElement(_) => false,
+        })
+      }),
+      _ => false,
+    }),
+    "URLSearchParams" => first.is_none_or(|first| matches!(first, ExprData::StringLiteral(_))),
+    _ if is_typed_array_constructor(name) => first.is_none_or(|first| {
+      matches!(
+        first,
+        ExprData::NumericLiteral(_) | ExprData::ArrayExpression(_)
+      )
+    }),
+    _ => false,
+  }
+}
+
+// Calls and `new` expressions of these globals count as side-effect-free even
+// when they can throw on invalid input, such as `new WeakSet([1])` or
+// `decodeURIComponent("%")`
+fn is_pure_global_function(name: &str) -> bool {
+  matches!(
+    name,
+    "Boolean"
+      | "Date"
+      | "Number"
+      | "Object"
+      | "String"
+      | "Symbol"
+      | "decodeURI"
+      | "decodeURIComponent"
+      | "encodeURI"
+      | "encodeURIComponent"
+      | "isFinite"
+      | "isNaN"
+      | "parseFloat"
+      | "parseInt"
+  )
+}
+
+fn is_pure_global_method(object: &str, method: &str) -> bool {
+  match object {
+    "Array" => matches!(method, "isArray" | "of"),
+    "Math" => true,
+    "Number" => matches!(
+      method,
+      "isFinite" | "isInteger" | "isNaN" | "isSafeInteger" | "parseFloat" | "parseInt"
+    ),
+    "Object" => matches!(
+      method,
+      "entries"
+        | "getOwnPropertyDescriptor"
+        | "getOwnPropertyDescriptors"
+        | "getOwnPropertyNames"
+        | "getOwnPropertySymbols"
+        | "getPrototypeOf"
+        | "hasOwn"
+        | "is"
+        | "isExtensible"
+        | "isFrozen"
+        | "isSealed"
+        | "keys"
+        | "values"
+    ),
+    "String" => matches!(method, "fromCharCode" | "fromCodePoint"),
+    "Symbol" => matches!(method, "for" | "keyFor"),
+    _ => false,
+  }
+}
+
+fn is_pure_global_constructor(name: &str) -> bool {
+  matches!(
+    name,
+    "Array"
+      | "ArrayBuffer"
+      | "Boolean"
+      | "DataView"
+      | "Date"
+      | "Error"
+      | "EvalError"
+      | "Number"
+      | "Object"
+      | "RangeError"
+      | "ReferenceError"
+      | "RegExp"
+      | "String"
+      | "SyntaxError"
+      | "TypeError"
+      | "URIError"
+  )
+}
+
+fn is_typed_array_constructor(name: &str) -> bool {
+  matches!(
+    name,
+    "BigInt64Array"
+      | "BigUint64Array"
+      | "Float32Array"
+      | "Float64Array"
+      | "Int8Array"
+      | "Int16Array"
+      | "Int32Array"
+      | "Uint8Array"
+      | "Uint8ClampedArray"
+      | "Uint16Array"
+      | "Uint32Array"
+  )
+}
+
+fn global_reference_name<'a>(expression: Expr, ctx: SideEffectsContext<'a, '_>) -> Option<&'a str> {
+  if ctx.is_synthetic_ast {
+    return None;
+  }
+  let ast = ctx.ast;
+  let ExprData::IdentifierReference(identifier) = ast.expr_data(expression) else {
+    return None;
+  };
+  is_unresolved_reference(identifier, ctx).then(|| ast.get_utf8(identifier.name(ast)))
+}
+
 fn is_unresolved_reference(
   identifier: swc_next_ecma_ast::IdentifierReference,
   ctx: SideEffectsContext<'_, '_>,
@@ -264,14 +428,6 @@ fn is_unresolved_reference(
     .reference_of(identifier.node_id())
     .map(|reference| ctx.semantic.reference(reference))
     .is_some_and(|reference| reference.symbol.is_none())
-}
-
-fn is_global_ref_to(expression: Expr, ctx: SideEffectsContext<'_, '_>, id: &str) -> bool {
-  let ast = ctx.ast;
-  let ExprData::IdentifierReference(identifier) = ast.expr_data(expression) else {
-    return false;
-  };
-  ast.get_utf8(identifier.name(ast)) == id && is_unresolved_reference(identifier, ctx)
 }
 
 fn arguments_may_have_side_effects(
