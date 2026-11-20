@@ -132,7 +132,11 @@ impl InnerGraphParserPlugin {
           let Some(InnerGraphMapValue::Set(mut names)) = state.symbols[key].graph.take() else {
             unreachable!("checked Set value before removing inner graph entry")
           };
-          already_processed.extend(names.iter().cloned());
+          // The result set deduplicates export names as they propagate.
+          already_processed.extend(names.iter().filter_map(|name| match name {
+            InnerGraphMapSetValue::TopLevel(symbol) => Some(*symbol),
+            InnerGraphMapSetValue::Str(_) => None,
+          }));
           for name in names.drain() {
             match name {
               InnerGraphMapSetValue::Str(v) => {
@@ -152,17 +156,13 @@ impl InnerGraphParserPlugin {
                   }
                   Some(InnerGraphMapValue::Set(item_value)) => {
                     for i in item_value {
-                      if matches!(i, InnerGraphMapSetValue::TopLevel(value) if value.index() == key)
-                      {
-                        continue;
-                      }
-                      if already_processed.contains(i) {
-                        continue;
-                      }
-                      new_set.insert(i.clone());
-                      if matches!(i, InnerGraphMapSetValue::TopLevel(_)) {
+                      if let InnerGraphMapSetValue::TopLevel(symbol) = i {
+                        if symbol.index() == key || already_processed.contains(symbol) {
+                          continue;
+                        }
                         is_terminal = false;
                       }
+                      new_set.insert(i.clone());
                     }
                   }
                   _ => {}
