@@ -1,20 +1,32 @@
+use std::sync::Arc;
+
 use rspack_core::{
   BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals,
+  RuntimeRequirementsDependency,
 };
-use rspack_util::{SpanExt, swc::AstSubRangeExt};
+use rspack_util::{
+  SpanExt,
+  swc::{AstSubRangeExt, PropertyKeyValue, classify_property_key},
+};
 use swc_next_ecma_ast::{
-  Argument, AssignmentExpression, Ast, CallExpression, Expr, ExprData, GetSpan, PropertyKeyData,
-  Span, SubRange, ThisExpression, UnaryExpression, UnaryOperator,
+  Argument, AssignmentExpression, AssignmentOperator, Ast, CallExpression, Expr, ExprData,
+  Function, GetSpan, ObjectExpression, ObjectProperty, ObjectPropertyKind, PropertyDefinition,
+  PropertyKeyData, PropertyKind, Span, StaticBlock, SubRange, ThisExpression, UnaryExpression,
+  UnaryOperator, Visit, VisitWith,
 };
 
 use super::JavascriptParserPlugin;
 use crate::{
   Atom,
   dependency::{
-    CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsSelfReferenceDependency,
-    ExportsBase, ModuleDecoratorDependency,
+    CommonJsExportRequireDependency, CommonJsExportsDependency,
+    CommonJsObjectLiteralExportDependency, CommonJsObjectLiteralExportKind,
+    CommonJsSelfReferenceDependency, ExportsBase, ModuleDecoratorDependency,
   },
-  parser_plugin::common_js_imports_parse_plugin::is_require_call_expr,
+  parser_plugin::{
+    common_js_imports_parse_plugin::is_require_call_expr,
+    side_effects_parser_plugin::is_pure_expression,
+  },
   utils::{
     eval::{self, BasicEvaluatedExpression},
     object_properties::get_value_by_obj_prop,
@@ -165,6 +177,179 @@ fn parse_require_call<'p: 'a, 'a>(
   None
 }
 
+struct OwnThisFinder<'a> {
+  ast: &'a Ast<'a>,
+  this: Option<Span>,
+}
+
+impl<'a> Visit<'a> for OwnThisFinder<'a> {
+  fn ast(&self) -> &Ast<'a> {
+    self.ast
+  }
+
+  fn visit_this_expression(&mut self, node: ThisExpression) {
+    self.this.get_or_insert(node.span(self.ast));
+  }
+
+  fn visit_function(&mut self, _node: Function) {}
+
+  fn visit_static_block(&mut self, _node: StaticBlock) {}
+
+  fn visit_property_definition(&mut self, node: PropertyDefinition) {
+    if node.computed(self.ast) {
+      node.key(self.ast).visit_with(self);
+    }
+  }
+}
+
+fn source_contains(parser: &JavascriptParser, span: Span, needle: &str) -> bool {
+  parser
+    .source
+    .get(span.real_lo() as usize..span.real_hi() as usize)
+    .is_none_or(|source| source.contains(needle))
+}
+
+fn static_export_name(
+  ast: &Ast<'_>,
+  property: ObjectPropertyKind,
+) -> Option<(ObjectProperty, Atom)> {
+  let property = property.as_object_property(ast)?;
+  if property.computed(ast) {
+    return None;
+  }
+  let name = match classify_property_key(ast, property.key(ast)) {
+    PropertyKeyValue::IdentifierName(identifier) => Atom::from(ast.get_utf8(identifier.name(ast))),
+    PropertyKeyValue::StringLiteral(string) => {
+      Atom::from(ast.get_wtf8(string.value(ast)).as_str()?)
+    }
+    _ => return None,
+  };
+  // `__proto__: value` sets the prototype instead of an own property.
+  (name != "__proto__").then_some((property, name))
+}
+
+fn object_export_kind(ast: &Ast<'_>, property: ObjectProperty) -> CommonJsObjectLiteralExportKind {
+  match property.kind(ast) {
+    PropertyKind::Get => CommonJsObjectLiteralExportKind::Get,
+    PropertyKind::Set => CommonJsObjectLiteralExportKind::Set,
+    PropertyKind::Init if property.method(ast) => {
+      let function = property.value(ast).as_function(ast);
+      match (
+        function.is_some_and(|function| function.r#async(ast)),
+        function.is_some_and(|function| function.generator(ast)),
+      ) {
+        (false, false) => CommonJsObjectLiteralExportKind::Method,
+        (true, false) => CommonJsObjectLiteralExportKind::AsyncMethod,
+        (false, true) => CommonJsObjectLiteralExportKind::GeneratorMethod,
+        (true, true) => CommonJsObjectLiteralExportKind::AsyncGeneratorMethod,
+      }
+    }
+    PropertyKind::Init if property.shorthand(ast) => CommonJsObjectLiteralExportKind::Shorthand,
+    PropertyKind::Init => CommonJsObjectLiteralExportKind::KeyValue,
+  }
+}
+
+// module.exports = { a, b: c, d() {} };
+fn handle_object_literal_export(
+  parser: &mut JavascriptParser,
+  assign_expr: AssignmentExpression,
+  object: ObjectExpression,
+) -> Option<bool> {
+  let ast = parser.ast.ast;
+  if parser.statement_path.len() != 1
+    || !parser.is_statement_level_expression(assign_expr.span(ast))
+  {
+    return None;
+  }
+  // One unknown key makes the whole object opaque.
+  let properties = ast
+    .nodes(object.properties(ast))
+    .map(|property| static_export_name(ast, property))
+    .collect::<Option<Vec<_>>>()?;
+
+  // The left-hand side stays as the text `module.exports`.
+  parser.add_presentational_dependency(Arc::new(RuntimeRequirementsDependency::add_only(
+    RuntimeGlobals::MODULE,
+  )));
+  parser.enable();
+
+  let mut kept_all_exports = false;
+  for (property, name) in properties {
+    let value = property.value(ast);
+    let property_span = property.span(ast);
+    let kind = object_export_kind(ast, property);
+    let pure = kind == CommonJsObjectLiteralExportKind::KeyValue
+      && is_pure_expression(
+        parser,
+        parser.compiler_options.experiments.pure_functions,
+        value,
+        parser.ast.comments,
+        None,
+      );
+
+    if name == "__esModule" {
+      parser.check_namespace(true, Some(value));
+    }
+
+    // A function reading its own `this` may reach any export through it when
+    // called as a method of the exports object.
+    if !kept_all_exports
+      && let Some(function) = value.as_function(ast)
+      && source_contains(parser, property_span, "this")
+      && let Some(this) = find_own_this(ast, function)
+    {
+      kept_all_exports = true;
+      parser.add_dependency(BoxDependency::new(
+        CommonJsSelfReferenceDependency::new_keep_all_exports(
+          this.into(),
+          ExportsBase::ModuleExports,
+        ),
+      ));
+    }
+
+    let dependency_start = parser.get_dependencies().len();
+    let presentational_start = parser.next_presentational_dependency_idx();
+    parser.walk_object_property(property);
+    let dependency_end = parser.get_dependencies().len();
+
+    // The property has to stay as written when rewriting it would break it:
+    // the interop marker, a shorthand whose identifier is replaced by another
+    // dependency, and a method using `super`, which a function expression can't.
+    let fixed = name == "__esModule"
+      || match kind {
+        CommonJsObjectLiteralExportKind::KeyValue => false,
+        CommonJsObjectLiteralExportKind::Shorthand => {
+          dependency_end != dependency_start
+            || parser.next_presentational_dependency_idx() != presentational_start
+        }
+        _ => source_contains(parser, property_span, "super"),
+      };
+
+    parser.add_dependency(BoxDependency::new(
+      CommonJsObjectLiteralExportDependency::new(
+        property_span.into(),
+        property.key(ast).span(ast).into(),
+        if kind == CommonJsObjectLiteralExportKind::Shorthand {
+          property_span.into()
+        } else {
+          value.span(ast).into()
+        },
+        name,
+        kind,
+        pure,
+        fixed,
+      ),
+    ));
+  }
+  Some(true)
+}
+
+fn find_own_this(ast: &Ast<'_>, function: Function) -> Option<Span> {
+  let mut finder = OwnThisFinder { ast, this: None };
+  function.visit_children_with(&mut finder);
+  finder.this
+}
+
 fn handle_assign_export(
   parser: &mut JavascriptParser,
   assign_expr: AssignmentExpression,
@@ -204,6 +389,13 @@ fn handle_assign_export(
   }
 
   if remaining.is_empty() {
+    let ast = parser.ast.ast;
+    if matches!(base, ExportsBase::ModuleExports)
+      && assign_expr.operator(ast) == AssignmentOperator::Assign
+      && let Some(object) = assign_expr.right(ast).as_object_expression(ast)
+    {
+      return handle_object_literal_export(parser, assign_expr, object);
+    }
     return None;
   }
 

@@ -38,6 +38,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for EsmLibParserPlugin {
           dep.dependency_type(),
           DependencyType::CjsExportRequire
             | DependencyType::CjsExports
+            | DependencyType::CjsObjectLiteralExport
             | DependencyType::CjsFullRequire
             | DependencyType::CjsRequire
             | DependencyType::CjsSelfReference

@@ -25,6 +25,7 @@ export default defineConfig([
     },
     optimization: {
       concatenateModules: false,
+      mangleExports: false,
       minimize: false,
     },
     plugins: [

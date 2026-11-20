@@ -1,1 +1,2 @@
-module.exports = { dynamic: true };
+const value = { dynamic: true };
+module.exports = value;
