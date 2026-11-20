@@ -1663,11 +1663,7 @@ src/utils/formatDate.js  → dist/utils/formatDate.mjs
 - **类型：** `boolean`
 - **默认值：** `false`
 
-是否以 ESM 模块的形式输出 JavaScript 文件。
-
-当启用时，[`output.iife`](#outputiife) 默认为 `false`，[`output.scriptType`](#outputscripttype) 默认为 `'module'`。显式配置的值优先于这些默认值。
-
-配置 [`output.library.type`](#outputlibrarytype) 为 'module' 或 'modern-module' 会自动将 `output.module` 设为 `true`。
+设为 `true` 时，Rspack 会以 ES 模块（ESM）格式输出 JavaScript。构建库时，如果已将 [`output.library.type`](#outputlibrarytype) 设为 `'module'` 或 `'modern-module'`，Rspack 会自动启用此选项。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1676,6 +1672,18 @@ export default {
   },
 };
 ```
+
+如需查看浏览器应用和 ESM 库的构建示例，请参阅 [ESM 产物指南](/guide/features/esm)。
+
+### 受影响的默认值 \{#affected-defaults}
+
+启用 `output.module` 后，Rspack 会自动调整一些相关配置项的默认值，使产物符合 ESM 规范，例如：
+
+- [`output.filename`](#outputfilename) 默认为 `'[name].mjs'`。
+- [`output.iife`](#outputiife) 默认为 `false`，Rspack 不会用立即执行函数（IIFE）包裹整个 bundle。
+- [`output.scriptType`](#outputscripttype) 默认为 `'module'`，用于设置运行时创建的脚本标签类型。
+- 构建浏览器应用时，如果目标环境支持动态 `import()`，[`output.chunkFormat`](#outputchunkformat) 默认为 `'module'`，[`output.chunkLoading`](#outputchunkloading) 默认为 `'import'`。
+- 如果配置了 [`output.library`](#outputlibrary) 并省略 `type`，Rspack 默认使用 `'modern-module'`。
 
 ## output.path
 

@@ -1,3 +1,3 @@
 export default [
-	[/Critical dependency/]
+	[/Rspack cannot determine which modules to bundle/]
 ];

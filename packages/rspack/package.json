@@ -11,10 +11,7 @@
   },
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
+    ".": "./dist/index.js",
     "./hot/*": "./hot/*.js",
     "./hot/*.js": "./hot/*.js",
     "./package.json": "./package.json",
