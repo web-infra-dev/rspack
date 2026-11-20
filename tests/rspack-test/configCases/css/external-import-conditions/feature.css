@@ -1,0 +1,5 @@
+@import url("https://example.com/feature-screen.css") screen and (max-width: 1200px);
+
+.feature {
+	color: yellow;
+}

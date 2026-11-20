@@ -1,0 +1,7 @@
+@import url("https://example.com/external.css");
+@import url("https://example.com/screen-same.css") screen;
+@import url("https://example.com/screen-or.css") (min-width: 600px) or (orientation: landscape);
+
+.screen {
+	color: green;
+}

@@ -1,0 +1,5 @@
+@import url("https://example.com/screen-same.css") screen;
+
+.screen {
+	color: green;
+}
