@@ -1600,7 +1600,11 @@ define('MyLibrary', [], factory);
 - **类型：** `string`
 - **默认值：** `undefined`
 
-构建 ESM 库时，`output.library.preserveModules` 可以让产物保留指定目录下的文件结构。例如，你希望用户能这样导入组件和工具函数：
+构建 ESM 库时，`output.library.preserveModules` 可以将指定目录下的模块分别输出为文件，并保留它们的相对路径。
+
+保留模块边界有助于使用这个库的应用进行 [tree shaking](/guide/optimization/tree-shaking)。例如，组件库从同一入口导出 `Button` 和 `DatePicker`，两个组件各自保留为独立文件。如果应用只使用 `Button`，并且打包器能确定跳过 `DatePicker` 不会影响应用行为（例如库已通过 `package.json` 的 `sideEffects` 正确标注副作用），就可以从应用产物中排除整个 `DatePicker` 模块及其独有的依赖。
+
+下面以一个提供组件和工具函数的库为例。用户可以这样导入：
 
 ```js
 import { Button } from 'my-lib';

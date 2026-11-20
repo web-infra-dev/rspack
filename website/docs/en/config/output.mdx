@@ -1609,7 +1609,11 @@ define('MyLibrary', [], factory);
 - **Type:** `string`
 - **Default:** `undefined`
 
-When building an ESM library, use `output.library.preserveModules` to keep the file structure of a source directory in the output. For example, suppose you want users to import a component and a utility function like this:
+When building an ESM library, use `output.library.preserveModules` to emit modules in a source directory as separate files and preserve their relative paths.
+
+Keeping modules separate lets an application’s bundler apply [tree shaking](/guide/optimization/tree-shaking) to whole modules. For example, a component library might export `Button` and `DatePicker` from the same entry while keeping each component in its own file. If an application uses only `Button` and its bundler can safely skip `DatePicker` (for example, based on the library's `sideEffects` declaration in `package.json`), it can omit the entire `DatePicker` module and any dependencies used only by that component.
+
+The following configuration is for a library that provides a component and a utility function through these import paths:
 
 ```js
 import { Button } from 'my-lib';
