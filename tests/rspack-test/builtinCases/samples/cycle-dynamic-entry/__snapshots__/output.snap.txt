@@ -4,7 +4,6 @@
 "./dynamic-1.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _shared__rspack_import_0 = __webpack_require__("./shared.js");
-/* import */ var _shared__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shared__rspack_import_0);
 
 __webpack_require__.e(/* import() */ "dynamic-2_js-_89260").then(() => __webpack_require__("./dynamic-2.js"));
 console.log("dynamic-1");
@@ -21,7 +20,6 @@ console.log("dynamic-1");
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _shared__rspack_import_0 = __webpack_require__("./shared.js");
-/* import */ var _shared__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shared__rspack_import_0);
 
 __webpack_require__.e(/* import() */ "dynamic-2_js-_89260").then(() => __webpack_require__("./dynamic-2.js"));
 console.log("dynamic-1");
@@ -43,7 +41,6 @@ console.log("shared");
 "./dynamic-2.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _shared__rspack_import_0 = __webpack_require__("./shared.js");
-/* import */ var _shared__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shared__rspack_import_0);
 
 __webpack_require__.e(/* import() */ "dynamic-1_js-_af6f0").then(() => __webpack_require__("./dynamic-1.js"));
 console.log("dynamic-2");
@@ -60,7 +57,6 @@ console.log("dynamic-2");
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _shared__rspack_import_0 = __webpack_require__("./shared.js");
-/* import */ var _shared__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_shared__rspack_import_0);
 
 __webpack_require__.e(/* import() */ "dynamic-1_js-_af6f0").then(() => __webpack_require__("./dynamic-1.js"));
 console.log("dynamic-2");

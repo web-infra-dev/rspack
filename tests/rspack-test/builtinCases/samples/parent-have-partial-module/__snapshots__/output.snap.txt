@@ -26,7 +26,6 @@ console.log("exist");
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _exist__rspack_import_0 = __webpack_require__("./exist.js");
-/* import */ var _exist__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_exist__rspack_import_0);
 
 __webpack_require__.e(/* import() */ "shared_js-_38af1").then(() => __webpack_require__("./shared.js"));
 
@@ -58,7 +57,6 @@ console.log("exist");
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _exist__rspack_import_0 = __webpack_require__("./exist.js");
-/* import */ var _exist__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_exist__rspack_import_0);
 
 
 console.log("shared");
@@ -75,7 +73,6 @@ console.log("shared");
 "./shared.js"(__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _exist__rspack_import_0 = __webpack_require__("./exist.js");
-/* import */ var _exist__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_exist__rspack_import_0);
 
 
 console.log("shared");

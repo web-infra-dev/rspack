@@ -153,6 +153,11 @@ pub trait Dependency:
     None
   }
 
+  /// Whether an import of a dynamic module may need its default interop getter.
+  fn may_read_default_export(&self, _module_graph: &ModuleGraph) -> bool {
+    true
+  }
+
   fn get_referenced_exports(
     &self,
     _module_graph: &ModuleGraph,

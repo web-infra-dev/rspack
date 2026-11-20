@@ -850,6 +850,7 @@ pub struct ModuleCodeTemplate {
   runtime_globals_render_mode: RuntimeGlobalsRenderMode,
   runtime_globals: Arc<RuntimeGlobalsRenderMap>,
   runtime_requirements: RuntimeGlobals,
+  default_interop_targets: Option<IdentifierSet>,
 }
 
 impl ModuleCodeTemplate {
@@ -862,6 +863,7 @@ impl ModuleCodeTemplate {
       runtime_globals_render_mode,
       runtime_globals: get_runtime_globals_render_map(runtime_globals_render_mode),
       runtime_requirements: RuntimeGlobals::default(),
+      default_interop_targets: None,
     }
   }
 
@@ -1338,6 +1340,40 @@ impl ModuleCodeTemplate {
     }
   }
 
+  fn needs_default_interop(
+    &mut self,
+    module: &dyn Module,
+    target: ModuleIdentifier,
+    mg: &ModuleGraph,
+  ) -> bool {
+    fn collect_targets(
+      block: &dyn DependenciesBlock,
+      mg: &ModuleGraph,
+      targets: &mut IdentifierSet,
+    ) {
+      for dep in block.get_dependencies() {
+        if dep.may_read_default_export(mg)
+          && let Some(target) = mg.module_identifier_by_dependency_id(dep.id())
+        {
+          targets.insert(*target);
+        }
+      }
+      for child in block.get_block_refs() {
+        collect_targets(child.as_ref(), mg, targets);
+      }
+    }
+
+    // All references to a target share one import statement, including references in async blocks.
+    self
+      .default_interop_targets
+      .get_or_insert_with(|| {
+        let mut targets = IdentifierSet::default();
+        collect_targets(module, mg, &mut targets);
+        targets
+      })
+      .contains(&target)
+  }
+
   #[allow(clippy::too_many_arguments)]
   pub fn import_statement(
     &mut self,
@@ -1379,7 +1415,9 @@ impl ModuleCodeTemplate {
       "/* import */ {opt_declaration}{import_var} = {annotation}{}({module_id_expr});\n",
       self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
     );
-    if matches!(exports_type, ExportsType::Dynamic) {
+    if matches!(exports_type, ExportsType::Dynamic)
+      && self.needs_default_interop(module, target_module.identifier(), mg)
+    {
       return (
         import_content,
         format!(

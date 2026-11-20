@@ -1259,6 +1259,13 @@ impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
 
 #[cacheable_dyn]
 impl Dependency for ESMExportImportedSpecifierDependency {
+  fn may_read_default_export(&self, module_graph: &ModuleGraph) -> bool {
+    self
+      .get_ids(module_graph)
+      .first()
+      .is_none_or(|id| id == "default")
+  }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }

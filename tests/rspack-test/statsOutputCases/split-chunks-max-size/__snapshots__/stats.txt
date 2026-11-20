@@ -376,7 +376,7 @@ enforce-min-size:
 
 only-async:
   Entrypoint main xx KiB = only-async-main.js
-  chunk (runtime: main) only-async-main.js (main) xx KiB (javascript) xx bytes (runtime) [entry] [rendered]
+  chunk (runtime: main) only-async-main.js (main) xx KiB [entry] [rendered]
     > ./ main
     dependent modules xx KiB [dependent] 44 modules
     ./index.js xx KiB [built] [code generated]

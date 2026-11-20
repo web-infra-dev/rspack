@@ -11,7 +11,6 @@ __rspack_context.d(__rspack_exports, {
   "default": () => (__rspack_default_export)
 });
 /* import */ var node_worker_threads__rspack_import_0 = __rspack_context.r(/*! node:worker_threads */ "node:worker_threads");
-/* import */ var node_worker_threads__rspack_import_0_default = /*#__PURE__*/__rspack_context.n(node_worker_threads__rspack_import_0);
 
 
 const namedWorkerModuleMarker = "worker result";
@@ -37,7 +36,6 @@ export const __rspack_modules = {
 (__unused_rspack_module, __rspack_exports, __rspack_context) {
 __rspack_context.N(__rspack_exports);
 /* import */ var node_worker_threads__rspack_import_0 = __rspack_context.r(/*! node:worker_threads */ "node:worker_threads");
-/* import */ var node_worker_threads__rspack_import_0_default = /*#__PURE__*/__rspack_context.n(node_worker_threads__rspack_import_0);
 
 
 it("should preserve every duplicated worker entry name", async () => {
@@ -123,17 +121,6 @@ __rspack_context.r = __rspack_require;
 __rspack_context.m = __rspack_modules;
 
 var moduleFactories=__rspack_modules, asyncStartup;
-// rspack/runtime/compat_get_default_export
-// getDefaultExport function for compatibility with non-ESM modules
-var compatGetDefaultExport = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	definePropertyGetters(getter, { a: getter });
-	return getter;
-};
-;
-__rspack_context.n = compatGetDefaultExport;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -280,17 +267,6 @@ __rspack_context.r = __rspack_require;
 __rspack_context.m = __rspack_modules;
 
 var moduleFactories=__rspack_modules, asyncStartup;
-// rspack/runtime/compat_get_default_export
-// getDefaultExport function for compatibility with non-ESM modules
-var compatGetDefaultExport = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	definePropertyGetters(getter, { a: getter });
-	return getter;
-};
-;
-__rspack_context.n = compatGetDefaultExport;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
