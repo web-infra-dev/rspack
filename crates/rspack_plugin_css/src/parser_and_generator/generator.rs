@@ -379,7 +379,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     definition: &CssIcssExportDependency,
   ) -> String {
     let (target_module, target_definition) = match definition.kind {
-      CssExportKind::ImportedSelector { import, .. } => {
+      CssExportKind::ImportedSelector { import } => {
         resolve_imported_local_ident(compilation, import).unwrap_or((module, definition))
       }
       _ => (module, definition),
@@ -462,7 +462,7 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       .filter(|id| !self.used_local_idents.contains(id))
       .filter_map(|id| {
         let dep = css_export_dependency(graph, id);
-        if let CssExportKind::ImportedSelector { import, .. } = dep.kind
+        if let CssExportKind::ImportedSelector { import } = dep.kind
           && resolve_imported_local_ident(compilation, import).is_some()
         {
           return None;

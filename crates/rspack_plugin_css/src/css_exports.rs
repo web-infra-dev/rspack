@@ -93,20 +93,12 @@ pub(crate) fn resolve_imported_local_ident<'a>(
         return Some((module, export));
       }
       CssExportKind::LocalDashedIdent => return None,
-      CssExportKind::ImportedSelector { import, .. } => {
+      CssExportKind::ImportedSelector { import }
+      | CssExportKind::ImportedSelectorExport { import } => {
         id = import;
       }
       CssExportKind::Value => {
-        if export.references.len() != 1 {
-          return None;
-        }
-        let has_non_selector_compose = export.composes.iter().any(|compose_id| {
-          graph
-            .dependency_by_id(compose_id)
-            .downcast_ref::<CssIcssExportDependency>()
-            .is_none_or(|dep| !matches!(dep.kind, CssExportKind::ImportedSelector { .. }))
-        });
-        if has_non_selector_compose {
+        if export.references.len() != 1 || !export.composes.is_empty() {
           return None;
         }
         let reference = &export.references[0];

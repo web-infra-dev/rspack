@@ -1257,7 +1257,9 @@ impl<'context> CssModuleParser<'context> {
       };
       if matches!(
         definition.kind,
-        CssExportKind::ImportedSelector { import, .. } if import == target_import
+        CssExportKind::ImportedSelector { import }
+          | CssExportKind::ImportedSelectorExport { import }
+          if import == target_import
       ) {
         return true;
       }
@@ -1284,51 +1286,29 @@ impl<'context> CssModuleParser<'context> {
     name: &str,
     import: DependencyId,
   ) -> DependencyId {
-    let mut unexported_id = None;
-    let mut exported_id = None;
-    if let Some(&existing_id) = self.local_ident_definitions.get(name)
+    let selector_id = if let Some(&existing_id) = self.local_ident_definitions.get(name)
       && let Some(dep) = self.definition(existing_id)
-      && let CssExportKind::ImportedSelector {
-        import: existing_import,
-        already_exported,
-      } = dep.kind
-      && existing_import == import
-    {
-      if already_exported {
-        exported_id = Some(existing_id);
-      } else {
-        unexported_id = Some(existing_id);
-      }
-    }
-
-    let mut fallback_ident: Option<SmolStr> = None;
-    let mut get_or_create_selector = |this: &mut Self, already_exported: bool| -> DependencyId {
-      let slot = if already_exported {
-        &mut exported_id
-      } else {
-        &mut unexported_id
-      };
-      if let Some(id) = *slot {
-        return id;
-      }
-      let ident = fallback_ident
-        .get_or_insert_with(|| this.get_local_ident_options().get_local_ident(name).into())
-        .clone();
-      let id = this.add_dependency(CssIcssExportDependency::new(
-        name.into(),
-        ident,
-        vec![],
+      && matches!(
+        dep.kind,
         CssExportKind::ImportedSelector {
-          import,
-          already_exported,
-        },
+          import: existing_import
+        } if existing_import == import
+      ) {
+      existing_id
+    } else {
+      let ident = self.get_local_ident_options().get_local_ident(name);
+      let id = self.add_dependency(CssIcssExportDependency::new(
+        name.into(),
+        ident.into(),
+        vec![],
+        CssExportKind::ImportedSelector { import },
         Some(true),
       ));
-      *slot = Some(id);
+      self.local_ident_definitions.insert(name.into(), id);
+      self.css_local_names.entry(name.into()).or_insert(id);
       id
     };
 
-    let mut primary_id = None;
     let mut appended = FxHashMap::default();
     for alias in export_locals_convention(name, self.convention()) {
       let custom_export = self
@@ -1345,20 +1325,19 @@ impl<'context> CssModuleParser<'context> {
       if custom_export {
         continue;
       }
-      let previous = self.css_exports.get(alias.as_str()).copied();
-      let already_exported =
-        previous.is_some_and(|prev| self.definition_exports_import(prev, import));
-      let selector_id = get_or_create_selector(self, already_exported);
-      primary_id.get_or_insert(selector_id);
-
-      let export = if let Some(previous) = previous {
+      let export = if let Some(previous) = self.css_exports.get(alias.as_str()).copied() {
         if self.contains_local_definition(previous, selector_id) {
           continue;
         }
         let previous_definition = self
           .definition(previous)
           .expect("CSS export definition should exist");
-        if let Some(export) = appended.get(&(previous, selector_id)) {
+        let wrapper_kind = if self.definition_exports_import(previous, import) {
+          CssExportKind::ImportedSelectorExport { import }
+        } else {
+          CssExportKind::Value
+        };
+        if let Some(export) = appended.get(&previous) {
           *export
         } else {
           let mut export = CssIcssExportDependency::new(
@@ -1368,12 +1347,12 @@ impl<'context> CssModuleParser<'context> {
               range: (0, 0).into(),
               dependency_id: previous,
             }],
-            CssExportKind::Value,
+            wrapper_kind,
             Some(previous_definition.can_mangle.unwrap_or(true)),
           );
           export.composes.push(selector_id);
           let export = self.add_dependency(export);
-          appended.insert((previous, selector_id), export);
+          appended.insert(previous, export);
           export
         }
       } else {
@@ -1382,10 +1361,7 @@ impl<'context> CssModuleParser<'context> {
       self.css_exports.insert(alias.into(), export);
     }
 
-    let id = primary_id.unwrap_or_else(|| get_or_create_selector(self, false));
-    self.local_ident_definitions.insert(name.into(), id);
-    self.css_local_names.entry(name.into()).or_insert(id);
-    id
+    selector_id
   }
 
   fn handle_composes<'source>(
@@ -1441,10 +1417,23 @@ impl<'context> CssModuleParser<'context> {
       } else if let Some(binding) = self.icss_definitions.get(name.as_ref()) {
         // A local @value can name a local class; follow that definition without
         // copying its value or building a synthetic module request.
-        self
-          .literal_definition(binding.dependency)
-          .and_then(|value| self.local_ident_definition(value))
-          .unwrap_or(binding.dependency)
+        if let Some(import) = binding.import
+          && let Some(selector_id) = self.local_ident_definition(name.as_ref())
+          && let Some(dep) = self.definition(selector_id)
+          && matches!(
+            dep.kind,
+            CssExportKind::ImportedSelector {
+              import: existing_import
+            } if existing_import == import
+          )
+        {
+          selector_id
+        } else {
+          self
+            .literal_definition(binding.dependency)
+            .and_then(|value| self.local_ident_definition(value))
+            .unwrap_or(binding.dependency)
+        }
       } else if let Some(id) = self.local_ident_definition(name.as_ref()) {
         id
       } else {
@@ -1474,6 +1463,11 @@ impl<'context> CssModuleParser<'context> {
     for (name, placeholder) in std::mem::take(&mut self.pending_local_composes) {
       let target = if let Some(id) = self.local_ident_definition(&name) {
         id
+      } else if let Some(binding) = self.icss_definitions.get(&name) {
+        self
+          .literal_definition(binding.dependency)
+          .and_then(|value| self.local_ident_definition(value))
+          .unwrap_or(binding.dependency)
       } else {
         self.add_dependency(CssIcssExportDependency::new(
           name.clone(),

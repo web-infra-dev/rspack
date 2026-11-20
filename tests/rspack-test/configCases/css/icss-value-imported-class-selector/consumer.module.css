@@ -59,3 +59,27 @@ article .shared-class-alias {
 :global(.global-target) {
 	z-index: 2;
 }
+
+.forward-compose {
+	composes: forward-shared;
+}
+
+.forward-value-only {
+	composes: value-only-shared;
+}
+
+.local-extra {
+	cursor: pointer;
+}
+
+@value shared-class as forward-shared from "./shared.module.css";
+@value shared-class as value-only-shared from "./shared.module.css";
+
+.forward-shared {
+	composes: local-extra;
+	letter-spacing: 1px;
+}
+
+.backward-compose {
+	composes: forward-shared;
+}
