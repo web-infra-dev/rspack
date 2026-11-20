@@ -54,7 +54,11 @@ import { Logger, type LogTypeEnum } from './logging/Logger';
 import { NormalModuleFactory } from './NormalModuleFactory';
 import { ResolverFactory } from './ResolverFactory';
 import { RuleSetCompiler } from './RuleSetCompiler';
-import { createCompilerRuntimeGlobals } from './RuntimeGlobals';
+import {
+  createCompilerRuntimeGlobals,
+  runWithRuntimeGlobals,
+  scopeRuntimeGlobalsToHooks,
+} from './RuntimeGlobals';
 import { rspack as rspackFn } from './rspack';
 import { Stats } from './Stats';
 import {
@@ -273,6 +277,9 @@ class Compiler {
       additionalPass: new liteTapable.AsyncSeriesHook([]),
     };
 
+    const compilerRuntimeGlobals = createCompilerRuntimeGlobals(options);
+    scopeRuntimeGlobalsToHooks(this.hooks, compilerRuntimeGlobals);
+
     // Wrap hooks with a Proxy to provide helpful error messages when
     // webpack plugins try to access hooks that don't exist in rspack
     const availableCompilerHooks = Object.keys(this.hooks);
@@ -292,7 +299,6 @@ class Compiler {
       },
     });
 
-    const compilerRuntimeGlobals = createCompilerRuntimeGlobals(options);
     const compilerFn = function (...params: Parameters<typeof rspackFn>) {
       return rspackFn(...params);
     };
@@ -757,11 +763,13 @@ class Compiler {
     childCompiler.parentCompilation = compilation;
     childCompiler.root = this.root;
     if (Array.isArray(plugins)) {
-      for (const plugin of plugins) {
-        if (plugin) {
-          plugin.apply(childCompiler);
+      runWithRuntimeGlobals(childCompiler.rspack.RuntimeGlobals, () => {
+        for (const plugin of plugins) {
+          if (plugin) {
+            plugin.apply(childCompiler);
+          }
         }
-      }
+      });
     }
 
     childCompiler.#builtinPlugins = [

@@ -613,6 +613,8 @@ Called while adding Rspack runtime modules to the compilation.
   - `Chunk`: chunk instance
   - `Set<RuntimeGlobals>`: Rspack runtime requirements
 
+The top-level `RuntimeGlobals` export uses the active compiler's values during synchronous execution of a plugin's `apply` method or a compiler or compilation hook tap. Reads outside that scope use the default webpack values. Use `compiler.rspack.RuntimeGlobals` to read compiler-specific values after an `await` or in a timer callback.
+
 Modify the Rspack runtime requirements set here to include additional built-in modules, or call [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule) to add custom modules.
 
 ```js title="rspack.config.mjs"

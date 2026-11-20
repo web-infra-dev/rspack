@@ -9,6 +9,7 @@
  */
 
 import type { JsRuntimeGlobals } from '@rspack/binding';
+import { type FullTap, HookBase, HookMap } from '@rspack/lite-tapable';
 import type { RspackOptionsNormalized } from './config';
 
 export function __from_binding_runtime_globals(
@@ -737,9 +738,101 @@ export function createCompilerRuntimeGlobals(
   return res as unknown as Record<keyof typeof RuntimeGlobals, string>;
 }
 
+type CompilerRuntimeGlobals = ReturnType<typeof createCompilerRuntimeGlobals>;
+
+let currentRuntimeGlobals: CompilerRuntimeGlobals | undefined;
 const DefaultRuntimeGlobals = createCompilerRuntimeGlobals();
+const ScopedRuntimeGlobals = new Proxy(DefaultRuntimeGlobals, {
+  get(defaults, property, receiver) {
+    return Reflect.get(currentRuntimeGlobals ?? defaults, property, receiver);
+  },
+});
+
+export function runWithRuntimeGlobals<T>(
+  globals: CompilerRuntimeGlobals | undefined,
+  fn: () => T,
+): T {
+  const previous = currentRuntimeGlobals;
+  currentRuntimeGlobals = globals;
+  try {
+    return fn();
+  } finally {
+    currentRuntimeGlobals = previous;
+  }
+}
+
+function scopeHook(
+  hook: HookBase<any, any, any>,
+  globals: CompilerRuntimeGlobals,
+) {
+  // Queried hooks from the native bridge also dispatch through this method.
+  const callAsyncStageRange = hook.callAsyncStageRange;
+  hook.callAsyncStageRange = function (queried, ...args) {
+    const callback = args.at(-1);
+    let caller = currentRuntimeGlobals;
+    args[args.length - 1] = (...result: unknown[]) =>
+      runWithRuntimeGlobals(caller, () => callback(...result));
+    try {
+      return runWithRuntimeGlobals(globals, () =>
+        callAsyncStageRange.call(this, queried, ...args),
+      );
+    } finally {
+      // The caller's scope only applies to synchronous completion.
+      caller = undefined;
+    }
+  };
+
+  if ('call' in hook && typeof hook.call === 'function') {
+    const call = hook.call;
+    hook.call = function (...args: unknown[]) {
+      return runWithRuntimeGlobals(globals, () => call.apply(this, args));
+    };
+    return;
+  }
+
+  // Later taps in an async hook can start after the initial dispatch has returned.
+  const originalTap = Symbol('originalTap');
+  const runTapInterceptors = hook._runTapInterceptors;
+  hook._runTapInterceptors = function (
+    tap: FullTap & { [originalTap]?: FullTap },
+  ) {
+    return runWithRuntimeGlobals(globals, () =>
+      runTapInterceptors.call(this, tap[originalTap] ?? tap),
+    );
+  };
+  const queryStageRange = hook.queryStageRange;
+  hook.queryStageRange = function (stageRange) {
+    const queried = queryStageRange.call(this, stageRange);
+    queried.tapsInRange = queried.tapsInRange.map((tap) => ({
+      ...tap,
+      [originalTap]: tap,
+      fn(...args: unknown[]) {
+        return runWithRuntimeGlobals(globals, () => tap.fn(...args));
+      },
+    }));
+    return queried;
+  };
+}
+
+export function scopeRuntimeGlobalsToHooks(
+  hooks: object,
+  globals: CompilerRuntimeGlobals,
+): void {
+  for (const hook of Object.values(hooks)) {
+    if (hook instanceof HookBase) {
+      scopeHook(hook, globals);
+    } else if (hook instanceof HookMap) {
+      hook.intercept({
+        factory(_key, childHook) {
+          if (childHook instanceof HookBase) scopeHook(childHook, globals);
+          return childHook;
+        },
+      });
+    }
+  }
+}
 
 export {
   RuntimeGlobals as RuntimeGlobal,
-  DefaultRuntimeGlobals as RuntimeGlobals,
+  ScopedRuntimeGlobals as RuntimeGlobals,
 };
