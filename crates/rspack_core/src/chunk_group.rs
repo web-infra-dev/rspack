@@ -533,6 +533,9 @@ impl Display for EntryRuntime {
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
+  /// Browser worker entry; Node workers retain module-factory top-level `this`.
+  pub worker: Option<bool>,
+  pub worklet: Option<bool>,
   pub chunk_loading: Option<ChunkLoading>,
   pub wasm_loading: Option<WasmLoading>,
   pub async_chunks: Option<bool>,
@@ -559,6 +562,8 @@ impl EntryOptions {
     }
     merge_field!(name);
     merge_field!(runtime);
+    merge_field!(worker);
+    merge_field!(worklet);
     merge_field!(chunk_loading);
     merge_field!(wasm_loading);
     merge_field!(async_chunks);
