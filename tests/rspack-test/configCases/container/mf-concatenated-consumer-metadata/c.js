@@ -1,7 +1,7 @@
 it("tracks every concatenated remote consumer for c", () => {
 	const load = () => import("./page-c");
 	expect(typeof load).toBe("function");
-	const loading = __webpack_require__.federation.remotesLoadingData;
+	const loading = __webpack_require__.remotesLoadingData;
 	const remote = Object.keys(loading.moduleIdToRemoteDataMapping)[0];
 	const parentMap = loading.cache.moduleIdToParentModuleIds;
 	const consumers = parentMap[remote];

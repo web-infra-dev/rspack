@@ -197,21 +197,12 @@ impl RuntimeModule for RemoteRuntimeModule {
       runtime_template.render(self.id().as_str(), None)?
     };
     let require_name = runtime_require_scope_name(runtime_template);
-    let cache_data = if with_cache_data {
+    let cache_field = if with_cache_data {
       let module_cache = runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_CACHE);
       let module_factories =
         runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES);
       format!(
-        r#"
-{require_name}.federation.remotesLoadingData = {{
-  chunkMapping: {require_name}.remotesLoadingData.chunkMapping,
-  moduleIdToRemoteDataMapping: {require_name}.remotesLoadingData.moduleIdToRemoteDataMapping,
-  cache: {{
-    moduleIdToParentModuleIds: {},
-    modules: {module_cache},
-    factories: {module_factories}
-  }}
-}};"#,
+        ", cache: {{ moduleIdToParentModuleIds: {}, modules: {module_cache}, factories: {module_factories} }}",
         json_stringify(&module_id_to_parent_module_ids),
       )
     } else {
@@ -219,8 +210,7 @@ impl RuntimeModule for RemoteRuntimeModule {
     };
     Ok(format!(
       r#"
-{require_name}.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_remote_data_mapping} }};
-{cache_data}
+{require_name}.remotesLoadingData = {{ chunkMapping: {chunk_mapping}, moduleIdToRemoteDataMapping: {id_to_remote_data_mapping}{cache_field} }};
 {remotes_loading_impl}
 "#,
       chunk_mapping = json_stringify(&chunk_to_remotes_mapping),

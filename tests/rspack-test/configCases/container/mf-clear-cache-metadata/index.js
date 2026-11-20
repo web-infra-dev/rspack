@@ -6,9 +6,12 @@ it("should expose compact clear cache metadata only for Node SSR chunks with rem
 		Promise.all([import("./page"), import("./sibling")]);
 	expect(typeof loadConsumer).toBe("function");
 
-	const data = __webpack_require__.federation.remotesLoadingData;
+	const data = __webpack_require__.remotesLoadingData;
+	const federation = __webpack_require__.federation;
+	expect(federation.remotesLoadingData).toBeUndefined();
 	const cache = data.cache;
 	expect(data).toBeTruthy();
+	expect(cache).toBeTruthy();
 
 	const remoteModuleId = Object.entries(data.moduleIdToRemoteDataMapping).find(
 		([, remoteData]) =>
