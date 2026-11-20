@@ -927,6 +927,8 @@ export interface JsLoaderContext {
   /** Content maybe empty in pitching stage */
   content: string | Buffer | null
   additionalData?: any
+  additionalDataSerialized?: Buffer
+  additionalDataNeedsSerialization: boolean
   __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
   cacheable: boolean

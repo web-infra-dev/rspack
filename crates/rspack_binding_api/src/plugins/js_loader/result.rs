@@ -2,7 +2,7 @@ use napi::bindgen_prelude::Either3;
 use rspack_core::{AdditionalData, LoaderContext, RunnerContext};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 
-use super::JsLoaderContext;
+use super::{JsLoaderContext, context::SerializedLoaderData};
 
 pub(crate) fn merge_loader_context(
   to: &mut LoaderContext<RunnerContext>,
@@ -14,9 +14,21 @@ pub(crate) fn merge_loader_context(
     from.added_dependencies.into(),
     from.removed_dependencies.into(),
   );
-  for diagnostic in from.diagnostics.into_iter().flatten() {
+  for diagnostic in from.diagnostics.take().into_iter().flatten() {
     to.emit_diagnostic(diagnostic.into());
   }
+
+  // Own returned references before fallible conversion so errors also release them.
+  let additional_data = {
+    let mut additional = AdditionalData::default();
+    if let Some(reference) = from.additional_data.take() {
+      additional.insert(reference);
+    }
+    if let Some(bytes) = from.additional_data_serialized.take() {
+      additional.insert(SerializedLoaderData(bytes.to_vec()));
+    }
+    (!additional.is_empty()).then_some(additional)
+  };
 
   if let Some(error) = from.error {
     if let Some(diagnostic) = error.rust_diagnostic.as_ref() {
@@ -35,11 +47,6 @@ pub(crate) fn merge_loader_context(
     .map(|buffer| rspack_core::rspack_sources::SourceMap::from_bytes(buffer.into()))
     .transpose()
     .to_rspack_result()?;
-  let additional_data = from.additional_data.take().map(|data| {
-    let mut additional = AdditionalData::default();
-    additional.insert(data);
-    additional
-  });
   to.__finish_with((content, source_map, additional_data));
 
   // update loader status

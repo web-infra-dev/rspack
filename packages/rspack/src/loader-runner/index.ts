@@ -63,7 +63,12 @@ import {
 } from './codeFilter';
 import { LoaderDependenciesState } from './dependencies';
 import * as pool from './service';
-import { type HandleIncomingRequest, RequestType } from './service';
+import {
+  type HandleIncomingRequest,
+  RequestType,
+  readAdditionalData,
+  writeAdditionalData,
+} from './service';
 import {
   convertArgs,
   extractLoaderName,
@@ -1144,7 +1149,7 @@ export async function runLoaders(
                 ? content
                 : toBuffer(content);
             context.sourceMap = serializeObject(sourceMap);
-            context.additionalData = additionalData || undefined;
+            writeAdditionalData(context, additionalData);
             break;
           }
         }
@@ -1157,7 +1162,7 @@ export async function runLoaders(
         const rawSourceMap = context.sourceMap;
         let sourceMap: string | object | undefined;
         let sourceMapParsed = false;
-        let additionalData = context.additionalData;
+        let additionalData = readAdditionalData(context);
         const codeFilterTextCache = createCodeFilterTextCache();
 
         while (loaderContext.loaderIndex >= loaderChainStart) {
@@ -1212,10 +1217,12 @@ export async function runLoaders(
           ? JsSourceMap.__to_binding(sourceMap)
           : rawSourceMap;
         // Rust has no consumer after the chain finishes; avoid creating an unused JS reference.
-        context.additionalData =
-          loaderContext.loaderIndex < 0
-            ? undefined
-            : additionalData || undefined;
+        if (loaderContext.loaderIndex < 0) {
+          context.additionalData = undefined;
+          context.additionalDataSerialized = undefined;
+        } else {
+          writeAdditionalData(context, additionalData);
+        }
 
         break;
       }

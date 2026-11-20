@@ -191,6 +191,8 @@ pub struct JsLoaderContext {
   pub content: Either3<String, Buffer, Null>,
   #[napi(ts_type = "any")]
   pub additional_data: Option<ThreadsafeOneShotRef>,
+  pub additional_data_serialized: Option<Buffer>,
+  pub additional_data_needs_serialization: bool,
   #[napi(js_name = "__internal__parseMeta")]
   pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,
@@ -213,6 +215,9 @@ pub struct JsLoaderContext {
   pub module: Option<ModuleObject>,
 }
 
+/// V8 bytes owned by the native loader context, independent of any JS env.
+pub(super) struct SerializedLoaderData(pub Vec<u8>);
+
 impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
   type Error = rspack_error::Error;
 
@@ -224,9 +229,20 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       Some(Content::Buffer(content)) => Either3::B(content.into()),
       None => Either3::C(Null),
     };
-    let additional_data = cx
-      .take_additional_data()
-      .and_then(|mut data| data.remove::<ThreadsafeOneShotRef>());
+    let mut data = cx.take_additional_data();
+    let (additional_data, additional_data_serialized) = match data
+      .as_mut()
+      .and_then(|data| data.remove::<ThreadsafeOneShotRef>())
+    {
+      Some(reference) => (Some(reference), None),
+      None => (
+        None,
+        data
+          .as_mut()
+          .and_then(|data| data.remove::<SerializedLoaderData>())
+          .map(|data| Buffer::from(data.0)),
+      ),
+    };
 
     let execution_span = cx
       .current_chain()
@@ -239,6 +255,8 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       // set values from js side to rust side.
       parse_meta: Default::default(),
       additional_data,
+      additional_data_serialized,
+      additional_data_needs_serialization: false,
       source_map: cx
         .source_map()
         .map(|v| v.to_json())

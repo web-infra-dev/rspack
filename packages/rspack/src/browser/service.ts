@@ -1,3 +1,5 @@
+import type { JsLoaderContext } from '@rspack/binding';
+
 export enum RequestType {
   AddDependency = 'AddDependency',
   AddContextDependency = 'AddContextDependency',
@@ -22,6 +24,19 @@ export enum RequestType {
   CompilationGetPathWithInfo = 'CompilationGetPathWithInfo',
   CompilationGetAssetPath = 'CompilationGetAssetPath',
   CompilationGetAssetPathWithInfo = 'CompilationGetAssetPathWithInfo',
+}
+
+export function readAdditionalData(context: JsLoaderContext): unknown {
+  return context.additionalData;
+}
+
+export function writeAdditionalData(
+  context: JsLoaderContext,
+  value: unknown,
+): void {
+  context.additionalData =
+    value === null || value === undefined ? undefined : value;
+  context.additionalDataSerialized = undefined;
 }
 
 export function run(): Promise<never> {

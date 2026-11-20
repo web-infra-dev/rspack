@@ -1,9 +1,47 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import { MessageChannel } from 'node:worker_threads';
+import type { JsLoaderContext } from '@rspack/binding';
 import type { Tinypool } from 'tinypool' with { 'resolution-mode': 'import' };
+import { isNil } from '../util';
 
 const require = createRequire(import.meta.url);
+
+function serializeLoaderValue(value: unknown): Buffer | undefined {
+  if (IS_BROWSER || process.env.WASM) return undefined;
+  const { serialize } = require('node:v8') as typeof import('node:v8');
+  try {
+    return serialize(value);
+  } catch {
+    // Functions and other non-serializable values stay on the main thread
+    // unless a later parallel loader actually needs them.
+    return undefined;
+  }
+}
+
+function deserializeLoaderValue(bytes: Buffer): unknown {
+  const { deserialize } = require('node:v8') as typeof import('node:v8');
+  return deserialize(bytes);
+}
+
+export function readAdditionalData(context: JsLoaderContext): unknown {
+  if (!isNil(context.additionalData)) return context.additionalData;
+  if (context.additionalDataSerialized)
+    return deserializeLoaderValue(context.additionalDataSerialized);
+  return undefined;
+}
+
+export function writeAdditionalData(
+  context: JsLoaderContext,
+  value: unknown,
+): void {
+  context.additionalData = undefined;
+  context.additionalDataSerialized = undefined;
+  if (isNil(value)) return;
+  context.additionalData = value;
+  if (context.additionalDataNeedsSerialization)
+    context.additionalDataSerialized = serializeLoaderValue(value);
+}
 
 let pool: Promise<Tinypool> | undefined;
 const ensureLoaderWorkerPool = async (workerOptions?: {
