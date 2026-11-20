@@ -19,6 +19,14 @@ pub struct DiskWatcher {
 }
 
 impl DiskWatcher {
+  #[cfg(feature = "testing")]
+  pub(crate) fn manual() -> Self {
+    Self {
+      inner: None,
+      watch_patterns: HashSet::default(),
+    }
+  }
+
   /// Creates a new `DiskWatcher` with the given configuration and trigger.
   pub fn new(
     follow_symlinks: bool,
