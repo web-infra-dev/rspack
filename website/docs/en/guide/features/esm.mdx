@@ -69,7 +69,7 @@ If you want to emit each component in its own file and keep your source director
 ## Optional configuration
 
 - ESM entry files use the `.mjs` extension by default. To customize filenames, configure [`output.filename`](/config/output#outputfilename) for entry files and [`output.chunkFilename`](/config/output#outputchunkfilename) for async chunks.
-- When building an ESM application or a library with `library.type: 'module'`, Rspack may wrap the entry module in an IIFE to isolate it from other modules in the same chunk. Enable [`optimization.avoidEntryIife`](/config/optimization#optimizationavoidentryiife) to let Rspack try renaming variables to avoid that wrapper. The `modern-module` library example above uses a separate renderer and does not need this option.
+- Rspack may wrap the entry module in an IIFE to avoid variable name conflicts within a chunk. With [`optimization.avoidEntryIife`](/config/optimization#optimizationavoidentryiife) enabled, Rspack tries to avoid that wrapper by renaming variables. The `modern-module` example above does not need this option.
 - If your application loads chunks inside a Web Worker, you can set its loading mechanism separately with [`output.workerChunkLoading`](/config/output#outputworkerchunkloading).
 - Serve module files with a JavaScript MIME type such as `text/javascript`. If you host them on a CDN with a different origin from the page, configure the CDN to allow the page to fetch them using CORS.
 - If your component library should use the application's copy of React, exclude `react` from the library bundle with [`externals`](/config/externals#externals). [`externalsType`](/config/externals#externalstype) determines how the generated code references it.

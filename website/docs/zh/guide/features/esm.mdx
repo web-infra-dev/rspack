@@ -69,7 +69,7 @@ export default {
 ## 可选配置 \{#optional-configuration}
 
 - ESM 入口文件默认使用 `.mjs` 扩展名。如果需要调整文件名，可以通过 [`output.filename`](/config/output#outputfilename) 配置入口文件名，通过 [`output.chunkFilename`](/config/output#outputchunkfilename) 配置异步 chunk 的文件名。
-- 构建 ESM 应用或使用 `library.type: 'module'` 构建库时，Rspack 有时会用 IIFE 将入口模块与同一 chunk 中的其他模块隔离开来。可以启用 [`optimization.avoidEntryIife`](/config/optimization#optimizationavoidentryiife)，让 Rspack 尝试通过重命名变量省去入口模块的 IIFE 包装。上面库示例中的 `modern-module` 使用独立的渲染逻辑，无需设置此项。
+- 为了避免同一 chunk 中的变量名冲突，Rspack 有时会用 IIFE 包裹入口模块。启用 [`optimization.avoidEntryIife`](/config/optimization#optimizationavoidentryiife) 后，Rspack 会尝试通过重命名变量省去这层包装。上面的 `modern-module` 示例无需设置此项。
 - 如果应用需要在 Web Worker 中加载异步 chunk，可以通过 [`output.workerChunkLoading`](/config/output#outputworkerchunkloading) 单独配置 Worker 内的加载方式。
 - 部署时，请确保服务器以 JavaScript MIME 类型（如 `text/javascript`）返回模块文件。如果页面从 CDN 跨域加载脚本，还需要在 CDN 上配置 CORS 响应头，允许页面所在的源访问这些文件。
 - 构建 React 组件库时，如果希望复用应用已安装的 React，可以通过 [`externals`](/config/externals#externals) 将 `react` 排除在打包范围之外。生成的代码如何引用它，由 [`externalsType`](/config/externals#externalstype) 决定。
