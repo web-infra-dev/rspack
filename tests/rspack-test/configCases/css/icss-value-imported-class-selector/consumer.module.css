@@ -83,3 +83,16 @@ article .shared-class-alias {
 .backward-compose {
 	composes: forward-shared;
 }
+
+.self-cycle {
+	composes: self-cycle;
+	font-style: italic;
+}
+
+:import("./shared.module.css") {
+	self-cycle: shared-class;
+}
+
+.self-cycle {
+	color: brown;
+}
