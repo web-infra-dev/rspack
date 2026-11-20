@@ -7,7 +7,7 @@ use rspack_core::{
 use rspack_hash::{RspackHash, RspackHasher};
 use smol_str::SmolStr;
 
-use crate::utils::{css_generator_options, export_locals_convention};
+use crate::utils::export_locals_convention;
 
 /// A reference inside one value, such as `color` in `@value shadow: 0 0 color`.
 /// The surrounding text stays in the owning definition; the referenced value
@@ -85,17 +85,11 @@ impl Dependency for CssIcssExportDependency {
   ) -> Option<ExportsSpec> {
     let can_mangle = self.can_mangle?;
     let module = mg.module_by_identifier(mg.get_parent_module(&self.id)?)?;
-    let options = module
-      .as_normal_module()
-      .and_then(|module| module.get_generator_options());
-    let convention = css_generator_options(options)
-      .exports_convention
-      .unwrap_or_default();
-    let info = module.build_info();
-    let index = &info.css.as_deref()?.exports;
-    let exports = export_locals_convention(&self.name, convention)
+    let build_info = module.build_info();
+    let css = build_info.css.as_deref()?;
+    let exports = export_locals_convention(&self.name, css.exports_convention)
       .into_iter()
-      .filter(|name| index.get(name.as_str()) == Some(&self.id))
+      .filter(|name| css.exports.get(name.as_str()) == Some(&self.id))
       .map(|name| {
         ExportNameOrSpec::ExportSpec(ExportSpec {
           name: name.into(),

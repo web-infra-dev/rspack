@@ -70,6 +70,7 @@ enum DataUrlOptions {
 #[derive(Debug, Clone)]
 pub struct AssetParserAndGenerator {
   emit: bool,
+  import_mode: AssetGeneratorImportMode,
   data_url: DataUrlOptions,
 }
 
@@ -77,6 +78,7 @@ impl AssetParserAndGenerator {
   pub fn with_auto(option: Option<AssetParserDataUrl>, emit: bool) -> Self {
     Self {
       emit,
+      import_mode: Default::default(),
       data_url: DataUrlOptions::Auto(option),
     }
   }
@@ -84,6 +86,7 @@ impl AssetParserAndGenerator {
   pub fn with_inline() -> Self {
     Self {
       emit: false,
+      import_mode: Default::default(),
       data_url: DataUrlOptions::Inline(true),
     }
   }
@@ -91,6 +94,7 @@ impl AssetParserAndGenerator {
   pub fn with_resource(emit: bool) -> Self {
     Self {
       emit,
+      import_mode: Default::default(),
       data_url: DataUrlOptions::Inline(false),
     }
   }
@@ -98,6 +102,7 @@ impl AssetParserAndGenerator {
   pub fn with_source() -> Self {
     Self {
       emit: false,
+      import_mode: Default::default(),
       data_url: DataUrlOptions::Source,
     }
   }
@@ -105,6 +110,7 @@ impl AssetParserAndGenerator {
   pub fn with_bytes() -> Self {
     Self {
       emit: false,
+      import_mode: Default::default(),
       data_url: DataUrlOptions::Bytes,
     }
   }
@@ -313,23 +319,6 @@ impl AssetParserAndGenerator {
     let public_path = PublicPath::ensure_ends_with_slash(public_path);
     Ok((public_path, info))
   }
-
-  pub fn get_import_mode(
-    &self,
-    module_generator_options: Option<&GeneratorOptions>,
-  ) -> Result<AssetGeneratorImportMode> {
-    let import_mode = module_generator_options
-      .and_then(|x| x.get_asset())
-      .and_then(|x| x.import_mode)
-      .or_else(|| {
-        module_generator_options
-          .and_then(|x| x.get_asset_resource())
-          .and_then(|x| x.import_mode)
-      })
-      .unwrap_or_default();
-
-    Ok(import_mode)
-  }
 }
 
 // Webpack's default parser.dataUrlCondition.maxSize
@@ -378,14 +367,6 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       }
     }
 
-    let is_import_mode_preserve = self
-      .get_import_mode(
-        module
-          .as_normal_module()
-          .and_then(|x| x.get_generator_options()),
-      )
-      .is_ok_and(|x| x.is_preserve());
-
     if module
       .build_info()
       .asset
@@ -409,7 +390,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     }
 
     if source_types.is_empty() {
-      return if is_import_mode_preserve {
+      return if self.import_mode.is_preserve() {
         ASSET_AND_JS_TYPES
       } else {
         ASSET_TYPES
@@ -540,9 +521,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
     let normal_module = module
       .as_normal_module()
       .expect("module should be a NormalModule in AssetParserAndGenerator");
-    let module_generator_options = normal_module.get_generator_options();
-
-    let import_mode = self.get_import_mode(module_generator_options)?;
+    let module_generator_options = generate_context.module_generator_options;
 
     match generate_context.requested_source_type {
       SourceType::JavaScript | SourceType::AssetUrl => {
@@ -609,7 +588,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
             )
             .await?;
 
-          let asset_path = if import_mode.is_preserve() {
+          let asset_path = if self.import_mode.is_preserve() {
             generate_context
               .data
               .insert(CodeGenerationPublicPathAutoReplace(true));
@@ -684,7 +663,7 @@ impl ParserAndGenerator for AssetParserAndGenerator {
           return Ok(RawStringSource::from_static("").boxed());
         }
 
-        if import_mode.is_preserve() && parsed_asset_config.is_resource() {
+        if self.import_mode.is_preserve() && parsed_asset_config.is_resource() {
           let is_module = compilation.options.output.module;
           if let Some(ref mut scope) = generate_context.concatenation_scope {
             scope.register_namespace_export(NAMESPACE_OBJECT_EXPORT);
@@ -830,14 +809,18 @@ impl ParserAndGenerator for AssetParserAndGenerator {
       .asset
       .as_ref()
       .expect("should have asset build info in generate phase");
-    let parsed_asset_config = &asset_build_info.data_url;
-    let module_generator_options = module.get_generator_options();
-    if parsed_asset_config.is_inline()
-      && let Some(AssetGeneratorDataUrl::Options(data_url_options)) =
-        module_generator_options.and_then(|x| x.asset_data_url())
-    {
-      data_url_options.hash(&mut hasher);
-    } else if parsed_asset_config.is_resource() {
+    let CanonicalizedDataUrlOption::Asset(is_inline) = asset_build_info.data_url else {
+      return Ok(hasher.digest(&compilation.options.output.hash_digest));
+    };
+    let generator_options = module.get_generator_options(&compilation.options.module);
+    let module_generator_options = generator_options.as_deref();
+    if is_inline {
+      if let Some(AssetGeneratorDataUrl::Options(data_url_options)) =
+        module_generator_options.and_then(GeneratorOptions::asset_data_url)
+      {
+        data_url_options.hash(&mut hasher);
+      }
+    } else {
       let source_file_name = self.get_source_file_name(module, compilation);
       let (filename, _, _) = self
         .get_asset_module_filename(
@@ -949,46 +932,48 @@ impl Plugin for AssetPlugin {
 
     ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::Asset,
-      Box::new(move |options| {
-        let data_url_condition = options
-          .parser_options_computed(ParserOptions::get_asset)
+      Box::new(move |parser_options, generator_options| {
+        let data_url_condition = parser_options
+          .and_then(ParserOptions::get_asset)
           .and_then(|x| x.data_url_condition.clone());
 
-        let emit: Option<bool> = options
-          .generator_options_computed(GeneratorOptions::get_asset)
-          .and_then(|x| x.emit);
+        let options = generator_options.and_then(GeneratorOptions::get_asset);
 
-        Box::new(AssetParserAndGenerator::with_auto(
-          data_url_condition,
-          emit.unwrap_or(true),
-        ))
+        Box::new(AssetParserAndGenerator {
+          import_mode: options.and_then(|o| o.import_mode).unwrap_or_default(),
+          ..AssetParserAndGenerator::with_auto(
+            data_url_condition,
+            options.and_then(|o| o.emit).unwrap_or(true),
+          )
+        })
       }),
     );
 
     ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetInline,
-      Box::new(|_| Box::new(AssetParserAndGenerator::with_inline())),
+      Box::new(|_, _| Box::new(AssetParserAndGenerator::with_inline())),
     );
 
     ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetResource,
-      Box::new(move |options| {
-        let emit = options
-          .generator_options_computed(GeneratorOptions::get_asset_resource)
-          .and_then(|x| x.emit);
-
-        Box::new(AssetParserAndGenerator::with_resource(emit.unwrap_or(true)))
+      Box::new(move |_, generator_options| {
+        let options = generator_options.and_then(GeneratorOptions::get_asset_resource);
+        let import_mode = generator_options.and_then(GeneratorOptions::asset_import_mode);
+        Box::new(AssetParserAndGenerator {
+          import_mode: import_mode.unwrap_or_default(),
+          ..AssetParserAndGenerator::with_resource(options.and_then(|o| o.emit).unwrap_or(true))
+        })
       }),
     );
 
     ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetSource,
-      Box::new(move |_| Box::new(AssetParserAndGenerator::with_source())),
+      Box::new(move |_, _| Box::new(AssetParserAndGenerator::with_source())),
     );
 
     ctx.register_parser_and_generator_builder(
       rspack_core::ModuleType::AssetBytes,
-      Box::new(move |_| Box::new(AssetParserAndGenerator::with_bytes())),
+      Box::new(move |_, _| Box::new(AssetParserAndGenerator::with_bytes())),
     );
 
     Ok(())

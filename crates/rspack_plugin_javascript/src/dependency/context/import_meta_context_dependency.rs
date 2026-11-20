@@ -107,6 +107,7 @@ impl Dependency for ImportMetaContextDependency {
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
+    _context: &rspack_core::DependencyDiagnosticsContext,
   ) -> Option<Vec<Diagnostic>> {
     self.critical().map(|critical| vec![critical])
   }

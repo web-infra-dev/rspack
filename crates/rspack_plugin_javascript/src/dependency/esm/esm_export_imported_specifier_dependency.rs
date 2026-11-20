@@ -1445,20 +1445,6 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
-  ) -> Option<Vec<Diagnostic>> {
-    self.get_diagnostics_with_context(
-      module_graph,
-      module_graph_cache,
-      exports_info_artifact,
-      &DependencyDiagnosticsContext::default(),
-    )
-  }
-
-  fn get_diagnostics_with_context(
-    &self,
-    module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
-    exports_info_artifact: &ExportsInfoArtifact,
     diagnostics_context: &DependencyDiagnosticsContext,
   ) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;

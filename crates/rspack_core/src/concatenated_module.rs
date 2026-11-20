@@ -41,7 +41,7 @@ use crate::{
   FactoryMeta, FactoryMetaStore, FreezeLock, ImportedByDeferModulesArtifact, InitFragment,
   InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
-  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
+  ModuleOptions, ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, Resolve, RuntimeCondition,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
   UsedName, UsedNameItem, analyze_module_scope, escape_identifier, fast_set, filter_runtime,
   get_runtime_key, impl_source_map_config, merge_runtime_condition,
@@ -1793,7 +1793,7 @@ impl Module for ConcatenatedModule {
     self.root_module_ctxt.lib_indent.clone().map(Cow::Owned)
   }
 
-  fn get_resolve_options(&self) -> Option<Arc<Resolve>> {
+  fn get_resolve_options(&self, _module_options: &ModuleOptions) -> Option<Arc<Resolve>> {
     self.root_module_ctxt.resolve_options.clone()
   }
 
@@ -2281,8 +2281,8 @@ impl ConcatenatedModule {
       let jsx = module
         .as_ref()
         .as_normal_module()
-        .and_then(|normal_module| normal_module.get_parser_options())
-        .and_then(|options: &ParserOptions| {
+        .and_then(|normal_module| normal_module.get_parser_options(&compilation.options.module))
+        .and_then(|options| {
           options
             .get_javascript()
             .and_then(|js_options| js_options.jsx)
