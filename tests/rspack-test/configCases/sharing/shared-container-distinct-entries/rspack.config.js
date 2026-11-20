@@ -4,8 +4,10 @@ module.exports = {
   plugins: [
     {
       apply(compiler) {
-        // Exercise two lower-level shared containers in one compiler. The public
-        // IndependentSharedPlugin normally builds each in a separate child.
+        // Internal API on purpose: the regression needs two shared containers
+        // with the same key, scope and version in one compiler. SharedContainerPlugin
+        // is not exported, and IndependentSharedPlugin builds each fallback in
+        // its own compiler, so the public options cannot reach this case.
         for (const name of ['A', 'B']) {
           compiler.__internal__registerBuiltinPlugin({
             name: 'SharedContainerPlugin',
