@@ -182,7 +182,6 @@ pub struct FsWatcher {
 struct FsWatcherInner {
   path_manager: Arc<PathManager>,
   disk_watcher: DiskWatcher,
-  retry_watch: bool,
   executor: Executor,
   scanner: Scanner,
   analyzer: Arc<RecommendedAnalyzer>,
@@ -222,7 +221,6 @@ impl FsWatcher {
     let inner = FsWatcherInner {
       path_manager: Arc::clone(&path_manager),
       disk_watcher,
-      retry_watch: false,
       executor,
       scanner,
       analyzer,
@@ -494,15 +492,10 @@ impl FsWatcherInner {
     self.path_manager.record_initial_file_mtimes();
 
     let watch_patterns = self.analyzer.analyze(self.path_manager.access());
-    let reattached = match self.disk_watcher.watch(watch_patterns.into_iter()) {
-      Ok(changed) => changed || self.retry_watch,
-      Err(error) => {
-        self.retry_watch = true;
-        self.analyzer.invalidate_all();
-        return Err(error);
-      }
-    };
-    self.retry_watch = false;
+    if let Err(error) = self.disk_watcher.watch(watch_patterns.into_iter()) {
+      self.analyzer.invalidate_all();
+      return Err(error);
+    }
     let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
     if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
       for path in &changed_in_contexts {
@@ -521,10 +514,6 @@ impl FsWatcherInner {
     // before the watch is active is on disk by scan time (caught by
     // `mtime > start_time`), and a change after it is active is delivered live.
     self.scanner.scan(start_time);
-    if reattached && let Some(trigger) = self.trigger.lock().expect("should lock trigger").as_ref()
-    {
-      drop(trigger.check_subscriptions());
-    }
 
     Ok(())
   }
