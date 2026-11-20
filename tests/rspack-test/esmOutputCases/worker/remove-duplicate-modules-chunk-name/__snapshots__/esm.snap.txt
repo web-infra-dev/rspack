@@ -205,7 +205,7 @@ __webpack_require__.O = (result, chunkIds, fn, priority) => {
         if (__webpack_require__.o(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
-        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
+        moduleInstalledChunks[chunkId] = 0;
     }
     __webpack_require__.O();
 };
@@ -351,7 +351,7 @@ __webpack_require__.O = (result, chunkIds, fn, priority) => {
         if (__webpack_require__.o(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
-        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
+        moduleInstalledChunks[chunkId] = 0;
     }
     __webpack_require__.O();
 };

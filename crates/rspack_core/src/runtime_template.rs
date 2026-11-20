@@ -597,7 +597,8 @@ fn dojang_empty_function(compiler_options: &Arc<CompilerOptions>) -> Operand {
     .environment
     .supports_arrow_function()
   {
-    Operand::Value(Value::from("() => {}"))
+    // A minifier keeps the parameter, making this one byte shorter than the parameterless arrow.
+    Operand::Value(Value::from("x => {}"))
   } else {
     Operand::Value(Value::from("function() {}"))
   }
@@ -2017,6 +2018,20 @@ impl RuntimeCodeTemplate {
       )
     }
   }
+  /// Renders a self-defaulting assignment with the shortest supported syntax.
+  pub fn assign_or(&self, target: &str, value: &str) -> String {
+    if self
+      .compiler_options
+      .output
+      .environment
+      .supports_logical_assignment()
+    {
+      format!("{target} ||= {value}")
+    } else {
+      format!("{target} = {target} || {value}")
+    }
+  }
+
   pub fn render(&self, key: &str, params: Option<serde_json::Value>) -> Result<String, Error> {
     let mut render_params = Value::Object(Default::default());
 
