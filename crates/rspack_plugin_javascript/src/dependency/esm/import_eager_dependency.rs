@@ -8,7 +8,7 @@ use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyCondition, DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType,
   DependencyType, ExportsInfoArtifact, ImportAttributes, ImportPhase, ModuleDependency,
-  ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
+  ModuleGraph, ModuleGraphCacheArtifact, ReferencedSpecifier, ResourceIdentifier, TemplateContext,
   TemplateReplaceSource, UsedByExports, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
@@ -80,6 +80,10 @@ impl ImportEagerDependency {
 
 #[cacheable_dyn]
 impl Dependency for ImportEagerDependency {
+  fn may_read_default_export(&self, _module_graph: &ModuleGraph) -> bool {
+    false
+  }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }

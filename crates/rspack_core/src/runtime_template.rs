@@ -1344,35 +1344,22 @@ impl ModuleCodeTemplate {
   fn needs_default_interop(
     &mut self,
     module: &dyn Module,
-    target: ModuleIdentifier,
+    target: &ModuleIdentifier,
     mg: &ModuleGraph,
   ) -> bool {
-    fn collect_targets(
-      block: &dyn DependenciesBlock,
-      mg: &ModuleGraph,
-      targets: &mut IdentifierSet,
-    ) {
-      for dep in block.get_dependencies() {
-        if dep.may_read_default_export(mg)
-          && let Some(target) = mg.module_identifier_by_dependency_id(dep.id())
-        {
-          targets.insert(*target);
-        }
-      }
-      for child in block.get_block_refs() {
-        collect_targets(child.as_ref(), mg, targets);
-      }
-    }
-
-    // All references to a target share one import statement, including references in async blocks.
+    // All references to a target share one import statement.
     self
       .default_interop_targets
       .get_or_insert_with(|| {
-        let mut targets = IdentifierSet::default();
-        collect_targets(module, mg, &mut targets);
-        targets
+        mg.get_ordered_outgoing_connections(&module.identifier())
+          .filter(|connection| {
+            mg.dependency_by_id(&connection.dependency_id)
+              .may_read_default_export(mg)
+          })
+          .map(|connection| *connection.module_identifier())
+          .collect()
       })
-      .contains(&target)
+      .contains(target)
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -1417,7 +1404,7 @@ impl ModuleCodeTemplate {
       self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
     );
     if matches!(exports_type, ExportsType::Dynamic)
-      && self.needs_default_interop(module, target_module.identifier(), mg)
+      && self.needs_default_interop(module, &target_module.identifier(), mg)
     {
       return (
         import_content,

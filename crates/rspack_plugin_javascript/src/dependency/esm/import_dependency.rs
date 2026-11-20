@@ -97,6 +97,10 @@ impl ImportDependency {
 
 #[cacheable_dyn]
 impl Dependency for ImportDependency {
+  fn may_read_default_export(&self, _module_graph: &ModuleGraph) -> bool {
+    false
+  }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }
