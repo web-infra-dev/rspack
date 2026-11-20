@@ -614,9 +614,7 @@ console.log(__webpack_require__.h());
   - `Chunk`：Chunk 实例
   - `Set<RuntimeGlobals>`：Rspack 运行时依赖集合
 
-在插件中读取运行时全局变量时，请优先使用 `compiler.rspack.RuntimeGlobals` 以在多个 compiler 使用不同的 `runtimeMode` 时能够获取到正确的结果。
-
-为兼容现有插件，在同步执行插件的 `apply` 方法或 `compiler.hooks`、`compilation.hooks` 的 tap 回调时，顶层导出的 `RuntimeGlobals` 会返回当前编译器的值。在这些作用域之外，它返回默认的 webpack 值。请避免在模块顶层、`await` 之后或定时器回调中读取或解构顶层导出的属性。
+在插件中读取运行时全局变量时，请优先使用 `compiler.rspack.RuntimeGlobals` 以在多个 compiler 使用不同的 `runtimeMode` 时能够获取到正确的结果。在同步执行插件的 `apply` 方法或 `compiler.hooks`、`compilation.hooks` 的 tap 回调时，顶层导出的 `RuntimeGlobals` 会返回当前编译器的值。
 
 可在此修改 Rspack 运行时依赖集合，以添加所需的内置模块，也可通过 [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule) 添加自定义模块：
 
