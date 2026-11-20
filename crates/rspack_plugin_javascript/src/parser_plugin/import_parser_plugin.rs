@@ -722,9 +722,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       let ContextModuleScanResult {
         reg,
         replaces,
-        critical,
+        mut critical,
         ..
       } = result;
+
+      if reg.is_empty()
+        && let Some(help) = critical.as_mut().and_then(|warning| warning.help.as_mut())
+      {
+        help.push_str("\nTo load the module at runtime, use `import(/* rspackIgnore: true */ path)`.\n\
+                       For third-party code that needs native `import()`, set `parser.importDynamic` to `false` in a rule matching that package.");
+      }
 
       let reg_exp = context_reg_exp(&reg, "", Some(dyn_imported_span.into()), parser);
       let mut dep = ImportContextDependency::new(
