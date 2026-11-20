@@ -1175,7 +1175,7 @@ This configuration enables Rspack's dedicated rendering pipeline for ESM librari
 - `modern-module` currently exists as a separate type to fill the ESM library capability gap; once it is mature enough, the long-term direction is to converge it with `module` into a single `library.type`.
 - `preserveModules` is only available with `modern-module`.
 - When `output.library` is configured and `output.module = true`, Rspack currently defaults `output.library.type` to `modern-module` if you don't specify one explicitly.
-- Mixing `modern-module` with other library types in the same compilation triggers a warning because its chunk format and loading mechanism apply to the whole compilation.
+- Mixing `modern-module` with other `library.type` values in the same compilation triggers a warning because its chunk format and loading mechanism apply to the whole compilation.
 
 :::
 
