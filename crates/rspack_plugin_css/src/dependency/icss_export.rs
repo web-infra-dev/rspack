@@ -32,10 +32,12 @@ pub enum CssExportKind {
   /// `.class` or `#id` selector bound to an imported ICSS value.
   /// Resolves to `import`'s scoped `LocalIdent` when the target is one; otherwise
   /// falls back to the local identifier stored in `value`.
-  ImportedSelector {
-    import: DependencyId,
-    already_exported: bool,
-  },
+  ImportedSelector { import: DependencyId },
+  /// Combines an earlier export (`references[0]`) that already exports `import`
+  /// with an `ImportedSelector` (`composes[0]`), suppressing the duplicate `import`
+  /// when `import` resolves to a `LocalIdent` while preserving any extra
+  /// `composes` declared on the selector rule itself.
+  ImportedSelectorExport { import: DependencyId },
 }
 
 impl RspackHash for CssExportKind {
@@ -44,12 +46,8 @@ impl RspackHash for CssExportKind {
       Self::Value => state.write(b"Value"),
       Self::LocalIdent => state.write(b"LocalIdent"),
       Self::LocalDashedIdent => state.write(b"LocalDashedIdent"),
-      Self::ImportedSelector {
-        already_exported, ..
-      } => {
-        state.write(b"ImportedSelector:");
-        RspackHash::hash(already_exported, state);
-      }
+      Self::ImportedSelector { .. } => state.write(b"ImportedSelector"),
+      Self::ImportedSelectorExport { .. } => state.write(b"ImportedSelectorExport"),
     }
   }
 }

@@ -28,6 +28,18 @@ it("should resolve imported @value and :import class/id selectors to the shared 
 	expect(consumer["composed-class"]).toBe(
 		`${sharedJsPrefix}composed-class ${sharedJsPrefix}base`
 	);
+	expect(consumer["forward-shared"]).toBe(
+		`${sharedJsPrefix}shared-class ${consumerJsPrefix}local-extra`
+	);
+	expect(consumer["forward-compose"]).toBe(
+		`${consumerJsPrefix}forward-compose ${sharedJsPrefix}shared-class ${consumerJsPrefix}local-extra`
+	);
+	expect(consumer["backward-compose"]).toBe(
+		`${consumerJsPrefix}backward-compose ${sharedJsPrefix}shared-class ${consumerJsPrefix}local-extra`
+	);
+	expect(consumer["forward-value-only"]).toBe(
+		`${consumerJsPrefix}forward-value-only ${sharedJsPrefix}shared-class`
+	);
 
 	// Escaped class names keep unescaped JS values and escaped CSS selectors.
 	expect(consumer["half-alias"]).toBe(`${sharedJsPrefix}u-1/2`);
@@ -65,6 +77,7 @@ it("should resolve imported @value and :import class/id selectors to the shared 
 		expect(css).not.toContain(".consumer\\.module__icss-alias");
 		expect(css).not.toContain(".consumer\\.module__icss-half");
 		expect(css).not.toContain("#consumer\\.module__shared-id");
+		expect(css).not.toContain(".consumer\\.module__forward-shared");
 		expect(css).toContain(".consumer\\.module__unused-plain");
 	} else {
 		// Unused plain @value fallback selectors are tree-shaken by
