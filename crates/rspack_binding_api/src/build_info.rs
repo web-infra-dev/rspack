@@ -1,4 +1,8 @@
-use std::{cell::RefCell, sync::LazyLock};
+use std::{
+  cell::RefCell,
+  rc::{Rc, Weak},
+  sync::LazyLock,
+};
 
 use napi::{
   Env, JsString, JsValue, Property, PropertyAttributes, Unknown,
@@ -6,11 +10,11 @@ use napi::{
     Array, FromNapiMutRef, FromNapiValue, JsObjectValue, Object, ToNapiValue, ValidateNapiValue,
   },
 };
-use rspack_core::{CompilerId, ModuleIdentifier, WeakBindingCell};
+use rspack_core::WeakBindingCell;
 use rspack_napi::unknown_to_json_value;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::{module::with_module_instance, shared_properties::define_shared_properties, symbols};
+use crate::{module::ModuleHandle, shared_properties::define_shared_properties, symbols};
 
 // Record<string, Source>
 #[napi]
@@ -61,15 +65,13 @@ static KNOWN_BUILD_INFO_FIELD_NAMES: LazyLock<FxHashSet<&'static str>> = LazyLoc
 
 #[napi]
 pub struct KnownBuildInfo {
-  compiler_id: CompilerId,
-  module_identifier: ModuleIdentifier,
+  module: Weak<ModuleHandle>,
 }
 
 impl KnownBuildInfo {
-  pub(crate) fn new(compiler_id: CompilerId, module_identifier: ModuleIdentifier) -> Self {
+  fn new(module: &Rc<ModuleHandle>) -> Self {
     Self {
-      compiler_id,
-      module_identifier,
+      module: Rc::downgrade(module),
     }
   }
 
@@ -79,52 +81,41 @@ impl KnownBuildInfo {
     Ok(Object::from_raw(raw_env, napi_val))
   }
 
-  pub fn with_ref<T>(
-    &mut self,
-    f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<T>,
-  ) -> napi::Result<T> {
-    with_module_instance(self.compiler_id, self.module_identifier, |reference| {
-      reference.with_ref(|_, module| f(module))
+  fn module(&self) -> napi::Result<Rc<ModuleHandle>> {
+    self.module.upgrade().ok_or_else(|| {
+      napi::Error::from_reason("Unable to access BuildInfo after its Module has been released")
     })
   }
 
-  pub fn with_mut<T>(
-    &mut self,
+  fn with_ref<T>(
+    &self,
+    f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<T>,
+  ) -> napi::Result<T> {
+    self.module()?.with_ref(|_, module| f(module))
+  }
+
+  fn with_mut<T>(
+    &self,
     f: impl FnOnce(&mut dyn rspack_core::Module) -> napi::Result<T>,
   ) -> napi::Result<T> {
-    with_module_instance(self.compiler_id, self.module_identifier, |reference| {
-      f(reference.as_mut()?)
-    })
+    f(self.module()?.as_mut()?)
   }
 }
 
 // KnownBuildInfo & Record<string, any>
-pub struct BuildInfo {
-  compiler_id: CompilerId,
-  module_identifier: ModuleIdentifier,
+pub struct BuildInfo<'a> {
+  module: &'a Rc<ModuleHandle>,
 }
 
-impl BuildInfo {
-  pub(crate) fn new(compiler_id: CompilerId, module_identifier: ModuleIdentifier) -> Self {
-    Self {
-      compiler_id,
-      module_identifier,
-    }
+impl<'a> BuildInfo<'a> {
+  pub(crate) fn new(module: &'a Rc<ModuleHandle>) -> Self {
+    Self { module }
   }
 
   pub fn get_jsobject(self, env: &Env) -> napi::Result<Object<'_>> {
     let raw_env = env.raw();
     let napi_val = unsafe { ToNapiValue::to_napi_value(raw_env, self)? };
     Ok(Object::from_raw(raw_env, napi_val))
-  }
-
-  fn with_ref<T>(
-    &mut self,
-    f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<T>,
-  ) -> napi::Result<T> {
-    with_module_instance(self.compiler_id, self.module_identifier, |reference| {
-      reference.with_ref(|_, module| f(module))
-    })
   }
 }
 
@@ -248,14 +239,14 @@ thread_local! {
   static BUILD_INFO_PROPERTIES_BUFFER: RefCell<Vec<Property>> = const { RefCell::new(Vec::new()) };
 }
 
-impl ToNapiValue for BuildInfo {
+impl ToNapiValue for BuildInfo<'_> {
   unsafe fn to_napi_value(
     env: napi::sys::napi_env,
-    mut val: Self,
+    val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
     unsafe {
       let env_wrapper = Env::from_raw(env);
-      let known = KnownBuildInfo::new(val.compiler_id, val.module_identifier);
+      let known = KnownBuildInfo::new(val.module);
       let napi_val = ToNapiValue::to_napi_value(env, known)?;
       let mut object = Object::from_raw(env, napi_val);
 
@@ -307,9 +298,9 @@ impl ToNapiValue for BuildInfo {
           Ok(properties)
         })?;
 
-        val.with_ref(|module| {
+        val.module.with_ref(|_, module| {
           let extras = &module.build_info().extras;
-          properties.reserve(extras.len() + 1);
+          properties.reserve(extras.len());
           for (key, value) in extras {
             let napi_val = ToNapiValue::to_napi_value(env, value)?;
             properties.push(

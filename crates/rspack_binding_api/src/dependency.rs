@@ -56,7 +56,7 @@ impl Dependency {
     js_name = "_parentModule",
     ts_return_type = "Module | undefined"
   )]
-  pub fn parent_module(&mut self) -> napi::Result<Option<ModuleObject>> {
+  pub fn parent_module(&mut self) -> napi::Result<Either<Option<ModuleObject>, ()>> {
     self
       .with_graph(|compilation, module_graph, dependency| {
         let parent_module = module_graph
@@ -65,7 +65,8 @@ impl Dependency {
           .map(|m| ModuleObject::with_ref(m.as_ref(), compilation.compiler_id()));
         Ok(parent_module)
       })
-      .map(Option::flatten)
+      // Without a graph context, expose the graph property as JS undefined.
+      .map(|parent| parent.map_or(Either::B(()), Either::A))
   }
 
   #[napi(getter)]
@@ -173,28 +174,28 @@ thread_local! {
 pub struct DependencyWrapper {
   dependency_id: DependencyId,
   dependency: DependencyRef,
-  cache_compilation_id: CompilationId,
+  cache_compilation_id: Option<CompilationId>,
   compilation_id: Option<CompilationId>,
 }
 
 impl DependencyWrapper {
-  pub fn from_graph(dependency: DependencyRef, compilation_id: CompilationId) -> Self {
-    let dependency_id = *dependency.id();
+  pub fn new(dependency: DependencyRef, compilation_id: Option<CompilationId>) -> Self {
     Self {
-      dependency_id,
+      dependency_id: *dependency.id(),
       dependency,
       cache_compilation_id: compilation_id,
-      compilation_id: Some(compilation_id),
+      compilation_id,
     }
   }
 
+  pub fn from_graph(dependency: DependencyRef, compilation_id: CompilationId) -> Self {
+    Self::new(dependency, Some(compilation_id))
+  }
+
   pub fn from_hook(dependency: DependencyRef, compilation_id: CompilationId) -> Self {
-    let dependency_id = *dependency.id();
     Self {
-      dependency_id,
-      dependency,
-      cache_compilation_id: compilation_id,
-      compilation_id: None,
+      cache_compilation_id: Some(compilation_id),
+      ..Self::new(dependency, None)
     }
   }
 
@@ -212,9 +213,19 @@ impl ToNapiValue for DependencyWrapper {
     val: Self,
   ) -> napi::Result<napi::sys::napi_value> {
     unsafe {
+      let Some(compilation_id) = val.cache_compilation_id else {
+        return Dependency::to_napi_value(
+          env,
+          Dependency {
+            compilation_id: None,
+            dependency_id: val.dependency_id,
+            dependency: val.dependency,
+          },
+        );
+      };
       DEPENDENCY_INSTANCE_REFS.with(|refs| {
         let mut refs_by_compilation_id = refs.borrow_mut();
-        let entry = refs_by_compilation_id.entry(val.cache_compilation_id);
+        let entry = refs_by_compilation_id.entry(compilation_id);
         let refs = match entry {
           std::collections::hash_map::Entry::Occupied(entry) => entry.into_mut(),
           std::collections::hash_map::Entry::Vacant(entry) => {

@@ -1,5 +1,11 @@
 //! JavaScript owns the Module classes; napi_wrap owns their shared native handle.
-use std::{any::TypeId, cell::RefCell, ffi::c_void, ptr, rc::Rc};
+use std::{
+  any::TypeId,
+  cell::RefCell,
+  ffi::c_void,
+  ptr::{self, NonNull},
+  rc::Rc,
+};
 
 use napi::{Env, Result, bindgen_prelude::*, sys};
 use rspack_collections::IdentifierMap;
@@ -64,6 +70,23 @@ pub(crate) unsafe fn unwrap<'a>(
   env: sys::napi_env,
   value: sys::napi_value,
 ) -> Result<&'a ModuleHandle> {
+  Ok(unsafe { unwrap_ptr(env, value)?.as_ref() })
+}
+
+/// The caller must root `value` on the owning JS thread during this call.
+pub(crate) unsafe fn retain_handle(
+  env: sys::napi_env,
+  value: sys::napi_value,
+) -> Result<Rc<ModuleHandle>> {
+  let data = unwrap_ptr(env, value)?.as_ptr();
+  // SAFETY: napi_wrap owns an Rc for the lifetime of the JS receiver.
+  unsafe {
+    Rc::increment_strong_count(data);
+    Ok(Rc::from_raw(data))
+  }
+}
+
+fn unwrap_ptr(env: sys::napi_env, value: sys::napi_value) -> Result<NonNull<ModuleHandle>> {
   let mut matches = false;
   check_status!(unsafe {
     sys::napi_check_object_type_tag(env, value, &module_tag(), &mut matches)
@@ -73,31 +96,13 @@ pub(crate) unsafe fn unwrap<'a>(
   }
   let mut data = ptr::null_mut();
   check_status!(unsafe { sys::napi_unwrap(env, value, &mut data) })?;
-  if data.is_null() {
-    return Err(Error::from_reason("Invalid Module receiver"));
-  }
-  Ok(unsafe { &*data.cast::<ModuleHandle>() })
+  NonNull::new(data.cast()).ok_or_else(|| Error::from_reason("Invalid Module receiver"))
 }
 
 unsafe extern "C" fn finalize(_env: sys::napi_env, data: *mut c_void, _hint: *mut c_void) {
   // The cache and JS object have separate Rc owners. Environment teardown may
   // finalize JS before compiler cleanup, so neither owner may invalidate the other.
   drop(unsafe { Rc::from_raw(data.cast::<ModuleHandle>()) });
-}
-
-// The callback must not invoke user JS while the identity cache is borrowed.
-pub(crate) fn with_module_instance<R>(
-  compiler_id: CompilerId,
-  identifier: ModuleIdentifier,
-  f: impl FnOnce(&ModuleHandle) -> Result<R>,
-) -> Result<R> {
-  MODULE_INSTANCE_REFS.with_borrow(|instances| {
-    let instance = instances.get(&compiler_id).and_then(|modules| modules.get(&identifier))
-      .ok_or_else(|| Error::from_reason(format!(
-        "Unable to access module with id = {identifier} now. The module has been removed on the Rust side or the Compiler has been garbage collected by JavaScript."
-      )))?;
-    f(&instance.handle)
-  })
 }
 
 pub(crate) fn to_jsobject(env: &Env, value: ModuleObject) -> Result<sys::napi_value> {

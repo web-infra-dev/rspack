@@ -112,9 +112,14 @@ pub fn normal_module_set_match_resource(
 pub fn normal_module_get_error(module: Object<'_>) -> Result<Either<RspackError, ()>> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   module.with_normal(|compilation, module| {
-    Ok(match module.error() {
-      Some(diagnostic) => Either::A(RspackError::try_from_diagnostic(compilation, diagnostic)?),
-      None => Either::B(()),
-    })
+    let Some(diagnostic) = module.error() else {
+      return Ok(Either::B(()));
+    };
+    let error = if diagnostic.module_identifier.is_none() {
+      RspackError::from_module_diagnostic(diagnostic)?
+    } else {
+      RspackError::try_from_diagnostic(compilation, diagnostic)?
+    };
+    Ok(Either::A(error))
   })
 }

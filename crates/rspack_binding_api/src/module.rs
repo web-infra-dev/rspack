@@ -12,7 +12,7 @@ use rspack_collections::Identifier;
 use rspack_core::{
   BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
   FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon,
-  RuntimeModuleStage, SourceType, internal, rspack_sources::Source,
+  RuntimeModuleStage, SourceType, rspack_sources::Source,
 };
 use rspack_napi::{OneShotRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
@@ -134,12 +134,11 @@ pub fn module_get_build_info<'env>(
 ) -> napi::Result<Object<'env>> {
   let mut this = module;
   let raw_env = env.raw();
-  let reference = unsafe { ModuleHandle::from_napi_ref(raw_env, this.raw())? };
+  let reference = unsafe { module_bridge::retain_handle(raw_env, this.raw())? };
   if let Some(r) = &*reference.build_info_ref.borrow() {
     return r.as_object(env);
   }
-  let mut build_info =
-    BuildInfo::new(reference.compiler_id, reference.identifier).get_jsobject(env)?;
+  let mut build_info = BuildInfo::new(&reference).get_jsobject(env)?;
   this.set_property(
     env.symbol_for(symbols::MODULE_BUILD_INFO_SYMBOL)?,
     build_info,
@@ -158,8 +157,8 @@ pub fn module_set_build_info(
 ) -> napi::Result<()> {
   let mut this = module;
   let raw_env = env.raw();
-  let reference = unsafe { ModuleHandle::from_napi_ref(raw_env, this.raw())? };
-  let new_build_info = BuildInfo::new(reference.compiler_id, reference.identifier);
+  let reference = unsafe { module_bridge::retain_handle(raw_env, this.raw())? };
+  let new_build_info = BuildInfo::new(&reference);
   let mut new_instance = new_build_info.get_jsobject(env)?;
 
   let names = input_object.get_all_property_names(
@@ -455,41 +454,24 @@ impl ModuleHandle {
 
   pub fn blocks(&self) -> napi::Result<Vec<AsyncDependenciesBlockWrapper>> {
     self.with_ref(|compilation, module| {
-      let Some(module_graph) = compilation.try_get_module_graph() else {
-        return Err(napi::Error::from_reason(
-          "Module.blocks is unavailable while the module graph is under construction (e.g. inside a loader during compilation.rebuildModule)",
-        ));
-      };
-      let blocks = module.get_blocks();
       Ok(
-        blocks
+        module
+          .get_block_refs()
           .iter()
-          .filter_map(|block_id| {
-            module_graph
-              .block_by_id(block_id)
-              .map(|block| AsyncDependenciesBlockWrapper::new(block, compilation))
-          })
-          .collect::<Vec<_>>(),
+          .map(|block| AsyncDependenciesBlockWrapper::new(block.clone(), Some(compilation.id())))
+          .collect(),
       )
     })
   }
 
   pub fn dependencies(&self) -> napi::Result<Vec<DependencyWrapper>> {
     self.with_ref(|compilation, module| {
-      let Some(module_graph) = compilation.try_get_module_graph() else {
-        return Err(napi::Error::from_reason(
-          "Module.dependencies is unavailable while the module graph is under construction (e.g. inside a loader during compilation.rebuildModule)",
-        ));
-      };
-      // Only expose dependencies that are still present in the current graph.
-      let dependencies = module.get_dependency_ids();
       Ok(
-        dependencies
-          .filter_map(|dependency_id| {
-            internal::try_dependency_ref_by_id(module_graph, dependency_id)
-              .map(|dep| DependencyWrapper::from_graph(dep, compilation.id()))
-          })
-          .collect::<Vec<_>>(),
+        module
+          .get_dependencies()
+          .iter()
+          .map(|dep| DependencyWrapper::new(dep.clone(), Some(compilation.id())))
+          .collect(),
       )
     })
   }
@@ -549,8 +531,6 @@ impl ModuleHandle {
     Ok(())
   }
 }
-
-pub(crate) use module_bridge::with_module_instance;
 
 // The difference between ModuleObject and ModuleHandle is:
 // ModuleObject maintains a cache to ensure that the corresponding instance of the same Module is unique on the JS side.
