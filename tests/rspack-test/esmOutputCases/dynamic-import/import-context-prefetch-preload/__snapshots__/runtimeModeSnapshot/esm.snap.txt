@@ -29,7 +29,7 @@ moduleFactories.add({
   \**********************/
 (__unused_rspack_module, exports) {
 makeNamespaceObject(exports);
-import("./c.mjs").then(rspackRequire.bind(rspackRequire, /*! ./c */ "./modules/c.js"));
+import("./c.mjs").then(() => rspackRequire(/*! ./c */ "./modules/c.js"));
 
 /* export default */ const __rspack_default_export = ("b");
 

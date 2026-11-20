@@ -1659,17 +1659,23 @@ impl ModuleCodeTemplate {
     }
   }
 
-  fn require_callback(&mut self, module_id: &str) -> String {
+  pub fn deferred_call(&mut self, function: &RuntimeGlobals, args: &str) -> String {
+    let needs_require_context = self.render_mode() == RuntimeGlobalsRenderMode::RspackExport
+      && *function == RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT;
+    let function = self.render_runtime_globals(function);
+    // Keep the require runtime requirement even when the arrow form does not
+    // spell it out. Some runtime helpers receive it through their call context.
     let require = self.render_runtime_globals(&RuntimeGlobals::REQUIRE);
-    if self
-      .compiler_options
-      .output
-      .environment
-      .supports_arrow_function()
+    if needs_require_context
+      || !self
+        .compiler_options
+        .output
+        .environment
+        .supports_arrow_function()
     {
-      format!("() => {require}({module_id})")
+      format!("{function}.bind({require}, {args})")
     } else {
-      format!("{require}.bind({require}, {module_id})")
+      format!("() => {function}({args})")
     }
   }
 
@@ -1763,13 +1769,11 @@ impl ModuleCodeTemplate {
             )
           );
         }
-        write!(
-          appending,
-          ".then({}.bind({}, {module_id_expr}, {mode}))",
-          self.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
-          self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-        )
-        .expect("infallible write to String");
+        let deferred_call = self.deferred_call(
+          &RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT,
+          &format!("{module_id_expr}, {mode}"),
+        );
+        write!(appending, ".then({deferred_call})").expect("infallible write to String");
       } else if let Some(header) = header {
         let rendered_async_deps_fn =
           self.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT);
@@ -1782,9 +1786,11 @@ impl ModuleCodeTemplate {
         );
       } else {
         appending = format!(
-          ".then({}.bind({}, {module_id_expr}, {mode}))",
-          self.render_runtime_globals(&RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT),
-          self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          ".then({})",
+          self.deferred_call(
+            &RuntimeGlobals::MAKE_DEFERRED_NAMESPACE_OBJECT,
+            &format!("{module_id_expr}, {mode}"),
+          )
         );
       }
       return format!("{promise}{appending}");
@@ -1799,7 +1805,10 @@ impl ModuleCodeTemplate {
             self.module_raw(compilation, dep_id, request, weak)
           )
         } else {
-          appending = format!(".then({})", self.require_callback(&module_id_expr));
+          appending = format!(
+            ".then({})",
+            self.deferred_call(&RuntimeGlobals::REQUIRE, &module_id_expr)
+          );
         }
       }
       _ => {
@@ -1825,7 +1834,10 @@ return {}
               self.module_raw(compilation, dep_id, request, weak)
             )
           } else {
-            appending = format!(".then({})", self.require_callback(&module_id_expr));
+            appending = format!(
+              ".then({})",
+              self.deferred_call(&RuntimeGlobals::REQUIRE, &module_id_expr)
+            );
           }
           appending.push_str(
             format!(
@@ -1856,9 +1868,11 @@ return {}
             );
           } else {
             appending = format!(
-              ".then({}.bind({}, {module_id_expr}, {fake_type}))",
-              self.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
-              self.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+              ".then({})",
+              self.deferred_call(
+                &RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+                &format!("{module_id_expr}, {fake_type}"),
+              )
             );
           }
         }
