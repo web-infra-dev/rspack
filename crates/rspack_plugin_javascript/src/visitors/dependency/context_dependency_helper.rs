@@ -16,55 +16,13 @@ fn walk_evaluated_expression(evaluated: &BasicEvaluatedExpression, parser: &mut 
   parser.walk_expression_in_ast(expression, evaluated.expression_ast());
 }
 
+// Match webpack by walking only the dynamic parts retained by evaluation. SWC
+// Next expression handles carry their owning flat AST through `BasicEvaluatedExpression`.
 pub fn create_context_dependency(
   param: &BasicEvaluatedExpression,
   parser: &mut JavascriptParser,
 ) -> ContextModuleScanResult {
-  scan_context_dependency(
-    param,
-    parser,
-    (
-      "Critical dependency: a part of the request of a dependency is an expression",
-      None,
-    ),
-    (
-      "Critical dependency: the request of a dependency is an expression",
-      None,
-    ),
-  )
-}
-
-pub(crate) fn create_import_context_dependency(
-  param: &BasicEvaluatedExpression,
-  parser: &mut JavascriptParser,
-) -> ContextModuleScanResult {
-  scan_context_dependency(
-    param,
-    parser,
-    (
-      "Rspack may include multiple modules because part of this import path is dynamic.",
-      Some("If you only need a few modules, import each one with a literal path."),
-    ),
-    (
-      "Rspack cannot determine which modules to bundle for this import.",
-      Some(
-        "To bundle local modules, use a literal path or a pattern such as `./locales/${name}.js`.\n\
-            To load the module at runtime, use `import(/* rspackIgnore: true */ path)`.\n\
-            See https://rspack.rs/api/runtime-api/module-methods#dynamic-expressions-in-import",
-      ),
-    ),
-  )
-}
-
-// Match webpack by walking only the dynamic parts retained by evaluation. SWC
-// Next expression handles carry their owning flat AST through `BasicEvaluatedExpression`.
-fn scan_context_dependency(
-  param: &BasicEvaluatedExpression,
-  parser: &mut JavascriptParser,
-  wrapped_warning: (&str, Option<&str>),
-  expression_warning: (&str, Option<&str>),
-) -> ContextModuleScanResult {
-  let create_warning = |parser: &JavascriptParser, (message, help): (&str, Option<&str>)| {
+  let create_warning = |parser: &JavascriptParser, message: &str, help: &str| {
     let (start, end) = param.range();
     let mut error = Error::warning(message.into());
     error.src = Some(parser.source.into());
@@ -73,10 +31,19 @@ fn scan_context_dependency(
       offset: start as usize,
       len: end.saturating_sub(start) as usize,
     }]);
-    error.help = help.map(str::to_owned);
+    error.help = Some(help.into());
     let mut diagnostic = Diagnostic::from(error);
     diagnostic.module_identifier = Some(*parser.module_identifier);
     diagnostic
+  };
+  let wrapped_warning = |parser: &JavascriptParser| {
+    (parser.javascript_options.wrapped_context_critical == Some(true)).then(|| {
+      create_warning(
+        parser,
+        "Rspack may include multiple modules because part of the module path is dynamic.",
+        "If you only need a few modules, specify each one with a literal path.",
+      )
+    })
   };
   let wrapped_context_reg_exp = parser
     .javascript_options
@@ -153,8 +120,7 @@ fn scan_context_dependency(
       }
     }
 
-    let critical = (parser.javascript_options.wrapped_context_critical == Some(true))
-      .then(|| create_warning(parser, wrapped_warning));
+    let critical = wrapped_warning(parser);
 
     ContextModuleScanResult {
       context,
@@ -216,8 +182,7 @@ fn scan_context_dependency(
       ))
     }
 
-    let critical = (parser.javascript_options.wrapped_context_critical == Some(true))
-      .then(|| create_warning(parser, wrapped_warning));
+    let critical = wrapped_warning(parser);
 
     if let Some(inner_expressions) = param.wrapped_inner_expressions() {
       for part in inner_expressions {
@@ -235,7 +200,11 @@ fn scan_context_dependency(
     }
   } else {
     let critical = (parser.javascript_options.expr_context_critical == Some(true))
-      .then(|| create_warning(parser, expression_warning));
+      .then(|| create_warning(
+        parser,
+        "Rspack cannot determine which modules to bundle because the module path is not known at build time.",
+        "To bundle local modules, use a literal path or a pattern such as `./locales/${name}.js`.",
+      ));
 
     walk_evaluated_expression(param, parser);
 

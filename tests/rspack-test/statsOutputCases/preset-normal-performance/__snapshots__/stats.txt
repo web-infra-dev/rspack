@@ -17,23 +17,25 @@ WARNING in ⚠ Rspack performance recommendations:You can limit the size of your
 
 
 WARNING in ./index.js 2:1-17
-  ⚠ Critical dependency: the request of a dependency is an expression
+  ⚠ Rspack cannot determine which modules to bundle because the module path is not known at build time.
    ╭─[2:8]
  1 │ require("./a");
  2 │ require(["./b"]);
    ·         ───────
  3 │ require(["./c"]);
    ╰────
+  help: To bundle local modules, use a literal path or a pattern such as `./locales/${name}.js`.
 
 
 WARNING in ./index.js 3:1-17
-  ⚠ Critical dependency: the request of a dependency is an expression
+  ⚠ Rspack cannot determine which modules to bundle because the module path is not known at build time.
    ╭─[3:8]
  1 │ require("./a");
  2 │ require(["./b"]);
  3 │ require(["./c"]);
    ·         ───────
    ╰────
+  help: To bundle local modules, use a literal path or a pattern such as `./locales/${name}.js`.
 
 
 Rspack x.x.x compiled with 5 warnings in X s

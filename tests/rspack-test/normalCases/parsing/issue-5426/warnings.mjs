@@ -1,3 +1,3 @@
 export default [
-  /Critical dependency: the request of a dependency is an expression/,
+  /Rspack cannot determine which modules to bundle because the module path is not known at build time/,
 ]

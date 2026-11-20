@@ -32,9 +32,9 @@ use crate::{
   visitors::{
     ContextModuleScanResult, DestructuringAssignmentProperties, HookMemberExpression,
     JavascriptParser, PatRef, SymbolBinding, TagInfoData, TopLevelScope, VariableInfoFlags,
-    context_reg_exp, create_import_context_dependency, create_traceable_error,
-    formal_parameter_pattern, formal_parameter_patterns, formal_parameter_patterns_with_defaults,
-    get_non_optional_part, parse_order_string,
+    context_reg_exp, create_context_dependency, create_traceable_error, formal_parameter_pattern,
+    formal_parameter_patterns, formal_parameter_patterns_with_defaults, get_non_optional_part,
+    parse_order_string,
   },
 };
 
@@ -717,14 +717,21 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         return None;
       }
 
-      let result = create_import_context_dependency(&param, parser);
+      let result = create_context_dependency(&param, parser);
       let request = result.request();
       let ContextModuleScanResult {
         reg,
         replaces,
-        critical,
+        mut critical,
         ..
       } = result;
+
+      if reg.is_empty()
+        && let Some(help) = critical.as_mut().and_then(|warning| warning.help.as_mut())
+      {
+        help.push_str("\nTo load the module at runtime, use `import(/* rspackIgnore: true */ path)`.\n\
+                       See https://rspack.rs/api/runtime-api/module-methods#dynamic-expressions-in-import");
+      }
 
       let reg_exp = context_reg_exp(&reg, "", Some(dyn_imported_span.into()), parser);
       let mut dep = ImportContextDependency::new(

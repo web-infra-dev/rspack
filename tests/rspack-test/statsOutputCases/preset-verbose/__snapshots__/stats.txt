@@ -116,21 +116,23 @@ LOG from rspack.buildChunkGraph
     0 chunk group info updated (0 already connected chunk groups reconnected)
 
 WARNING in ./index.js 2:1-17
-  ⚠ Critical dependency: the request of a dependency is an expression
+  ⚠ Rspack cannot determine which modules to bundle because the module path is not known at build time.
    ╭─[2:8]
  1 │ require("./a");
  2 │ require(["./b"]);
    ·         ───────
  3 │ require(["./c"]);
    ╰────
+  help: To bundle local modules, use a literal path or a pattern such as `./locales/${name}.js`.
 
 WARNING in ./index.js 3:1-17
-  ⚠ Critical dependency: the request of a dependency is an expression
+  ⚠ Rspack cannot determine which modules to bundle because the module path is not known at build time.
    ╭─[3:8]
  1 │ require("./a");
  2 │ require(["./b"]);
  3 │ require(["./c"]);
    ·         ───────
    ╰────
+  help: To bundle local modules, use a literal path or a pattern such as `./locales/${name}.js`.
 
 1970-04-20 12<LINE_COL>: Rspack x.x.x compiled with 2 warnings in X s (43c16cee711ae57a)
