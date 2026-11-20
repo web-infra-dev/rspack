@@ -249,6 +249,7 @@ export async function runLoaders(
   compiler: Compiler,
   context: JsLoaderContext,
 ): Promise<JsLoaderContext> {
+  const module = context._module!;
   const loaderState = context.loaderState;
   const loaderChainStart = context.loaderChainStart;
   const loaderChainEnd = context.loaderChainEnd;
@@ -414,7 +415,7 @@ export async function runLoaders(
             options.layer,
             options.publicPath,
             options.baseUri,
-            context._module.identifier(),
+            module.identifier(),
             loaderContext.context,
             finalCallback(reject, resolve),
           );
@@ -425,7 +426,7 @@ export async function runLoaders(
       options.layer,
       options.publicPath,
       options.baseUri,
-      context._module.identifier(),
+      module.identifier(),
       loaderContext.context,
       finalCallback(
         (err) => callback(err),
@@ -506,7 +507,7 @@ export async function runLoaders(
     },
   });
   loaderContext.version = 2;
-  loaderContext.sourceMap = context._module.useSourceMap;
+  loaderContext.sourceMap = module.useSourceMap;
   loaderContext.mode = compiler.options.mode;
   Object.assign(loaderContext, compiler.options.loader);
 
@@ -653,7 +654,7 @@ export async function runLoaders(
           diagnostic.severity === 'warning'
             ? `ModuleWarning: ${diagnostic.message}`
             : `ModuleError: ${diagnostic.message}`,
-        moduleIdentifier: context._module.identifier(),
+        moduleIdentifier: module.identifier(),
       });
       compiler._lastCompilation!.__internal__pushDiagnostic(
         formatDiagnostic(d),
@@ -690,7 +691,7 @@ export async function runLoaders(
 
   loaderContext._compiler = compiler;
   loaderContext._compilation = compiler._lastCompilation!;
-  loaderContext._module = context._module;
+  loaderContext._module = module;
 
   loaderContext.getOptions = () => {
     const loader = getCurrentLoader(loaderContext);
@@ -1247,9 +1248,9 @@ export async function runLoaders(
 
   if (
     compiler.options?.cache &&
-    Object.hasOwn(context._module, MODULE_BUILD_INFO_SYMBOL)
+    Object.hasOwn(module, MODULE_BUILD_INFO_SYMBOL)
   ) {
-    commitCustomFieldsToRust(context._module.buildInfo);
+    commitCustomFieldsToRust(module.buildInfo);
   }
 
   context.addedDependencies = dependencies.added;

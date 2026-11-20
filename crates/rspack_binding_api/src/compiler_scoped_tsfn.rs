@@ -199,13 +199,28 @@ impl<T: 'static + JsValuesTupleIntoVec, R> CompilerScopedTsFnHandle<T, R> {
   }
 }
 
-impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue> CompilerScopedTsFnHandle<T, R> {
-  pub async fn call_with_sync(&self, value: T) -> rspack_error::Result<R> {
+impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue + Send>
+  CompilerScopedTsFnHandle<T, R>
+{
+  pub async fn call_with_sync(&self, value: T) -> rspack_error::Result<R>
+  where
+    T: Send,
+  {
     self.expect_active_tsfn()?.call_with_sync(value).await
+  }
+
+  pub(crate) async fn call_with_sync_prepared<Guard>(
+    &self,
+    prepare: impl FnOnce(&Env) -> napi::Result<(Vec<sys::napi_value>, Guard)> + Send + 'static,
+  ) -> rspack_error::Result<R> {
+    self
+      .expect_active_tsfn()?
+      .call_with_sync_prepared(prepare)
+      .await
   }
 }
 
-impl<T: 'static + JsValuesTupleIntoVec, R: 'static + FromNapiValue>
+impl<T: 'static + JsValuesTupleIntoVec + Send, R: 'static + FromNapiValue + Send>
   CompilerScopedTsFnHandle<T, Promise<R>>
 {
   pub async fn call_with_promise(&self, value: T) -> rspack_error::Result<R> {

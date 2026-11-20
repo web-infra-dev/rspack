@@ -1,6 +1,5 @@
 use std::{
   fmt::Formatter,
-  ptr::NonNull,
   sync::{Arc, LazyLock},
 };
 
@@ -8,19 +7,18 @@ use derive_more::Debug;
 use futures::future::BoxFuture;
 use napi::{
   Either,
-  bindgen_prelude::{Buffer, Either3, FnArgs},
+  bindgen_prelude::{Buffer, Either3, FnArgs, JsValuesTupleIntoVec, Object},
 };
 use napi_derive::napi;
 use regex::Regex;
 use rspack_core::{
-  AssetGeneratorDataUrl, AssetGeneratorDataUrlFnCtx, AssetGeneratorDataUrlOptions,
-  AssetGeneratorOptions, AssetInlineGeneratorOptions, AssetParserDataUrl,
-  AssetParserDataUrlOptions, AssetParserOptions, AssetResourceGeneratorOptions, CodeFilter,
-  CssAutoOrModuleParserOptions, CssGeneratorOptions, CssModuleGeneratorOptions,
-  CssModuleParserOptions, CssParserImport, CssParserImportContext, CssParserOptions,
-  DescriptionData, DynamicImportFetchPriority, DynamicImportMode, ExportPresenceMode, FuncUseCtx,
-  GeneratorOptions, GeneratorOptionsMap, ImportMeta, ImportMetaOptions,
-  JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
+  AssetGeneratorDataUrl, AssetGeneratorDataUrlOptions, AssetGeneratorOptions,
+  AssetInlineGeneratorOptions, AssetParserDataUrl, AssetParserDataUrlOptions, AssetParserOptions,
+  AssetResourceGeneratorOptions, CodeFilter, CssAutoOrModuleParserOptions, CssGeneratorOptions,
+  CssModuleGeneratorOptions, CssModuleParserOptions, CssParserImport, CssParserImportContext,
+  CssParserOptions, DescriptionData, DynamicImportFetchPriority, DynamicImportMode,
+  ExportPresenceMode, FuncUseCtx, GeneratorOptions, GeneratorOptionsMap, ImportMeta,
+  ImportMetaOptions, JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
   JavascriptParserCreateRequire, JavascriptParserOptions, JavascriptParserOrder,
   JavascriptParserUrl, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
   JsonGeneratorOptions, JsonParserOptions, LoaderFilter, ModuleNoParseRule, ModuleNoParseRules,
@@ -882,34 +880,15 @@ impl From<RawAssetResourceGeneratorOptions> for AssetResourceGeneratorOptions {
 
 type RawAssetGeneratorDataUrl = Either<
   RawAssetGeneratorDataUrlOptions,
-  ThreadsafeFunction<FnArgs<(Buffer, RawAssetGeneratorDataUrlFnCtx)>, String>,
+  ThreadsafeFunction<FnArgs<(Buffer, RawAssetGeneratorDataUrlFnCtx<'static>)>, String>,
 >;
 struct RawAssetGeneratorDataUrlWrapper(RawAssetGeneratorDataUrl);
 
-#[napi(object)]
-pub struct RawAssetGeneratorDataUrlFnCtx {
+#[napi(object, object_from_js = false)]
+pub struct RawAssetGeneratorDataUrlFnCtx<'env> {
   pub filename: String,
   #[napi(ts_type = "Module")]
-  pub module: ModuleObject,
-}
-
-impl From<AssetGeneratorDataUrlFnCtx<'_>> for RawAssetGeneratorDataUrlFnCtx {
-  fn from(value: AssetGeneratorDataUrlFnCtx) -> Self {
-    // AssetGeneratorDataUrlFn may be called during the importModule process,
-    // at which point the corresponding Module is not present in compilation.moduleGraph.
-    // Therefore, we use a raw pointer to allow JavaScript to access the Module.
-    #[allow(clippy::unwrap_used)]
-    Self {
-      filename: value.filename,
-      module: ModuleObject::with_ptr(
-        NonNull::new(
-          value.module as *const dyn rspack_core::Module as *mut dyn rspack_core::Module,
-        )
-        .unwrap(),
-        value.compilation.compiler_id(),
-      ),
-    }
-  }
+  pub module: Object<'env>,
 }
 
 impl From<RawAssetGeneratorDataUrlWrapper> for AssetGeneratorDataUrl {
@@ -918,9 +897,18 @@ impl From<RawAssetGeneratorDataUrlWrapper> for AssetGeneratorDataUrl {
       Either::A(a) => Self::Options(a.into()),
       Either::B(b) => Self::Func(Arc::new(move |source, ctx| {
         let b = b.clone();
-        let source = source.into();
-        let ctx = ctx.into();
-        Box::pin(async move { b.call_with_sync((source, ctx).into()).await })
+        let source = Buffer::from(source);
+        // importModule can generate assets before the module enters the graph.
+        let module = ModuleObject::with_ptr(ctx.module, ctx.compilation.compiler_id());
+        let filename = ctx.filename;
+        Box::pin(async move {
+          module
+            .call_with_sync_args(&b, move |env, module| {
+              FnArgs::from((source, RawAssetGeneratorDataUrlFnCtx { filename, module }))
+                .into_vec(env.raw())
+            })
+            .await
+        })
       })),
     }
   }

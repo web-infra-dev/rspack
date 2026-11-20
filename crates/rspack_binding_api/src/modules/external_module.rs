@@ -8,7 +8,7 @@ pub fn external_module_get_user_request<'env>(
   module: Object<'env>,
 ) -> Result<JsString<'env>> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
-  module.with_ref(|_, module| {
+  module.with_local_ref(|module| {
     let module = module
       .as_external_module()
       .ok_or_else(|| Error::from_reason("Module is not an ExternalModule"))?;

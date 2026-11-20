@@ -63,6 +63,15 @@ thread_local! {
   static MODULE_INSTANCE_REFS: RefCell<Instances> = RefCell::default();
 }
 
+/// Owns direct access to the module for one invocation on this JS thread.
+pub(crate) struct ModuleAccess(Rc<ModuleHandle>);
+
+impl Drop for ModuleAccess {
+  fn drop(&mut self) {
+    self.0.revoke_direct_access();
+  }
+}
+
 /// The caller must root `value` in the current handle scope for the entire borrow.
 /// Only shared access escapes; handle mutation uses Cell/RefCell, and core module
 /// mutation retains the existing loader-phase contract.
@@ -105,27 +114,59 @@ unsafe extern "C" fn finalize(_env: sys::napi_env, data: *mut c_void, _hint: *mu
   drop(unsafe { Rc::from_raw(data.cast::<ModuleHandle>()) });
 }
 
-pub(crate) fn to_jsobject(env: &Env, value: ModuleObject) -> Result<sys::napi_value> {
-  let cached = MODULE_INSTANCE_REFS.with_borrow(|instances| {
-    instances
+pub(crate) fn to_jsobject(
+  env: &Env,
+  mut value: ModuleObject,
+) -> Result<(Object<'_>, Option<ModuleAccess>)> {
+  let direct = value.has_ptr();
+  let mut cache = true;
+  let cached = MODULE_INSTANCE_REFS.with_borrow(|instances| -> Result<Option<_>> {
+    let Some(instance) = instances
       .get(&value.compiler_id)
       .and_then(|modules| modules.get(&value.identifier))
-      .map(|instance| {
-        instance.handle.ptr.set(value.ptr);
-        unsafe { ToNapiValue::to_napi_value(env.raw(), &instance.reference) }
-      })
-      .transpose()
+    else {
+      return Ok(None);
+    };
+    if direct && instance.handle.has_direct_access() {
+      // Nested builds can have the same identifier. Keep each callback's
+      // pointer and revocation independent.
+      cache = false;
+      return Ok(None);
+    }
+    let object = unsafe { ToNapiValue::to_napi_value(env.raw(), &instance.reference)? };
+    let access = direct.then(|| {
+      instance.handle.set_direct_access(&mut value);
+      ModuleAccess(Rc::clone(&instance.handle))
+    });
+    Ok(Some((Object::from_raw(env.raw(), object), access)))
   })?;
   if let Some(object) = cached {
     return Ok(object);
   }
   let kind = ModuleKind::from(value.type_id);
-  let handle = Rc::new(ModuleHandle::new(&value));
+  let compiler_id = value.compiler_id;
+  let identifier = value.identifier;
+  let handle = Rc::new(ModuleHandle::new(value));
   // Root the JS Compiler while calling its helper, and release every cache/core
   // borrow before entering JS. The helper captures no Compiler or Compilation.
-  let compiler = crate::upgrade_compiler(env, value.compiler_id)?;
+  let compiler = crate::upgrade_compiler(env, compiler_id)?;
   let object = compiler.js_helpers.create_module(env, kind)?;
-  let data = Rc::into_raw(Rc::clone(&handle));
+  wrap(env, object, &handle)?;
+  let access = direct.then(|| ModuleAccess(Rc::clone(&handle)));
+  if cache {
+    let reference = OneShotRef::new(env.raw(), object)?;
+    MODULE_INSTANCE_REFS.with_borrow_mut(|instances| {
+      instances
+        .entry(compiler_id)
+        .or_default()
+        .insert(identifier, Instance { reference, handle });
+    });
+  }
+  Ok((object, access))
+}
+
+fn wrap(env: &Env, object: Object<'_>, handle: &Rc<ModuleHandle>) -> Result<()> {
+  let data = Rc::into_raw(Rc::clone(handle));
   let status = unsafe {
     sys::napi_wrap(
       env.raw(),
@@ -143,28 +184,17 @@ pub(crate) fn to_jsobject(env: &Env, value: ModuleObject) -> Result<sys::napi_va
   if let Err(error) =
     check_status!(unsafe { sys::napi_type_tag_object(env.raw(), object.raw(), &module_tag()) })
   {
-    handle.ptr.set(None);
+    handle.revoke_direct_access();
     return Err(error);
   }
-  let reference = OneShotRef::new(env.raw(), object).inspect_err(|_| {
-    // A helper may have retained this JS object. If cache insertion fails,
-    // there will be no revocation entry to clear its loader-scoped pointer.
-    handle.ptr.set(None);
-  })?;
-  MODULE_INSTANCE_REFS.with_borrow_mut(|instances| {
-    instances
-      .entry(value.compiler_id)
-      .or_default()
-      .insert(value.identifier, Instance { reference, handle });
-  });
-  Ok(object.raw())
+  Ok(())
 }
 
 pub(crate) fn cleanup_compiler(compiler_id: &CompilerId) {
   let removed = MODULE_INSTANCE_REFS.with_borrow_mut(|instances| instances.remove(compiler_id));
   if let Some(modules) = &removed {
     for instance in modules.values() {
-      instance.handle.ptr.set(None);
+      instance.handle.revoke_direct_access();
     }
   }
   drop(removed);
@@ -183,7 +213,7 @@ pub(crate) fn cleanup_modules(compiler_id: &CompilerId, identifiers: &[ModuleIde
     removed
   });
   for instance in &removed {
-    instance.handle.ptr.set(None);
+    instance.handle.revoke_direct_access();
   }
   drop(removed);
 }

@@ -20,6 +20,50 @@ export default defineConfig({
   plugins: [
     (compiler: Compiler) => {
       compiler.hooks.compilation.tap('SharedAccessors', (compilation) => {
+        const modulesFromBuild = new Map<string, NormalModule>();
+        const readsAfterBuildHook = new Map<NormalModule, Promise<unknown>>();
+        compilation.hooks.buildModule.tap('SharedAccessors', (module) => {
+          if (!(module instanceof compiler.rspack.NormalModule)) return;
+          modulesFromBuild.set(module.identifier(), module);
+          expect(module.context).toBe(import.meta.dirname);
+          readsAfterBuildHook.set(
+            module,
+            new Promise((resolve) => {
+              queueMicrotask(() => {
+                try {
+                  resolve(module.size());
+                } catch (error) {
+                  resolve(error);
+                }
+              });
+            }),
+          );
+        });
+        compiler.rspack.NormalModule.getCompilationHooks(
+          compilation,
+        ).loader.tap('SharedAccessors', (_context, module) => {
+          expect(module).toBe(modulesFromBuild.get(module.identifier()));
+          expect(module.context).toBe(import.meta.dirname);
+        });
+        compilation.hooks.succeedModule.tap('SharedAccessors', (module) => {
+          expect(module).toBe(modulesFromBuild.get(module.identifier()));
+          expect(module.originalSource()).not.toBeNull();
+        });
+        compilation.hooks.finishModules.tapPromise(
+          'SharedAccessors',
+          async () => {
+            for (const [module, read] of readsAfterBuildHook) {
+              expect(await read).toHaveProperty(
+                'message',
+                expect.stringContaining('removed on the Rust side'),
+              );
+              expect(module.originalSource()).not.toBeNull();
+              expect(() => {
+                module.matchResource = 'ignored';
+              }).toThrow(/only modify the module in the loader/);
+            }
+          },
+        );
         compilation.hooks.finishModules.tap('SharedAccessors', (modules) => {
           const normalModules = [...modules].filter(
             (m): m is NormalModule => m instanceof NormalModule,

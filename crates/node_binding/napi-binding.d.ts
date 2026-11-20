@@ -923,7 +923,6 @@ export interface JsLinkPreloadData {
 
 export interface JsLoaderContext {
   resource: string
-  _module: Module
   hot: Readonly<boolean>
   /** Content maybe empty in pitching stage */
   content: string | Buffer | null
@@ -941,6 +940,7 @@ export interface JsLoaderContext {
   loaderChainEnd: number
   __internal__error?: RspackError
   __internal__diagnostics?: Array<JsRspackDiagnostic>
+  _module?: Module
 }
 
 export interface JsLoaderDependencies {

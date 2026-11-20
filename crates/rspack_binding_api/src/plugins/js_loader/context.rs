@@ -1,9 +1,9 @@
-use std::{ptr::NonNull, sync::Arc};
+use std::sync::Arc;
 
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_collections::Identifiable;
-use rspack_core::{CodeFilter, Content, LoaderContext, LoaderDependencies, Module, RunnerContext};
+use rspack_core::{CodeFilter, Content, LoaderContext, LoaderDependencies, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::ThreadsafeOneShotRef;
@@ -12,6 +12,7 @@ use rustc_hash::FxHashMap as HashMap;
 use crate::{
   error::{JsRspackDiagnostic, RspackError},
   module::ModuleObject,
+  module_bridge::ModuleAccess,
 };
 
 #[napi(object)]
@@ -183,8 +184,6 @@ impl From<JsLoaderDependencies> for LoaderDependencies {
 #[napi(object)]
 pub struct JsLoaderContext {
   pub resource: String,
-  #[napi(js_name = "_module", ts_type = "Module")]
-  pub module: ModuleObject,
   #[napi(ts_type = "Readonly<boolean>")]
   pub hot: bool,
 
@@ -210,6 +209,8 @@ pub struct JsLoaderContext {
   pub error: Option<RspackError>,
   #[napi(js_name = "__internal__diagnostics")]
   pub diagnostics: Option<Vec<JsRspackDiagnostic>>,
+  #[napi(js_name = "_module", ts_type = "Module")]
+  pub module: Option<ModuleObject>,
 }
 
 impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
@@ -227,18 +228,11 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       .take_additional_data()
       .and_then(|mut data| data.remove::<ThreadsafeOneShotRef>());
 
-    let module = &cx.context.module;
-
     let execution_span = cx
       .current_chain()
       .map_or(0..cx.loader_items.len(), |chain| chain.start()..chain.end());
     Ok(JsLoaderContext {
       resource: cx.resource_data.resource().to_owned(),
-      module: ModuleObject::with_ptr(
-        NonNull::new(module.as_ref() as *const dyn Module as *mut dyn Module)
-          .expect("module reference should always produce a non-null pointer"),
-        cx.context.compiler_id,
-      ),
       hot: cx.hot,
       content,
       // Since js side only set parse meta, and can't read it, so we can use Default here to only bring the
@@ -261,6 +255,29 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       diagnostics: None,
       loader_chain_start: execution_span.start as u32,
       loader_chain_end: execution_span.end as u32,
+      module: {
+        let native = &mut cx.context;
+        Some(
+          ModuleObject::with_mut(native.module.as_mut(), native.compiler_id)
+            .with_loader_context(native.options.context.clone(), native.compilation_id),
+        )
+      },
     })
+  }
+}
+
+impl JsLoaderContext {
+  pub(crate) fn into_jsobject(
+    mut self,
+    env: &Env,
+  ) -> napi::Result<(Object<'_>, Option<ModuleAccess>)> {
+    let module = self
+      .module
+      .take()
+      .ok_or_else(|| Error::from_reason("Loader context has no Module"))?;
+    let mut context = Object::from_raw(env.raw(), unsafe { Self::to_napi_value(env.raw(), self)? });
+    let (module, access) = module.into_jsobject(env)?;
+    context.set_named_property("_module", module)?;
+    Ok((context, access))
   }
 }

@@ -1,5 +1,6 @@
 mod context;
 mod resolver;
+mod result;
 mod scheduler;
 
 use std::{
@@ -23,15 +24,8 @@ use tokio::sync::{OnceCell, RwLock};
 
 use crate::{COMPILER_REFERENCES, error::RspackResultToNapiResultExt};
 
-pub type JsLoaderRunner = ThreadsafeFunction<
-  JsLoaderContext,
-  Promise<JsLoaderContext>,
-  JsLoaderContext,
-  Status,
-  false,
-  true,
-  0,
->;
+pub type JsLoaderRunner =
+  rspack_napi::threadsafe_function::ThreadsafeFunction<JsLoaderContext, Promise<JsLoaderContext>>;
 
 type JsLoaderRunnerGetterTsfn = ThreadsafeFunction<
   External<CompilerId>,

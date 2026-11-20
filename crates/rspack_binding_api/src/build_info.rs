@@ -91,14 +91,14 @@ impl KnownBuildInfo {
     &self,
     f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<T>,
   ) -> napi::Result<T> {
-    self.module()?.with_ref(|_, module| f(module))
+    self.module()?.with_local_ref(f)
   }
 
   fn with_mut<T>(
     &self,
     f: impl FnOnce(&mut dyn rspack_core::Module) -> napi::Result<T>,
   ) -> napi::Result<T> {
-    f(self.module()?.as_mut()?)
+    self.module()?.with_mut(f)
   }
 }
 
@@ -298,7 +298,7 @@ impl ToNapiValue for BuildInfo<'_> {
           Ok(properties)
         })?;
 
-        val.module.with_ref(|_, module| {
+        val.module.with_local_ref(|module| {
           let extras = &module.build_info().extras;
           properties.reserve(extras.len());
           for (key, value) in extras {

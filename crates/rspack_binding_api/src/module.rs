@@ -3,16 +3,19 @@ use std::{
   any::TypeId,
   cell::{Cell, RefCell},
   ptr::NonNull,
-  sync::{Arc, Weak},
+  sync::{
+    Arc, Weak,
+    atomic::{AtomicBool, Ordering},
+  },
 };
 
 use napi::JsString;
 use napi_derive::napi;
 use rspack_collections::Identifier;
 use rspack_core::{
-  BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilerId,
-  FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier, RuntimeModuleCommon,
-  RuntimeModuleStage, SourceType, rspack_sources::Source,
+  BindingCell, BuildMeta, BuildMetaDefaultObject, BuildMetaExportsType, Compilation, CompilationId,
+  CompilerId, Context, FactoryMeta, LibIdentOptions, Module as _, ModuleIdentifier,
+  RuntimeModuleCommon, RuntimeModuleStage, SourceType, rspack_sources::Source,
 };
 use rspack_napi::{OneShotRef, WeakRef, napi::bindgen_prelude::*, string::JsStringExt};
 use rspack_plugin_runtime::RuntimeModuleFromJs;
@@ -59,13 +62,13 @@ pub fn module_get_identifier<'env>(env: &'env Env, module: Object<'env>) -> Resu
 #[napi(ts_args_type = "module: Module")]
 pub fn module_get_type<'env>(env: &'env Env, module: Object<'env>) -> Result<JsString<'env>> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
-  module.with_ref(|_, module| env.create_string(module.module_type().as_str()))
+  module.with_local_ref(|module| env.create_string(module.module_type().as_str()))
 }
 
 #[napi(ts_args_type = "module: Module")]
 pub fn module_get_context(module: Object<'_>) -> napi::Result<Either<String, ()>> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
-  module.with_ref(|_, module| {
+  module.with_local_ref(|module| {
     Ok(match module.get_context() {
       Some(ctx) => Either::A(ctx.to_string()),
       None => Either::B(()),
@@ -76,7 +79,7 @@ pub fn module_get_context(module: Object<'_>) -> napi::Result<Either<String, ()>
 #[napi(ts_args_type = "module: Module")]
 pub fn module_get_layer(module: Object<'_>) -> napi::Result<Either<String, ()>> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
-  module.with_ref(|_, module| {
+  module.with_local_ref(|module| {
     Ok(match module.get_layer() {
       Some(layer) => Either::A(layer.to_owned()),
       None => Either::B(()),
@@ -87,19 +90,19 @@ pub fn module_get_layer(module: Object<'_>) -> napi::Result<Either<String, ()>> 
 #[napi(ts_args_type = "module: Module")]
 pub fn module_get_use_source_map(module: Object<'_>) -> napi::Result<bool> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
-  module.with_ref(|_, module| Ok(module.get_source_map_kind().source_map()))
+  module.with_local_ref(|module| Ok(module.get_source_map_kind().source_map()))
 }
 
 #[napi(ts_args_type = "module: Module")]
 pub fn module_get_use_simple_source_map(module: Object<'_>) -> napi::Result<bool> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
-  module.with_ref(|_, module| Ok(module.get_source_map_kind().simple_source_map()))
+  module.with_local_ref(|module| Ok(module.get_source_map_kind().simple_source_map()))
 }
 
 #[napi(ts_args_type = "module: Module")]
 pub fn module_get_factory_meta(module: Object<'_>) -> napi::Result<JsFactoryMeta> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
-  module.with_ref(|_, module| {
+  module.with_local_ref(|module| {
     Ok(match module.as_normal_module() {
       Some(normal_module) => match normal_module.factory_meta() {
         Some(meta) => JsFactoryMeta {
@@ -123,8 +126,10 @@ pub fn module_set_factory_meta(
 ) -> napi::Result<()> {
   let module = unsafe { ModuleHandle::from_napi_ref(module.value().env, module.raw())? };
   // napi-rs converts all arguments before we acquire mutable core access.
-  module.as_mut()?.set_factory_meta(factory_meta.into());
-  Ok(())
+  module.with_mut(|module| {
+    module.set_factory_meta(factory_meta.into());
+    Ok(())
+  })
 }
 
 #[napi(ts_args_type = "module: Module", ts_return_type = "BuildInfo")]
@@ -256,19 +261,6 @@ pub fn module_emit_file(
   module.emit_file(env, filename, source, info)
 }
 
-// ## Clarify Access Methods for napi Module to Rust Module
-// Primary access: Query compilation.module_graph using module_identifier
-// Fallback for unregistered modules: Access via raw pointer when modules aren't yet stored in compilation.module_graph (e.g., during loader execution phase)
-//
-// ## Clarify napi Module Lifecycle
-// Created when accessed via JavaScript API
-// Lifecycle ends upon triggering revoked_modules hook
-//
-// ## Behavior When napi Module Lifecycle Ends
-// When JavaScript API accesses napi module properties after lifecycle termination:
-// module_identifier query in compilation.module_graph returns undefined
-// Raw pointer stored in napi module becomes None
-// Throw an Error to the JavaScript side
 struct OriginalSourceNapiRef {
   // Only retain a weak pointer for identity comparison. Holding another BoxSource here would
   // increment its Arc strong count and keep the native source alive after the Module replaces it.
@@ -280,24 +272,65 @@ struct OriginalSourceNapiRef {
   napi_ref: OneShotRef,
 }
 
+#[derive(Debug)]
+struct LoaderModuleContext {
+  context: Context,
+  compilation_id: CompilationId,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct ModulePointer {
+  ptr: NonNull<dyn rspack_core::Module>,
+  writable: bool,
+}
+
 pub struct ModuleHandle {
   pub(crate) identifier: ModuleIdentifier,
-  pub(crate) ptr: Cell<Option<NonNull<dyn rspack_core::Module>>>,
+  pointer: Cell<Option<ModulePointer>>,
+  // The Rust caller retains the module for this hook or loader invocation.
+  owned: AtomicBool,
   pub(crate) compiler_id: CompilerId,
   pub(crate) type_id: TypeId,
+  loader_context: RefCell<Option<LoaderModuleContext>>,
   original_source_ref: RefCell<Option<OriginalSourceNapiRef>>,
   pub(crate) build_info_ref: RefCell<Option<WeakRef>>,
 }
 
 impl ModuleHandle {
-  pub(crate) fn new(value: &ModuleObject) -> Self {
+  pub(crate) fn new(value: ModuleObject) -> Self {
     Self {
       identifier: value.identifier,
       compiler_id: value.compiler_id,
       type_id: value.type_id,
-      ptr: Cell::new(value.ptr),
+      owned: AtomicBool::new(value.pointer.is_some()),
+      pointer: Cell::new(value.pointer),
+      loader_context: RefCell::new(value.loader_context),
       original_source_ref: RefCell::new(None),
       build_info_ref: RefCell::new(None),
+    }
+  }
+
+  pub(crate) fn set_direct_access(&self, value: &mut ModuleObject) {
+    self.pointer.set(value.pointer.take());
+    self.loader_context.replace(value.loader_context.take());
+    self.owned.store(true, Ordering::Relaxed);
+  }
+
+  pub(crate) fn revoke_direct_access(&self) {
+    self.owned.store(false, Ordering::Relaxed);
+    self.pointer.set(None);
+    self.loader_context.replace(None);
+  }
+
+  pub(crate) fn has_direct_access(&self) -> bool {
+    self.owned.load(Ordering::Relaxed)
+  }
+
+  fn direct_pointer(&self) -> Option<ModulePointer> {
+    if self.has_direct_access() {
+      self.pointer.get()
+    } else {
+      None
     }
   }
 
@@ -346,31 +379,40 @@ impl ModuleHandle {
     &self,
     f: impl FnOnce(&Compilation, &dyn rspack_core::Module) -> napi::Result<R>,
   ) -> napi::Result<R> {
-    let module_identifier = self.identifier;
-    let module_ptr = self.ptr.get();
     self.with_compilation(|compilation| {
-      if let Some(module) = compilation.module_by_identifier(&module_identifier) {
+      if let Some(pointer) = self.direct_pointer() {
+        // SAFETY: The caller keeps the module alive until the JS invocation has finished.
+        f(compilation, unsafe { pointer.ptr.as_ref() })
+      } else if let Some(module) = compilation.module_by_identifier(&self.identifier) {
         f(compilation, module.as_ref())
-      } else if let Some(ptr) = module_ptr {
-        // SAFETY:
-        // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
-        // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
-        f(compilation, unsafe { ptr.as_ref() })
       } else {
         Err(self.module_removed_error())
       }
     })
   }
 
-  pub(crate) fn as_mut(&self) -> napi::Result<&'static mut dyn rspack_core::Module> {
-    match self.ptr.get() {
-      Some(mut ptr) => {
-        // SAFETY:
-        // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
-        // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
-        Ok(unsafe { ptr.as_mut() })
+  pub(crate) fn with_local_ref<R>(
+    &self,
+    f: impl FnOnce(&dyn rspack_core::Module) -> napi::Result<R>,
+  ) -> napi::Result<R> {
+    if let Some(pointer) = self.direct_pointer() {
+      // SAFETY: The caller keeps the module alive until the JS invocation has finished.
+      return f(unsafe { pointer.ptr.as_ref() });
+    }
+    self.with_ref(|_, module| f(module))
+  }
+
+  pub(crate) fn with_mut<R>(
+    &self,
+    f: impl FnOnce(&mut dyn rspack_core::Module) -> napi::Result<R>,
+  ) -> napi::Result<R> {
+    match self.direct_pointer() {
+      Some(mut pointer) if pointer.writable => {
+        // SAFETY: The caller grants mutable access for this invocation. The
+        // reference is used synchronously without calling back into JS.
+        f(unsafe { pointer.ptr.as_mut() })
       }
-      None => Err(napi::Error::from_reason(format!(
+      _ => Err(napi::Error::from_reason(format!(
         "Unable to modify module with id = {}. Currently, you can only modify the module in the loader in Rspack.",
         self.identifier
       ))),
@@ -380,6 +422,10 @@ impl ModuleHandle {
 
 impl ModuleHandle {
   pub fn readable_identifier(&self) -> napi::Result<String> {
+    if let Some(loader) = self.loader_context.borrow().as_ref() {
+      return self
+        .with_local_ref(|module| Ok(module.readable_identifier(&loader.context).to_string()));
+    }
     self.with_ref(|compilation, module| {
       Ok(
         module
@@ -390,34 +436,22 @@ impl ModuleHandle {
   }
 
   pub fn original_source<'a>(&self, env: &'a Env) -> napi::Result<Either<Unknown<'a>, ()>> {
-    let compiler_reference = COMPILER_REFERENCES.with(|ref_cell| {
-      let references = ref_cell.borrow();
-      references.get(&self.compiler_id).cloned()
-    });
-
-    let compilation = {
-      let Some(this) = compiler_reference
-        .as_ref()
-        .and_then(|compiler_reference| compiler_reference.get())
-      else {
-        return Err(self.compiler_garbage_collected_error());
-      };
-      &this.compiler.compilation
-    };
-
-    let module = {
-      if let Some(module) = compilation.module_by_identifier(&self.identifier) {
-        module.as_ref()
-      } else if let Some(ptr) = self.ptr.get() {
-        // SAFETY:
-        // We need to make users aware in the documentation that values obtained within the JS hook callback should not be used outside the scope of the callback.
-        // We do not guarantee that the memory pointed to by the pointer remains valid when used outside the scope.
-        unsafe { ptr.as_ref() }
-      } else {
+    if self.has_direct_access() {
+      return self.with_local_ref(|module| self.original_source_from_module(env, module));
+    }
+    self.with_compilation(|compilation| {
+      let Some(module) = compilation.module_by_identifier(&self.identifier) else {
         return Ok(Either::B(()));
-      }
-    };
+      };
+      self.original_source_from_module(env, module.as_ref())
+    })
+  }
 
+  fn original_source_from_module<'a>(
+    &self,
+    env: &'a Env,
+    module: &dyn rspack_core::Module,
+  ) -> napi::Result<Either<Unknown<'a>, ()>> {
     let Some(original_source) = module.source() else {
       *self.original_source_ref.borrow_mut() = None;
       return Ok(Either::B(()));
@@ -444,7 +478,7 @@ impl ModuleHandle {
   }
 
   pub fn name_for_condition(&self) -> napi::Result<Either<String, ()>> {
-    self.with_ref(|_, module| {
+    self.with_local_ref(|module| {
       Ok(match module.name_for_condition() {
         Some(s) => Either::A(s.to_string()),
         None => Either::B(()),
@@ -452,32 +486,47 @@ impl ModuleHandle {
     })
   }
 
+  fn with_dependency_owner<R>(
+    &self,
+    f: impl FnOnce(&dyn rspack_core::Module, Option<CompilationId>) -> napi::Result<R>,
+  ) -> napi::Result<R> {
+    let loader_compilation = self
+      .loader_context
+      .borrow()
+      .as_ref()
+      .map(|loader| loader.compilation_id);
+    if let Some(compilation_id) = loader_compilation {
+      return self.with_local_ref(|module| f(module, Some(compilation_id)));
+    }
+    self.with_ref(|compilation, module| f(module, Some(compilation.id())))
+  }
+
   pub fn blocks(&self) -> napi::Result<Vec<AsyncDependenciesBlockWrapper>> {
-    self.with_ref(|compilation, module| {
+    self.with_dependency_owner(|module, compilation_id| {
       Ok(
         module
           .get_block_refs()
           .iter()
-          .map(|block| AsyncDependenciesBlockWrapper::new(block.clone(), Some(compilation.id())))
+          .map(|block| AsyncDependenciesBlockWrapper::new(block.clone(), compilation_id))
           .collect(),
       )
     })
   }
 
   pub fn dependencies(&self) -> napi::Result<Vec<DependencyWrapper>> {
-    self.with_ref(|compilation, module| {
+    self.with_dependency_owner(|module, compilation_id| {
       Ok(
         module
           .get_dependencies()
           .iter()
-          .map(|dep| DependencyWrapper::new(dep.clone(), Some(compilation.id())))
+          .map(|dep| DependencyWrapper::new(dep.clone(), compilation_id))
           .collect(),
       )
     })
   }
 
   pub fn size(&self, ty: Option<String>) -> napi::Result<f64> {
-    self.with_ref(|_, module| {
+    self.with_local_ref(|module| {
       let ty = ty.map(|s| SourceType::from(s.as_str()));
       Ok(module.size(ty.as_ref()))
     })
@@ -488,7 +537,7 @@ impl ModuleHandle {
     env: &'a Env,
     options: JsLibIdentOptions,
   ) -> napi::Result<Option<JsString<'a>>> {
-    self.with_ref(|_, module| {
+    self.with_local_ref(|module| {
       Ok(
         match module.lib_ident(LibIdentOptions {
           context: &options.context,
@@ -520,15 +569,16 @@ impl ModuleHandle {
     };
 
     let source = source.try_into()?;
-    let module = self.as_mut()?;
-    module.build_info_mut().assets.insert(
-      filename,
-      rspack_core::CompilationAsset {
-        source: Some(source),
-        info: asset_info,
-      },
-    );
-    Ok(())
+    self.with_mut(|module| {
+      module.build_info_mut().assets.insert(
+        filename,
+        rspack_core::CompilationAsset {
+          source: Some(source),
+          info: asset_info,
+        },
+      );
+      Ok(())
+    })
   }
 }
 
@@ -540,8 +590,9 @@ impl ModuleHandle {
 pub struct ModuleObject {
   pub(crate) type_id: TypeId,
   pub(crate) identifier: ModuleIdentifier,
-  pub(crate) ptr: Option<NonNull<dyn rspack_core::Module>>,
+  pointer: Option<ModulePointer>,
   pub(crate) compiler_id: CompilerId,
+  loader_context: Option<LoaderModuleContext>,
 }
 
 unsafe impl Send for ModuleObject {}
@@ -549,23 +600,91 @@ unsafe impl Sync for ModuleObject {}
 
 impl ModuleObject {
   pub fn with_ref(module: &dyn rspack_core::Module, compiler_id: CompilerId) -> Self {
+    Self::from_identifier(compiler_id, module.identifier(), module.as_any().type_id())
+  }
+
+  fn from_identifier(
+    compiler_id: CompilerId,
+    identifier: ModuleIdentifier,
+    type_id: TypeId,
+  ) -> Self {
     Self {
-      type_id: module.as_any().type_id(),
-      identifier: module.identifier(),
-      ptr: None,
+      type_id,
+      identifier,
+      pointer: None,
       compiler_id,
+      loader_context: None,
     }
   }
 
-  pub fn with_ptr(module_ptr: NonNull<dyn rspack_core::Module>, compiler_id: CompilerId) -> Self {
-    let module = unsafe { module_ptr.as_ref() };
+  pub(crate) fn with_ptr(module: &dyn rspack_core::Module, compiler_id: CompilerId) -> Self {
+    let mut value = Self::with_ref(module, compiler_id);
+    value.pointer = Some(ModulePointer {
+      ptr: NonNull::from(module),
+      writable: false,
+    });
+    value
+  }
 
-    Self {
-      type_id: module.as_any().type_id(),
-      identifier: module.identifier(),
-      ptr: Some(module_ptr),
-      compiler_id,
-    }
+  pub(crate) fn with_mut(module: &mut dyn rspack_core::Module, compiler_id: CompilerId) -> Self {
+    let mut value = Self::with_ref(module, compiler_id);
+    value.pointer = Some(ModulePointer {
+      ptr: NonNull::from(module),
+      writable: true,
+    });
+    value
+  }
+
+  pub(crate) fn with_loader_context(
+    mut self,
+    context: Context,
+    compilation_id: CompilationId,
+  ) -> Self {
+    self.loader_context = Some(LoaderModuleContext {
+      context,
+      compilation_id,
+    });
+    self
+  }
+
+  pub(crate) fn has_ptr(&self) -> bool {
+    self.pointer.is_some()
+  }
+
+  pub(crate) fn into_jsobject(
+    self,
+    env: &Env,
+  ) -> Result<(Object<'_>, Option<module_bridge::ModuleAccess>)> {
+    module_bridge::to_jsobject(env, self)
+  }
+
+  pub(crate) async fn call_with_sync<R>(
+    self,
+    callback: &CompilerScopedTsFnHandle<Self, R>,
+  ) -> rspack_error::Result<R>
+  where
+    R: 'static + FromNapiValue + Send,
+  {
+    self
+      .call_with_sync_args(callback, |_, module| Ok(vec![module.raw()]))
+      .await
+  }
+
+  pub(crate) async fn call_with_sync_args<T, R>(
+    self,
+    callback: &CompilerScopedTsFnHandle<T, R>,
+    args: impl FnOnce(&Env, Object<'_>) -> Result<Vec<sys::napi_value>> + Send + 'static,
+  ) -> rspack_error::Result<R>
+  where
+    T: 'static + JsValuesTupleIntoVec,
+    R: 'static + FromNapiValue + Send,
+  {
+    callback
+      .call_with_sync_prepared(move |env| {
+        let (module, access) = self.into_jsobject(env)?;
+        Ok((args(env, module)?, access))
+      })
+      .await
   }
 
   pub fn cleanup_by_compiler_id(compiler_id: &CompilerId) {
@@ -587,7 +706,12 @@ impl ModuleObject {
 impl ToNapiValue for ModuleObject {
   unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
     let env = unsafe { Env::from_raw(env) };
-    module_bridge::to_jsobject(&env, val)
+    if val.has_ptr() {
+      return Err(Error::from_reason(
+        "Direct Module access requires a scoped callback",
+      ));
+    }
+    val.into_jsobject(&env).map(|(object, _)| object.raw())
   }
 }
 
@@ -597,8 +721,9 @@ impl FromNapiValue for ModuleObject {
     Ok(Self {
       type_id: handle.type_id,
       identifier: handle.identifier,
-      ptr: handle.ptr.get(),
+      pointer: None,
       compiler_id: handle.compiler_id,
+      loader_context: None,
     })
   }
 }

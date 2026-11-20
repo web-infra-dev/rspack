@@ -2,7 +2,6 @@ use std::{
   ffi::c_void,
   hash::Hash,
   marker::PhantomData,
-  ptr::NonNull,
   sync::{Arc, RwLock},
 };
 
@@ -208,18 +207,30 @@ impl<T, R> ThreadsafeJsTapFunction<T, R> {
 
 impl<T, R> ThreadsafeJsTapFunction<T, R>
 where
-  T: 'static + JsValuesTupleIntoVec,
-  R: 'static + FromNapiValue,
+  T: 'static + JsValuesTupleIntoVec + Send,
+  R: 'static + FromNapiValue + Send,
 {
   async fn call_with_sync(&self, value: T) -> rspack_error::Result<R> {
     self.inner.call_with_sync::<T, R>(value).await
   }
 }
 
+impl ThreadsafeJsTapFunction<ModuleObject, ()> {
+  async fn call_with_module(&self, module: ModuleObject) -> rspack_error::Result<()> {
+    self
+      .inner
+      .call_with_sync_prepared(move |env| {
+        let (module, access) = module.into_jsobject(env)?;
+        Ok((vec![module.raw()], access))
+      })
+      .await
+  }
+}
+
 impl<T, R> ThreadsafeJsTapFunction<T, Promise<R>>
 where
-  T: 'static + JsValuesTupleIntoVec,
-  R: 'static + FromNapiValue,
+  T: 'static + JsValuesTupleIntoVec + Send,
+  R: 'static + FromNapiValue + Send,
 {
   async fn call_with_promise(&self, value: T) -> rspack_error::Result<R> {
     self.inner.call_with_promise::<T, R>(value).await
@@ -1271,15 +1282,10 @@ impl CompilationBuildModule for CompilationBuildModuleTap {
     _compilation_id: CompilationId,
     module: &mut BoxModule,
   ) -> rspack_error::Result<()> {
-    #[allow(clippy::unwrap_used)]
-    let _ = self
+    self
       .function
-      .call_with_sync(ModuleObject::with_ptr(
-        NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
-        compiler_id,
-      ))
-      .await?;
-    Ok(())
+      .call_with_module(ModuleObject::with_mut(module.as_mut(), compiler_id))
+      .await
   }
 
   fn stage(&self) -> i32 {
@@ -1295,11 +1301,10 @@ impl CompilationStillValidModule for CompilationStillValidModuleTap {
     _compilation_id: CompilationId,
     module: &dyn Module,
   ) -> rspack_error::Result<()> {
-    let _ = self
+    self
       .function
-      .call_with_sync(ModuleObject::with_ptr(NonNull::from(module), compiler_id))
-      .await?;
-    Ok(())
+      .call_with_module(ModuleObject::with_ptr(module, compiler_id))
+      .await
   }
 
   fn stage(&self) -> i32 {
@@ -1315,15 +1320,10 @@ impl CompilationSucceedModule for CompilationSucceedModuleTap {
     _compilation_id: CompilationId,
     module: &mut BoxModule,
   ) -> rspack_error::Result<()> {
-    #[allow(clippy::unwrap_used)]
-    let _ = self
+    self
       .function
-      .call_with_sync(ModuleObject::with_ptr(
-        NonNull::new(module.as_mut() as *const dyn Module as *mut dyn Module).unwrap(),
-        compiler_id,
-      ))
-      .await?;
-    Ok(())
+      .call_with_module(ModuleObject::with_mut(module.as_mut(), compiler_id))
+      .await
   }
 
   fn stage(&self) -> i32 {
