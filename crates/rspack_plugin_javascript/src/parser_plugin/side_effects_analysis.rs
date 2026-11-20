@@ -9,8 +9,7 @@
 // import checks stay in `side_effects_parser_plugin`.
 use rspack_util::swc::{AstSubRangeExt, PropertyKeyValue, classify_property_key};
 use swc_next_ecma_ast::{
-  ArgumentData, ArrowFunctionBodyData, Ast, BindingPattern, BindingPatternData, Class,
-  ClassElementData, DeclData, Expr, ExprData, FormalParameterItemData, FormalParameters, Function,
+  ArgumentData, Ast, Class, ClassElementData, DeclData, Expr, ExprData, Function,
   MethodDefinitionKind, ObjectPropertyKindData, PropertyKey, PropertyKeyData, PropertyKind, Stmt,
   StmtData, UnaryOperator, VariableKind,
 };
@@ -62,9 +61,7 @@ pub(super) fn may_have_side_effects(expression: Expr, ctx: SideEffectsContext<'_
     return true;
   };
 
-  if is_pure_callee(expression, ctx)
-    || global_member_name(expression, ctx).is_some_and(|(object, _)| object == "Math")
-  {
+  if is_pure_callee(expression, ctx) {
     return false;
   }
 
@@ -80,7 +77,6 @@ pub(super) fn may_have_side_effects(expression: Expr, ctx: SideEffectsContext<'_
           ast.get_utf8(identifier.name(ast)),
           "Infinity"
             | "NaN"
-            | "Date"
             | "Math"
             | "undefined"
             | "Object"
@@ -183,7 +179,7 @@ pub(super) fn may_have_side_effects(expression: Expr, ctx: SideEffectsContext<'_
     | ExprData::ImportExpression(_) => true,
     ExprData::ChainExpression(chain) => match ast.expr_data(chain.expression(ast)) {
       ExprData::CallExpression(call) if is_pure_callee(call.callee(ast), ctx) => {
-        pure_call_may_have_side_effects(call, ctx)
+        arguments_may_have_side_effects(call.arguments(ast), ctx)
       }
       _ => true,
     },
@@ -195,7 +191,7 @@ pub(super) fn may_have_side_effects(expression: Expr, ctx: SideEffectsContext<'_
     }
     ExprData::NewExpression(_) => true,
     ExprData::CallExpression(call) if is_pure_callee(call.callee(ast), ctx) => {
-      pure_call_may_have_side_effects(call, ctx)
+      arguments_may_have_side_effects(call.arguments(ast), ctx)
     }
     ExprData::CallExpression(_) => true,
     ExprData::SequenceExpression(sequence) => ast
@@ -257,22 +253,24 @@ fn is_pure_callee(expression: Expr, ctx: SideEffectsContext<'_, '_>) -> bool {
   }
 }
 
-fn pure_call_may_have_side_effects(
-  call: swc_next_ecma_ast::CallExpression,
-  ctx: SideEffectsContext<'_, '_>,
-) -> bool {
-  let ast = ctx.ast;
-  arguments_may_have_side_effects(call.arguments(ast), ctx)
-    || invoked_arguments_may_have_side_effects(call.arguments(ast), ctx)
-}
-
 pub(super) fn is_pure_global_callee(expression: Expr, ctx: SideEffectsContext<'_, '_>) -> bool {
   if let Some(name) = global_reference_name(expression, ctx) {
     return is_pure_global_function(name);
   }
 
-  global_member_name(expression, ctx)
-    .is_some_and(|(object, method)| is_pure_global_method(object, method))
+  let ast = ctx.ast;
+  let ExprData::MemberExpression(member) = ast.expr_data(expression) else {
+    return false;
+  };
+  if member.computed(ast) {
+    return false;
+  }
+  let PropertyKeyData::IdentifierName(property) = ast.property_key_data(member.property(ast))
+  else {
+    return false;
+  };
+  global_reference_name(member.object(ast), ctx)
+    .is_some_and(|object| is_pure_global_method(object, ast.get_utf8(property.name(ast))))
 }
 
 pub(super) fn is_pure_global_new(
@@ -283,15 +281,11 @@ pub(super) fn is_pure_global_new(
   let Some(name) = global_reference_name(new_expression.callee(ast), ctx) else {
     return false;
   };
-  let arguments = new_expression.arguments(ast);
-  if invoked_arguments_may_have_side_effects(arguments, ctx) {
-    return false;
-  }
   if is_pure_global_constructor(name) {
     return true;
   }
 
-  let first = match ast.nodes(arguments).next() {
+  let first = match ast.nodes(new_expression.arguments(ast)).next() {
     None => None,
     Some(argument) => match ast.argument_data(argument) {
       ArgumentData::SpreadElement(_) => return false,
@@ -322,180 +316,6 @@ pub(super) fn is_pure_global_new(
   }
 }
 
-pub(super) fn invoked_arguments_may_have_side_effects(
-  arguments: swc_next_ecma_ast::SubRange<swc_next_ecma_ast::Argument>,
-  ctx: SideEffectsContext<'_, '_>,
-) -> bool {
-  ctx
-    .ast
-    .nodes(arguments)
-    .any(|argument| match ctx.ast.argument_data(argument) {
-      ArgumentData::Expr(expression) => invoked_value_may_have_side_effects(expression, ctx),
-      ArgumentData::SpreadElement(_) => true,
-    })
-}
-
-fn invoked_value_may_have_side_effects(expression: Expr, ctx: SideEffectsContext<'_, '_>) -> bool {
-  let ast = ctx.ast;
-  match ast.expr_data(expression) {
-    ExprData::Function(function) => {
-      parameters_may_have_side_effects(function.params(ast), ctx)
-        || ast
-          .nodes(function.body(ast).body(ast))
-          .any(|statement| stmt_may_have_side_effects(statement, ctx))
-    }
-    ExprData::ArrowFunctionExpression(arrow) => {
-      parameters_may_have_side_effects(arrow.params(ast), ctx)
-        || match ast.arrow_function_body_data(arrow.body(ast)) {
-          ArrowFunctionBodyData::FunctionBody(body) => ast
-            .nodes(body.body(ast))
-            .any(|statement| stmt_may_have_side_effects(statement, ctx)),
-          ArrowFunctionBodyData::Expr(expression) => may_have_side_effects(expression, ctx),
-        }
-    }
-    ExprData::ParenthesizedExpression(parenthesized) => {
-      invoked_value_may_have_side_effects(parenthesized.expression(ast), ctx)
-    }
-    ExprData::TsAsExpression(expression) => {
-      invoked_value_may_have_side_effects(expression.expression(ast), ctx)
-    }
-    ExprData::TsSatisfiesExpression(expression) => {
-      invoked_value_may_have_side_effects(expression.expression(ast), ctx)
-    }
-    ExprData::TsTypeAssertion(expression) => {
-      invoked_value_may_have_side_effects(expression.expression(ast), ctx)
-    }
-    ExprData::TsNonNullExpression(expression) => {
-      invoked_value_may_have_side_effects(expression.expression(ast), ctx)
-    }
-    ExprData::TsInstantiationExpression(expression) => {
-      invoked_value_may_have_side_effects(expression.expression(ast), ctx)
-    }
-    ExprData::ConditionalExpression(conditional) => {
-      invoked_value_may_have_side_effects(conditional.consequent(ast), ctx)
-        || invoked_value_may_have_side_effects(conditional.alternate(ast), ctx)
-    }
-    ExprData::LogicalExpression(logical) => {
-      invoked_value_may_have_side_effects(logical.left(ast), ctx)
-        || invoked_value_may_have_side_effects(logical.right(ast), ctx)
-    }
-    ExprData::SequenceExpression(sequence) => ast
-      .nodes(sequence.expressions(ast))
-      .any(|expression| invoked_value_may_have_side_effects(expression, ctx)),
-    ExprData::ArrayExpression(array) => {
-      ast
-        .optional_nodes(array.elements(ast))
-        .flatten()
-        .any(|element| match ast.argument_data(element) {
-          ArgumentData::Expr(expression) => invoked_value_may_have_side_effects(expression, ctx),
-          ArgumentData::SpreadElement(_) => true,
-        })
-    }
-    ExprData::ObjectExpression(object) => {
-      ast.nodes(object.properties(ast)).any(|property| {
-        match ast.object_property_kind_data(property) {
-          ObjectPropertyKindData::SpreadElement(_) => true,
-          ObjectPropertyKindData::ObjectProperty(property) => {
-            property.kind(ast) == PropertyKind::Init
-              && !property.method(ast)
-              && invoked_value_may_have_side_effects(property.value(ast), ctx)
-          }
-        }
-      })
-    }
-    _ => false,
-  }
-}
-
-fn parameters_may_have_side_effects(
-  parameters: FormalParameters,
-  ctx: SideEffectsContext<'_, '_>,
-) -> bool {
-  let ast = ctx.ast;
-  ast
-    .nodes(parameters.items(ast))
-    .any(|item| match ast.formal_parameter_item_data(item) {
-      FormalParameterItemData::FormalParameter(parameter) => {
-        parameter
-          .initializer(ast)
-          .is_some_and(|initializer| may_have_side_effects(initializer, ctx))
-          || binding_pattern_may_have_side_effects(parameter.pattern(ast).into(), ctx)
-      }
-      FormalParameterItemData::TsParameterProperty(_) => true,
-    })
-    || parameters
-      .rest(ast)
-      .is_some_and(|rest| binding_pattern_may_have_side_effects(rest.argument(ast).into(), ctx))
-}
-
-fn binding_pattern_may_have_side_effects(
-  pattern: BindingPattern,
-  ctx: SideEffectsContext<'_, '_>,
-) -> bool {
-  let ast = ctx.ast;
-  match ast.binding_pattern_data(pattern) {
-    BindingPatternData::BindingIdentifier(_) => false,
-    BindingPatternData::AssignmentPattern(assignment) => {
-      may_have_side_effects(assignment.right(ast), ctx)
-        || binding_pattern_may_have_side_effects(assignment.left(ast), ctx)
-    }
-    BindingPatternData::BindingRestElement(rest) => {
-      binding_pattern_may_have_side_effects(rest.argument(ast), ctx)
-    }
-    BindingPatternData::ArrayPattern(array) => {
-      ast
-        .optional_nodes(array.elements(ast))
-        .flatten()
-        .any(|element| binding_pattern_may_have_side_effects(element, ctx))
-        || array
-          .rest(ast)
-          .is_some_and(|rest| binding_pattern_may_have_side_effects(rest.argument(ast), ctx))
-    }
-    BindingPatternData::ObjectPattern(object) => {
-      ast.nodes(object.properties(ast)).any(|property| {
-        (property.computed(ast) && property_key_may_have_side_effects(property.key(ast), ctx))
-          || binding_pattern_may_have_side_effects(property.value(ast), ctx)
-      }) || object
-        .rest(ast)
-        .is_some_and(|rest| binding_pattern_may_have_side_effects(rest.argument(ast), ctx))
-    }
-    BindingPatternData::SimpleAssignmentTarget(_) => true,
-  }
-}
-
-pub(super) fn stmt_may_have_side_effects(statement: Stmt, ctx: SideEffectsContext<'_, '_>) -> bool {
-  let ast = ctx.ast;
-  match ast.stmt_data(statement) {
-    StmtData::EmptyStatement(_) => false,
-    StmtData::ExpressionStatement(expression) => {
-      may_have_side_effects(expression.expression(ast), ctx)
-    }
-    StmtData::ReturnStatement(return_statement) => return_statement
-      .argument(ast)
-      .is_some_and(|argument| may_have_side_effects(argument, ctx)),
-    StmtData::Declaration(declaration) => match ast.decl_data(declaration) {
-      DeclData::VariableDeclaration(variable) => {
-        if matches!(
-          variable.kind(ast),
-          VariableKind::Using | VariableKind::AwaitUsing
-        ) {
-          return true;
-        }
-        ast.nodes(variable.declarators(ast)).any(|declarator| {
-          !matches!(
-            ast.binding_pattern_data(declarator.id(ast)),
-            BindingPatternData::BindingIdentifier(_)
-          ) || declarator
-            .init(ast)
-            .is_some_and(|initializer| may_have_side_effects(initializer, ctx))
-        })
-      }
-      _ => true,
-    },
-    _ => true,
-  }
-}
-
 // Calls and `new` expressions of these globals count as side-effect-free even
 // when they can throw on invalid input, such as `new WeakSet([1])` or
 // `decodeURIComponent("%")`
@@ -503,6 +323,7 @@ fn is_pure_global_function(name: &str) -> bool {
   matches!(
     name,
     "Boolean"
+      | "Date"
       | "Number"
       | "Object"
       | "String"
@@ -520,44 +341,8 @@ fn is_pure_global_function(name: &str) -> bool {
 
 fn is_pure_global_method(object: &str, method: &str) -> bool {
   match object {
-    "Array" => matches!(method, "from" | "isArray" | "of"),
-    "Math" => matches!(
-      method,
-      "abs"
-        | "acos"
-        | "acosh"
-        | "asin"
-        | "asinh"
-        | "atan"
-        | "atan2"
-        | "atanh"
-        | "cbrt"
-        | "ceil"
-        | "clz32"
-        | "cos"
-        | "cosh"
-        | "exp"
-        | "expm1"
-        | "floor"
-        | "fround"
-        | "hypot"
-        | "imul"
-        | "log"
-        | "log10"
-        | "log1p"
-        | "log2"
-        | "max"
-        | "min"
-        | "pow"
-        | "round"
-        | "sign"
-        | "sin"
-        | "sinh"
-        | "sqrt"
-        | "tan"
-        | "tanh"
-        | "trunc"
-    ),
+    "Array" => matches!(method, "isArray" | "of"),
+    "Math" => true,
     "Number" => matches!(
       method,
       "isFinite" | "isInteger" | "isNaN" | "isSafeInteger" | "parseFloat" | "parseInt"
@@ -596,7 +381,6 @@ fn is_pure_global_constructor(name: &str) -> bool {
       | "EvalError"
       | "Number"
       | "Object"
-      | "Promise"
       | "RangeError"
       | "ReferenceError"
       | "RegExp"
@@ -633,25 +417,6 @@ fn global_reference_name<'a>(expression: Expr, ctx: SideEffectsContext<'a, '_>) 
     return None;
   };
   is_unresolved_reference(identifier, ctx).then(|| ast.get_utf8(identifier.name(ast)))
-}
-
-fn global_member_name<'a>(
-  expression: Expr,
-  ctx: SideEffectsContext<'a, '_>,
-) -> Option<(&'a str, &'a str)> {
-  let ast = ctx.ast;
-  let ExprData::MemberExpression(member) = ast.expr_data(expression) else {
-    return None;
-  };
-  if member.computed(ast) {
-    return None;
-  }
-  let PropertyKeyData::IdentifierName(property) = ast.property_key_data(member.property(ast))
-  else {
-    return None;
-  };
-  let object = global_reference_name(member.object(ast), ctx)?;
-  Some((object, ast.get_utf8(property.name(ast))))
 }
 
 fn is_unresolved_reference(

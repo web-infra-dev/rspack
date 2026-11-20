@@ -22,8 +22,7 @@ use swc_next_ecma_ast::{
 use swc_next_ecma_semantic::Semantic;
 
 use super::side_effects_analysis::{
-  SideEffectsContext, invoked_arguments_may_have_side_effects, is_pure_global_callee,
-  is_pure_global_new, may_have_side_effects, stmt_may_have_side_effects,
+  SideEffectsContext, is_pure_global_callee, is_pure_global_new, may_have_side_effects,
 };
 use crate::{
   Atom, JavascriptParserPlugin,
@@ -729,14 +728,13 @@ fn is_pure_call_expression(
   }
 
   if is_pure_global_callee(callee, expr_ctx(parser, false)) {
-    return !invoked_arguments_may_have_side_effects(call.arguments(ast), expr_ctx(parser, false))
-      && arguments_are_pure(
-        parser,
-        analyze_side_effects_free,
-        call.arguments(ast),
-        comments,
-        callees,
-      );
+    return arguments_are_pure(
+      parser,
+      analyze_side_effects_free,
+      call.arguments(ast),
+      comments,
+      callees,
+    );
   }
 
   if analyze_side_effects_free && let Some(identifier) = callee.as_identifier_reference(ast) {
@@ -1273,12 +1271,46 @@ fn is_side_effects_free_var_decl(
   true
 }
 
+fn stmt_may_have_side_effects(parser: &JavascriptParser, statement: Stmt) -> bool {
+  let ast = parser.ast.ast;
+  let expr_ctx = expr_ctx(parser, true);
+  match ast.stmt_data(statement) {
+    StmtData::EmptyStatement(_) => false,
+    StmtData::ExpressionStatement(expression) => {
+      may_have_side_effects(expression.expression(ast), expr_ctx)
+    }
+    StmtData::ReturnStatement(return_statement) => return_statement
+      .argument(ast)
+      .is_some_and(|argument| may_have_side_effects(argument, expr_ctx)),
+    StmtData::Declaration(declaration) => match ast.decl_data(declaration) {
+      DeclData::VariableDeclaration(variable) => {
+        if matches!(
+          variable.kind(ast),
+          VariableKind::Using | VariableKind::AwaitUsing
+        ) {
+          return true;
+        }
+        ast.nodes(variable.declarators(ast)).any(|declarator| {
+          !matches!(
+            ast.binding_pattern_data(declarator.id(ast)),
+            BindingPatternData::BindingIdentifier(_)
+          ) || declarator
+            .init(ast)
+            .is_some_and(|initializer| may_have_side_effects(initializer, expr_ctx))
+        })
+      }
+      _ => true,
+    },
+    _ => true,
+  }
+}
+
 fn is_side_effects_free_stmt(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   statement: Stmt,
 ) -> bool {
-  if !stmt_may_have_side_effects(statement, expr_ctx(parser, true)) {
+  if !stmt_may_have_side_effects(parser, statement) {
     return true;
   }
 
