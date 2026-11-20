@@ -116,7 +116,7 @@ LOG from rspack.buildChunkGraph
     0 chunk group info updated (0 already connected chunk groups reconnected)
 
 WARNING in ./index.js 2:1-17
-  ⚠ Rspack cannot determine which modules to bundle because the module path is not known at build time.
+  ⚠ Dynamic module path: Rspack cannot determine which modules to bundle because the path is unknown at build time.
    ╭─[2:8]
  1 │ require("./a");
  2 │ require(["./b"]);
@@ -126,7 +126,7 @@ WARNING in ./index.js 2:1-17
   help: To bundle local modules, use a literal path or a pattern such as `./locales/${name}.js`.
 
 WARNING in ./index.js 3:1-17
-  ⚠ Rspack cannot determine which modules to bundle because the module path is not known at build time.
+  ⚠ Dynamic module path: Rspack cannot determine which modules to bundle because the path is unknown at build time.
    ╭─[3:8]
  1 │ require("./a");
  2 │ require(["./b"]);

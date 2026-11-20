@@ -3,10 +3,10 @@ use std::borrow::Cow;
 use concat_string::concat_string;
 use itertools::Itertools;
 use rspack_core::parse_resource;
-use rspack_error::{Diagnostic, Error, Label};
+use rspack_error::{Diagnostic, Severity};
 use rspack_util::{json_stringify_str, quote_meta};
 
-use super::JavascriptParser;
+use super::{JavascriptParser, create_traceable_error};
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
 
 fn walk_evaluated_expression(evaluated: &BasicEvaluatedExpression, parser: &mut JavascriptParser) {
@@ -23,16 +23,14 @@ pub fn create_context_dependency(
   parser: &mut JavascriptParser,
 ) -> ContextModuleScanResult {
   let create_warning = |parser: &JavascriptParser, message: &str, help: &str| {
-    let (start, end) = param.range();
-    let mut error = Error::warning(message.into());
-    error.src = Some(parser.source.into());
-    error.labels = Some(vec![Label {
-      name: None,
-      offset: start as usize,
-      len: end.saturating_sub(start) as usize,
-    }]);
-    error.help = Some(help.into());
-    let mut diagnostic = Diagnostic::from(error);
+    let mut diagnostic = Diagnostic::from(create_traceable_error(
+      "Dynamic module path".into(),
+      message.into(),
+      parser.source.to_string(),
+      param.range().into(),
+    ));
+    diagnostic.severity = Severity::Warning;
+    diagnostic.help = Some(help.into());
     diagnostic.module_identifier = Some(*parser.module_identifier);
     diagnostic
   };
@@ -40,7 +38,7 @@ pub fn create_context_dependency(
     (parser.javascript_options.wrapped_context_critical == Some(true)).then(|| {
       create_warning(
         parser,
-        "Rspack may include multiple modules because part of the module path is dynamic.",
+        "Rspack may bundle multiple modules that match this path pattern.",
         "If you only need a few modules, specify each one with a literal path.",
       )
     })
@@ -202,7 +200,7 @@ pub fn create_context_dependency(
     let critical = (parser.javascript_options.expr_context_critical == Some(true))
       .then(|| create_warning(
         parser,
-        "Rspack cannot determine which modules to bundle because the module path is not known at build time.",
+        "Rspack cannot determine which modules to bundle because the path is unknown at build time.",
         "To bundle local modules, use a literal path or a pattern such as `./locales/${name}.js`.",
       ));
 

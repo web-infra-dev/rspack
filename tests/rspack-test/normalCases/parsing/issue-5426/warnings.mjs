@@ -1,3 +1,3 @@
 export default [
-  /Rspack cannot determine which modules to bundle because the module path is not known at build time/,
+  /Dynamic module path: Rspack cannot determine which modules to bundle because the path is unknown at build time/,
 ]
