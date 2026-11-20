@@ -1609,32 +1609,38 @@ define('MyLibrary', [], factory);
 - **Type:** `string`
 - **Default:** `undefined`
 
-:::info
-Only available when `library.type` is set to `modern-module`.
-:::
+When building an ESM library, use `output.library.preserveModules` to keep the source directory structure in the published package. Set it to the directory you want to preserve. Rspack emits each JavaScript module it builds in that directory as a separate file at the same relative path.
 
-When enabled, Rspack will preserve the original directory structure of modules within the specified directory. Each module will be emitted as a separate file, maintaining the same relative path as the source.
-
-Each file in the preserved directory can serve as an entry point only once. For example, if you preserve `src` and use `./src/index.js` as the entry file for both `main` and `alias`, the build fails.
-
-`preserveModules` is a special form of bundling — it can be thought of as **bundle + splitChunks where each module gets its own chunk**. Unlike a bundleless tool, Rspack still applies its full bundling pipeline (tree shaking, scope hoisting, minification, etc.), but splits the output so that each module in the specified directory becomes its own output file.
-
-:::warning
-**Barrel files may not be emitted or exposed as you expect.** Since `preserveModules` is still a form of bundling, Rspack only emits modules that are reachable from the configured entries. Non-entry barrel files (for example, an `index.ts` that re-exports from other modules) can still be emitted with their re-exports if they are part of the module graph, but only the configured entry exports are exposed through the main library entry. Unused barrel re-exports may be tree-shaken, and a barrel file may not be emitted at all if nothing references it. If you need to expose exports from a barrel file via your library entry, configure it as an entry point.
-:::
+For example, this configuration uses `src/index.js` as the entry point and preserves the directory structure under `src`.
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
 
 export default {
+  entry: './src/index.js',
   output: {
     library: {
       type: 'modern-module',
-      preserveModules: path.resolve('./src'),
+      preserveModules: path.resolve(import.meta.dirname, 'src'),
     },
   },
 };
 ```
+
+If `src/index.js` re-exports `formatDate` from `./utils/formatDate.js`, the two modules have the following output paths.
+
+```text
+src/index.js             → dist/index.mjs
+src/utils/formatDate.js  → dist/utils/formatDate.mjs
+```
+
+:::tip Usage notes
+
+- This option requires `output.library.type: 'modern-module'`.
+- Rspack builds only the entries and their dependencies, and tree shaking can still remove unused exports. To expose all the re-exports of an `index.js` file to your users, configure that file as an entry point.
+- Each file in the preserved directory can serve as an entry point only once. For example, the build fails if both `main` and `alias` use `./src/index.js` as their entry file.
+
+:::
 
 ## output.module
 

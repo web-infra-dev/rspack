@@ -1600,32 +1600,38 @@ define('MyLibrary', [], factory);
 - **类型：** `string`
 - **默认值：** `undefined`
 
-:::info
-仅在 `library.type` 为 `modern-module` 时生效。
-:::
+构建 ESM 库时，如果希望发布的文件保留源码的目录结构，可以将 `output.library.preserveModules` 设为要保留的目录。Rspack 会将该目录中参与构建的 JavaScript 模块分别输出为文件，并保留它们相对于该目录的路径。
 
-当启用后，Rspack 会保留传入目录下模块的原始文件结构。每个模块会被输出为单独的文件，保持与源码相同的相对路径。
-
-保留目录中的每个文件只能用作一个入口。例如，保留 `src` 目录时，如果 `main` 和 `alias` 都用 `./src/index.js` 作为入口文件，构建会报错。
-
-`preserveModules` 是一种特殊的打包形式——可以将其理解为 **bundle + splitChunks，其中每个模块会被拆分为单独的 chunk**。与 bundleless 工具不同，Rspack 仍然会执行完整的打包流程（tree shaking、scope hoisting、代码压缩等），只是将输出拆分为每个模块对应一个输出文件。
-
-:::warning
-**Barrel 文件可能会丢失导出。** 由于 `preserveModules` 仍然是一种打包形式，只有 entry 的导出会被保留。如果 barrel 文件（例如从其他模块重新导出的 `index.ts`）不是 entry，其重新导出的内容不会被保留在输出中。如果确实需要严格暴露导出，请将对应模块设为 entry。
-:::
+例如，下面的配置以 `src/index.js` 为入口，保留 `src` 下的目录结构。
 
 ```js title="rspack.config.mjs"
 import path from 'node:path';
 
 export default {
+  entry: './src/index.js',
   output: {
     library: {
       type: 'modern-module',
-      preserveModules: path.resolve('./src'),
+      preserveModules: path.resolve(import.meta.dirname, 'src'),
     },
   },
 };
 ```
+
+假设 `src/index.js` 从 `./utils/formatDate.js` 重新导出 `formatDate`，这两个模块的输出路径如下。
+
+```text
+src/index.js             → dist/index.mjs
+src/utils/formatDate.js  → dist/utils/formatDate.mjs
+```
+
+:::tip 注意事项
+
+- 此选项仅适用于 `output.library.type: 'modern-module'`。
+- Rspack 从入口开始构建，只处理入口及其依赖，并且仍会通过 tree shaking 移除未使用的导出。如果要让用户通过一个 `index.js` 访问它汇总的所有导出，请将这个文件配置为入口。
+- 保留目录中的同一个文件只能用作一个入口。例如，`main` 和 `alias` 都使用 `./src/index.js` 作为入口文件时，构建会报错。
+
+:::
 
 ## output.module
 
