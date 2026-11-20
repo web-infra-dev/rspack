@@ -9,8 +9,8 @@ module.exports = "foo";
 "use strict";
 /* import */ var _foo_js__rspack_import_0 = __webpack_require__("./foo.js");
 
-__webpack_require__.e(/* import() */ "parent-1_js").then(__webpack_require__.t.bind(__webpack_require__, "./parent-1.js", 23));
-__webpack_require__.e(/* import() */ "parent-2_js").then(__webpack_require__.t.bind(__webpack_require__, "./parent-2.js", 23));
+__webpack_require__.e(/* import() */ "parent-1_js").then(() => __webpack_require__.t("./parent-1.js", 23));
+__webpack_require__.e(/* import() */ "parent-2_js").then(() => __webpack_require__.t("./parent-2.js", 23));
 
 
 },

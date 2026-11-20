@@ -43,9 +43,8 @@ fn then_expr(
   match exports_type {
     ExportsType::Namespace => {
       appending = format!(
-        ".then({}.bind({}, {module_id_expr}))",
-        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-        runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
+        ".then({})",
+        runtime_template.deferred_call(&RuntimeGlobals::REQUIRE, &module_id_expr),
       );
     }
     _ => {
@@ -63,9 +62,8 @@ fn then_expr(
         &target_module.identifier(),
       ) {
         appending = format!(
-          ".then({}.bind({}, {module_id_expr}))",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE),
-          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          ".then({})",
+          runtime_template.deferred_call(&RuntimeGlobals::REQUIRE, &module_id_expr),
         );
         appending.push_str(
           format!(
@@ -79,9 +77,11 @@ fn then_expr(
       } else {
         fake_type |= FakeNamespaceObjectMode::MODULE_ID;
         appending = format!(
-          ".then({}.bind({}, {module_id_expr}, {fake_type}))",
-          runtime_template.render_runtime_globals(&RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT),
-          runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+          ".then({})",
+          runtime_template.deferred_call(
+            &RuntimeGlobals::CREATE_FAKE_NAMESPACE_OBJECT,
+            &format!("{module_id_expr}, {fake_type}"),
+          )
         );
       }
     }

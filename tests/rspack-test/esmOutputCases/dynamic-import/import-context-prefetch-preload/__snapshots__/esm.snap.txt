@@ -31,7 +31,7 @@ __webpack_require__.add({
   \**********************/
 (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
-import("./c.mjs").then(__webpack_require__.bind(__webpack_require__, /*! ./c */ "./modules/c.js"));
+import("./c.mjs").then(() => __webpack_require__(/*! ./c */ "./modules/c.js"));
 
 /* export default */ const __rspack_default_export = ("b");
 
