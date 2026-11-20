@@ -429,6 +429,8 @@ The following substitutions are available in template strings
 | [resource-path]          | The path used to resolve the file without any query params                                                            |
 | [namespace]              | The modules namespace. This is usually the library name when building as a library, empty otherwise                   |
 
+`[absolute-resource-path]` resolves `.` and `..` segments when converting a source path relative to the compilation `context` into an absolute filename. This includes sources outside `context`.
+
 When using a function, the same options are available camel-cased via the `info` parameter:
 
 ```js title="rspack.config.mjs"
