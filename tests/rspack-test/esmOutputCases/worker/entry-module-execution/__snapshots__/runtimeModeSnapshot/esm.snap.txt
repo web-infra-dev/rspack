@@ -5,12 +5,7 @@ var rspackRequire = {};
 var hasOwnProperty, baseUri;
 // rspack/runtime/get javascript chunk filename
 // This function allow to reference chunks
-var getChunkScriptFilename = (chunkId) => {
-  // return url for filenames not based on template
-
-  // return url for filenames based on template
-  return chunkId + ".mjs"
-};
+var getChunkScriptFilename = (chunkId) => (chunkId + ".mjs");
 // rspack/runtime/public_path
 var publicPath = "";;
 // rspack/runtime/module_chunk_loading
