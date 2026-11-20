@@ -269,6 +269,8 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   }
 }
 
+/// Lists up to ten exports in full. For longer lists, shows four names around the
+/// missing name's insertion point in alphabetical order and counts the rest.
 fn format_possible_exports(exports: &[Atom], missing: &Atom) -> String {
   const FULL_LIST_LIMIT: usize = 10;
   const WINDOW_SIZE: usize = 4;
