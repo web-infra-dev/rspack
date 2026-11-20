@@ -1,0 +1,14 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "mapped": [
+        "./local.js",
+        "./fallback.js"
+      ],
+      "missing-first": [
+        "./missing.js",
+        "./fallback.js"
+      ]
+    }
+  }
+}
