@@ -647,8 +647,13 @@ impl PathManager {
       let Ok(entries) = std::fs::read_dir(&dir) else {
         continue;
       };
-      for entry in entries.flatten() {
-        let path = InternedPath::from(entry.path());
+      let paths = entries
+        .flatten()
+        .map(|entry| InternedPath::from(entry.path()));
+      // On Windows, an open directory enumeration can block renaming its ancestors.
+      #[cfg(windows)]
+      let paths = paths.collect::<Vec<_>>();
+      for path in paths {
         if self.is_ignored_path(path.as_ref()).await {
           continue;
         }
