@@ -8,6 +8,8 @@ Rspack can generate ES modules (ESM) for applications and libraries. In a [brows
 
 ## Build a browser application
 
+By default, Rspack builds a browser application as a classic script, typically wrapping the bundle in an immediately invoked function expression (IIFE). To generate CommonJS or ESM output, select the corresponding format in `output`.
+
 If your application targets browsers that support ES modules and dynamic `import()`, enable [`output.module`](/config/output#outputmodule). When you use [`HtmlRspackPlugin`](/plugins/html-rspack-plugin), the plugin includes the emitted entry file in the generated HTML and sets `type="module"` on its script tag.
 
 ```js title="rspack.config.mjs"
@@ -28,9 +30,9 @@ See the [React hot module replacement example](https://github.com/rstackjs/rstac
 
 ## Build an ESM library
 
-For JavaScript libraries and UI component libraries, we recommend [Rslib](https://rslib.rs/guide/start/quick-start). Built on Rsbuild, it provides out-of-the-box support for building, debugging, and testing your library.
+For JavaScript libraries and UI component libraries, we recommend [Rslib](https://rslib.rs/guide/start/quick-start). Built on Rsbuild, it provides out-of-the-box support for building, debugging, and testing your library. Generating multiple output formats and TypeScript declarations takes less configuration with Rslib.
 
-If you use Rspack directly, set [`output.library.type`](/config/output#outputlibrarytype) to `'modern-module'`. The built file retains the ESM exports from your entry, so downstream bundlers can use [tree shaking](/guide/optimization/tree-shaking) to remove unused code.
+If you need to build an ESM library with Rspack directly, set [`output.library.type`](/config/output#outputlibrarytype) to `'modern-module'`. The built file retains the ESM exports from your entry, so downstream bundlers can use [tree shaking](/guide/optimization/tree-shaking) to remove unused code.
 
 To let users write `import { formatDate } from 'my-lib'`, export `formatDate` from the library's entry file.
 
@@ -67,7 +69,7 @@ If you want to emit each component in its own file and keep your source director
 ## Optional configuration
 
 - ESM entry files use the `.mjs` extension by default. To customize filenames, configure [`output.filename`](/config/output#outputfilename) for entry files and [`output.chunkFilename`](/config/output#outputchunkfilename) for async chunks.
-- If Rspack wraps your application entry in an immediately invoked function expression (IIFE), you can try enabling [`optimization.avoidEntryIife`](/config/optimization#optimizationavoidentryiife). When a single entry module shares a chunk with other modules, Rspack can rename variables to avoid that wrapper.
+- When building an ESM application or a library with `library.type: 'module'`, Rspack may wrap the entry module in an IIFE to isolate it from other modules in the same chunk. Enable [`optimization.avoidEntryIife`](/config/optimization#optimizationavoidentryiife) to let Rspack try renaming variables to avoid that wrapper. The `modern-module` library example above uses a separate renderer and does not need this option.
 - If your application loads chunks inside a Web Worker, you can set its loading mechanism separately with [`output.workerChunkLoading`](/config/output#outputworkerchunkloading).
 - Serve module files with a JavaScript MIME type such as `text/javascript`. If you host them on a CDN with a different origin from the page, configure the CDN to allow the page to fetch them using CORS.
 - If your component library should use the application's copy of React, exclude `react` from the library bundle with [`externals`](/config/externals#externals). [`externalsType`](/config/externals#externalstype) determines how the generated code references it.

@@ -8,6 +8,8 @@ Rspack 可以将应用和库打包为 ES 模块（ESM）。[构建浏览器应�
 
 ## 构建浏览器应用 \{#build-a-browser-application}
 
+默认情况下，Rspack 会将浏览器应用打包为普通脚本，通常用立即执行函数（IIFE）包裹代码。要生成 CommonJS 或 ESM 产物，需要在 `output` 中指定相应的格式。
+
 如果你的应用面向支持 ES 模块和动态 `import()` 的浏览器，可以启用 [`output.module`](/config/output#outputmodule)。配合 [`HtmlRspackPlugin`](/plugins/html-rspack-plugin) 使用时，插件会在生成的 HTML 中引用实际的入口文件，并为脚本添加 `type="module"`。
 
 ```js title="rspack.config.mjs"
@@ -28,9 +30,9 @@ export default {
 
 ## 构建 ESM 库 \{#build-an-esm-library}
 
-开发 JavaScript 库或 UI 组件库时，推荐使用 [Rslib](https://rslib.rs/zh/guide/start/quick-start)。它基于 Rsbuild，为库的构建、调试和测试提供开箱即用的支持。
+开发 JavaScript 库或 UI 组件库时，推荐使用 [Rslib](https://rslib.rs/zh/guide/start/quick-start)。它基于 Rsbuild，为库的构建、调试和测试提供开箱即用的支持。相比直接配置 Rspack，用 Rslib 可以更方便地生成多种格式的产物和 TypeScript 类型声明。
 
-如果你直接用 Rspack 构建库，可以将 [`output.library.type`](/config/output#outputlibrarytype) 设为 `'modern-module'`。构建后的文件会保留入口的 ESM 导出，便于下游打包器通过 [tree shaking](/guide/optimization/tree-shaking) 移除未使用的代码。
+如果你需要直接使用 Rspack 构建 ESM 库，可以将 [`output.library.type`](/config/output#outputlibrarytype) 设为 `'modern-module'`。构建后的文件会保留入口的 ESM 导出，便于下游打包器通过 [tree shaking](/guide/optimization/tree-shaking) 移除未使用的代码。
 
 例如，要让使用者能通过 `import { formatDate } from 'my-lib'` 导入日期格式化函数，先在 `my-lib` 的入口文件中导出这个函数。
 
@@ -67,7 +69,7 @@ export default {
 ## 可选配置 \{#optional-configuration}
 
 - ESM 入口文件默认使用 `.mjs` 扩展名。如果需要调整文件名，可以通过 [`output.filename`](/config/output#outputfilename) 配置入口文件名，通过 [`output.chunkFilename`](/config/output#outputchunkfilename) 配置异步 chunk 的文件名。
-- 如果应用产物中的入口代码被包在立即执行函数（IIFE）里，可以尝试启用 [`optimization.avoidEntryIife`](/config/optimization#optimizationavoidentryiife)。当单个入口模块与其他模块位于同一个 chunk 中时，Rspack 可以通过重命名变量来避免这层包装。
+- 构建 ESM 应用或使用 `library.type: 'module'` 构建库时，Rspack 有时会用 IIFE 将入口模块与同一 chunk 中的其他模块隔离开来。可以启用 [`optimization.avoidEntryIife`](/config/optimization#optimizationavoidentryiife)，让 Rspack 尝试通过重命名变量省去入口模块的 IIFE 包装。上面库示例中的 `modern-module` 使用独立的渲染逻辑，无需设置此项。
 - 如果应用需要在 Web Worker 中加载异步 chunk，可以通过 [`output.workerChunkLoading`](/config/output#outputworkerchunkloading) 单独配置 Worker 内的加载方式。
 - 部署时，请确保服务器以 JavaScript MIME 类型（如 `text/javascript`）返回模块文件。如果页面从 CDN 跨域加载脚本，还需要在 CDN 上配置 CORS 响应头，允许页面所在的源访问这些文件。
 - 构建 React 组件库时，如果希望复用应用已安装的 React，可以通过 [`externals`](/config/externals#externals) 将 `react` 排除在打包范围之外。生成的代码如何引用它，由 [`externalsType`](/config/externals#externalstype) 决定。
