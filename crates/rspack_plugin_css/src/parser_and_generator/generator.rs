@@ -6,7 +6,7 @@ use rspack_core::{
   Dependency, DependencyCodeGeneration, DependencyId, DependencyType, ExternalModule,
   GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
   RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext, UsageState, UsedNameItem,
-  css_module_render_conditions_identifier, render_css_import_source,
+  css_module_render_conditions_identifier,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource, ReplaceSource, Source, SourceExt},
   to_identifier,
 };
@@ -1244,6 +1244,24 @@ impl<'g> CssModuleGraphSink<'g> for CssStyleSink<'_, '_, 'g> {
       }
       return Ok(None);
     }
+    if module.source().is_none() {
+      // `css-import` external modules have no source or JavaScript output. Their
+      // generated `@import` rule is only emitted into the chunk CSS asset, which
+      // `exportType: "style"` never loads, so inject it as a style element here
+      // to keep the external import in the runtime, like style-loader does.
+      if let Some(external_module) = module.downcast_ref::<ExternalModule>()
+        && let Some(css) = external_module.css_import_source()
+        && self.visited.insert(identifier.as_str().to_string())
+      {
+        let css = json_stringify_str(&css);
+        self.code.push_str(
+          &self
+            .generator
+            .render_inject_style_call(json_stringify_str(module_id.as_str()), &css),
+        );
+      }
+      return Ok(None);
+    }
     let conditions: Vec<_> = dependency.render_conditions().cloned().collect();
     let conditions_key = css_module_render_conditions_identifier(&conditions).unwrap_or_default();
     let key = concat_string!(identifier.as_str(), "|", conditions_key);
@@ -1255,25 +1273,6 @@ impl<'g> CssModuleGraphSink<'g> for CssStyleSink<'_, '_, 'g> {
     } else {
       concat_string!(module_id.to_string(), "|", conditions_key)
     };
-    if module.source().is_none() {
-      // `css-import` external modules have no source or JavaScript output. Their
-      // generated `@import` rule is only emitted into the chunk CSS asset, which
-      // `exportType: "style"` never loads, so inject it as a style element here
-      // to keep the external import in the runtime, like style-loader does.
-      // Render with the full inherited conditions so conditional imports keep
-      // their media/supports/layer scope.
-      if let Some(external_module) = module.downcast_ref::<ExternalModule>()
-        && let Some(request) = external_module.try_get_request()
-      {
-        let css = json_stringify_str(&render_css_import_source(request.primary(), &conditions));
-        self.code.push_str(
-          &self
-            .generator
-            .render_inject_style_call(json_stringify_str(&style_module_id), &css),
-        );
-      }
-      return Ok(None);
-    }
     Ok(Some((style_module_id, conditions)))
   }
 
