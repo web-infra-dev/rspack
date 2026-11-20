@@ -1819,7 +1819,6 @@ version = "0.14.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 dependencies = [
- "ahash 0.8.12",
  "allocator-api2",
 ]
 
@@ -1907,19 +1906,6 @@ name = "hmac-sha256"
 version = "1.1.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ec9d92d097f4749b64e8cc33d924d9f40a2d4eb91402b458014b781f5733d60f"
-
-[[package]]
-name = "hstr"
-version = "4.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2b904c58532ecdbf77f46013daec3ecfa9aec83ec17cf4c8053be80a9c1d8d15"
-dependencies = [
- "hashbrown 0.14.5",
- "new_debug_unreachable",
- "once_cell",
- "rustc-hash",
- "triomphe",
-]
 
 [[package]]
 name = "hstr"
@@ -3821,7 +3807,7 @@ dependencies = [
  "fixedbitset",
  "halfbrown",
  "hashlink",
- "hstr 4.0.3",
+ "hstr",
  "indexmap",
  "json",
  "napi",
@@ -4363,7 +4349,7 @@ name = "rspack_intern"
 version = "0.103.3"
 dependencies = [
  "dashmap",
- "hstr 4.0.3",
+ "hstr",
  "indexmap",
  "ref-cast",
  "rspack-allocative",
@@ -6323,7 +6309,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4dc7367819a76b11456cdc06373f393dfb514fd7fb8e10819e17c8592cba9532"
 dependencies = [
  "cbor4ii",
- "hstr 5.0.0",
+ "hstr",
  "once_cell",
  "serde",
 ]
@@ -8085,8 +8071,6 @@ version = "0.1.17"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0d15f4f5898bcfc5d8a8e45ed30b2f108d710c1a2e5489dbf80e078f707181bc"
 dependencies = [
- "serde",
- "stable_deref_trait",
  "unsize",
 ]
 
