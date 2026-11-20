@@ -202,7 +202,7 @@ which tries to resolve these kind of requests in the current directory too.",
   }
 
   // try to resolve relative path with extension
-  if RELATIVE_PATH_REGEX.is_match(args.specifier) {
+  if !args.resolve_to_context && RELATIVE_PATH_REGEX.is_match(args.specifier) {
     let connected_path = base_dir.join(args.specifier);
     let normalized_path = connected_path.absolutize();
 
