@@ -613,7 +613,7 @@ Called while adding Rspack runtime modules to the compilation.
   - `Chunk`: chunk instance
   - `Set<RuntimeGlobals>`: Rspack runtime requirements
 
-When reading runtime globals in a plugin, prefer `compiler.rspack.RuntimeGlobals` to get the correct values for the compiler's `runtimeMode`.
+When reading runtime globals in a plugin, prefer `compiler.rspack.RuntimeGlobals` to get the correct values when multiple compilers use different `runtimeMode` settings.
 
 For compatibility with existing plugins, the top-level `RuntimeGlobals` export uses the active compiler's values during synchronous execution of a plugin's `apply` method or a tap on `compiler.hooks` or `compilation.hooks`. Outside those scopes, it returns the default webpack values. Avoid reading or destructuring its properties at module scope, after an `await`, or in timer callbacks.
 
