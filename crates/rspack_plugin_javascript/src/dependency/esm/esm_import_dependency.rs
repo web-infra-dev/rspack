@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -268,6 +269,23 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   }
 }
 
+/// Lists up to ten exports in full. For longer lists, shows four names around the
+/// missing name's insertion point in alphabetical order and counts the rest.
+fn format_possible_exports(exports: &[Atom], missing: &Atom) -> String {
+  const FULL_LIST_LIMIT: usize = 10;
+  const WINDOW_SIZE: usize = 4;
+
+  if exports.len() <= FULL_LIST_LIMIT {
+    return exports.iter().join(", ");
+  }
+
+  let pos = exports.partition_point(|name| name < missing);
+  let omitted = exports.len() - WINDOW_SIZE;
+  let start = pos.saturating_sub(WINDOW_SIZE / 2).min(omitted);
+  let nearby = &exports[start..start + WINDOW_SIZE];
+  format!("{}, and {omitted} more", nearby.iter().format(", "))
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
   module_dependency: &T,
@@ -409,11 +427,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
             } else {
               format!(
                 " (possible exports: {})",
-                exports
-                  .iter()
-                  .map(|e| e.as_str())
-                  .collect::<Vec<_>>()
-                  .join(", ")
+                format_possible_exports(exports, id)
               )
             }
           } else {
