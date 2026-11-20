@@ -1,5 +1,9 @@
 export default [
-  /Critical dependency: a part of the request of a dependency is an expression/,
-  /Critical dependency: a part of the request of a dependency is an expression/,
-  /Critical dependency: the request of a dependency is an expression/,
-]
+  /Rspack may include multiple modules because part of this import path is dynamic\./,
+  /Rspack may include multiple modules because part of this import path is dynamic\./,
+  [
+    /Rspack cannot determine which modules to bundle for this import/,
+    /To bundle local modules, use a literal path or a pattern/,
+    /To load the module at runtime,.*rspackIgnore: true/,
+  ],
+];

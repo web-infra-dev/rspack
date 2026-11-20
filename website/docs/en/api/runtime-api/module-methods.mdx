@@ -111,6 +111,8 @@ loadLocale('english');
 
 Rspack can now find and bundle the `.json` files under `./locale`. When your application runs, `loadLocale('english')` loads `./locale/english.json`, and `loadLocale('german')` loads `./locale/german.json`, provided those files exist when you build the application.
 
+If the module URL comes from a server and is available at runtime, use `import(/* rspackIgnore: true */ url)` to let the runtime load it directly. For a call inside a third-party package, set [`parser.importDynamic`](/config/module-parser#javascriptimportdynamic) to `false` in a rule that matches that package. See [Solid's hydration module example](/guide/integrations/solid#load-hydration-modules).
+
 ### Magic comments in import() \{#magic-comments}
 
 <ApiMeta specific={['Rspack', 'Webpack']} />

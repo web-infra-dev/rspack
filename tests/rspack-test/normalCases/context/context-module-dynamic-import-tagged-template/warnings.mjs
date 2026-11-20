@@ -1,6 +1,6 @@
 export default [
   [
-    /Critical dependency: the request of a dependency is an expression/,
+    /Rspack cannot determine which modules to bundle for this import\./,
     { moduleName: /\.\/context\/context-module-dynamic-import-tagged-template\/index\.js/ },
   ],
 ]
