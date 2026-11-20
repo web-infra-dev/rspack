@@ -18,7 +18,8 @@ pub use content::{
 pub use context::{LoaderContext, LoaderDependencies, State};
 pub use filter::LoaderFilter;
 pub use loader::{
-  DisplayWithSuffix, Loader, LoaderExecutionKind, LoaderItem, ResourceParsedData, parse_resource,
+  DisplayWithSuffix, JavaScriptExecutionMode, Loader, LoaderExecutionKind, LoaderItem,
+  ResourceParsedData, parse_resource,
 };
 pub use plugin::LoaderRunnerPlugin;
 pub use rspack_collections::{Identifiable, Identifier};

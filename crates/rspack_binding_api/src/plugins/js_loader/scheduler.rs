@@ -1,5 +1,8 @@
 use napi::JsValue;
-use rspack_core::{LoaderContext, NormalModuleLoaderStartYielding, RunnerContext};
+use rspack_core::{
+  JavaScriptExecutionMode, LoaderContext, LoaderExecutionKind, NormalModuleLoaderStartYielding,
+  RunnerContext,
+};
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use rspack_hook::plugin_hook;
 use rspack_loader_runner::State;
@@ -7,7 +10,6 @@ use tokio::sync::oneshot;
 
 use super::{
   JsLoaderContext, JsLoaderRspackPlugin, JsLoaderRspackPluginInner, result::merge_loader_context,
-  runtime::ExecutionMode,
 };
 use crate::js_tasks::{JsTask, LoaderTask};
 
@@ -21,67 +23,39 @@ pub(crate) async fn loader_yield(
     .get()
     .expect("compiler is initialized before loaders");
   let runtime = super::bridge::loader_runtime(compiler_id.as_u32());
+  let chain = loader_context
+    .current_chain()
+    .expect("yield requires a current execution chain");
+  let start = chain.start();
+  let end = chain.end();
+  let mode = chain
+    .execution_kind()
+    .and_then(LoaderExecutionKind::javascript_mode)
+    .expect("yield requires a JavaScript execution chain");
   if loader_context.state() == State::Pitching {
     let without_pitch = runtime
       .loaders_without_pitch
       .lock()
       .expect("loader pitch cache lock poisoned");
-    let end = loader_context
-      .current_chain()
-      .expect("pitching requires a current execution chain")
-      .end();
-    let start = loader_context.loader_index as usize;
-    let needs_pitch = loader_context.loader_items[start..end]
+    let current = loader_context.loader_index as usize;
+    let needs_pitch = loader_context.loader_items[current..end]
       .iter()
       .any(|loader| !loader.pitch_executed() && !without_pitch.contains(loader.path().as_str()));
     if !needs_pitch {
-      for loader in &loader_context.loader_items[start..end] {
+      for loader in &loader_context.loader_items[current..end] {
         loader.set_pitch_executed();
       }
       loader_context.loader_index = end as i32;
       return Ok(());
     }
   }
-  let (start, end, mode) = {
-    let current = loader_context.loader_index as usize;
-    let mode_at = |index: usize| runtime.execution_mode(loader_context.loader_items[index].query());
-    let mode = mode_at(current);
-    let chain = loader_context
-      .current_chain()
-      .expect("yield requires a loader chain");
-    let mut start = current;
-    let mut end = current + 1;
-    while start > chain.start() && mode_at(start - 1) == mode {
-      start -= 1;
-    }
-    while end < chain.end() && mode_at(end) == mode {
-      end += 1;
-    }
-    (start, end, mode)
-  };
-  let needs_serialization = mode == ExecutionMode::Main && {
-    let state = loader_context.state();
-    let (range_start, range_end) =
-      loader_context
-        .current_chain()
-        .map_or((0, loader_context.loader_items.len()), |chain| {
-          if state == State::Pitching {
-            // The normal pass revisits the whole chain after pitching finishes.
-            (chain.start(), chain.end())
-          } else {
-            // Normal execution walks from the end of the chain towards its start.
-            (chain.start(), start)
-          }
-        });
-    (range_start..range_end).any(|index| {
-      runtime.execution_mode(loader_context.loader_items[index].query()) != ExecutionMode::Main
-    })
-  };
+  let needs_serialization = mode == JavaScriptExecutionMode::Main
+    && loader_context.loader_items[..start].iter().any(|loader| {
+      loader.execution_kind() == LoaderExecutionKind::JavaScript(JavaScriptExecutionMode::Parallel)
+    });
   let mut context =
     JsLoaderContext::from_loader_context(&mut *loader_context, mode, needs_serialization)?;
-  context.loader_chain_start = start as u32;
-  context.loader_chain_end = end as u32;
-  let context = if mode == ExecutionMode::Main {
+  let context = if mode == JavaScriptExecutionMode::Main {
     let runner = self.runner.lock().expect("should get lock").clone();
     let runner = runner
       .get_or_try_init(|| async { self.runner_getter.call(&compiler_id).await })
@@ -101,7 +75,7 @@ pub(crate) async fn loader_yield(
     self.dispatcher.dispatch_worker(JsTask::Loader(LoaderTask {
       context,
       compiler_id: compiler_id.as_u32(),
-      resolver_factory: (mode == ExecutionMode::Strict)
+      resolver_factory: (mode == JavaScriptExecutionMode::Strict)
         .then(|| loader_context.context.resolver_factory.clone()),
       result,
     }));
@@ -109,7 +83,7 @@ pub(crate) async fn loader_yield(
       .await
       .map_err(|_| error!("Parallel loader task was cancelled"))??
   };
-  if mode != ExecutionMode::Main || loader_context.state() == State::Pitching {
+  if mode != JavaScriptExecutionMode::Main || loader_context.state() == State::Pitching {
     let mut without_pitch = context
       .loader_items
       .iter()

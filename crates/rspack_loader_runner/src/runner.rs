@@ -7,7 +7,7 @@ use rspack_sources::SourceMap;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  LoaderExecutionKind, LoaderFilter, LoaderRunnerOptions, ParseMeta,
+  LoaderFilter, LoaderRunnerOptions, ParseMeta,
   chain::LoaderChains,
   content::{AdditionalData, Content, ResourceData},
   context::{LoaderContext, LoaderDependencies, State},
@@ -20,7 +20,7 @@ pub type LoaderFilters = Box<[Option<Arc<LoaderFilter>>]>;
 
 impl<Context: Send> LoaderContext<Context> {
   async fn start_yielding(&mut self) -> Result<bool> {
-    if self.current_loader().execution_kind() == LoaderExecutionKind::JavaScript
+    if self.current_loader().execution_kind().is_javascript()
       && let Some(plugin) = &self.plugin
     {
       plugin.clone().start_yielding(self).await?;

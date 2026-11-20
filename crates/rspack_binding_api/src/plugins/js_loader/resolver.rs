@@ -9,9 +9,9 @@ use rspack_cacheable::{
 };
 use rspack_collections::Identifier;
 use rspack_core::{
-  BoxLoader, Context, Loader, LoaderExecutionKind, ModuleFactoryCreateData, ModuleRuleUseLoader,
-  NormalModuleFactoryResolveLoader, ResolveDependencies, ResolveResult, Resolver, Resource,
-  RunnerContext,
+  BoxLoader, Context, JavaScriptExecutionMode, Loader, LoaderExecutionKind,
+  ModuleFactoryCreateData, ModuleRuleUseLoader, NormalModuleFactoryResolveLoader,
+  ResolveDependencies, ResolveResult, Resolver, Resource, RunnerContext, parse_resource,
 };
 use rspack_error::Result;
 use rspack_hash::{HashFunction, RspackHasher};
@@ -21,9 +21,9 @@ use rspack_util::identifier::split_at_query_mark;
 use rustc_hash::FxHashMap;
 use tokio::sync::OnceCell;
 
-use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
+use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner, runtime::JsLoaderRuntime};
 
-type ResolveKey = (String, String, usize, bool);
+type ResolveKey = (String, String, usize, bool, JavaScriptExecutionMode);
 pub(super) type LoaderResolveCache =
   Mutex<FxHashMap<ResolveKey, Arc<OnceCell<(Option<BoxLoader>, ResolveDependencies)>>>>;
 
@@ -45,6 +45,7 @@ pub struct JsLoader(
   pub Identifier,
   /* LoaderType */ #[cacheable(with=AsOption<AsRefStr>)] pub Option<Cow<'static, str>>,
   pub Option<String>,
+  pub JavaScriptExecutionMode,
 );
 
 #[cacheable_dyn]
@@ -62,7 +63,7 @@ impl Loader<RunnerContext> for JsLoader {
   }
 
   fn execution_kind(&self) -> LoaderExecutionKind {
-    LoaderExecutionKind::JavaScript
+    LoaderExecutionKind::JavaScript(self.3)
   }
 }
 
@@ -97,11 +98,22 @@ pub(crate) async fn resolve_loader(
   l: &ModuleRuleUseLoader,
   data: &mut ModuleFactoryCreateData,
 ) -> Result<Option<BoxLoader>> {
+  let compiler_id = *self
+    .compiler_id
+    .get()
+    .expect("compiler is initialized before loaders");
+  let runtime = super::bridge::loader_runtime(compiler_id.as_u32());
+  let request_mode = runtime.execution_mode(
+    parse_resource(&l.loader)
+      .and_then(|parsed| parsed.query)
+      .as_deref(),
+  );
   let key = (
     context.to_string(),
     l.loader.clone(),
     resolver as *const Resolver as usize,
     l.cache,
+    request_mode,
   );
   let cell = self
     .resolved_loaders
@@ -111,7 +123,7 @@ pub(crate) async fn resolve_loader(
     .or_default()
     .clone();
   let (loader, dependencies) = cell
-    .get_or_try_init(|| resolve_loader_uncached(context, resolver, l))
+    .get_or_try_init(|| resolve_loader_uncached(context, resolver, l, &runtime))
     .await?;
   data
     .file_dependencies
@@ -126,6 +138,7 @@ async fn resolve_loader_uncached(
   context: &Context,
   resolver: &Resolver,
   l: &ModuleRuleUseLoader,
+  runtime: &JsLoaderRuntime,
 ) -> Result<(Option<BoxLoader>, ResolveDependencies)> {
   let context = context.as_path();
   let loader_request = &l.loader;
@@ -189,8 +202,18 @@ async fn resolve_loader_uncached(
       } else {
         format!("{path}{query}")
       };
+      let execution_mode = runtime.execution_mode(
+        parse_resource(&resource)
+          .and_then(|parsed| parsed.query)
+          .as_deref(),
+      );
       Ok((
-        Some(Arc::new(JsLoader(resource.into(), r#type, cache_version))),
+        Some(Arc::new(JsLoader(
+          resource.into(),
+          r#type,
+          cache_version,
+          execution_mode,
+        ))),
         dependencies,
       ))
     }

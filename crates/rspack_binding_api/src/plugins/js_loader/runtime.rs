@@ -1,19 +1,12 @@
 use std::sync::Mutex;
 
+use rspack_core::JavaScriptExecutionMode;
 use rustc_hash::{FxHashMap, FxHashSet};
-
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
-pub(super) enum ExecutionMode {
-  #[default]
-  Main,
-  Parallel,
-  Strict,
-}
 
 /// Per-compiler JavaScript loader metadata, independent of JS object lifetimes.
 #[derive(Debug)]
 pub struct JsLoaderRuntime {
-  parallel_loaders: Mutex<FxHashMap<String, ExecutionMode>>,
+  parallel_loaders: Mutex<FxHashMap<String, JavaScriptExecutionMode>>,
   pub(super) loaders_without_pitch: Mutex<FxHashSet<String>>,
 }
 
@@ -33,18 +26,18 @@ impl JsLoaderRuntime {
       .insert(
         ident,
         if !parallel {
-          ExecutionMode::Main
+          JavaScriptExecutionMode::Main
         } else if strict {
-          ExecutionMode::Strict
+          JavaScriptExecutionMode::Strict
         } else {
-          ExecutionMode::Parallel
+          JavaScriptExecutionMode::Parallel
         },
       );
   }
 
-  pub(super) fn execution_mode(&self, query: Option<&str>) -> ExecutionMode {
+  pub(super) fn execution_mode(&self, query: Option<&str>) -> JavaScriptExecutionMode {
     let Some(ident) = query.and_then(|query| query.strip_prefix("??")) else {
-      return ExecutionMode::Main;
+      return JavaScriptExecutionMode::Main;
     };
     self
       .parallel_loaders

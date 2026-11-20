@@ -145,8 +145,8 @@ fn append_execution_chains<Context: Send>(
   while index < range.end {
     let kind = loaders[index].execution_kind();
     let mut end = index + 1;
-    if kind == LoaderExecutionKind::JavaScript {
-      while end < range.end && loaders[end].execution_kind() == LoaderExecutionKind::JavaScript {
+    if kind.is_javascript() {
+      while end < range.end && loaders[end].execution_kind() == kind {
         end += 1;
       }
     }
@@ -189,11 +189,8 @@ fn plan_loader_chains<Context: Send>(loaders: &[LoaderItem<Context>]) -> LoaderC
 
     let kind = loaders[index].execution_kind();
     let mut end = index + 1;
-    if kind == LoaderExecutionKind::JavaScript {
-      while end < loaders.len()
-        && !loaders[end].cache()
-        && loaders[end].execution_kind() == LoaderExecutionKind::JavaScript
-      {
+    if kind.is_javascript() {
+      while end < loaders.len() && !loaders[end].cache() && loaders[end].execution_kind() == kind {
         end += 1;
       }
     }
@@ -244,6 +241,7 @@ fn validate_loader_chain_plan<Context: Send>(
     .filter(|index| **index != u8::MAX)
     .map_or(0, |index| usize::from(*index) + 1);
   let mut next_start = 0;
+  let mut prev_root_execution_kind = None;
 
   for (root_chain_index, chain) in chains[..root_chain_count].iter().enumerate() {
     let range = chain.loader_indices();
@@ -254,10 +252,12 @@ fn validate_loader_chain_plan<Context: Send>(
 
     match chain.children() {
       Some(children) => {
+        prev_root_execution_kind = None;
         assert!(loaders[range.clone()].iter().all(LoaderItem::cache));
         assert!(!children.is_empty());
         let children = &chains[usize::from(children.start)..usize::from(children.end)];
         let mut next_child_start = range.start;
+        let mut prev_child_kind = None;
         for child in children {
           let child_range = child.loader_indices();
           assert_eq!(child_range.start, next_child_start);
@@ -266,6 +266,12 @@ fn validate_loader_chain_plan<Context: Send>(
           let kind = child
             .execution_kind()
             .expect("cache children must be execution chains");
+          if kind.is_javascript() {
+            assert_ne!(prev_child_kind, Some(kind));
+          } else {
+            assert_eq!(child_range.len(), 1);
+          }
+          prev_child_kind = Some(kind);
           assert!(
             loaders[child_range]
               .iter()
@@ -284,9 +290,12 @@ fn validate_loader_chain_plan<Context: Send>(
             .iter()
             .all(|loader| loader.execution_kind() == kind)
         );
-        if kind == LoaderExecutionKind::Native {
+        if kind.is_javascript() {
+          assert_ne!(prev_root_execution_kind, Some(kind));
+        } else {
           assert_eq!(range.len(), 1);
         }
+        prev_root_execution_kind = Some(kind);
       }
     }
 

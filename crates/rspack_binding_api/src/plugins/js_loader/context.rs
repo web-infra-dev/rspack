@@ -3,13 +3,15 @@ use std::sync::Arc;
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_collections::Identifiable;
-use rspack_core::{CodeFilter, Content, LoaderContext, LoaderDependencies, RunnerContext};
+use rspack_core::{
+  CodeFilter, Content, JavaScriptExecutionMode, LoaderContext, LoaderDependencies, RunnerContext,
+};
 use rspack_error::{ToStringResultToRspackResultExt, error};
 use rspack_loader_runner::State as LoaderState;
 use rspack_napi::ThreadsafeOneShotRef;
 use rustc_hash::FxHashMap as HashMap;
 
-use super::{bridge::SerializedLoaderData, runtime::ExecutionMode};
+use super::bridge::SerializedLoaderData;
 use crate::{
   error::{JsRspackDiagnostic, RspackError},
   module::ModuleObject,
@@ -220,15 +222,15 @@ pub struct JsLoaderContext {
 impl JsLoaderContext {
   pub(super) fn from_loader_context(
     cx: &mut LoaderContext<RunnerContext>,
-    mode: ExecutionMode,
+    mode: JavaScriptExecutionMode,
     needs_serialization: bool,
   ) -> rspack_error::Result<Self> {
     let (additional_data, additional_data_serialized) = match mode {
-      ExecutionMode::Strict => {
+      JavaScriptExecutionMode::Strict => {
         cx.take_additional_data();
         (None, None)
       }
-      ExecutionMode::Main => {
+      JavaScriptExecutionMode::Main => {
         let mut data = cx.take_additional_data();
         match data
           .as_mut()
@@ -244,7 +246,7 @@ impl JsLoaderContext {
           ),
         }
       }
-      _ => {
+      JavaScriptExecutionMode::Parallel => {
         let mut data = cx.take_additional_data();
         let serialized = data
           .as_mut()

@@ -10,7 +10,7 @@ use std::{
 use async_trait::async_trait;
 use derive_more::Debug;
 use memchr::{memchr2, memchr3};
-use rspack_cacheable::cacheable_dyn;
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::Identifier;
 use rspack_error::Result;
 use rspack_hash::RspackHasher;
@@ -19,10 +19,35 @@ use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
 use super::{Content, LoaderContext, LoaderFilter, LoaderRunnerOptions};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cacheable]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum JavaScriptExecutionMode {
+  #[default]
+  Main,
+  Parallel,
+  Strict,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum LoaderExecutionKind {
   Native,
-  JavaScript,
+  JavaScript(JavaScriptExecutionMode),
+}
+
+impl LoaderExecutionKind {
+  #[inline]
+  pub const fn is_javascript(self) -> bool {
+    matches!(self, Self::JavaScript(_))
+  }
+
+  #[inline]
+  pub const fn javascript_mode(self) -> Option<JavaScriptExecutionMode> {
+    match self {
+      Self::JavaScript(mode) => Some(mode),
+      Self::Native => None,
+    }
+  }
 }
 
 #[derive(Debug)]
