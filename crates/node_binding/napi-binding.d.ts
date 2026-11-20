@@ -1820,6 +1820,13 @@ export interface NapiResolveOptions {
    * Default `false`
    */
   enablePnp?: boolean
+  /**
+   * Path to a [Node.js package map](https://nodejs.org/api/packages.html#package-maps).
+   * When set, packages are located through the package map instead of the `node_modules` hierarchy.
+   *
+   * Default `None`
+   */
+  packageMap?: string
 }
 
 /**
@@ -3044,6 +3051,7 @@ export interface RawResolveOptions {
   restrictions?: (string | RegExp)[]
   roots?: Array<string>
   pnp?: boolean
+  packageMap?: string | false
 }
 
 export interface RawResolveOptionsWithDependencyType {
@@ -3071,6 +3079,7 @@ export interface RawResolveOptionsWithDependencyType {
   dependencyType?: string
   resolveToContext?: boolean
   pnp?: boolean
+  packageMap?: string | false
 }
 
 export interface RawResolveTsconfigOptions {

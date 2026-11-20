@@ -56,6 +56,17 @@ pub struct ResolveOptions {
   #[cfg(feature = "yarn_pnp")]
   pub enable_pnp: bool,
 
+  /// Path to a [Node.js package map](https://nodejs.org/api/packages.html#package-maps), the file
+  /// given to Node's `--experimental-package-map` option.
+  ///
+  /// When set, packages are located through the package map instead of the `node_modules`
+  /// hierarchy: the map takes the place of the `"node_modules"` entry of [ResolveOptions::modules],
+  /// and Yarn PnP and `NODE_PATH` lookups are skipped. A relative path is resolved from the
+  /// current working directory.
+  ///
+  /// Default `None`
+  pub package_map: Option<PathBuf>,
+
   /// Set to [EnforceExtension::Enabled] for [ESM Mandatory file extensions](https://nodejs.org/api/esm.html#mandatory-file-extensions).
   ///
   /// If `enforce_extension` is set to [EnforceExtension::Enabled], resolution will not allow extension-less files.
@@ -515,6 +526,7 @@ impl Default for ResolveOptions {
       modules: vec!["node_modules".into()],
       #[cfg(feature = "yarn_pnp")]
       enable_pnp: true,
+      package_map: None,
       resolve_to_context: false,
       prefer_relative: false,
       prefer_absolute: false,
@@ -595,6 +607,9 @@ impl fmt::Display for ResolveOptions {
     }
     if self.node_path {
       write!(f, "node_path:{:?},", self.node_path)?;
+    }
+    if let Some(package_map) = &self.package_map {
+      write!(f, "package_map:{package_map:?},")?;
     }
     Ok(())
   }
@@ -677,6 +692,7 @@ mod test {
       symlinks: false,
       tsconfig: None,
       node_path: false,
+      package_map: None,
     };
 
     assert_eq!(format!("{options}"), "");

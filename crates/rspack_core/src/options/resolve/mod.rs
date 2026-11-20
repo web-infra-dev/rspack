@@ -140,8 +140,24 @@ pub struct Resolve {
   pub enforce_extension: Option<EnforceExtension>,
   /// If set, Yarn PnP resolution will be supported.
   pub pnp: Option<bool>,
+  /// The [Node.js package map](https://nodejs.org/api/packages.html#package-maps) to locate packages with.
+  /// It is not supported in `by_dependency`.
+  pub package_map: Option<PackageMap>,
   /// Whether to parse [module.builtinModules](https://nodejs.org/api/module.html#modulebuiltinmodules) or not.
   pub builtin_modules: bool,
+}
+
+/// Package map options
+///
+/// See [Node.js package maps](https://nodejs.org/api/packages.html#package-maps).
+#[cacheable]
+#[derive(Debug, Clone, Hash, PartialEq, Eq, Default)]
+pub enum PackageMap {
+  /// Locate packages in the `node_modules` hierarchy.
+  #[default]
+  Disabled,
+  /// Locate packages with the package map at this path.
+  Path(#[cacheable(with=AsPreset)] Utf8PathBuf),
 }
 
 /// Tsconfig Options

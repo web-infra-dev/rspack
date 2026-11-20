@@ -160,6 +160,12 @@ pub struct NapiResolveOptions {
   ///
   /// Default `false`
   pub enable_pnp: Option<bool>,
+
+  /// Path to a [Node.js package map](https://nodejs.org/api/packages.html#package-maps).
+  /// When set, packages are located through the package map instead of the `node_modules` hierarchy.
+  ///
+  /// Default `None`
+  pub package_map: Option<String>,
 }
 
 #[napi]

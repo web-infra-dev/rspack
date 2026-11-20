@@ -1,0 +1,13 @@
+{
+  "packages": {
+    "app": {
+      "url": ".",
+      "dependencies": {
+        "tsconfig-base": "tsconfig-base@1.0.0"
+      }
+    },
+    "tsconfig-base@1.0.0": {
+      "url": "./store/tsconfig-base-1.0.0"
+    }
+  }
+}

@@ -99,6 +99,34 @@ pub enum ResolveError {
   /// Occurs when alias paths reference each other.
   #[error("Recursion in resolving")]
   Recursion,
+
+  /// The importing path is within multiple packages of a [package map](https://nodejs.org/api/packages.html#package-maps).
+  #[error(
+    "Cannot resolve {specifier:?} from {parent_path:?}: path is within multiple packages defined in {package_map_path:?}"
+  )]
+  PackageMapAmbiguousResolution {
+    specifier: String,
+    parent_path: PathBuf,
+    package_map_path: PathBuf,
+  },
+
+  /// The importing path is not within any package of a [package map](https://nodejs.org/api/packages.html#package-maps).
+  #[error(
+    "Cannot resolve {specifier:?} from {parent_path:?}: path is not within any package defined in {package_map_path:?}"
+  )]
+  PackageMapExternalFile {
+    specifier: String,
+    parent_path: PathBuf,
+    package_map_path: PathBuf,
+  },
+
+  /// The [package map](https://nodejs.org/api/packages.html#package-maps) cannot be read, does not follow the configuration file format,
+  /// or has a dependency on a package ID that it does not define.
+  #[error("Invalid package map {package_map_path:?}: {reason}")]
+  PackageMapInvalid {
+    package_map_path: PathBuf,
+    reason: String,
+  },
 }
 
 impl ResolveError {

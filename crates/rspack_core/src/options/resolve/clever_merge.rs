@@ -39,6 +39,7 @@ fn is_empty(resolve: &Resolve) -> bool {
     && is_none!(restrictions)
     && is_none!(roots)
     && is_none!(tsconfig)
+    && is_none!(package_map)
     && is_none!(by_dependency)
 }
 
@@ -191,7 +192,9 @@ fn get_from_by_values<T: Default + Clone>(
   value.cloned()
 }
 
-fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
+fn _merge_resolve(mut first: Resolve, mut second: Resolve) -> Resolve {
+  // The package map is not merged by dependency category, like `pnp`.
+  let package_map = second.package_map.take().or(first.package_map.take());
   let first = parse_resolve(first);
   let second = parse_resolve(second);
 
@@ -462,6 +465,7 @@ fn _merge_resolve(first: Resolve, second: Resolve) -> Resolve {
     restrictions: result_entry.restrictions.base,
     roots: result_entry.roots.base,
     pnp: result_entry.pnp.base,
+    package_map,
     builtin_modules: false,
   }
 }

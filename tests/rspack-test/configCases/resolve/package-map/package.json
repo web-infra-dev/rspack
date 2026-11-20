@@ -1,0 +1,9 @@
+{
+  "name": "app",
+  "exports": {
+    "./self": "./self.js"
+  },
+  "imports": {
+    "#internal": "dep/sub"
+  }
+}

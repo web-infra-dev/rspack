@@ -173,6 +173,7 @@ The options are aligned with [enhanced-resolve](https://github.com/webpack/enhan
 | tsconfig.configFile |         | A relative path to the tsconfig file based on `cwd`, or an absolute path of tsconfig file.                                                                                           |
 | tsconfig.references | `[]`    | - 'auto': inherits from TypeScript config <br/> - `string []`: relative path (based on directory of the referencing tsconfig file) or absolute path of referenced project's tsconfig |
 | enablePnp           | false   | Enable Yarn Plug'n'Play support                                                                                                                                                      |
+| packageMap          | None    | Path to a [Node.js package map](https://nodejs.org/api/packages.html#package-maps). When set, packages are located through the package map instead of the `node_modules` hierarchy   |
 
 In the context of `@rspack/resolver`, the `tsconfig.references` option helps isolate the `paths` configurations of different TypeScript projects.
 This ensures that path aliases defined in one TypeScript project do not unintentionally affect the resolving behavior of another.

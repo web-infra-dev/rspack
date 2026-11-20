@@ -683,6 +683,46 @@ With this configuration, `import 'utils/format'` can resolve to `<project>/src/u
 
 Setting `resolve.modules` replaces the default array. Include `'node_modules'` explicitly when normal package lookup should remain enabled.
 
+## resolve.packageMap
+
+- **Type:** `string | false`
+- **Default:** the path passed to Node.js with `--experimental-package-map`
+
+Path to a [Node.js package map](https://nodejs.org/api/packages.html#package-maps). When set, Rspack locates packages with the package map instead of searching `node_modules` directories.
+
+A package map is a JSON file that lists the location of every package and the packages it can import. Package managers can generate it, for example with the `nodeExperimentalPackageMap` setting of [pnpm](https://pnpm.io/settings/node-modules#nodeexperimentalpackagemap) or [Yarn](https://yarnpkg.com/configuration/yarnrc#nodeExperimentalPackageMap).
+
+By default, Rspack uses the same package map as Node.js. When Node.js is started with `--experimental-package-map`, either on the command line or in `NODE_OPTIONS`, no configuration is needed:
+
+```bash
+NODE_OPTIONS="--experimental-package-map=./node_modules/.package-map.json" rspack build
+```
+
+Rspack reads the option from the command line and from `NODE_OPTIONS` only. If Node.js gets it another way, such as a configuration file, set the path explicitly.
+
+Set a path to use a specific package map, or `false` to ignore the package map of Node.js:
+
+```js title="rspack.config.mjs"
+export default {
+  resolve: {
+    packageMap: './node_modules/.package-map.json',
+  },
+};
+```
+
+A relative path is resolved from the current working directory.
+
+`resolve.packageMap` applies to modules only. Loaders are resolved with [`resolveLoader.packageMap`](/config/resolve-loader), which has the same default and is set separately. The option can also be set in the `resolve` of a [rule](/config/module-rules), but it is not supported in [`resolve.byDependency`](#resolvebydependency).
+
+When a package map is used:
+
+- A package request such as `lodash` or `lodash/merge` is resolved only when the package that contains the importing file lists `lodash` in its `dependencies` in the package map. The rest of the resolution, such as `exports`, `resolve.mainFields` and `resolve.extensions`, continues in the location of that package.
+- A package request from a file that is not within any package of the package map fails. It also fails when several packages of the package map share the location of the file.
+- The package map takes the place of the `'node_modules'` entry of [`resolve.modules`](#resolvemodules). A package that is not a dependency in the package map is still looked up in the other directories of `resolve.modules`, and [`resolve.pnp`](#resolvepnp) is ignored.
+- Relative and absolute requests, [`resolve.alias`](#resolvealias), [`resolve.fallback`](#resolvefallback) and [`resolve.tsConfig`](#resolvetsconfig) work as usual.
+
+In watch mode, a change to the package map triggers a rebuild only if the file is watched. A package map inside `node_modules` is ignored by the default [`watchOptions.ignored`](/config/watch#watchoptionsignored).
+
 ## resolve.pnp
 
 - **Type:** `boolean`

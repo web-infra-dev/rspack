@@ -20,6 +20,7 @@ use crate::{
   FileMetadata, FileSystem, JSONError, ResolveError, ResolveOptions, TsConfig,
   context::ResolveContext as Ctx,
   package_json::{PackageJson, off_to_location},
+  package_map::PackageMapCache,
 };
 
 #[derive(Default)]
@@ -27,6 +28,8 @@ pub struct Cache<Fs> {
   pub(crate) fs: Fs,
   paths: DashSet<CachedPath, BuildHasherDefault<IdentityHasher>>,
   tsconfigs: DashMap<PathBuf, Arc<TsConfig>, BuildHasherDefault<FxHasher>>,
+  /// Lazily loaded package maps of [ResolveOptions::package_map].
+  pub(crate) package_map: PackageMapCache,
 }
 
 impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
@@ -35,12 +38,14 @@ impl<Fs: Send + Sync + FileSystem> Cache<Fs> {
       fs,
       paths: DashSet::default(),
       tsconfigs: DashMap::default(),
+      package_map: PackageMapCache::default(),
     }
   }
 
   pub fn clear(&self) {
     self.paths.clear();
     self.tsconfigs.clear();
+    self.package_map.clear();
   }
 
   pub fn value(&self, path: &Utf8Path) -> CachedPath {
