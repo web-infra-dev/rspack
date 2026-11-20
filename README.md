@@ -115,6 +115,7 @@ Thanks to:
 - The [circular-dependency-plugin](https://github.com/aackerman/circular-dependency-plugin) project created by [@aackerman](https://github.com/aackerman), which inspres implement circular dependency rspack plugin.
 - The [tracing-chrome](https://github.com/thoren-d/tracing-chrome) project created by [thoren-d](https://github.com/thoren-d), which inspires the implementation of Rspack tracing.
 - The [allocative](https://github.com/facebookexperimental/allocative) project from [Buck2](https://github.com/facebook/buck2), which provides the foundation for Rspack's Rust memory profiling.
+- [fast-glob](https://github.com/oxc-project/fast-glob) for the foundation of Rspack's glob matching implementation.
 
 ## License
 
