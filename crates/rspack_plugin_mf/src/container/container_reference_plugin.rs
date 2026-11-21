@@ -10,8 +10,9 @@ use rspack_hook::{plugin, plugin_hook};
 use rspack_util::itoa;
 
 use super::{
-  fallback_module_factory::FallbackModuleFactory, remote_module::RemoteModule,
-  remote_runtime_module::RemoteRuntimeModule,
+  fallback_module_factory::FallbackModuleFactory,
+  remote_module::RemoteModule,
+  remote_runtime_module::{RemoteRuntimeModule, should_emit_remote_cache_data},
 };
 use crate::{ShareScope, utils::module_identifier_namespace};
 
@@ -119,11 +120,14 @@ async fn runtime_requirements_in_tree(
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
+    let with_cache_data =
+      should_emit_remote_cache_data(compilation, chunk_ukey, self.options.enhanced);
     runtime_modules_to_add.push((
       *chunk_ukey,
       Box::new(RemoteRuntimeModule::new(
         &compilation.runtime_template,
         self.options.enhanced,
+        with_cache_data,
       )),
     ));
   }
