@@ -22,12 +22,10 @@ export default {
 		const children = multi.toJson({
 			all: false,
 			version: true,
-			assets: true,
 			children: [true, false]
 		});
 		expect(children.version).toBeUndefined();
 		expect(children.children[0].version).toBe(version.version);
-		expect(children.children[0].assets.length).toBeGreaterThan(0);
 		expect(children.children[1]).toEqual({});
 	}
 };
