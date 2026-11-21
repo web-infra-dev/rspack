@@ -1785,13 +1785,9 @@ export default {
 ## output.scriptType
 
 - **类型：** `false | 'text/javascript' | 'module'`
-- **默认值：** `false`
+- **默认值：** 启用 [`output.module`](#outputmodule) 时为 `'module'`，否则为 `false`
 
-该选项允许使用自定义脚本类型（例如 `<script type="module" ...>`）来加载异步块。
-
-:::tip
-如果 `output.module` 设置为 `true`，则 `output.scriptType` 将默认为 `'module'` 而不是 `false`。
-:::
+Rspack 运行时通过 `<script>` 标签加载异步 chunk 时，会使用此选项设置标签的 `type` 属性。设为 `false` 时，运行时会省略该属性。要配置生成的 HTML 中的入口脚本，请使用 [`HtmlRspackPlugin.scriptLoading`](/plugins/html-rspack-plugin#scriptloading)。
 
 ```js title="rspack.config.mjs"
 export default {
