@@ -1134,27 +1134,11 @@ Note that not setting a `output.library.name` will cause all properties returned
 
 #### Module definition systems
 
-Choose the output format based on how consumers will load your library. Both `'module'` and `'modern-module'` expose ESM exports that consumers can access with `import`. For a CommonJS library that consumers load with `require()`, you can use [`'commonjs2'`](#type-commonjs2).
-
-##### type: 'module'
-
-If your webpack configuration uses `library.type: 'module'`, you can keep that setting when migrating to Rspack. Leave [`output.library.name`](#outputlibraryname) unset.
-
-```js title="rspack.config.mjs"
-export default {
-  output: {
-    library: { type: 'module' },
-  },
-};
-```
-
-With `'module'`, Rspack reads the entry’s export values when the library is initialized. For example, if the entry declares `export let count = 0` and the library later sets `count` to `1`, consumers still see `0`.
-
-For a new library, prefer [`'modern-module'`](#type-modern-module). It can export `count` directly, so consumers see the updated value of `1` in this example.
+Choose the output format based on how consumers will load your library. Both `'modern-module'` and `'module'` expose ESM exports that consumers can access with `import`. For a CommonJS library that consumers load with `require()`, you can use [`'commonjs2'`](#type-commonjs2).
 
 ##### type: 'modern-module'
 
-We recommend `'modern-module'` for new ESM libraries. Rspack can export functions and variables from the entry module directly, which helps downstream bundlers remove unused code through [tree shaking](/guide/optimization/tree-shaking).
+We recommend `'modern-module'` for ESM libraries. Rspack can export functions and variables from the entry module directly, which helps downstream bundlers remove unused code through [tree shaking](/guide/optimization/tree-shaking).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1167,6 +1151,20 @@ export default {
 If the library uses `import()` to load a module on demand, Rspack can emit a separate ESM chunk and load it with native `import()`. To keep the source directory structure in the output, configure [`output.library.preserveModules`](#outputlibrarypreservemodules).
 
 For an example of configuring the entry in `package.json` so consumers can import the library by its package name, see [Build an ESM library](/guide/features/esm#build-an-esm-library).
+
+##### type: 'module'
+
+The `'module'` type also builds ESM libraries, but we no longer recommend it for general use. Its main use is compatibility with webpack projects that already use `library.type: 'module'`. Leave [`output.library.name`](#outputlibraryname) unset.
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    library: { type: 'module' },
+  },
+};
+```
+
+With `'module'`, Rspack reads the entry’s export values when the library is initialized. For example, if the entry declares `export let count = 0` and the library later sets `count` to `1`, consumers still see `0`. With [`'modern-module'`](#type-modern-module), they see the updated value of `1`.
 
 :::tip Usage notes
 
