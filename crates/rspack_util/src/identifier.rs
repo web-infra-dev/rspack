@@ -1,18 +1,16 @@
-use std::{
-  borrow::Cow,
-  ops::Range,
-  path::{Path, PathBuf},
-  sync::LazyLock,
-};
+use std::{borrow::Cow, ops::Range, path::Path, sync::LazyLock};
 
 use concat_string::concat_string;
 use cow_utils::CowUtils;
-use memchr::{memchr, memchr2_iter};
+use memchr::{memchr, memchr2, memchr2_iter, memchr3};
 use regex::Regex;
+use rspack_paths::Utf8Path;
 #[cfg(windows)]
 use rspack_paths::dos_device_path_prefix_len;
 use smallvec::SmallVec;
 use sugar_path::SugarPath;
+
+use crate::node_path::NodePath;
 
 static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
 
@@ -158,25 +156,42 @@ pub fn push_absolute_to_request(context: &str, maybe_absolute_path: &str, out: &
   out.push_str(maybe_absolute_path);
 }
 
+/// Finds the end of a resource path or query, skipping escaped delimiters.
+pub fn find_resource_delimiter(input: &str, allow_query: bool) -> usize {
+  const ESCAPE_START: u8 = 0xe2; // The first UTF-8 byte of U+200B.
+
+  let mut offset = 0;
+  loop {
+    let tail = &input[offset..];
+    let bytes = tail.as_bytes();
+    let next = if allow_query {
+      memchr3(b'?', b'#', ESCAPE_START, bytes)
+    } else {
+      memchr2(b'#', ESCAPE_START, bytes)
+    };
+    let Some(next) = next else {
+      return input.len();
+    };
+    if bytes[next] != ESCAPE_START {
+      return offset + next;
+    }
+
+    // The UTF-8 leading byte can also match other characters.
+    let mut chars = tail[next..].chars();
+    if chars.next() == Some('\u{200b}') && chars.next().is_none() {
+      // A trailing escape ends the path or query without becoming part of it.
+      return offset + next;
+    }
+    offset = input.len() - chars.as_str().len();
+  }
+}
+
 fn push_request_to_absolute(context: &str, relative_path: &str, out: &mut String) {
   if relative_path.starts_with("./") || relative_path.starts_with("../") {
-    let relative_path = if relative_path.starts_with("./") {
-      relative_path
-        .strip_prefix("./")
-        .expect("should start with ./")
-    } else {
-      relative_path
-    };
-
-    let mut absolute_path = PathBuf::with_capacity(
-      context
-        .len()
-        .saturating_add(relative_path.len())
-        .saturating_add(1),
-    );
-    absolute_path.push(context);
-    absolute_path.push(relative_path);
-    out.push_str(&absolute_path.to_string_lossy());
+    let (path, suffix) = relative_path.split_at(find_resource_delimiter(relative_path, true));
+    let absolute_path = Utf8Path::new(context).node_join(path).node_normalize();
+    out.push_str(absolute_path.as_str());
+    out.push_str(suffix);
   } else {
     out.push_str(relative_path);
   }

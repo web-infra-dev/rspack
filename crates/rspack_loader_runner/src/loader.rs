@@ -9,13 +9,12 @@ use std::{
 
 use async_trait::async_trait;
 use derive_more::Debug;
-use memchr::{memchr2, memchr3};
 use rspack_cacheable::cacheable_dyn;
 use rspack_collections::Identifier;
 use rspack_error::Result;
 use rspack_hash::RspackHasher;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
-use rspack_util::identifier::strip_zero_width_space_for_fragment;
+use rspack_util::identifier::{find_resource_delimiter, strip_zero_width_space_for_fragment};
 
 use super::{Content, LoaderContext, LoaderFilter, LoaderRunnerOptions};
 
@@ -422,35 +421,6 @@ fn path_query_fragment(input: &str) -> (&str, Option<&str>, Option<&str>) {
     (None, rest)
   };
   (path, query, rest.starts_with('#').then_some(rest))
-}
-
-fn find_resource_delimiter(input: &str, allow_query: bool) -> usize {
-  const ESCAPE_START: u8 = 0xe2; // The first UTF-8 byte of U+200B.
-
-  let mut offset = 0;
-  loop {
-    let tail = &input[offset..];
-    let bytes = tail.as_bytes();
-    let next = if allow_query {
-      memchr3(b'?', b'#', ESCAPE_START, bytes)
-    } else {
-      memchr2(b'#', ESCAPE_START, bytes)
-    };
-    let Some(next) = next else {
-      return input.len();
-    };
-    if bytes[next] != ESCAPE_START {
-      return offset + next;
-    }
-
-    // The UTF-8 leading byte can also match other characters.
-    let mut chars = tail[next..].chars();
-    if chars.next() == Some('\u{200b}') && chars.next().is_none() {
-      // A trailing escape ends the path or query without becoming part of it.
-      return offset + next;
-    }
-    offset = input.len() - chars.as_str().len();
-  }
 }
 
 #[cfg(test)]
