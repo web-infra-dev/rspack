@@ -1,15 +1,20 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@rspack/cli';
 import { container, DefinePlugin } from '@rspack/core';
 
 export default defineConfig(
-  [false, true].map((consumeOnly, index) => {
+  [false, true, false, true].map((consumeOnly, index) => {
+    const layer = index >= 2 ? 'background' : undefined;
     const defaultSharedOptions = {
       requiredVersion: '^1.0.0',
+      layer,
+      issuerLayer: layer,
       ...(consumeOnly ? { import: false as const } : {}),
     };
     const sharedOptions = { ...defaultSharedOptions, singleton: false };
 
     return {
+      module: { rules: [{ test: /\.js$/, layer }] },
       externals: {
         fs: 'node-commonjs fs',
         path: 'node-commonjs path',
@@ -24,6 +29,13 @@ export default defineConfig(
           CONSUME_ONLY: consumeOnly,
         }),
         new container.ModuleFederationPlugin({
+          implementation:
+            layer === undefined
+              ? undefined
+              : fileURLToPath(
+                  import.meta
+                    .resolve('@module-federation/runtime-tools-layers'),
+                ),
           name: `container${index}`,
           filename: `${index}-container.js`,
           library: { type: 'commonjs-module' },

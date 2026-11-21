@@ -21,6 +21,9 @@ export default defineConfig({
   },
   plugins: [
     new ModuleFederationPlugin({
+      implementation: fileURLToPath(
+        import.meta.resolve('@module-federation/runtime-tools-layers'),
+      ),
       name: 'tree_shaking_share',
       manifest: true,
       runtimePlugins: [
@@ -31,8 +34,12 @@ export default defineConfig({
         name: 'tree_shaking_share',
       },
       shared: {
-        'ui-lib': {
+        'ui-lib-alias': {
+          import: 'ui-lib',
+          request: 'ui-lib',
+          shareKey: 'ui-lib',
           requiredVersion: '*',
+          layer: 'ui-layer',
           treeShaking: {
             mode: 'runtime-infer',
           },

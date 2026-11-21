@@ -8,21 +8,24 @@ it('should load tree shaking shared via set "runtime-infer" mode', async () => {
     'default Uilib has Button, List, Badge exports not tree shaking, and ui-lib-es Button value is Button should tree shaking',
   );
 
-  const bundlePath = path.join(__dirname, 'node_modules_ui-lib_index_js.js');
+  const uiLibBundleFile = fs
+    .readdirSync(__dirname)
+    .find((file) => /ui-lib_index_js\.js$/.test(file));
+  expect(uiLibBundleFile).toBeDefined();
+  const bundlePath = path.join(__dirname, uiLibBundleFile);
   const bundleContent = fs.readFileSync(bundlePath, 'utf-8');
   expect(bundleContent).toContain('Button');
   expect(bundleContent).toContain('Badge');
   expect(bundleContent).toContain('List');
 
-  const uiLibShared =
-    __FEDERATION__.__SHARE__['tree_shaking_share'].default['ui-lib'][
-      '1.0.0'
-    ];
-  expect(uiLibShared.loaded).toEqual(undefined);
-  expect(uiLibShared.treeShaking.loaded).toEqual(true);
-  expect(Object.keys(uiLibShared.treeShaking.lib()).sort()).toEqual([
+  expect(__webpack_share_scopes__.default['ui-lib']).toBeUndefined();
+  const uiLibShared = __webpack_require__.federation.initOptions.shared['ui-lib']
+    .find((share) => share.shareConfig.layer === 'ui-layer');
+  const optimized = (await uiLibShared.treeShaking.get())();
+  expect(Object.keys(optimized).sort()).toEqual([
     'Button',
     'default',
+    'layer',
   ]);
 
   const uiLibFallback = (await uiLibShared.get())();
@@ -106,6 +109,10 @@ it('should inject usedExports into entry chunk by default', async () => {
     'Button',
     'default',
   ]);
+  expect(__webpack_require__.federation.usedExports['(ui-layer)']).toBeUndefined();
+  expect(
+    __webpack_require__.federation.usedExports['(ui-layer) ui-lib'],
+  ).toBeUndefined();
 });
 
 it('should inject usedExports into manifest and stats if enable manifest', async () => {
@@ -114,9 +121,24 @@ it('should inject usedExports into manifest and stats if enable manifest', async
 
   const statsPath = path.join(__dirname, 'mf-stats.json');
   const statsContent = JSON.parse(fs.readFileSync(statsPath, 'utf-8'));
+  const manifestPath = path.join(__dirname, 'mf-manifest.json');
+  const manifestContent = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
   expect(
     JSON.stringify(
       statsContent.shared.find((s) => s.name === 'ui-lib').usedExports.sort(),
     ),
   ).toEqual(JSON.stringify(['Button', 'default']));
+  expect(statsContent.shared.some((s) => s.name === '(ui-layer)')).toBe(false);
+  expect(statsContent.shared.some((s) => s.name === '(ui-layer) ui-lib')).toBe(
+    false,
+  );
+  expect(
+    manifestContent.shared.find((s) => s.name === 'ui-lib').usedExports.sort(),
+  ).toEqual(['Button', 'default']);
+  expect(
+    manifestContent.shared
+      .find((s) => s.name === 'ui-lib')
+      .referenceExports.sort(),
+  ).toEqual(['Button', 'default']);
+  expect(manifestContent.shared[0]).not.toHaveProperty('usedIn');
 });
