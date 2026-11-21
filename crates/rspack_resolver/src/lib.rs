@@ -118,6 +118,17 @@ pub use crate::{
 type ResolveResult = Result<Option<CachedPath>, ResolveError>;
 type FxDashSet<T> = DashSet<T, FxBuildHasher>;
 
+/// A speculative lookup may fall through on other errors, but an ignored request is final.
+fn propagate_ignored<T>(
+  result: Result<impl Into<Option<T>>, ResolveError>,
+) -> Result<Option<T>, ResolveError> {
+  match result {
+    Ok(value) => Ok(value.into()),
+    Err(err) if err.is_ignore() => Err(err),
+    Err(_) => Ok(None),
+  }
+}
+
 /// Context returned from the [Resolver::resolve_with_context] API
 #[derive(Debug, Default, Clone)]
 pub struct ResolveContext {
@@ -477,11 +488,11 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         .is_some_and(|c| matches!(c, Utf8Component::RootDir | Utf8Component::Prefix(_)))
     );
     if self.options.prefer_absolute {
-      if let Ok(Some(path)) = self.load_absolute(specifier, ctx).await {
+      if let Some(path) = propagate_ignored(self.load_absolute(specifier, ctx).await)? {
         return Ok(path);
       }
     }
-    if let Some(path) = self.load_roots(specifier, ctx).await {
+    if let Some(path) = self.load_roots(specifier, ctx).await? {
       return Ok(path);
     }
     if let Some(path) = self.load_absolute(specifier, ctx).await? {
@@ -570,7 +581,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         .is_some_and(|c| matches!(c, Utf8Component::Normal(_)))
     );
     if self.options.prefer_relative {
-      if let Ok(path) = self.require_relative(cached_path, specifier, ctx).await {
+      if let Some(path) =
+        propagate_ignored(self.require_relative(cached_path, specifier, ctx).await)?
+      {
         return Ok(path);
       }
     }
@@ -604,7 +617,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         .take()
         .expect("fragment presence is checked above");
       let path = format!("{specifier}{fragment}");
-      if let Ok(path) = self.require_without_parse(cached_path, &path, ctx).await {
+      if let Some(path) =
+        propagate_ignored(self.require_without_parse(cached_path, &path, ctx).await)?
+      {
         return Ok((parsed, Some(path)));
       }
       ctx.fragment.replace(fragment);
@@ -713,7 +728,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
           let main_field_path = cached_path.path().normalize_with(main_field.as_ref());
           // d. LOAD_AS_FILE(M)
           let cached_path = self.cache.value(&main_field_path);
-          if let Ok(Some(path)) = self.load_as_file(&cached_path, ctx).await {
+          if let Some(path) = propagate_ignored(self.load_as_file(&cached_path, ctx).await)? {
             return Ok(Some(path));
           }
           // e. LOAD_INDEX(M)
@@ -1144,9 +1159,9 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
         let inner_resolver = self.clone_with_options(inner_options);
 
         // try as file or directory `path` in the pnp folder
-        let Ok(inner_resolution) = inner_resolver.resolve(&path, &inner_request).await else {
-          return Err(ResolveError::NotFound(specifier.to_string()));
-        };
+        let inner_resolution =
+          propagate_ignored(inner_resolver.resolve(&path, &inner_request).await)?
+            .ok_or_else(|| ResolveError::NotFound(specifier.to_string()))?;
 
         Ok(Some(self.cache.value(
           Utf8Path::from_path(inner_resolution.path()).expect("path should be UTF-8"),
@@ -1530,21 +1545,23 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
   /// defaults to context configuration option.
   ///
   /// On non-Windows systems these requests are resolved as an absolute path first.
-  async fn load_roots(&self, specifier: &str, ctx: &mut Ctx) -> Option<CachedPath> {
+  async fn load_roots(&self, specifier: &str, ctx: &mut Ctx) -> ResolveResult {
     if self.options.roots.is_empty() {
-      return None;
+      return Ok(None);
     }
     if let Some(specifier) = specifier.strip_prefix(SLASH_START) {
       for root in &self.options.roots {
         let cached_path = self
           .cache
           .value(Utf8Path::from_path(root).expect("path should be UTF-8"));
-        if let Ok(path) = self.require_relative(&cached_path, specifier, ctx).await {
-          return Some(path);
+        if let Some(path) =
+          propagate_ignored(self.require_relative(&cached_path, specifier, ctx).await)?
+        {
+          return Ok(Some(path));
         }
       }
     }
-    None
+    Ok(None)
   }
 
   async fn load_tsconfig_paths(
@@ -1568,7 +1585,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
     let paths = tsconfig.resolve(cached_path.path(), specifier);
     for path in paths {
       let cached_path = self.cache.value(&path);
-      if let Ok(path) = self.require_relative(&cached_path, ".", ctx).await {
+      if let Some(path) = propagate_ignored(self.require_relative(&cached_path, ".", ctx).await)? {
         return Ok(Some(path));
       }
     }
@@ -2289,7 +2306,7 @@ impl<Fs: FileSystem + Send + Sync> ResolverGeneric<Fs> {
             }
 
             // 2. If resolved is undefined, continue the loop.
-            if let Ok(Some(path)) = resolved {
+            if let Some(path) = propagate_ignored(resolved)? {
               // 3. Return resolved.
               return Ok(Some(path));
             }
