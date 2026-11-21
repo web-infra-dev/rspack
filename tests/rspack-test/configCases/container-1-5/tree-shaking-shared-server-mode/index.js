@@ -122,4 +122,7 @@ it('should inject usedExports into manifest and stats if enable manifest', async
       statsContent.shared.find((s) => s.name === 'ui-lib').usedExports.sort(),
     ),
   ).toEqual(JSON.stringify(['Button', 'default']));
+  expect(
+    statsContent.shared.find((s) => s.name === 'ui-lib-es').fallback,
+  ).toMatch(/shared\.[a-f0-9]{8}\.js$/);
 });

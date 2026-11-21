@@ -1,5 +1,10 @@
 import { defineConfig } from '@rspack/cli';
-import { container } from '@rspack/core';
+import {
+  type Assets,
+  type Compilation,
+  type Compiler,
+  container,
+} from '@rspack/core';
 import { fileURLToPath } from 'node:url';
 // eslint-disable-next-line node/no-unpublished-require
 const { ModuleFederationPlugin } = container;
@@ -22,6 +27,32 @@ export default defineConfig({
 
   target: 'async-node',
   plugins: [
+    {
+      name: 'DeleteSharedOriginalAssetPlugin',
+      apply(compiler: Compiler) {
+        compiler.hooks.thisCompilation.tap(
+          'DeleteSharedOriginalAssetPlugin',
+          (compilation: Compilation) => {
+            compilation.hooks.processAssets.tap(
+              {
+                name: 'DeleteSharedOriginalAssetPlugin',
+                stage:
+                  compiler.rspack.Compilation
+                    .PROCESS_ASSETS_STAGE_OPTIMIZE_TRANSFER,
+              },
+              (assets: Assets) => {
+                for (const [name, source] of Object.entries(assets)) {
+                  if (/^shared\.[a-f0-9]{8}\.js$/.test(name)) {
+                    compilation.deleteAsset(name);
+                    compilation.emitAsset(name, source);
+                  }
+                }
+              },
+            );
+          },
+        );
+      },
+    },
     new ModuleFederationPlugin({
       name: 'tree_shaking_share_server',
       manifest: true,
@@ -47,6 +78,7 @@ export default defineConfig({
           requiredVersion: '*',
           treeShaking: {
             mode: 'server-calc',
+            filename: 'shared.[contenthash:8].js',
           },
         },
         'ui-lib-dynamic-specific-export': {
