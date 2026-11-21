@@ -207,6 +207,7 @@ minimumReleaseAgeExclude:
 patchedDependencies:
   # Remove after https://github.com/tinylibs/tinypool/pull/145 is released.
   tinypool@2.2.0: patches/tinypool@2.2.0.patch
+  watchpack@2.6.4: patches/watchpack@2.6.4.patch
   webpack-sources@3.7.0: patches/webpack-sources@3.7.0.patch
 
 # Prevent un-reviewed build scripts

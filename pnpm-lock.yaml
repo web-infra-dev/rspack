@@ -444,6 +444,7 @@ catalogs:
 
 patchedDependencies:
   tinypool@2.2.0: 548080e713f33357aa1db59dbc9b75996510a09716c1f650ef4341711dbfa0d2
+  watchpack@2.6.4: 4f75810c00880cf1b46d2075d98c91edefbb0dbd6c8ffef4e045b69d27d88eca
   webpack-sources@3.7.0: 088e8c87509d422c2b5264a7a18661b16e56d5bb41a0e0c5dba854c5fab57323
 
 importers:
@@ -758,7 +759,7 @@ importers:
         version: 6.0.3
       watchpack:
         specifier: 'catalog:'
-        version: 2.6.4
+        version: 2.6.4(patch_hash=4f75810c00880cf1b46d2075d98c91edefbb0dbd6c8ffef4e045b69d27d88eca)
       webpack-sources:
         specifier: 'catalog:'
         version: 3.7.0(patch_hash=088e8c87509d422c2b5264a7a18661b16e56d5bb41a0e0c5dba854c5fab57323)
@@ -14927,7 +14928,7 @@ snapshots:
     dependencies:
       wabt: 1.0.0-nightly.20180421
 
-  watchpack@2.6.4:
+  watchpack@2.6.4(patch_hash=4f75810c00880cf1b46d2075d98c91edefbb0dbd6c8ffef4e045b69d27d88eca):
     dependencies:
       graceful-fs: 4.2.11
 
