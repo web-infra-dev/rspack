@@ -256,3 +256,8 @@ define.lib({
     }),
   ],
 });
+
+define.test({
+  extends: {},
+  include: ['tests/**/*.test.ts'],
+});
