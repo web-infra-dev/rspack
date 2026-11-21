@@ -159,14 +159,13 @@ pub async fn resolve_for_error_hints(
       };
       let suggestion =
         format_resolved_resource(&suggested_path, &resource.query, &resource.fragment);
-      return Some(format!("Did you mean '{}'?
-
-The request '{}' failed to resolve only because it was resolved as fully specified,
-probably because the origin is strict ECMAScript Module,
-e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\"type\": \"module\"'.
-
-The extension in the request is mandatory for it to be fully specified.
-Add the extension to the request.", suggestion, args.specifier));
+      let resolution = match args.dependency_category {
+        DependencyCategory::Esm => "Strict ESM resolution",
+        _ => "`resolve.fullySpecified`",
+      };
+      return Some(format!(
+        "Did you mean '{suggestion}'? {resolution} requires an explicit filename and extension, even for a directory's index file."
+      ));
     }
   }
 
