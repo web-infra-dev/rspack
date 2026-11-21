@@ -15,9 +15,9 @@ Rspack will select appropriate optimization configuration based on the [`mode`](
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-When a chunk contains a single entry module alongside other modules, Rspack may wrap the entry code in an immediately invoked function expression (IIFE) to avoid variable name conflicts. Set `optimization.avoidEntryIife` to `true` to have Rspack check the names used in those modules and rename variables in the entry module if needed. This lets Rspack omit the wrapper when it is safe to do so.
+Enable `optimization.avoidEntryIife` to let Rspack omit the immediately invoked function expression (IIFE) around the entry code when possible.
 
-If the entry needs to run in strict mode while the surrounding code does not, Rspack keeps the wrapper.
+When a single entry module is inlined into the startup code of a chunk that also contains other modules, Rspack normally wraps the entry in an IIFE to give it a separate scope. With this option enabled, Rspack can rename top-level variables in the entry module to avoid name conflicts, removing the need for that wrapper.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -29,8 +29,9 @@ export default {
 
 :::tip Usage notes
 
-- This option applies to the entry module. To control the outer IIFE around the whole bundle, use [`output.iife`](/config/output#outputiife).
-- Analyzing variable names can increase build time. Compare the output with minification disabled to see whether enabling this option removes the entry wrapper.
+- If the entry needs strict mode but the surrounding code does not use it, Rspack keeps the IIFE. With minification disabled, a comment before the entry code explains why Rspack kept the wrapper.
+- To control the outer IIFE around the whole bundle, use [`output.iife`](/config/output#outputiife).
+- Analyzing variable names can increase build time.
 
 :::
 
