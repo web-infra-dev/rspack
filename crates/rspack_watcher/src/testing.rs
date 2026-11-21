@@ -107,6 +107,10 @@ impl DirectoryAnalyzer {
     Scanner::new(self.scan_tx.clone(), Arc::clone(&self.paths)).scan(start_time);
   }
 
+  pub fn has_queued_event(&self) -> bool {
+    !self.events.is_empty()
+  }
+
   pub async fn next_events(&mut self) -> Vec<(InternedPath, FsEventKind)> {
     self
       .events
@@ -117,5 +121,65 @@ impl DirectoryAnalyzer {
       .into_iter()
       .map(|event| (event.path, event.kind))
       .collect()
+  }
+}
+
+/// A full watcher whose disk events are supplied by the test.
+pub fn manual_watcher() -> FsWatcher {
+  manual_watcher_with_ignored(Default::default())
+}
+
+pub fn manual_watcher_with_ignored(ignored: crate::FsWatcherIgnored) -> FsWatcher {
+  FsWatcher::with_backend(Default::default(), ignored, |_, _, _| {
+    crate::DiskWatcher::manual()
+  })
+}
+
+fn bindings(paths: &[(InternedPath, InternedPath)]) -> Vec<crate::subscriptions::PathSubscription> {
+  paths
+    .iter()
+    .map(
+      |(watched_path, requested_path)| crate::subscriptions::PathSubscription {
+        watched_path: watched_path.clone(),
+        requested_path: requested_path.clone(),
+      },
+    )
+    .collect()
+}
+
+type Bindings<'a> = (
+  &'a [(InternedPath, InternedPath)],
+  &'a [(InternedPath, InternedPath)],
+);
+
+pub async fn watch_subscriptions(
+  watcher: &FsWatcher,
+  files: Bindings<'_>,
+  directories: Bindings<'_>,
+  missing: Bindings<'_>,
+  start_time: SystemTime,
+  aggregate: impl crate::EventAggregateHandler + Send + 'static,
+  raw: impl crate::EventHandler + Send + 'static,
+) {
+  watcher
+    .watch_subscriptions(
+      (bindings(files.0), bindings(files.1)),
+      (bindings(directories.0), bindings(directories.1)),
+      (bindings(missing.0), bindings(missing.1)),
+      start_time,
+      Box::new(aggregate),
+      Box::new(raw),
+    )
+    .await;
+}
+
+pub fn disk_event(watcher: &FsWatcher, path: &InternedPath, kind: FsEventKind) {
+  if let Some(trigger) = watcher
+    .trigger
+    .lock()
+    .expect("should lock trigger")
+    .as_ref()
+  {
+    trigger.on_disk_event(path, kind, kind == FsEventKind::Create);
   }
 }

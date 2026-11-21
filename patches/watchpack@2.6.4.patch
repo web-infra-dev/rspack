@@ -1,0 +1,15 @@
+diff --git a/lib/DirectoryWatcher.js b/lib/DirectoryWatcher.js
+index 53d8c41531192ef9b3b96fec5f81b36024677f91..079eef3da7756f7417750ac74493986c125af8cd 100644
+--- a/lib/DirectoryWatcher.js
++++ b/lib/DirectoryWatcher.js
+@@ -1004,6 +1004,10 @@ class DirectoryWatcher extends EventEmitter {
+ 					lstatWithRetry(itemPath, this, (err2, stats) => {
+ 						if (this.closed) return;
+ 						if (err2) {
++							if (initial && err2.code === "ENOENT") {
++								// Include entries that vanished after readdir in initial-missing.
++								itemPaths.delete(itemPath);
++							}
+ 							if (
+ 								err2.code === "ENOENT" ||
+ 								err2.code === "EPERM" ||

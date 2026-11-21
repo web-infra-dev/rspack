@@ -3,19 +3,25 @@ use std::{
   fmt::Debug,
   ops::Deref,
   path::{Path, PathBuf},
+  sync::RwLock,
   time::SystemTime,
 };
 
 use dashmap::setref::multiple::RefMulti;
 use rspack_error::Result;
-use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
+use rspack_paths::{
+  InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathMap, InternedPathSet,
+};
 use rspack_util::{
   fx_hash::FxHashMap,
   time::{current_time, system_time_to_millis},
 };
 
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
-use crate::time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis};
+use crate::{
+  subscriptions::{PathSubscription, RequestedPaths, Subscriber, Subscribers},
+  time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
+};
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
@@ -119,68 +125,57 @@ impl<'a> PathAccessor<'a> {
 /// facilitates batch updates to the path sets, ensuring that additions and removals are processed efficiently.
 #[derive(Debug)]
 struct PathUpdater {
-  pub added: Vec<InternedPath>,
-  pub removed: Vec<InternedPath>,
+  added: Vec<PathSubscription>,
+  removed: Vec<PathSubscription>,
   base_dir: PathBuf,
 }
 
-impl<Added, Removed> From<(Added, Removed)> for PathUpdater
+impl<Added, Removed, P> From<(Added, Removed)> for PathUpdater
 where
-  Added: Iterator<Item = InternedPath>,
-  Removed: Iterator<Item = InternedPath>,
+  Added: Iterator<Item = P>,
+  Removed: Iterator<Item = P>,
+  P: Into<PathSubscription>,
 {
   fn from((added, removed): (Added, Removed)) -> Self {
     Self {
-      added: added.collect(),
-      removed: removed.collect(),
+      added: added.map(Into::into).collect(),
+      removed: removed.map(Into::into).collect(),
       base_dir: std::env::current_dir().unwrap_or_default(),
     }
   }
 }
 
 impl PathUpdater {
-  /// Update the paths in the given set. Returns the paths it newly holds and
-  /// those it no longer does.
   async fn update(
     self,
-    watch_tracker: &PathTracker,
+    tracker: &PathTracker,
     ignored: &IgnoredMatcher,
   ) -> Result<(Vec<InternedPath>, Vec<InternedPath>)> {
-    let added_paths = self.added;
-    let removed_paths = self.removed;
     let mut registered = Vec::new();
     let mut unregistered = Vec::new();
-
-    for added in added_paths {
-      // Absolutize before the ignored check so registration filters on the
-      // same absolute path the watcher reports for events.
-      let added = if added.is_absolute() {
-        added
-      } else {
-        InternedPath::from(self.base_dir.join(added.as_ref()))
-      };
-
-      // Skip ignored paths AND anything inside an ignored directory.
+    for binding in self.added {
+      let binding = binding.absolute(&self.base_dir);
       if ignored
-        .is_ignored(added.to_str().expect("Path should be valid UTF-8"))
+        .is_ignored(
+          binding
+            .requested_path
+            .to_str()
+            .expect("Path should be valid UTF-8"),
+        )
         .await
       {
         continue;
       }
-
-      if watch_tracker.add(added.clone()) {
-        registered.push(added);
+      let path = binding.watched_path.clone();
+      if tracker.add(binding) {
+        registered.push(path);
       }
     }
-
-    for removed in removed_paths {
-      let removed = if removed.is_absolute() {
-        removed
-      } else {
-        InternedPath::from(self.base_dir.join(removed.as_ref()))
-      };
-      if watch_tracker.remove(removed.clone()) {
-        unregistered.push(removed);
+    for binding in self.removed {
+      let binding = binding.absolute(&self.base_dir);
+      let path = binding.watched_path.clone();
+      if tracker.remove(binding) {
+        unregistered.push(path);
       }
     }
     Ok((registered, unregistered))
@@ -188,19 +183,12 @@ impl PathUpdater {
 }
 
 #[derive(Debug, Default)]
-/// `PathTracker` is responsible for tracking the state of file system paths for the watcher.
-///
-/// It maintains three sets:
-/// - `added`: Paths that have been recently added and are being watched.
-/// - `removed`: Paths that have been removed from watching.
-/// - `all`: All currently watched paths.
-///
-/// This struct enables efficient updates and queries for the file system watcher,
-/// ensuring that changes to the set of watched paths are tracked and managed correctly.
 struct PathTracker {
   added: InternedPathDashSet,
   removed: InternedPathDashSet,
   all: InternedPathDashSet,
+  /// Only paths with a non-identity subscription need an explicit list of recipients.
+  requests: RwLock<InternedPathMap<RequestedPaths>>,
 }
 
 impl PathTracker {
@@ -209,17 +197,63 @@ impl PathTracker {
     self.removed.clear();
   }
 
-  /// Adds a path to the tracker; whether it was not tracked before.
-  fn add(&self, path: InternedPath) -> bool {
-    self.added.insert(path.clone());
-    self.all.insert(path)
+  fn add(&self, binding: PathSubscription) -> bool {
+    let PathSubscription {
+      watched_path,
+      requested_path,
+    } = binding;
+    let mut map = self.requests.write().expect("path subscriptions poisoned");
+    let first = self.all.insert(watched_path.clone());
+    let identity = requested_path == watched_path;
+    if first || identity {
+      self.added.insert(watched_path.clone());
+    }
+    if !identity || map.contains_key(&watched_path) {
+      let requests = map.entry(watched_path.clone()).or_insert_with(|| {
+        if first {
+          RequestedPaths::new()
+        } else {
+          smallvec::smallvec![watched_path]
+        }
+      });
+      if !requests.contains(&requested_path) {
+        requests.push(requested_path);
+      }
+    }
+    first
   }
 
-  /// Removes a path from the tracker; whether it was tracked.
-  fn remove(&self, path: InternedPath) -> bool {
-    let tracked = self.all.remove(&path).is_some();
-    self.removed.insert(path);
+  fn remove(&self, binding: PathSubscription) -> bool {
+    let PathSubscription {
+      watched_path,
+      requested_path,
+    } = binding;
+    let mut map = self.requests.write().expect("path subscriptions poisoned");
+    if let Some(requests) = map.get_mut(&watched_path) {
+      requests.retain(|path| *path != requested_path);
+      if requests.as_slice() == std::slice::from_ref(&watched_path) {
+        map.remove(&watched_path);
+        return false;
+      }
+      if !requests.is_empty() {
+        return false;
+      }
+      map.remove(&watched_path);
+    } else if watched_path != requested_path {
+      return false;
+    }
+    let tracked = self.all.remove(&watched_path).is_some();
+    self.removed.insert(watched_path);
     tracked
+  }
+
+  fn requested_paths(&self, path: &InternedPath) -> RequestedPaths {
+    let map = self.requests.read().expect("path subscriptions poisoned");
+    match map.get(path) {
+      Some(requests) => requests.clone(),
+      None if self.all.contains(path) => smallvec::smallvec![path.clone()],
+      None => RequestedPaths::new(),
+    }
   }
 }
 
@@ -613,8 +647,13 @@ impl PathManager {
       let Ok(entries) = std::fs::read_dir(&dir) else {
         continue;
       };
-      for entry in entries.flatten() {
-        let path = InternedPath::from(entry.path());
+      let paths = entries
+        .flatten()
+        .map(|entry| InternedPath::from(entry.path()));
+      // On Windows, an open directory enumeration can block renaming its ancestors.
+      #[cfg(windows)]
+      let paths = paths.collect::<Vec<_>>();
+      for path in paths {
         if self.is_ignored_path(path.as_ref()).await {
           continue;
         }
@@ -879,7 +918,36 @@ impl PathManager {
     true
   }
 
+  pub fn subscribers(&self, path: &InternedPath, file: bool, directory: bool) -> Subscribers {
+    let mut result = Subscribers::new();
+    let files = self.files.requested_paths(path);
+    let mut add = |requested: InternedPath, file_or_missing| {
+      if !result.iter().any(|s| s.path == requested) {
+        result.push(Subscriber {
+          path: requested,
+          file_or_missing,
+        });
+      }
+    };
+    if file {
+      for requested in &files {
+        add(requested.clone(), true);
+      }
+    }
+    for requested in self.missing.requested_paths(path) {
+      add(requested, true);
+    }
+    if directory {
+      for requested in self.directories.requested_paths(path) {
+        let file_or_missing = files.contains(&requested);
+        add(requested, file_or_missing);
+      }
+    }
+    result
+  }
+
   /// Update the paths, directories, and missing paths in the `PathManager`.
+  #[cfg(any(test, feature = "testing"))]
   pub async fn update(
     &self,
     files: (
@@ -894,6 +962,15 @@ impl PathManager {
       impl Iterator<Item = InternedPath>,
       impl Iterator<Item = InternedPath>,
     ),
+  ) -> Result<()> {
+    self.update_subscriptions(files, directories, missing).await
+  }
+
+  pub async fn update_subscriptions<P: Into<PathSubscription>>(
+    &self,
+    files: (impl Iterator<Item = P>, impl Iterator<Item = P>),
+    directories: (impl Iterator<Item = P>, impl Iterator<Item = P>),
+    missing: (impl Iterator<Item = P>, impl Iterator<Item = P>),
   ) -> Result<()> {
     let mut registered = Vec::new();
     let mut unregistered = Vec::new();
@@ -1285,18 +1362,19 @@ mod tests {
     let accessor = path_manager.access();
     let mut all_paths = accessor
       .all()
-      .map(|p| p.to_string_lossy().to_string())
+      .map(|path| path.as_path().to_path_buf())
       .collect::<Vec<_>>();
+    all_paths.sort_unstable();
 
-    all_paths.sort();
-
-    assert_eq!(all_paths.len(), 3);
-
-    let should_exist_paths = vec!["src/", "src/index.js", "src/page/index.ts"];
-
-    for path in should_exist_paths {
-      assert!(all_paths.iter().any(|p| p.ends_with(path)));
-    }
+    let src = std::env::current_dir().unwrap().join("src");
+    assert_eq!(
+      all_paths,
+      [
+        src.clone(),
+        src.join("index.js"),
+        src.join("page").join("index.ts")
+      ]
+    );
   }
 
   /// Regression for the FSEvents stale-event race: simulate two consecutive
