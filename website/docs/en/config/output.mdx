@@ -1173,7 +1173,7 @@ export default {
 };
 ```
 
-With `'module'`, Rspack reads the entry’s export values when the library is initialized. For example, if the entry declares `export let count = 0` and the library sets `count` to `1` after initialization, consumers still see `0` when they read `count`. With [`'modern-module'`](#type-modern-module), consumers see the updated value of `1`.
+With `'module'`, consumers still see the original value if the library reassigns an exported variable after it loads. For example, suppose the library declares `export let count = 0`. After calling a library function that sets `count` to `1`, consumers still read `0` from the imported `count`. With [`'modern-module'`](#type-modern-module), they read `1`.
 
 ##### type: 'commonjs2'
 

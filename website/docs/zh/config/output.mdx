@@ -1164,7 +1164,7 @@ export default {
 };
 ```
 
-使用 `'module'` 时，Rspack 会在库初始化时读取入口的导出值。例如，入口声明了 `export let count = 0`，库在初始化后将 `count` 改为 `1`，使用者导入的 `count` 仍是 `0`。如果改用 [`'modern-module'`](#type-modern-module)，使用者就能读到更新后的值 `1`。
+使用 `'module'` 构建库时，如果库在加载后给导出的变量重新赋值，导入方读到的仍是原来的值。例如，库导出了 `export let count = 0`，调用库中的函数将 `count` 改为 `1` 后，导入方读到的 `count` 仍是 `0`。使用 [`'modern-module'`](#type-modern-module) 构建同一个库时，导入方会读到 `1`。
 
 ##### type: 'commonjs2'
 
