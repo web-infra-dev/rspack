@@ -56,7 +56,7 @@ export default [
 				  "index": 0,
 				  "message": "  × ",
 				  "name": "Error",
-				  "stack": "Error:     at Object.fn (<ROOT>/tests/rspack-test/errorCases/error-read.mjs<LINE_COL>)    at next (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at new Promise (<anonymous>)    at AsyncSeriesHook.promiseStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at QueriedHook.promise (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at last.function (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
+				  "stack": "Error:     at Object.fn (<ROOT>/tests/rspack-test/errorCases/error-read.mjs<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at runWithRuntimeGlobals (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at Object.fn (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at next (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at AsyncSeriesHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at runWithRuntimeGlobals (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at AsyncSeriesHook.hook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>",
 				},
 				]
 			`);

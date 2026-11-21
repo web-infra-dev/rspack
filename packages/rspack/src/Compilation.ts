@@ -49,6 +49,7 @@ import ModuleGraph from './ModuleGraph';
 import type { NormalModuleFactory } from './NormalModuleFactory';
 import type { ResolverFactory } from './ResolverFactory';
 import type { RspackError } from './RspackError';
+import { scopeRuntimeGlobalsToHooks } from './RuntimeGlobals';
 import { RuntimeModule } from './RuntimeModule';
 import { RuntimeTemplate } from './RuntimeTemplate';
 import {
@@ -495,6 +496,8 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
       afterSeal: new liteTapable.AsyncSeriesHook([]),
       needAdditionalPass: new liteTapable.SyncBailHook([]),
     };
+
+    scopeRuntimeGlobalsToHooks(this.hooks, compiler.rspack.RuntimeGlobals);
 
     // Wrap hooks with a Proxy to provide helpful error messages when
     // webpack plugins try to access hooks that don't exist in rspack

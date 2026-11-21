@@ -614,6 +614,8 @@ console.log(__webpack_require__.h());
   - `Chunk`：Chunk 实例
   - `Set<RuntimeGlobals>`：Rspack 运行时依赖集合
 
+编写插件时，请优先从 `compiler.rspack.RuntimeGlobals` 读取当前编译器的运行时全局变量，这样在多个编译器使用不同的 `runtimeMode` 时也能获取正确的值。同步执行插件的 `apply` 方法或 `compiler.hooks`、`compilation.hooks` 上的 tap 回调时，顶层导出的 `RuntimeGlobals` 也会返回当前编译器的值。
+
 可在此修改 Rspack 运行时依赖集合，以添加所需的内置模块，也可通过 [`compilation.addRuntimeModule`](/api/javascript-api/compilation#addruntimemodule) 添加自定义模块：
 
 ```js title="rspack.config.mjs"

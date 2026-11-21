@@ -24,6 +24,7 @@ import {
 import MultiStats from './MultiStats';
 import NodeEnvironmentPlugin from './node/NodeEnvironmentPlugin';
 import { RspackOptionsApply } from './rspackOptionsApply';
+import { runWithRuntimeGlobals } from './RuntimeGlobals';
 import { Stats } from './Stats';
 import { deprecate, isNil } from './util';
 import { validateRspackConfig } from './util/validateConfig';
@@ -65,14 +66,17 @@ function createCompiler(
     infrastructureLogging: options.infrastructureLogging,
   }).apply(compiler);
 
-  if (Array.isArray(options.plugins)) {
-    for (const plugin of options.plugins) {
-      if (typeof plugin === 'function') {
-        (plugin as RspackPluginFunction).call(compiler, compiler);
-      } else if (plugin) {
-        plugin.apply(compiler);
+  const { plugins } = options;
+  if (Array.isArray(plugins)) {
+    runWithRuntimeGlobals(compiler.rspack.RuntimeGlobals, () => {
+      for (const plugin of plugins) {
+        if (typeof plugin === 'function') {
+          (plugin as RspackPluginFunction).call(compiler, compiler);
+        } else if (plugin) {
+          plugin.apply(compiler);
+        }
       }
-    }
+    });
   }
 
   const tp = applyRspackOptionsDefaults(compiler.options, compilerIndex);
