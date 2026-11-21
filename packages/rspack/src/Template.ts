@@ -199,11 +199,18 @@ class Template {
   static getModulesArrayBounds(
     modules: { id: string | number }[],
   ): [number, number] | false {
+    if (modules.length === 0) return false;
     let maxId = Number.NEGATIVE_INFINITY;
     let minId = Number.POSITIVE_INFINITY;
     for (const module of modules) {
       const moduleId = module.id;
-      if (typeof moduleId !== 'number') return false;
+      if (
+        typeof moduleId !== 'number' ||
+        !Number.isInteger(moduleId) ||
+        moduleId < 0
+      ) {
+        return false;
+      }
       if (maxId < moduleId) maxId = moduleId;
       if (minId > moduleId) minId = moduleId;
     }

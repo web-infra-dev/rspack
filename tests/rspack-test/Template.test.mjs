@@ -19,3 +19,16 @@ describe("Template.getFunctionContent", () => {
 		expect(content).not.toContain("function ()");
 	});
 });
+
+describe("Template.getModulesArrayBounds", () => {
+	it("should return false for empty arrays and negative or non-integer module ids", () => {
+		expect(Template.getModulesArrayBounds([])).toBe(false);
+		expect(Template.getModulesArrayBounds([{ id: -1 }])).toBe(false);
+		expect(Template.getModulesArrayBounds([{ id: 1.5 }])).toBe(false);
+		expect(Template.getModulesArrayBounds([{ id: Number.NaN }])).toBe(false);
+	});
+
+	it("should return bounds for dense non-negative integer module ids", () => {
+		expect(Template.getModulesArrayBounds([{ id: 0 }, { id: 1 }, { id: 2 }])).toEqual([0, 2]);
+	});
+});
