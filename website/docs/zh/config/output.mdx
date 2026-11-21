@@ -1139,7 +1139,7 @@ export default {
 };
 ```
 
-如果库中通过 `import()` 按需加载模块，Rspack 可以将这些模块拆分为独立的 ESM chunk，供运行时通过原生 `import()` 加载。如果需要在产物中保留源码的目录结构，可以配置 [`output.library.preserveModules`](#outputlibrarypreservemodules)。
+默认情况下，Rspack 会将通过 `import()` 按需加载的模块拆分为独立的 ESM chunk，并在产物中使用原生 `import()` 加载它们。如果需要在产物中保留源码的目录结构，可以配置 [`output.library.preserveModules`](#outputlibrarypreservemodules)。
 
 你可以在 `package.json` 中指定使用者通过包名导入库时加载的入口文件。完整示例见[构建 ESM 库](/guide/features/esm#build-an-esm-library)。
 

@@ -1148,7 +1148,7 @@ export default {
 };
 ```
 
-If the library uses `import()` to load a module on demand, Rspack can emit a separate ESM chunk and load it with native `import()`. To keep the source directory structure in the output, configure [`output.library.preserveModules`](#outputlibrarypreservemodules).
+By default, Rspack splits modules loaded on demand with `import()` into separate ESM chunks. The generated code loads these chunks with native `import()`. To keep the source directory structure in the output, configure [`output.library.preserveModules`](#outputlibrarypreservemodules).
 
 For an example of configuring the entry in `package.json` so consumers can import the library by its package name, see [Build an ESM library](/guide/features/esm#build-an-esm-library).
 
