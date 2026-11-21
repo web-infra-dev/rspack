@@ -3,7 +3,7 @@ import path from 'node:path';
 /** @type {import('@rspack/test-tools').THashCaseConfig} */
 export default {
   validate(stats) {
-    const [first, second] = stats.stats.map((child) => {
+    const outputs = stats.stats.map((child) => {
       expect(child.hasErrors()).toBe(false);
       const { compilation } = child;
       const anonymous = [...compilation.chunks].filter((chunk) => !chunk.name);
@@ -16,6 +16,8 @@ export default {
       expect(modules).toContain('b.js');
       return { modules, files: [...chunk.files].sort() };
     });
-    expect(second).toEqual(first);
+    for (const output of outputs.slice(1)) {
+      expect(output).toEqual(outputs[0]);
+    }
   },
 };

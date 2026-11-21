@@ -3,9 +3,10 @@ import { defineConfig } from '@rspack/cli';
 import { experiments } from '@rspack/core';
 
 const test = /[\\/][ab]\.js$/;
+const contexts = Array.from({ length: 8 }, (_, index) => `ctx${index}`);
 
 export default defineConfig(
-  ['ctx0', 'ctx1'].map((name) => ({
+  contexts.map((name) => ({
     name,
     context: path.resolve('/', name),
     mode: 'production',

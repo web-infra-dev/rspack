@@ -38,7 +38,8 @@ use crate::{
   },
   min_size::remove_min_size_violating_modules,
   module_group::{
-    CandidateUpdate, IndexedCacheGroup, ModuleGroup, ModuleGroupKey, compare_entries,
+    CandidateUpdate, IndexedCacheGroup, ModuleGroup, ModuleGroupKey, RelativeModuleKeys,
+    compare_entries,
   },
   options::{
     cache_group::CacheGroup,
@@ -885,7 +886,7 @@ impl SplitChunksPlugin {
     &self,
     module_group_map: &mut ModuleGroupMap,
     module_sizes: &ModuleSizes,
-    context: &str,
+    relative_keys: &RelativeModuleKeys,
   ) -> Option<(ModuleGroupKey, ModuleGroup)> {
     let mut best_entry_index = module_group_map
       .iter()
@@ -899,7 +900,7 @@ impl SplitChunksPlugin {
           (entry_key, entry),
           (best_entry_key, best_entry),
           module_sizes,
-          context,
+          relative_keys,
         ) > 0f64
       {
         best_entry_index = entry_index;
@@ -1430,7 +1431,7 @@ impl SplitChunksPlugin {
     placed_module_chunks: &ModuleChunkMap,
     module_group_map: &mut ModuleGroupMap,
     module_sizes: &ModuleSizes,
-    context: &str,
+    relative_keys: &RelativeModuleKeys,
   ) {
     // remove all modules from other entries and update size
     let placed_chunk_mask = placed_module_chunks.chunk_mask();
@@ -1448,7 +1449,7 @@ impl SplitChunksPlugin {
           placed_module_chunks,
           cache_group,
           module_sizes,
-          context,
+          relative_keys,
           duplicated_modules,
         ) {
           CandidateUpdate::Unchanged => return None,

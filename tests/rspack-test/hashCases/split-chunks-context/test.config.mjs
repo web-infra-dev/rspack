@@ -6,12 +6,14 @@ export default {
   validate(stats) {
     const outputs = stats.stats.map((child) => {
       expect(child.hasErrors()).toBe(false);
-      const [filename] = child.compilation.entrypoints.get('main').getFiles();
+      const entry = child.compilation.entrypoints.get('main');
+      const childChunkCounts = entry.childrenIterable.map((group) => group.chunks.length);
+      expect(childChunkCounts).toEqual([3]);
+      const [filename] = entry.getFiles();
       const source = readFileSync(
         path.join(child.compilation.outputOptions.path, filename),
         'utf8',
       );
-      expect(source.match(/__webpack_require__\.e\(\d+\)/g)).toHaveLength(3);
       return { filename, source };
     });
     for (const output of outputs.slice(1)) {

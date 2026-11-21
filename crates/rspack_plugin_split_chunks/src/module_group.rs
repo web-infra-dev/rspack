@@ -1,8 +1,12 @@
-use std::{cmp::Ordering, fmt};
+use std::{
+  cmp::Ordering,
+  fmt,
+  sync::{Arc, LazyLock},
+};
 
 use derive_more::Debug;
-use rspack_collections::{IdentifierMap, IdentifierSet};
-use rspack_core::{ChunkUkey, ModuleIdentifier, SourceType};
+use rspack_collections::{IdentifierDashMap, IdentifierMap, IdentifierSet};
+use rspack_core::{ChunkUkey, Context, ModuleIdentifier, SourceType};
 use rspack_util::identifier::make_paths_relative;
 use rustc_hash::FxHashSet;
 use smallvec::SmallVec;
@@ -31,10 +35,37 @@ impl<'a> IndexedCacheGroup<'a> {
   }
 }
 
+pub(crate) struct RelativeModuleKeys {
+  context: Context,
+  keys: LazyLock<IdentifierDashMap<Arc<str>>>,
+}
+
+impl RelativeModuleKeys {
+  pub(crate) fn new(context: Context) -> Self {
+    Self {
+      context,
+      keys: LazyLock::new(IdentifierDashMap::default),
+    }
+  }
+
+  fn get(&self, module: ModuleIdentifier) -> Arc<str> {
+    if let Some(key) = self.keys.get(&module) {
+      return Arc::clone(key.value());
+    }
+    Arc::clone(
+      self
+        .keys
+        .entry(module)
+        .or_insert_with(|| make_paths_relative(self.context.as_str(), module.as_str()).into())
+        .value(),
+    )
+  }
+}
+
 #[derive(Debug, Default)]
 struct ModulesForCompare {
   identifiers: Vec<ModuleIdentifier>,
-  relative_identifiers: Option<Vec<Box<str>>>,
+  relative_identifiers: Option<Vec<Arc<str>>>,
 }
 
 impl ModulesForCompare {
@@ -42,17 +73,6 @@ impl ModulesForCompare {
     if self.identifiers.is_empty() && self.relative_identifiers.is_none() {
       self.identifiers = modules;
     }
-  }
-
-  fn sorted_relative_identifiers(&mut self, context: &str) -> &[Box<str>] {
-    self.relative_identifiers.get_or_insert_with(|| {
-      let mut identifiers = std::mem::take(&mut self.identifiers)
-        .into_iter()
-        .map(|module| make_paths_relative(context, module.as_str()).into_boxed_str())
-        .collect::<Vec<_>>();
-      identifiers.sort_unstable();
-      identifiers
-    })
   }
 }
 
@@ -444,7 +464,7 @@ impl ModuleGroup {
     placed: &ModuleChunkMap,
     cache: &CacheGroup,
     module_sizes: &ModuleSizes,
-    context: &str,
+    relative_keys: &RelativeModuleKeys,
     scratch: &mut Vec<ModuleIdentifier>,
   ) -> CandidateUpdate {
     let minimum = (cache.min_chunks as usize).max(1);
@@ -600,8 +620,7 @@ impl ModuleGroup {
             .filter(|module| self.modules.contains(module))
             .copied(),
         );
-        scratch
-          .sort_by_cached_key(|module| (make_paths_relative(context, module.as_str()), *module));
+        scratch.sort_by_cached_key(|&module| (relative_keys.get(module), module));
         for module in scratch.iter().copied() {
           let removed = &placed[&module];
           let overlap = self.chunks.intersection(removed).count();
@@ -655,6 +674,25 @@ impl ModuleGroup {
     self.modules_for_compare.prepare(modules);
   }
 
+  fn sorted_relative_identifiers(
+    &mut self,
+    module_sizes: &ModuleSizes,
+    relative_keys: &RelativeModuleKeys,
+  ) -> &[Arc<str>] {
+    if self.pending_initial_sizes {
+      self.get_sizes(module_sizes);
+    }
+    let snapshot = &mut self.modules_for_compare;
+    snapshot.relative_identifiers.get_or_insert_with(|| {
+      let mut identifiers = std::mem::take(&mut snapshot.identifiers)
+        .into_iter()
+        .map(|module| relative_keys.get(module))
+        .collect::<Vec<_>>();
+      identifiers.sort_unstable();
+      identifiers
+    })
+  }
+
   pub fn may_have_chunks_in_mask(&self, mask: u64) -> bool {
     self.chunk_mask & mask != 0
   }
@@ -665,9 +703,7 @@ impl ModuleGroup {
 
   pub fn get_size_reduction(&mut self, module_sizes: &ModuleSizes) -> f64 {
     let ModuleGroupChunks::ByModule(module_chunks) = &self.module_chunks else {
-      if self.pending_initial_sizes || !self.removed.is_empty() {
-        unreachable!("should update sizes before get size reduction");
-      }
+      self.get_sizes(module_sizes);
       return self.size_reduction * self.chunks.len().saturating_sub(1) as f64;
     };
     if self.candidate_flags & Self::SIZE_REDUCTION_STALE != 0 {
@@ -757,7 +793,7 @@ pub(crate) fn compare_entries(
   (a_key, a): (&ModuleGroupKey, &mut ModuleGroup),
   (b_key, b): (&ModuleGroupKey, &mut ModuleGroup),
   module_sizes: &ModuleSizes,
-  context: &str,
+  relative_keys: &RelativeModuleKeys,
 ) -> f64 {
   // 1. by priority
   // no need to compare priority anymore because we already pick all cache groups with same priority
@@ -796,9 +832,8 @@ pub(crate) fn compare_entries(
   }
 
   match a
-    .modules_for_compare
-    .sorted_relative_identifiers(context)
-    .cmp(b.modules_for_compare.sorted_relative_identifiers(context))
+    .sorted_relative_identifiers(module_sizes, relative_keys)
+    .cmp(b.sorted_relative_identifiers(module_sizes, relative_keys))
     .then_with(|| a_key.cmp(b_key))
   {
     Ordering::Less => -1.0,

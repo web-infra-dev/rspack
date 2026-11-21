@@ -14,7 +14,7 @@ const modules = {
 };
 
 export default defineConfig(
-  ['a', 'b', 'c', 'd'].map((name) => ({
+  ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'].map((name) => ({
     name,
     context: path.resolve('/rspack-split-chunks-context', name),
     mode: 'production',

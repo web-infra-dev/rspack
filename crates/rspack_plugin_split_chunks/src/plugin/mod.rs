@@ -24,7 +24,7 @@ use crate::{
   CacheGroup, ChunkNameGetter, SplitChunkSizes,
   common::{FallbackCacheGroup, ModuleChunkMap},
   get_module_sizes,
-  module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey},
+  module_group::{IndexedCacheGroup, ModuleGroup, ModuleGroupKey, RelativeModuleKeys},
   options::chunk_name::ChunkNameGetterFnCtx,
 };
 
@@ -94,6 +94,7 @@ impl SplitChunksPlugin {
     let logger = compilation.get_logger(self.name());
     let start = logger.time("prepare module data");
 
+    let relative_keys = RelativeModuleKeys::new(compilation.options.context.clone());
     let mut all_modules = compilation
       .get_module_graph()
       .modules_keys()
@@ -308,11 +309,9 @@ impl SplitChunksPlugin {
         .for_each(|(_, module_group)| module_group.prepare_modules_for_sizes_and_compare());
       self.ensure_min_size_fit(&mut module_group_map, &module_sizes);
 
-      while let Some((module_group_key, mut module_group)) = self.find_best_module_group(
-        &mut module_group_map,
-        &module_sizes,
-        compilation.options.context.as_ref(),
-      ) {
+      while let Some((module_group_key, mut module_group)) =
+        self.find_best_module_group(&mut module_group_map, &module_sizes, &relative_keys)
+      {
         tracing::trace!(
           "ModuleGroup({}) wins, {:?} `ModuleGroup` remains",
           module_group_key,
@@ -612,7 +611,7 @@ impl SplitChunksPlugin {
           &placed_module_chunks,
           &mut module_group_map,
           &module_sizes,
-          compilation.options.context.as_ref(),
+          &relative_keys,
         );
 
         if has_named_groups && (has_lower_priority || !module_group_map.is_empty()) {
