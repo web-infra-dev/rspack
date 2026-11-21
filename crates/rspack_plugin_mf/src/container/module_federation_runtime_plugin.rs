@@ -5,17 +5,15 @@
 
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  AsyncModulesArtifact, BoxDependency, ChunkUkey, Compilation,
-  CompilationAdditionalTreeRuntimeRequirements, CompilationFinishModules, CompilationParams,
-  CompilerCompilation, CompilerFinishMake, DependencyType, EntryOptions, ExportsInfoArtifact,
-  Plugin, RuntimeGlobals, RuntimeModule, SideEffectsStateArtifact,
+  BoxDependency, ChunkUkey, Compilation, CompilationAdditionalTreeRuntimeRequirements,
+  CompilationParams, CompilerCompilation, CompilerFinishMake, DependencyType, EntryOptions, Plugin,
+  RuntimeGlobals, RuntimeModule,
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use serde::Deserialize;
 
 use super::{
-  container_entry_module::ContainerEntryModule,
   embed_federation_runtime_plugin::EmbedFederationRuntimePlugin,
   federation_data_runtime_module::FederationDataRuntimeModule,
   federation_modules_plugin::FederationModulesPlugin,
@@ -102,37 +100,6 @@ async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   Ok(())
 }
 
-// When MF async startup is enabled, STARTUP may resolve asynchronously even if the entry module
-// itself doesn't have top-level await. Mark MF container entry modules as async so downstream
-// renderers (e.g. library wrappers) can safely `await` exports without sprinkling MF-specific
-// RuntimeGlobals checks across generic plugins.
-#[plugin_hook(CompilationFinishModules for ModuleFederationRuntimePlugin, stage = 1000)]
-async fn finish_modules(
-  &self,
-  compilation: &Compilation,
-  async_modules_artifact: &mut AsyncModulesArtifact,
-  _exports_info_artifact: &mut ExportsInfoArtifact,
-  _side_effects_state_artifact: &mut SideEffectsStateArtifact,
-) -> Result<()> {
-  if !self.options.experiments.async_startup {
-    return Ok(());
-  }
-
-  let module_graph = compilation.get_module_graph();
-  for (module_identifier, module) in module_graph.modules() {
-    if module
-      .as_ref()
-      .as_any()
-      .downcast_ref::<ContainerEntryModule>()
-      .is_some()
-    {
-      async_modules_artifact.insert(*module_identifier);
-    }
-  }
-
-  Ok(())
-}
-
 impl Plugin for ModuleFederationRuntimePlugin {
   fn name(&self) -> &'static str {
     "rspack.container.ModuleFederationRuntimePlugin"
@@ -145,11 +112,6 @@ impl Plugin for ModuleFederationRuntimePlugin {
       .compilation_hooks
       .additional_tree_runtime_requirements
       .tap(additional_tree_runtime_requirements::new(self));
-
-    ctx
-      .compilation_hooks
-      .finish_modules
-      .tap(finish_modules::new(self));
 
     ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
 

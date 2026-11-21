@@ -1,5 +1,7 @@
 use crate::{
-  BuildChunkGraphArtifact, Compilation, artifacts::ArtifactExt, incremental::IncrementalPasses,
+  BuildChunkGraphArtifact, Compilation,
+  artifacts::ArtifactExt,
+  incremental::{IncrementalPasses, Mutation},
   recover_artifact,
 };
 
@@ -148,6 +150,20 @@ impl IncrementalArtifacts {
     }
 
     if passes.contains(IncrementalPasses::CHUNKS_RUNTIME_REQUIREMENTS) {
+      if let Some(mut mutations) = incremental.mutations_write() {
+        for chunk in compilation
+          .async_startup_chunks
+          .symmetric_difference(&previous.async_startup_chunks)
+        {
+          if compilation
+            .build_chunk_graph_artifact
+            .chunk_by_ukey
+            .contains(chunk)
+          {
+            mutations.add(Mutation::ChunkSetAsyncStartup { chunk: *chunk });
+          }
+        }
+      }
       recover_artifact(
         incremental,
         &mut compilation.cgc_runtime_requirements_artifact,
