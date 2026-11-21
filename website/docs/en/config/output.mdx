@@ -1134,7 +1134,7 @@ Note that not setting a `output.library.name` will cause all properties returned
 
 #### Module definition systems
 
-Choose the output format based on how consumers will load your library. For example, `'modern-module'` produces an ESM library that consumers can load with `import`. For a CommonJS library that consumers load with `require()`, you can use [`'commonjs2'`](#type-commonjs2).
+Choose the output format based on how consumers load your library. For example, consumers can use `import` to load an ESM library built with `'modern-module'`, or `require()` to load a CommonJS library built with [`'commonjs2'`](#type-commonjs2).
 
 ##### type: 'modern-module'
 
@@ -1148,13 +1148,22 @@ export default {
 };
 ```
 
-By default, Rspack splits modules loaded on demand with `import()` into separate ESM chunks. The generated code loads these chunks with native `import()`. To keep the source directory structure in the output, configure [`output.library.preserveModules`](#outputlibrarypreservemodules).
+If a module is loaded only on demand with `import()`, Rspack splits it into a separate ESM chunk by default. The generated code loads that chunk with native `import()`.
 
-For an example of configuring the entry in `package.json` so consumers can import the library by its package name, see [Build an ESM library](/guide/features/esm#build-an-esm-library).
+To keep the source directory structure in the output, configure [`output.library.preserveModules`](#outputlibrarypreservemodules).
+
+To let consumers import the library by its package name, configure the package entry in `package.json`. For a complete example, see [Build an ESM library](/guide/features/esm#build-an-esm-library).
+
+:::tip Usage notes
+
+- Setting the library type to `'modern-module'` or `'module'` enables [`output.module`](#outputmodule) by default. If you already set `output.module: true`, you can omit `type` when configuring `output.library`. It defaults to `'modern-module'`.
+- If you also need another output format such as CommonJS, use a separate build configuration for each format. Rspack warns when you enable `'modern-module'` and another library type in the same compilation because the ESM chunk format and loading mechanism may be incompatible with the other type.
+
+:::
 
 ##### type: 'module'
 
-The `'module'` type also builds ESM libraries, but we no longer recommend it for general use. Its main use is compatibility with webpack projects that already use `library.type: 'module'`. Leave [`output.library.name`](#outputlibraryname) unset.
+The `'module'` type also builds ESM libraries, but we no longer recommend it for general use. It is mainly for compatibility with existing webpack projects that use `library.type: 'module'`. Leave [`output.library.name`](#outputlibraryname) unset when using this type.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1164,14 +1173,7 @@ export default {
 };
 ```
 
-With `'module'`, Rspack reads the entry’s export values when the library is initialized. For example, if the entry declares `export let count = 0` and the library later sets `count` to `1`, consumers still see `0`. With [`'modern-module'`](#type-modern-module), they see the updated value of `1`.
-
-:::tip Usage notes
-
-- Both ESM library types enable [`output.module`](#outputmodule) by default. If you set `output.module: true` and configure `output.library` without a `type`, Rspack uses `'modern-module'`.
-- To build both `'modern-module'` and another library format, use separate configurations. Rspack warns when you mix them in one compilation because the ESM chunk format and loading mechanism may be incompatible with other entries.
-
-:::
+With `'module'`, Rspack reads the entry’s export values when the library is initialized. For example, if the entry declares `export let count = 0` and the library sets `count` to `1` after initialization, consumers still see `0` when they read `count`. With [`'modern-module'`](#type-modern-module), consumers see the updated value of `1`.
 
 ##### type: 'commonjs2'
 

@@ -1125,7 +1125,7 @@ require('MyLibrary').doSomething();
 
 #### 模块定义系统
 
-构建库时，可以根据使用者加载库的方式来选择产物格式。例如，`'modern-module'` 可以生成可以用 `import` 导入的 ESM 库，而 [`'commonjs2'`](#type-commonjs2) 适用于通过 `require()` 加载的 CommonJS 库。
+构建库时，可以根据使用者加载库的方式选择产物格式。例如，`'modern-module'` 生成的 ESM 库可以用 `import` 导入，[`'commonjs2'`](#type-commonjs2) 生成的 CommonJS 库可以用 `require()` 加载。
 
 ##### type: 'modern-module'
 
@@ -1139,13 +1139,22 @@ export default {
 };
 ```
 
-默认情况下，Rspack 会将通过 `import()` 按需加载的模块拆分为独立的 ESM chunk，并在产物中使用原生 `import()` 加载它们。如果需要在产物中保留源码的目录结构，可以配置 [`output.library.preserveModules`](#outputlibrarypreservemodules)。
+如果某个模块只通过 `import()` 按需加载，Rspack 默认会将它拆分到独立的 ESM chunk 中。生成的代码使用原生 `import()` 加载这个 chunk。
 
-你可以在 `package.json` 中指定使用者通过包名导入库时加载的入口文件。完整示例见[构建 ESM 库](/guide/features/esm#build-an-esm-library)。
+如果希望构建产物保留源码的目录结构，可以配置 [`output.library.preserveModules`](#outputlibrarypreservemodules)。
+
+要让使用者通过包名导入库，可以在 `package.json` 中配置包的入口。完整示例见[构建 ESM 库](/guide/features/esm#build-an-esm-library)。
+
+:::tip 注意事项
+
+- 将库类型设为 `'modern-module'` 或 `'module'` 时，Rspack 默认启用 [`output.module`](#outputmodule)。如果已经设置了 `output.module: true`，可以在配置 `output.library` 时省略 `type`，其默认值为 `'modern-module'`。
+- 如果还需要生成 CommonJS 等其他格式的产物，建议为每种格式使用单独的构建配置。在同一次编译中启用 `'modern-module'` 和其他库类型时，Rspack 会发出警告，因为 ESM 使用的 chunk 格式和加载方式可能不适用于其他库类型。
+
+:::
 
 ##### type: 'module'
 
-`'module'` 也用于构建 ESM 库，但已不推荐使用。它主要用于兼容此前使用 `library.type: 'module'` 的 webpack 项目。配置时请省略 [`output.library.name`](#outputlibraryname)。
+`'module'` 也能构建 ESM 库，但已不推荐使用。它主要用于兼容原先配置了 `library.type: 'module'` 的 webpack 项目。使用此类型时，请省略 [`output.library.name`](#outputlibraryname)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1155,14 +1164,7 @@ export default {
 };
 ```
 
-使用 `'module'` 时，Rspack 会在库初始化时读取入口的导出值。例如，入口声明了 `export let count = 0`，即使库稍后将 `count` 改为 `1`，使用者读到的仍是 `0`。使用 [`'modern-module'`](#type-modern-module) 时，使用者能读到更新后的值 `1`。
-
-:::tip 注意事项
-
-- 这两种库类型都会默认启用 [`output.module`](#outputmodule)。如果已设置 `output.module: true` 并配置了 `output.library`，省略 `type` 时，Rspack 会使用 `'modern-module'`。
-- 如果需要同时生成 `'modern-module'` 和其他格式的库，建议使用不同的配置分别构建。在同一次编译中混用这些类型时，Rspack 会发出警告，因为 ESM 的 chunk 格式和加载方式可能不适用于其他入口。
-
-:::
+使用 `'module'` 时，Rspack 会在库初始化时读取入口的导出值。例如，入口声明了 `export let count = 0`，库在初始化后将 `count` 改为 `1`，使用者导入的 `count` 仍是 `0`。如果改用 [`'modern-module'`](#type-modern-module)，使用者就能读到更新后的值 `1`。
 
 ##### type: 'commonjs2'
 
