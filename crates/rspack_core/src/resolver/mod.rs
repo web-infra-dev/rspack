@@ -159,8 +159,12 @@ pub async fn resolve_for_error_hints(
       };
       let suggestion =
         format_resolved_resource(&suggested_path, &resource.query, &resource.fragment);
+      let resolution = match args.dependency_category {
+        DependencyCategory::Esm => "Strict ESM resolution",
+        _ => "`resolve.fullySpecified`",
+      };
       return Some(format!(
-        "Did you mean '{suggestion}'? This import requires a fully specified path. Include the filename and extension, even for a directory's index file."
+        "Did you mean '{suggestion}'? {resolution} requires an explicit filename and extension, even for a directory's index file."
       ));
     }
   }
