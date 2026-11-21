@@ -1125,48 +1125,42 @@ require('MyLibrary').doSomething();
 
 #### 模块定义系统
 
-这些配置项将生成一个带有完整 header 的 bundle，以确保与各种模块系统兼容。`output.library.name` 配置项在不同的 `output.library.type` 中有不同的含义。
+选择库的使用环境支持的模块系统。
 
 ##### type: 'module'
 
+如果你正在从 webpack 迁移一个使用 `library.type: 'module'` 的库，希望沿用原有的产物格式，可以选择 `'module'`。Rspack 会按常规方式打包入口，再通过 ESM 的 `export` 语句导出入口提供的值。使用此类型时，请省略 [`output.library.name`](#outputlibraryname)。
+
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    library: {
-      // 不要指定 `name`
-      type: 'module',
-    },
+    library: { type: 'module' },
   },
 };
 ```
 
-输出 ESM 模块。
-
-这是一条更偏向兼容性的 ESM library 路径：Rspack 仍沿用常规的 chunk 和 Rspack 运行时的渲染流程，再把入口导出转换成 `export` 语句。它更适合较简单的 ESM 库输出，或者你只需要 webpack 风格 `module` 语义的场景。
+Rspack 会在产物初始化时读取入口的导出值。例如，入口声明了 `export let count = 0`，之后库内给 `count` 重新赋值，使用者读到的仍是初始值。如果使用者需要读到更新后的值，可以选择 [`'modern-module'`](#type-modern-module)。
 
 ##### type: 'modern-module'
 
+构建新的 ESM 库时，推荐使用 `'modern-module'`。Rspack 可以直接导出入口中的变量和函数。以上面的 `count` 为例，库内重新赋值后，使用者也能读到新值。这种导出方式也便于下游打包器通过 [tree shaking](/guide/optimization/tree-shaking) 移除未使用的导出。
+
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    library: {
-      // 不要指定 `name`
-      type: 'modern-module',
-    },
+    library: { type: 'modern-module' },
   },
 };
 ```
 
-这项配置会启用 Rspack 为 ESM 库单独设计的渲染路径，直接输出 `import` / `export`，并支持库场景下的 tree-shaking、scope hoisting、code splitting 以及 [`output.library.preserveModules`](#outputlibrarypreservemodules)。
+如果库使用 `import()` 按需加载某个模块，Rspack 可以生成独立的 ESM chunk，通过原生 `import()` 加载它。如果希望产物保留源码的目录结构，可以配置 [`output.library.preserveModules`](#outputlibrarypreservemodules)。
 
-:::tip `module` 和 `modern-module` 的区别
+关于如何在 `package.json` 中配置包的入口，请参考[构建 ESM 库](/guide/features/esm#build-an-esm-library)。
 
-- `module` 仍走常规的 chunk 和 Rspack 运行时的渲染流程，属于更接近 webpack 兼容语义的 ESM 输出。
-- `modern-module` 会由专用的 ESM library 插件接管 chunk 渲染、链接、scope hoisting 和 splitChunks，更适合发布可 tree-shake、可 code-split 的 ESM 库。
-- `modern-module` 当前是为补齐库场景 ESM 能力而单独引入的类型；等能力进一步稳定后，计划与 `module` 收敛为同一个 `library.type`。
-- `preserveModules` 仅在 `modern-module` 下可用。
-- 当你配置了 `output.library` 且 `output.module = true` 时，如果没有显式指定 `output.library.type`，Rspack 当前默认会使用 `modern-module`。
-- 如果在同一次编译中混用 `modern-module` 和其他 `library.type` 值，Rspack 会发出警告，因为 `modern-module` 的 chunk 格式和加载方式会影响整个编译。
+:::tip 注意事项
+
+- 这两种库类型都会默认启用 [`output.module`](#outputmodule)。如果已设置 `output.module: true` 并配置了 `output.library`，省略 `type` 时，Rspack 会使用 `'modern-module'`。
+- 如果需要同时生成 `'modern-module'` 和其他格式的库，建议使用不同的配置分别构建。在同一次编译中混用这些类型时，Rspack 会发出警告，因为 ESM 的 chunk 格式和加载方式可能不适用于其他入口。
 
 :::
 
