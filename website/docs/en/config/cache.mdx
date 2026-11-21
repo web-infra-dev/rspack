@@ -11,6 +11,8 @@ import PropertyType from '@components/PropertyType';
 
 The `cache` option controls Rspack's caching strategy and lets Rspack reuse cached data across builds to improve build performance.
 
+Rspack can also cache loader transforms, see [loader caching](/guide/features/loader#loader-cache).
+
 When Cache is enabled, Rspack supports two storage modes: process-local Memory Cache and
 filesystem-backed Persistent Cache. Both store fine-grained computation results and are independent
 from [`incremental`](/config/incremental).
@@ -125,7 +127,7 @@ export default {
 - **Type:** `string[]`
 - **Default:** `[]`
 
-`cache.buildDependencies` is an array of file or directory paths treated as build dependencies. Rspack tracks these paths and invalidates the persistent cache when any tracked build dependency changes.
+`cache.buildDependencies` is an array of file or directory paths treated as build dependencies. Rspack tracks these paths and invalidates the compiler's persistent cache when any tracked build dependency changes or is removed.
 
 ```js title="rspack.config.mjs"
 import { join } from 'node:path';
@@ -169,7 +171,7 @@ export default {
 ```
 
 :::warning
-Don't share the same cache (same `cache.version` and same `cache.storage.location`) between builds with different configurations. Doing so may cause incorrect cache hits.
+Don't share the same compiler cache (same `cache.version` and same `cache.storage.location`) between builds with different configurations. Doing so may cause incorrect cache hits.
 :::
 
 :::tip Persistent cache invalidation
@@ -401,7 +403,7 @@ export default {
 - **Type:** `string`
 - **Default:** `<storage.directory>/<cache.name>`
 
-`cache.storage.location` is the complete path where Rspack reads and writes cache data, matching the semantics of webpack's `cache.cacheLocation`. When omitted, Rspack derives it from `cache.storage.directory` and `cache.name`. Relative paths are resolved from [`config.context`](/config/context).
+`cache.storage.location` is the storage path for the compiler's persistent cache, matching the semantics of webpack's `cache.cacheLocation`. When omitted, Rspack derives it from `cache.storage.directory` and `cache.name`. Relative paths are resolved from [`config.context`](/config/context).
 
 ```js title="rspack.config.mjs"
 export default {

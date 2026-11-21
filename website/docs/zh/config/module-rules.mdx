@@ -940,6 +940,15 @@ export default {
 };
 ```
 
+## rules[].use.cache
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.2.0" />
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+设为 `true` 可缓存该 loader 的转换结果，同时需要开启顶层 `cache` 和 `experiments.newCache.loader`。配置示例和复用条件请参见 [loader 缓存](/zh/guide/features/loader#loader-cache)。
+
 ## rules[].use.codeFilter
 
 - **类型：**
