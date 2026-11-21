@@ -17,6 +17,7 @@ use rspack_core::{DependencyId, DependencyRange};
 use rspack_util::ryu_js;
 use swc_next_ecma_ast::{Expr, Span};
 
+pub(crate) use self::eval_source::eval_source_with_warning;
 pub use self::{
   eval_array_expr::eval_array_expression,
   eval_binary_expr::{eval_binary_expression, eval_logical_expression},
