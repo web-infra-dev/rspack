@@ -160,7 +160,7 @@ pub async fn resolve_for_error_hints(
       let suggestion =
         format_resolved_resource(&suggested_path, &resource.query, &resource.fragment);
       return Some(format!(
-        "Did you mean '{suggestion}'? Use the full path to the module file."
+        "Did you mean '{suggestion}'? With `resolve.fullySpecified` enabled, the path must include the filename and extension, even for a directory's index file."
       ));
     }
   }
