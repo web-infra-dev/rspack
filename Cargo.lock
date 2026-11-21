@@ -4053,6 +4053,8 @@ dependencies = [
 name = "rspack_allocative_testing"
 version = "0.103.3"
 dependencies = [
+ "bytes",
+ "bytes-str",
  "cow-utils",
  "hashlink",
  "indexmap",
