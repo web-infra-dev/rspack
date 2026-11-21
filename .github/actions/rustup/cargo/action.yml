@@ -46,6 +46,9 @@ runs:
     - name: Setup sccache
       if: ${{ runner.environment == 'self-hosted' && runner.os != 'Windows' }}
       uses: rstackjs/sccache-action@8ece41fd13fd5d944a38144ac9eb98a7455fe438 # v0.1.0
+      with:
+        # Keep the cache stats out of the run summary and the annotations panel.
+        disable_annotations: 'true'
 
     # Since sccache 0.17.0 (mozilla/sccache#2782), Cargo's `@response-file`
     # arguments are expanded before spawning rustc. On Windows the expanded
