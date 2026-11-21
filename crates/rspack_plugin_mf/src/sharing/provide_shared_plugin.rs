@@ -5,19 +5,21 @@ use std::{
 };
 
 use regex::Regex;
+use rspack_collections::{Identifiable, IdentifierSet};
 use rspack_core::{
-  BoxDependency, BoxModule, Compilation, CompilationParams, CompilerCompilation,
-  CompilerFinishMake, DependencyType, EntryOptions, ModuleFactoryCreateData,
-  NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
+  BoxDependency, BoxModule, CacheOptions, Compilation, CompilationParams, CompilerCompilation,
+  CompilerFinishMake, Dependency, DependencyId, DependencyType, EntryOptions,
+  ModuleFactoryCreateData, NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_loader_runner::ResourceData;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHashSet};
 use tokio::sync::RwLock;
 
 use super::{
-  find_ancestor_description_data, provide_shared_dependency::ProvideSharedDependency,
+  RequestMatchKey, find_ancestor_description_data, find_exact_match, find_prefix_match,
+  provide_shared_dependency::ProvideSharedDependency,
   provide_shared_module_factory::ProvideSharedModuleFactory,
 };
 use crate::{ConsumeVersion, ShareScope};
@@ -27,7 +29,7 @@ static RELATIVE_REQUEST: LazyLock<Regex> =
 static ABSOLUTE_REQUEST: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^(\/|[A-Za-z]:\\|\\\\)").expect("Invalid regex"));
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ProvideOptions {
   pub share_key: String,
   pub share_scope: ShareScope,
@@ -39,8 +41,47 @@ pub struct ProvideOptions {
   pub tree_shaking_mode: Option<String>,
 }
 
-#[derive(Debug, Clone)]
+impl From<ProvideOptions> for EnhancedProvideOptions {
+  fn from(value: ProvideOptions) -> Self {
+    Self {
+      request: None,
+      layer: None,
+      share_key: value.share_key,
+      share_scope: value.share_scope,
+      version: value.version,
+      eager: value.eager,
+      singleton: value.singleton,
+      required_version: value.required_version,
+      strict_version: value.strict_version,
+      tree_shaking_mode: value.tree_shaking_mode,
+    }
+  }
+}
+
+/// Provider options with an optional request override and compilation layer.
+/// Cloned to retain each configuration in exact and prefix matching maps.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnhancedProvideOptions {
+  pub request: Option<String>,
+  pub layer: Option<String>,
+  pub share_key: String,
+  pub share_scope: ShareScope,
+  pub version: Option<ProvideVersion>,
+  pub eager: bool,
+  pub singleton: Option<bool>,
+  pub required_version: Option<ConsumeVersion>,
+  pub strict_version: Option<bool>,
+  pub tree_shaking_mode: Option<String>,
+}
+
+/// Cloning keeps the configured import together with its resolved provider metadata.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VersionedProvideOptions {
+  config_id: usize,
+  original_request: String,
+  version_inferred: bool,
+  pub request: Option<String>,
+  pub layer: Option<String>,
   pub share_key: String,
   pub share_scope: ShareScope,
   pub version: ProvideVersion,
@@ -51,9 +92,29 @@ pub struct VersionedProvideOptions {
   pub tree_shaking_mode: Option<String>,
 }
 
-impl ProvideOptions {
-  fn to_versioned(&self) -> VersionedProvideOptions {
+/// Cloned with its ID when a configuration enters a matching map.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct NormalizedProvideOptions {
+  config_id: usize,
+  options: EnhancedProvideOptions,
+}
+
+impl std::ops::Deref for NormalizedProvideOptions {
+  type Target = EnhancedProvideOptions;
+
+  fn deref(&self) -> &Self::Target {
+    &self.options
+  }
+}
+
+impl NormalizedProvideOptions {
+  fn to_versioned(&self, request: &str) -> VersionedProvideOptions {
     VersionedProvideOptions {
+      config_id: self.config_id,
+      original_request: request.to_string(),
+      version_inferred: self.version.is_none(),
+      request: self.request.clone(),
+      layer: self.layer.clone(),
       share_key: self.share_key.clone(),
       share_scope: self.share_scope.clone(),
       version: self.version.clone().unwrap_or_default(),
@@ -83,23 +144,214 @@ impl fmt::Display for ProvideVersion {
   }
 }
 
+fn insert_unique_config<T: PartialEq>(
+  configs: &mut FxHashMap<RequestMatchKey, Vec<T>>,
+  key: RequestMatchKey,
+  config: T,
+) {
+  let entries = configs.entry(key).or_default();
+  if !entries.contains(&config) {
+    entries.push(config);
+  }
+}
+
+fn insert_resolved_config(
+  configs: &mut FxHashMap<RequestMatchKey, Vec<VersionedProvideOptions>>,
+  key: RequestMatchKey,
+  config: VersionedProvideOptions,
+) {
+  let entries = configs.entry(key).or_default();
+  if let Some(existing) = entries
+    .iter_mut()
+    .find(|existing| existing.config_id == config.config_id)
+  {
+    *existing = config;
+  } else {
+    entries.push(config);
+  }
+}
+
+fn insert_unique_prefix_config<T: PartialEq>(
+  configs: &mut Vec<(RequestMatchKey, Vec<T>)>,
+  key: RequestMatchKey,
+  config: T,
+) {
+  if let Some((_, entries)) = configs.iter_mut().find(|(existing, _)| existing == &key) {
+    if !entries.contains(&config) {
+      entries.push(config);
+    }
+  } else {
+    configs.push((key, vec![config]));
+  }
+}
+
+fn provide_dependencies(
+  configs: &FxHashMap<RequestMatchKey, Vec<VersionedProvideOptions>>,
+) -> Vec<ProvideSharedDependency> {
+  configs
+    .iter()
+    .flat_map(|(lookup_key, configs)| {
+      configs.iter().map(move |config| {
+        ProvideSharedDependency::new(
+          config.share_scope.clone(),
+          config.share_key.clone(),
+          config.version.clone(),
+          config
+            .request
+            .clone()
+            .unwrap_or_else(|| lookup_key.request().to_string()),
+          config.eager,
+          config.singleton,
+          config.required_version.clone(),
+          config.strict_version,
+          config.layer.clone(),
+          config.tree_shaking_mode.clone(),
+        )
+        .with_request_origin(config.original_request.clone(), config.version_inferred)
+      })
+    })
+    .collect()
+}
+
 #[plugin]
 #[derive(Debug)]
 pub struct ProvideSharedPlugin {
-  provides: Vec<(String, ProvideOptions)>,
-  resolved_provide_map: RwLock<FxHashMap<String, VersionedProvideOptions>>,
-  match_provides: RwLock<FxHashMap<String, ProvideOptions>>,
-  prefix_match_provides: RwLock<FxHashMap<String, ProvideOptions>>,
+  provides: Vec<(String, NormalizedProvideOptions)>,
+  resolved_provide_map: RwLock<FxHashMap<RequestMatchKey, Vec<VersionedProvideOptions>>>,
+  match_provides: RwLock<FxHashMap<RequestMatchKey, Vec<NormalizedProvideOptions>>>,
+  prefix_match_provides: RwLock<Vec<(RequestMatchKey, Vec<NormalizedProvideOptions>)>>,
 }
 
 impl ProvideSharedPlugin {
   pub fn new(provides: Vec<(String, ProvideOptions)>) -> Self {
+    Self::new_enhanced(
+      provides
+        .into_iter()
+        .map(|(key, options)| (key, options.into()))
+        .collect(),
+    )
+  }
+
+  pub fn new_enhanced(provides: Vec<(String, EnhancedProvideOptions)>) -> Self {
+    let provides = provides
+      .into_iter()
+      .enumerate()
+      .map(|(config_id, (key, options))| (key, NormalizedProvideOptions { config_id, options }))
+      .collect();
     Self::new_inner(
       provides,
       Default::default(),
       Default::default(),
       Default::default(),
     )
+  }
+
+  async fn collect_providers(
+    &self,
+    request: &str,
+    effective_layer: Option<&str>,
+    resource_data: &ResourceData,
+    mut add_diagnostic: impl FnMut(Diagnostic),
+  ) {
+    let mut matched = {
+      let match_provides = self.match_provides.read().await;
+      find_exact_match(&match_provides, request, effective_layer)
+        .cloned()
+        .unwrap_or_default()
+    };
+    let prefix_match = {
+      let prefix_match_provides = self.prefix_match_provides.read().await;
+      find_prefix_match(&prefix_match_provides, request, effective_layer)
+        .map(|(config, remainder)| (config.clone(), remainder.to_string()))
+    };
+    if let Some((configs, remainder)) = prefix_match {
+      for mut config in configs {
+        config.options.share_key.push_str(&remainder);
+        matched.push(config);
+      }
+    }
+    for config in matched {
+      self
+        .provide_shared_module(
+          config.config_id,
+          request,
+          &config.share_key,
+          &config.share_scope,
+          config.version.as_ref(),
+          config.eager,
+          config.singleton,
+          config.required_version.clone(),
+          config.strict_version,
+          config.tree_shaking_mode.clone(),
+          config.layer.clone(),
+          resource_data.resource(),
+          resource_data,
+          &mut add_diagnostic,
+        )
+        .await;
+    }
+  }
+
+  async fn collect_restored_providers(
+    &self,
+    compilation: &Compilation,
+    visited_entries: &mut FxHashSet<DependencyId>,
+    visited_modules: &mut IdentifierSet,
+  ) {
+    let artifact = &compilation.build_module_graph_artifact;
+    let graph = artifact.get_module_graph();
+    let mut dependencies = compilation
+      .entries
+      .values()
+      .chain(std::iter::once(&compilation.global_entry))
+      .flat_map(|entry| entry.all_dependencies())
+      .copied()
+      .filter(|dep_id| visited_entries.insert(*dep_id))
+      .collect::<Vec<_>>();
+    while let Some(dep_id) = dependencies.pop() {
+      let Some(module) = graph.get_module_by_dependency_id(&dep_id) else {
+        continue;
+      };
+      let module_id = module.identifier();
+      if visited_modules.insert(module_id) {
+        dependencies.extend(
+          graph
+            .get_outgoing_connections(&module_id)
+            .map(|connection| connection.dependency_id),
+        );
+      }
+      if artifact.affected_dependencies.added().contains(&dep_id)
+        || artifact.affected_dependencies.updated().contains(&dep_id)
+        || !artifact
+          .factorize_info(&dep_id)
+          .is_some_and(|info| info.owner_dep_id() == dep_id)
+      {
+        continue;
+      }
+      let (Some(normal_module), Some(dependency)) = (
+        module.as_normal_module(),
+        graph.dependency_by_id(&dep_id).as_module_dependency(),
+      ) else {
+        continue;
+      };
+      let layer = module
+        .get_layer()
+        .or_else(|| dependency.get_layer())
+        .or_else(|| {
+          graph
+            .get_parent_module(&dep_id)
+            .and_then(|parent| graph.module_by_identifier(parent))
+            .and_then(|parent| parent.get_layer())
+        });
+      self
+        .collect_providers(
+          dependency.request(),
+          layer.map(String::as_str),
+          normal_module.resource_resolved_data(),
+          |_| {},
+        )
+        .await;
+    }
   }
 
   /// For secondary entry points (e.g. `@mui/material/styles`) whose own
@@ -133,6 +385,7 @@ impl ProvideSharedPlugin {
   #[allow(clippy::too_many_arguments)]
   pub async fn provide_shared_module(
     &self,
+    config_id: usize,
     key: &str,
     share_key: &str,
     share_scope: &ShareScope,
@@ -142,16 +395,36 @@ impl ProvideSharedPlugin {
     required_version: Option<ConsumeVersion>,
     strict_version: Option<bool>,
     tree_shaking_mode: Option<String>,
+    layer: Option<String>,
     resource: &str,
     resource_data: &ResourceData,
     mut add_diagnostic: impl FnMut(Diagnostic),
   ) {
     let title = "rspack.ProvideSharedPlugin";
     let error_header = "No version specified and unable to automatically determine one.";
+    let lookup_key = RequestMatchKey::new(resource, layer.as_deref());
+    // Same fast path as webpack's `resolvedProvideMap.has(lookupKey)`: a resource
+    // already resolved for this config skips the version lookup and the write lock.
+    if self
+      .resolved_provide_map
+      .read()
+      .await
+      .get(&lookup_key)
+      .is_some_and(|configs| configs.iter().any(|config| config.config_id == config_id))
+    {
+      return;
+    }
     if let Some(version) = version {
-      self.resolved_provide_map.write().await.insert(
-        resource.to_string(),
+      let mut resolved_provide_map = self.resolved_provide_map.write().await;
+      insert_resolved_config(
+        &mut resolved_provide_map,
+        lookup_key,
         VersionedProvideOptions {
+          config_id,
+          original_request: key.to_string(),
+          version_inferred: false,
+          request: Some(resource.to_string()),
+          layer: layer.clone(),
           share_key: share_key.to_string(),
           share_scope: share_scope.clone(),
           version: version.to_owned(),
@@ -172,9 +445,16 @@ impl ProvideSharedPlugin {
         .or_else(|| Self::find_parent_package_version(description.path(), share_key));
 
       if let Some(version) = version {
-        self.resolved_provide_map.write().await.insert(
-          resource.to_string(),
+        let mut resolved_provide_map = self.resolved_provide_map.write().await;
+        insert_resolved_config(
+          &mut resolved_provide_map,
+          lookup_key,
           VersionedProvideOptions {
+            config_id,
+            original_request: key.to_string(),
+            version_inferred: true,
+            request: Some(resource.to_string()),
+            layer: layer.clone(),
             share_key: share_key.to_string(),
             share_scope: share_scope.clone(),
             version: ProvideVersion::Version(version),
@@ -223,13 +503,21 @@ async fn compilation(
   let mut resolved_provide_map = self.resolved_provide_map.write().await;
   let mut match_provides = self.match_provides.write().await;
   let mut prefix_match_provides = self.prefix_match_provides.write().await;
+  match_provides.clear();
+  prefix_match_provides.clear();
   for (request, config) in &self.provides {
-    if RELATIVE_REQUEST.is_match(request) || ABSOLUTE_REQUEST.is_match(request) {
-      resolved_provide_map.insert(request.clone(), config.to_versioned());
-    } else if request.ends_with('/') {
-      prefix_match_provides.insert(request.clone(), config.clone());
+    let actual_request = config.request.as_deref().unwrap_or(request);
+    let lookup_key = RequestMatchKey::new(actual_request, config.layer.as_deref());
+    if RELATIVE_REQUEST.is_match(actual_request) || ABSOLUTE_REQUEST.is_match(actual_request) {
+      insert_resolved_config(
+        &mut resolved_provide_map,
+        lookup_key,
+        config.to_versioned(actual_request),
+      );
+    } else if actual_request.ends_with('/') {
+      insert_unique_prefix_config(&mut prefix_match_provides, lookup_key, config.clone());
     } else {
-      match_provides.insert(request.clone(), config.clone());
+      insert_unique_config(&mut match_provides, lookup_key, config.clone());
     }
   }
   Ok(())
@@ -237,32 +525,51 @@ async fn compilation(
 
 #[plugin_hook(CompilerFinishMake for ProvideSharedPlugin)]
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
-  let entries = self
-    .resolved_provide_map
-    .read()
-    .await
-    .iter()
-    .map(|(resource, config)| {
-      (
-        BoxDependency::new(ProvideSharedDependency::new(
-          config.share_scope.clone(),
-          config.share_key.clone(),
-          config.version.clone(),
-          resource.clone(),
-          config.eager,
-          config.singleton,
-          config.required_version.clone(),
-          config.strict_version,
-          config.tree_shaking_mode.clone(),
-        )),
-        EntryOptions {
-          name: None,
-          ..Default::default()
-        },
-      )
-    })
-    .collect::<Vec<_>>();
-  compilation.add_include(entries).await?;
+  let restore_providers = !compilation.is_rebuild
+    && matches!(&compilation.options.cache, CacheOptions::Persistent(_))
+    && !compilation.options.experiments.new_cache.is_enabled()
+    && (!self.match_provides.read().await.is_empty()
+      || !self.prefix_match_provides.read().await.is_empty());
+  let mut visited_entries = FxHashSet::default();
+  let mut visited_modules = IdentifierSet::default();
+  let mut included = FxHashSet::default();
+  loop {
+    if restore_providers {
+      self
+        .collect_restored_providers(compilation, &mut visited_entries, &mut visited_modules)
+        .await;
+    }
+    // Release the lock before building: included modules can discover more
+    // providers through `normal_module_factory_module` on the same map.
+    let dependencies = {
+      let resolved_provide_map = self.resolved_provide_map.read().await;
+      provide_dependencies(&resolved_provide_map)
+    };
+    let entries = dependencies
+      .into_iter()
+      .filter(|dependency| {
+        included.insert(
+          dependency
+            .resource_identifier()
+            .expect("provided dependencies have a resource identifier")
+            .to_string(),
+        )
+      })
+      .map(|dependency| {
+        (
+          BoxDependency::new(dependency),
+          EntryOptions {
+            name: None,
+            ..Default::default()
+          },
+        )
+      })
+      .collect::<Vec<_>>();
+    if entries.is_empty() {
+      break;
+    }
+    compilation.add_include(entries).await?;
+  }
   Ok(())
 }
 
@@ -271,61 +578,17 @@ async fn normal_module_factory_module(
   &self,
   data: &mut ModuleFactoryCreateData,
   create_data: &NormalModuleCreateData,
-  _module: &mut BoxModule,
+  module: &mut BoxModule,
 ) -> Result<()> {
-  let resource_data = create_data.resource_resolve_data();
-  let resource = resource_data.resource();
-  if self
-    .resolved_provide_map
-    .read()
-    .await
-    .contains_key(resource)
-  {
-    return Ok(());
-  }
-  let request = &data.request;
-  {
-    let match_provides = self.match_provides.read().await;
-    if let Some(config) = match_provides.get(request) {
-      self
-        .provide_shared_module(
-          request,
-          &config.share_key,
-          &config.share_scope,
-          config.version.as_ref(),
-          config.eager,
-          config.singleton,
-          config.required_version.clone(),
-          config.strict_version,
-          config.tree_shaking_mode.clone(),
-          resource,
-          resource_data,
-          |d| data.diagnostics.push(d),
-        )
-        .await;
-    }
-  }
-  for (prefix, config) in self.prefix_match_provides.read().await.iter() {
-    if request.starts_with(prefix) {
-      let remainder = &request[prefix.len()..];
-      self
-        .provide_shared_module(
-          request,
-          &(config.share_key.clone() + remainder),
-          &config.share_scope,
-          config.version.as_ref(),
-          config.eager,
-          config.singleton,
-          config.required_version.clone(),
-          config.strict_version,
-          config.tree_shaking_mode.clone(),
-          resource,
-          resource_data,
-          |d| data.diagnostics.push(d),
-        )
-        .await;
-    }
-  }
+  let effective_layer = module.get_layer().or(data.issuer_layer.as_ref());
+  self
+    .collect_providers(
+      &data.request,
+      effective_layer.map(String::as_str),
+      create_data.resource_resolve_data(),
+      |diagnostic| data.diagnostics.push(diagnostic),
+    )
+    .await;
   Ok(())
 }
 

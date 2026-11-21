@@ -1,0 +1,16 @@
+[package]
+description       = "Module Federation public API regression tests"
+edition.workspace = true
+license           = "MIT"
+name              = "rspack_plugin_mf_test"
+publish           = false
+repository        = "https://github.com/web-infra-dev/rspack"
+version.workspace = true
+
+[lints]
+workspace = true
+
+[dev-dependencies]
+rspack_collections = { workspace = true }
+rspack_core        = { workspace = true }
+rspack_plugin_mf   = { workspace = true }

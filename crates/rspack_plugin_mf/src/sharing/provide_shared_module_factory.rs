@@ -22,7 +22,7 @@ impl ModuleFactory for ProvideSharedModuleFactory {
       .downcast_ref::<ProvideSharedDependency>()
       .expect("dependency of ProvideSharedModuleFactory should be ProvideSharedDependency");
     Ok(ModuleFactoryResult::new_with_module(
-      ProvideSharedModule::new(
+      ProvideSharedModule::new_enhanced(
         dep.share_scope.clone(),
         dep.name.clone(),
         dep.version.clone(),
@@ -31,6 +31,7 @@ impl ModuleFactory for ProvideSharedModuleFactory {
         dep.singleton,
         dep.required_version.clone(),
         dep.strict_version,
+        dep.layer.clone(),
         dep.tree_shaking_mode.clone(),
         data.build_context.compiler_options.experiments.runtime_mode,
       )

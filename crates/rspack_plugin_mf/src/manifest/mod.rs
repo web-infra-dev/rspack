@@ -413,8 +413,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         let pkg = provide_shared.share_key().to_owned();
         let entry = ensure_shared_entry(&mut shared_map, &container_name, &pkg);
         if entry.version.is_empty() {
-          // Preserve the runtime version used when version is false.
-          entry.version = provide_shared.version().unwrap_or("0").to_owned();
+          entry.version = provide_shared.manifest_version().to_owned();
         }
         entry.singleton = Some(provide_shared.singleton().unwrap_or(true));
         // overlay user-configured shared version options
@@ -448,12 +447,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       if let Some(consume_shared) = module.as_any().downcast_ref::<ConsumeSharedModule>() {
-        let options = consume_shared.options();
-        let pkg = options.share_key.clone();
-        let required = match &options.required_version {
-          Some(ConsumeVersion::Version(v)) => {
-            let v = v.trim();
-            (!v.is_empty() && v != "*").then(|| v.to_owned())
+        let pkg = consume_shared.shared_identity().share_key;
+        let required = match consume_shared.required_version() {
+          Some(ConsumeVersion::Version(version)) => {
+            let version = version.trim();
+            (!version.is_empty() && version != "*").then(|| version.to_owned())
           }
           Some(ConsumeVersion::False) | None => None,
         };

@@ -9,6 +9,7 @@ use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 
 use crate::{
+  ShareScope,
   container::{
     container_entry_dependency::ContainerEntryDependency,
     container_entry_module_factory::ContainerEntryModuleFactory,
@@ -25,14 +26,46 @@ pub struct SharedContainerPluginOptions {
   pub library: LibraryOptions,
 }
 
+impl From<SharedContainerPluginOptions> for EnhancedSharedContainerPluginOptions {
+  fn from(value: SharedContainerPluginOptions) -> Self {
+    Self {
+      share_key: value.name.clone(),
+      share_scope: ShareScope::Single("default".to_string()),
+      layer: None,
+      name: value.name,
+      request: value.request,
+      version: value.version,
+      file_name: value.file_name,
+      library: value.library,
+    }
+  }
+}
+
+/// Shared-container options with an explicit share key, scope, and layer.
+#[derive(Debug)]
+pub struct EnhancedSharedContainerPluginOptions {
+  pub name: String,
+  pub request: String,
+  pub version: String,
+  pub file_name: Option<Filename>,
+  pub library: LibraryOptions,
+  pub share_key: String,
+  pub share_scope: ShareScope,
+  pub layer: Option<String>,
+}
+
 #[plugin]
 #[derive(Debug)]
 pub struct SharedContainerPlugin {
-  options: SharedContainerPluginOptions,
+  options: EnhancedSharedContainerPluginOptions,
 }
 
 impl SharedContainerPlugin {
   pub fn new(options: SharedContainerPluginOptions) -> Self {
+    Self::new_enhanced(options.into())
+  }
+
+  pub fn new_enhanced(options: EnhancedSharedContainerPluginOptions) -> Self {
     Self::new_inner(options)
   }
 }
@@ -60,6 +93,9 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
     self.options.name.clone(),
     self.options.request.clone(),
     self.options.version.clone(),
+    self.options.share_scope.clone(),
+    self.options.share_key.clone(),
+    self.options.layer.clone(),
   );
 
   compilation
@@ -69,6 +105,7 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
         name: Some(self.options.name.clone()),
         filename: self.options.file_name.clone(),
         library: Some(self.options.library.clone()),
+        layer: self.options.layer.clone(),
         ..Default::default()
       },
     )

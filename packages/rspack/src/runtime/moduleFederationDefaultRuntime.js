@@ -5,6 +5,7 @@ var __module_federation_bundler_runtime__,
   __module_federation_container_name__,
   __module_federation_share_strategy__,
   __module_federation_share_fallbacks__,
+  __module_federation_share_fallback_variants__,
   __module_federation_library_type__;
 export default function () {
   const runtimeRequire = __module_federation_runtime_require__;
@@ -51,6 +52,58 @@ export default function () {
         __module_federation_bundler_runtime__[key];
     }
 
+    // Check emitted runtime data, not configuration: issuerLayer is only a
+    // compiler filter, and unused configurations do not need a new runtime.
+    if (
+      runtimeRequire.federation.bundlerRuntime.supportsSharedIdentity !== true
+    ) {
+      const unsupportedIdentity = (shareKey, reason) => {
+        throw new Error(
+          `Module Federation shared "${shareKey}" ${reason}. Use an implementation whose bundlerRuntime.supportsSharedIdentity is true; the installed runtime cannot preserve this shared identity.`,
+        );
+      };
+      for (const stages of Object.values(
+        initializeSharingScopeToInitDataMapping,
+      )) {
+        for (const stage of stages) {
+          if (stage && typeof stage === 'object' && stage.layer != null) {
+            unsupportedIdentity(
+              stage.name,
+              `uses provider layer "${stage.layer}"`,
+            );
+          }
+        }
+      }
+      for (const data of Object.values(
+        consumesLoadingModuleToConsumeDataMapping,
+      )) {
+        if (data.layer != null) {
+          unsupportedIdentity(
+            data.shareKey,
+            `uses consumer layer "${data.layer}"`,
+          );
+        }
+      }
+      for (const [shareKey, entries] of Object.entries(
+        __module_federation_share_fallbacks__ || {},
+      )) {
+        const versions = new Map();
+        for (const [entry, version, globalName] of entries) {
+          const previous = versions.get(version);
+          if (
+            previous &&
+            (previous[0] !== entry || previous[1] !== globalName)
+          ) {
+            unsupportedIdentity(
+              shareKey,
+              `has distinct full fallbacks for version "${version}"`,
+            );
+          }
+          versions.set(version, [entry, globalName]);
+        }
+      }
+    }
+
     early(
       runtimeRequire.federation,
       'libraryType',
@@ -62,6 +115,51 @@ export default function () {
       () => __module_federation_share_fallbacks__,
     );
     const sharedFallback = runtimeRequire.federation.sharedFallback;
+    const getSharedFallbackKey = (moduleId, data) => {
+      const variants =
+        __module_federation_share_fallback_variants__?.[data.shareKey];
+      if (!variants) return data.shareKey;
+      const expectedScopes = Array.isArray(data.shareScope)
+        ? data.shareScope
+        : [data.shareScope || 'default'];
+      const matchesScope = (variant) => {
+        const scopes = Array.isArray(variant.shareScope)
+          ? variant.shareScope
+          : [variant.shareScope || 'default'];
+        return (
+          scopes.length === expectedScopes.length &&
+          scopes.every((scope, index) => scope === expectedScopes[index])
+        );
+      };
+      const requestMatches = (variant) =>
+        (!variant.import || variant.import === data.import) &&
+        (!variant.resource || variant.resource === data.resource);
+      let matches = variants.filter(
+        (variant) =>
+          requestMatches(variant) &&
+          variant.layer === data.layer &&
+          matchesScope(variant),
+      );
+      if (matches.length === 0 && data.layer !== undefined) {
+        matches = variants.filter(
+          (variant) =>
+            requestMatches(variant) &&
+            variant.layer === undefined &&
+            matchesScope(variant),
+        );
+      }
+      if (matches.length === 0) return;
+      const fallbackKey = `${data.shareKey}\0${moduleId}`;
+      sharedFallback[fallbackKey] = matches.map(
+        ({ entry, version, globalName, shareScope, layer }) => [
+          entry,
+          version,
+          globalName,
+          { shareScope, layer },
+        ],
+      );
+      return fallbackKey;
+    };
     early(
       runtimeRequire.federation,
       'consumesLoadingModuleToHandlerMapping',
@@ -70,17 +168,21 @@ export default function () {
         for (let [moduleId, data] of Object.entries(
           consumesLoadingModuleToConsumeDataMapping,
         )) {
+          const fallbackKey = getSharedFallbackKey(moduleId, data);
           consumesLoadingModuleToHandlerMapping[moduleId] = {
-            getter: sharedFallback
-              ? runtimeRequire.federation.bundlerRuntime?.getSharedFallbackGetter(
-                  {
-                    shareKey: data.shareKey,
-                    factory: data.fallback,
-                    webpackRequire: runtimeRequire,
-                    libraryType: runtimeRequire.federation.libraryType,
-                  },
-                )
-              : data.fallback,
+            getter:
+              sharedFallback && fallbackKey
+                ? runtimeRequire.federation.bundlerRuntime?.getSharedFallbackGetter(
+                    {
+                      shareKey: fallbackKey,
+                      scope: data.shareScope ?? 'default',
+                      layer: data.layer,
+                      factory: data.fallback,
+                      webpackRequire: runtimeRequire,
+                      libraryType: runtimeRequire.federation.libraryType,
+                    },
+                  )
+                : data.fallback,
             treeShakingGetter: sharedFallback ? data.fallback : undefined,
             shareInfo: {
               shareConfig: {
@@ -89,8 +191,11 @@ export default function () {
                 strictVersion: data.strictVersion,
                 singleton: data.singleton,
                 eager: data.eager,
+                layer: data.layer,
               },
-              scope: [data.shareScope],
+              scope: Array.isArray(data.shareScope)
+                ? data.shareScope
+                : [data.shareScope || 'default'],
             },
             shareKey: data.shareKey,
             treeShaking: runtimeRequire.federation.sharedFallback
@@ -132,6 +237,7 @@ export default function () {
               requiredVersion,
               strictVersion,
               treeShakingMode,
+              layer,
             } = stage;
             const shareConfig = {};
             const isValidValue = function (val) {
@@ -148,6 +254,9 @@ export default function () {
             }
             if (isValidValue(strictVersion)) {
               shareConfig.strictVersion = strictVersion;
+            }
+            if (isValidValue(layer)) {
+              shareConfig.layer = layer;
             }
             const options = {
               version,
