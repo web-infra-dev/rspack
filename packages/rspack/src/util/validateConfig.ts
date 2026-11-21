@@ -36,7 +36,7 @@ const validateExternalUmd = ({
   let isLibraryUmd = false;
   const library = output?.library;
 
-  if (typeof library === 'object' && 'type' in library) {
+  if (typeof library === 'object' && library !== null && 'type' in library) {
     isLibraryUmd = library.type === 'umd';
   } else {
     isLibraryUmd = false;
@@ -66,7 +66,7 @@ const validateExternalUmd = ({
   };
 
   const checkExternalItemValue = (value: ExternalItemUmdValue | undefined) => {
-    if (!value || typeof value !== 'object') {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
       return;
     }
 
