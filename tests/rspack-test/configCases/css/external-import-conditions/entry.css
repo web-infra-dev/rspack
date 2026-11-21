@@ -1,0 +1,9 @@
+@import url("https://example.com/shared.css");
+@import "./print.css" print;
+@import "./screen.css" screen;
+@import "./feature.css" (min-width: 600px);
+@import "./layered.css" layer(outer) supports(display: grid);
+
+.entry {
+	color: red;
+}

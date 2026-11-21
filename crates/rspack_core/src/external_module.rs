@@ -566,7 +566,903 @@ pub struct DependencyMeta {
   pub attributes: Option<ImportAttributes>,
   pub phase: ImportPhase,
   pub source_type: Option<SourceType>,
-  pub css_import_conditions: Option<CssModuleRenderCondition>,
+  pub css_import_conditions: Vec<CssModuleRenderCondition>,
+}
+
+#[derive(Debug, Clone)]
+struct MediaType {
+  decoded: String,
+  output: String,
+}
+
+impl MediaType {
+  fn from_ident(ident: &ParsedIdent<'_>) -> Self {
+    let decoded = ident.decoded.as_ref();
+    let output = if is_plain_ident(decoded) {
+      decoded.to_string()
+    } else {
+      ident.raw.to_string()
+    };
+    Self {
+      decoded: decoded.to_string(),
+      output,
+    }
+  }
+
+  fn from_plain(name: &str) -> Self {
+    Self {
+      decoded: name.to_string(),
+      output: name.to_string(),
+    }
+  }
+
+  fn eq_ignore_ascii_case(&self, other: &str) -> bool {
+    self.decoded.eq_ignore_ascii_case(other)
+  }
+}
+
+struct ParsedIdent<'a> {
+  decoded: Cow<'a, str>,
+  raw: &'a str,
+}
+
+#[derive(Debug, Clone)]
+enum ParsedMediaQuery {
+  Never,
+  Positive {
+    only: bool,
+    media_type: Option<MediaType>,
+    condition: Option<String>,
+  },
+  Negated {
+    media_type: MediaType,
+    condition: Option<String>,
+  },
+}
+
+/// Renders an `@import` rule for an external stylesheet.
+///
+/// Conditions are ordered from the outermost to the innermost context and are
+/// folded into the `@import` prelude: nested layers become a single layer path,
+/// supports conditions are combined with `and`, and media query lists are
+/// intersected.
+fn render_css_import_source<'a>(
+  request: &str,
+  conditions: impl IntoIterator<Item = &'a CssModuleRenderCondition>,
+) -> String {
+  let mut layer: Option<CssLayer> = None;
+  let mut supports: Vec<&str> = Vec::new();
+  let mut media: Option<String> = None;
+
+  for condition in conditions {
+    if let Some(condition_layer) = &condition.layer {
+      layer = Some(match (layer.take(), condition_layer.clone()) {
+        (None, layer) => layer,
+        (Some(outer), inner) => merge_css_layers(outer, inner),
+      });
+    }
+    if let Some(value) = condition
+      .supports
+      .as_deref()
+      .filter(|value| !value.is_empty())
+    {
+      supports.push(value);
+    }
+    if let Some(value) = condition.media.as_deref().filter(|value| !value.is_empty()) {
+      media = Some(match media {
+        Some(outer) => merge_media_query_lists(&outer, value),
+        None => value.to_string(),
+      });
+    }
+  }
+
+  let mut source = format!("@import url({})", json_stringify_str(request));
+  match layer {
+    Some(CssLayer::Anonymous) => source.push_str(" layer()"),
+    Some(CssLayer::Named(layer)) => {
+      source.push_str(" layer(");
+      source.push_str(&layer);
+      source.push(')');
+    }
+    None => {}
+  }
+  if let Some((first, rest)) = supports.split_first() {
+    source.push_str(" supports(");
+    if rest.is_empty() {
+      source.push_str(first);
+    } else {
+      source.push('(');
+      source.push_str(first);
+      source.push(')');
+      for value in rest {
+        source.push_str(" and (");
+        source.push_str(value);
+        source.push(')');
+      }
+    }
+    source.push(')');
+  }
+  if let Some(media) = media {
+    source.push(' ');
+    source.push_str(&media);
+  }
+  source.push(';');
+  source
+}
+
+/// Merges a nested layer into its outer layer.
+///
+/// Anonymous layers have no addressable name, so they fall back to the closest
+/// representable form: an anonymous outer layer stays anonymous, while an
+/// anonymous inner layer keeps the named outer layer.
+fn merge_css_layers(outer: CssLayer, inner: CssLayer) -> CssLayer {
+  match (outer, inner) {
+    (CssLayer::Named(outer), CssLayer::Named(inner)) => {
+      CssLayer::Named(format!("{outer}.{inner}").into())
+    }
+    (CssLayer::Anonymous, _) => CssLayer::Anonymous,
+    (CssLayer::Named(outer), CssLayer::Anonymous) => CssLayer::Named(outer),
+  }
+}
+
+/// Intersects two media query lists according to CSS Media Queries Level 4
+/// syntax, keeping at most one `[not | only]? <media-type>` at the start of
+/// each query.
+fn merge_media_query_lists(outer: &str, inner: &str) -> String {
+  let outer = split_media_query_list(outer);
+  let inner = split_media_query_list(inner);
+  if outer.is_empty() {
+    return inner.join(", ");
+  }
+  if inner.is_empty() {
+    return outer.join(", ");
+  }
+
+  let outer_parsed: Vec<_> = outer.into_iter().map(parse_media_query).collect();
+  let inner_parsed: Vec<_> = inner.into_iter().map(parse_media_query).collect();
+
+  let mut merged = Vec::with_capacity(outer_parsed.len() * inner_parsed.len());
+  for outer_query in &outer_parsed {
+    for inner_query in &inner_parsed {
+      for intersected in intersect_parsed_queries(outer_query, inner_query) {
+        if let Some(formatted) = format_media_query(&intersected)
+          && !merged.contains(&formatted)
+        {
+          merged.push(formatted);
+        }
+      }
+    }
+  }
+
+  if merged.is_empty() {
+    "not all".to_string()
+  } else {
+    merged.join(", ")
+  }
+}
+
+fn consume_css_escape(s: &str, backslash_idx: usize) -> Option<(char, usize)> {
+  let bytes = s.as_bytes();
+  if bytes.get(backslash_idx) != Some(&b'\\') {
+    return None;
+  }
+  let after_bs = backslash_idx + 1;
+  let Some(ch) = s[after_bs..].chars().next() else {
+    return Some((char::REPLACEMENT_CHARACTER, after_bs));
+  };
+  if matches!(ch, '\n' | '\r' | '\x0c') {
+    return None;
+  }
+  if ch.is_ascii_hexdigit() {
+    let mut pos = after_bs;
+    let mut value = 0u32;
+    let mut digits = 0;
+    while digits < 6
+      && let Some(&byte) = bytes.get(pos)
+      && byte.is_ascii_hexdigit()
+    {
+      value = value * 16
+        + match byte {
+          b'0'..=b'9' => u32::from(byte - b'0'),
+          b'a'..=b'f' => u32::from(byte - b'a' + 10),
+          b'A'..=b'F' => u32::from(byte - b'A' + 10),
+          _ => 0,
+        };
+      pos += 1;
+      digits += 1;
+    }
+    if let Some(&ws) = bytes.get(pos)
+      && matches!(ws, b' ' | b'\t' | b'\n' | b'\r' | 0x0C)
+    {
+      pos += 1;
+      if ws == b'\r' && bytes.get(pos) == Some(&b'\n') {
+        pos += 1;
+      }
+    }
+    let decoded = if value == 0 {
+      char::REPLACEMENT_CHARACTER
+    } else {
+      char::from_u32(value).unwrap_or(char::REPLACEMENT_CHARACTER)
+    };
+    return Some((decoded, pos));
+  }
+  Some((ch, after_bs + ch.len_utf8()))
+}
+
+fn split_media_query_list(media: &str) -> Vec<&str> {
+  let mut queries = Vec::new();
+  let mut depth = 0usize;
+  let mut quote: Option<char> = None;
+  let mut escaped = false;
+  let mut start = 0;
+  let mut i = 0;
+  let bytes = media.as_bytes();
+
+  while i < media.len() {
+    if let Some(q) = quote {
+      let Some(ch) = media[i..].chars().next() else {
+        break;
+      };
+      if escaped {
+        escaped = false;
+      } else if ch == '\\' {
+        escaped = true;
+      } else if ch == q {
+        quote = None;
+      }
+      i += ch.len_utf8();
+      continue;
+    }
+
+    if bytes[i..].starts_with(b"/*") {
+      if let Some(rel) = media[i + 2..].find("*/") {
+        i += 2 + rel + 2;
+        continue;
+      }
+      break;
+    }
+
+    let Some(ch) = media[i..].chars().next() else {
+      break;
+    };
+    if ch == '\\'
+      && let Some((_, next)) = consume_css_escape(media, i)
+    {
+      i = next;
+      continue;
+    }
+    match ch {
+      '"' | '\'' => quote = Some(ch),
+      '(' | '[' => depth += 1,
+      ')' | ']' => depth = depth.saturating_sub(1),
+      ',' if depth == 0 => {
+        let query = media[start..i].trim();
+        if !query.is_empty() {
+          queries.push(query);
+        }
+        start = i + 1;
+      }
+      _ => {}
+    }
+    i += ch.len_utf8();
+  }
+
+  let query = media[start..].trim();
+  if !query.is_empty() {
+    queries.push(query);
+  }
+  queries
+}
+
+fn skip_ws_and_comments(mut s: &str) -> &str {
+  loop {
+    s = s.trim_start_matches(|ch: char| ch.is_ascii_whitespace());
+    if let Some(after_open) = s.strip_prefix("/*") {
+      if let Some(close_idx) = after_open.find("*/") {
+        s = &after_open[close_idx + 2..];
+        continue;
+      }
+      return "";
+    }
+    return s;
+  }
+}
+
+fn is_ident_start(ch: char) -> bool {
+  ch.is_ascii_alphabetic() || ch == '_' || !ch.is_ascii()
+}
+
+fn is_ident_continue(ch: char) -> bool {
+  ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' || !ch.is_ascii()
+}
+
+fn plain_ident_prefix_len(s: &str) -> Option<usize> {
+  let mut chars = s.char_indices();
+  let (_, first) = chars.next()?;
+  let mut end = if is_ident_start(first) {
+    first.len_utf8()
+  } else if first == '-' {
+    let (_, second) = chars.next()?;
+    if is_ident_start(second) || second == '-' {
+      first.len_utf8() + second.len_utf8()
+    } else {
+      return None;
+    }
+  } else {
+    return None;
+  };
+  for (idx, ch) in chars {
+    if is_ident_continue(ch) {
+      end = idx + ch.len_utf8();
+    } else {
+      break;
+    }
+  }
+  Some(end)
+}
+
+fn is_plain_ident(s: &str) -> bool {
+  !s.is_empty() && plain_ident_prefix_len(s) == Some(s.len())
+}
+
+fn consume_ident(s: &str) -> Option<(ParsedIdent<'_>, usize)> {
+  let first = s.chars().next()?;
+  let mut decoded: Option<String> = None;
+  let mut i = if is_ident_start(first) {
+    first.len_utf8()
+  } else if first == '\\' {
+    let (ch, next) = consume_css_escape(s, 0)?;
+    let mut buf = String::with_capacity(s.len().min(32));
+    buf.push(ch);
+    decoded = Some(buf);
+    next
+  } else if first == '-' {
+    let second = s[1..].chars().next()?;
+    if is_ident_start(second) || second == '-' {
+      1 + second.len_utf8()
+    } else if second == '\\' {
+      let (ch, next) = consume_css_escape(s, 1)?;
+      let mut buf = String::with_capacity(s.len().min(32));
+      buf.push('-');
+      buf.push(ch);
+      decoded = Some(buf);
+      next
+    } else {
+      return None;
+    }
+  } else {
+    return None;
+  };
+
+  while i < s.len() {
+    let Some(ch) = s[i..].chars().next() else {
+      break;
+    };
+    if is_ident_continue(ch) {
+      if let Some(buf) = &mut decoded {
+        buf.push(ch);
+      }
+      i += ch.len_utf8();
+    } else if ch == '\\' {
+      let Some((escaped_ch, next)) = consume_css_escape(s, i) else {
+        break;
+      };
+      let buf = decoded.get_or_insert_with(|| s[..i].to_string());
+      buf.push(escaped_ch);
+      i = next;
+    } else {
+      break;
+    }
+  }
+
+  let raw = &s[..i];
+  let decoded = match decoded {
+    Some(buf) => Cow::Owned(buf),
+    None => Cow::Borrowed(raw),
+  };
+  Some((ParsedIdent { decoded, raw }, i))
+}
+
+fn take_leading_ident(s: &str) -> Option<(ParsedIdent<'_>, &str)> {
+  let (ident, end) = consume_ident(s)?;
+  let rest = &s[end..];
+  if rest.is_empty()
+    || rest.starts_with(|ch: char| ch.is_ascii_whitespace())
+    || rest.starts_with("/*")
+  {
+    Some((ident, rest))
+  } else {
+    None
+  }
+}
+
+fn starts_with_media_in_parens(s: &str) -> bool {
+  s.starts_with('(') || consume_ident(s).is_some_and(|(_, len)| s[len..].starts_with('('))
+}
+
+fn consume_media_in_parens(s: &str) -> Option<(&str, &str)> {
+  let open_idx = if s.starts_with('(') {
+    0
+  } else if let Some((_, len)) = consume_ident(s)
+    && s[len..].starts_with('(')
+  {
+    len
+  } else {
+    return None;
+  };
+
+  let mut depth = 0usize;
+  let mut quote: Option<char> = None;
+  let mut escaped = false;
+  let bytes = s.as_bytes();
+  let mut i = open_idx;
+
+  while i < s.len() {
+    if let Some(q) = quote {
+      let ch = s[i..].chars().next()?;
+      if escaped {
+        escaped = false;
+      } else if ch == '\\' {
+        escaped = true;
+      } else if ch == q {
+        quote = None;
+      }
+      i += ch.len_utf8();
+      continue;
+    }
+
+    if bytes[i..].starts_with(b"/*") {
+      if let Some(rel) = s[i + 2..].find("*/") {
+        i += 2 + rel + 2;
+        continue;
+      }
+      return None;
+    }
+
+    let ch = s[i..].chars().next()?;
+    if ch == '\\'
+      && let Some((_, next)) = consume_css_escape(s, i)
+    {
+      i = next;
+      continue;
+    }
+    match ch {
+      '"' | '\'' => quote = Some(ch),
+      '(' => depth += 1,
+      ')' => {
+        depth -= 1;
+        if depth == 0 {
+          let end = i + 1;
+          return Some((&s[..end], &s[end..]));
+        }
+      }
+      _ => {}
+    }
+    i += ch.len_utf8();
+  }
+
+  None
+}
+
+fn is_valid_media_condition(s: &str, allow_or: bool) -> bool {
+  let rest = skip_ws_and_comments(s);
+  if let Some((ident, after)) = take_leading_ident(rest)
+    && ident.decoded.eq_ignore_ascii_case("not")
+  {
+    let after = skip_ws_and_comments(after);
+    let Some((_, tail)) = consume_media_in_parens(after) else {
+      return false;
+    };
+    return skip_ws_and_comments(tail).is_empty();
+  }
+
+  let Some((_, mut tail)) = consume_media_in_parens(rest) else {
+    return false;
+  };
+  let mut is_and_chain: Option<bool> = None;
+  loop {
+    tail = skip_ws_and_comments(tail);
+    if tail.is_empty() {
+      return true;
+    }
+    let Some((kw, after_kw)) = take_leading_ident(tail) else {
+      return false;
+    };
+    if kw.decoded.eq_ignore_ascii_case("and") {
+      if is_and_chain == Some(false) {
+        return false;
+      }
+      is_and_chain = Some(true);
+    } else if allow_or && kw.decoded.eq_ignore_ascii_case("or") {
+      if is_and_chain == Some(true) {
+        return false;
+      }
+      is_and_chain = Some(false);
+    } else {
+      return false;
+    }
+    let after_kw = skip_ws_and_comments(after_kw);
+    let Some((_, next_tail)) = consume_media_in_parens(after_kw) else {
+      return false;
+    };
+    tail = next_tail;
+  }
+}
+
+fn is_valid_media_type(ident: &str) -> bool {
+  !ident.eq_ignore_ascii_case("only")
+    && !ident.eq_ignore_ascii_case("not")
+    && !ident.eq_ignore_ascii_case("and")
+    && !ident.eq_ignore_ascii_case("or")
+    && !ident.eq_ignore_ascii_case("layer")
+}
+
+fn parse_media_query_tail(s: &str) -> Option<Option<String>> {
+  let rest = skip_ws_and_comments(s);
+  if rest.is_empty() {
+    return Some(None);
+  }
+  let (kw, after_kw) = take_leading_ident(rest)?;
+  if !kw.decoded.eq_ignore_ascii_case("and") {
+    return None;
+  }
+  let cond = skip_ws_and_comments(after_kw);
+  if cond.is_empty() || !is_valid_media_condition(cond, false) {
+    return None;
+  }
+  Some(Some(cond.trim().to_string()))
+}
+
+fn parse_media_query(raw: &str) -> ParsedMediaQuery {
+  let s = skip_ws_and_comments(raw);
+  if s.is_empty() {
+    return ParsedMediaQuery::Never;
+  }
+
+  let Some((first, after_first)) = take_leading_ident(s) else {
+    return if is_valid_media_condition(s, true) {
+      ParsedMediaQuery::Positive {
+        only: false,
+        media_type: None,
+        condition: Some(s.trim().to_string()),
+      }
+    } else {
+      ParsedMediaQuery::Never
+    };
+  };
+
+  if first.decoded.eq_ignore_ascii_case("not") {
+    let rest = skip_ws_and_comments(after_first);
+    if starts_with_media_in_parens(rest) {
+      return if is_valid_media_condition(s, true) {
+        ParsedMediaQuery::Positive {
+          only: false,
+          media_type: None,
+          condition: Some(s.trim().to_string()),
+        }
+      } else {
+        ParsedMediaQuery::Never
+      };
+    }
+
+    let Some((mt, after_mt)) = take_leading_ident(rest) else {
+      return ParsedMediaQuery::Never;
+    };
+    if !is_valid_media_type(&mt.decoded) {
+      return ParsedMediaQuery::Never;
+    }
+    let Some(cond) = parse_media_query_tail(after_mt) else {
+      return ParsedMediaQuery::Never;
+    };
+    let media_type = MediaType::from_ident(&mt);
+    return if media_type.eq_ignore_ascii_case("all") {
+      match cond {
+        None => ParsedMediaQuery::Never,
+        Some(c) => ParsedMediaQuery::Positive {
+          only: false,
+          media_type: None,
+          condition: Some(negate_condition(&c)),
+        },
+      }
+    } else {
+      ParsedMediaQuery::Negated {
+        media_type,
+        condition: cond,
+      }
+    };
+  }
+
+  if first.decoded.eq_ignore_ascii_case("only") {
+    let rest = skip_ws_and_comments(after_first);
+    let Some((mt, after_mt)) = take_leading_ident(rest) else {
+      return ParsedMediaQuery::Never;
+    };
+    if !is_valid_media_type(&mt.decoded) {
+      return ParsedMediaQuery::Never;
+    }
+    let Some(cond) = parse_media_query_tail(after_mt) else {
+      return ParsedMediaQuery::Never;
+    };
+    return ParsedMediaQuery::Positive {
+      only: true,
+      media_type: Some(MediaType::from_ident(&mt)),
+      condition: cond,
+    };
+  }
+
+  if is_valid_media_type(&first.decoded) {
+    let Some(cond) = parse_media_query_tail(after_first) else {
+      return ParsedMediaQuery::Never;
+    };
+    return ParsedMediaQuery::Positive {
+      only: false,
+      media_type: Some(MediaType::from_ident(&first)),
+      condition: cond,
+    };
+  }
+
+  ParsedMediaQuery::Never
+}
+
+fn is_single_media_in_parens(s: &str) -> bool {
+  let trimmed = skip_ws_and_comments(s);
+  consume_media_in_parens(trimmed).is_some_and(|(_, tail)| skip_ws_and_comments(tail).is_empty())
+}
+
+fn needs_parens_in_and(s: &str) -> bool {
+  let trimmed = skip_ws_and_comments(s);
+  if is_single_media_in_parens(trimmed) {
+    return false;
+  }
+  if let Some((kw, _)) = take_leading_ident(trimmed)
+    && kw.decoded.eq_ignore_ascii_case("not")
+  {
+    return true;
+  }
+  let Some((_, mut tail)) = consume_media_in_parens(trimmed) else {
+    return true;
+  };
+  loop {
+    tail = skip_ws_and_comments(tail);
+    if tail.is_empty() {
+      return false;
+    }
+    let Some((kw, after_kw)) = take_leading_ident(tail) else {
+      return true;
+    };
+    if !kw.decoded.eq_ignore_ascii_case("and") {
+      return true;
+    }
+    let Some((_, next_tail)) = consume_media_in_parens(skip_ws_and_comments(after_kw)) else {
+      return true;
+    };
+    tail = next_tail;
+  }
+}
+
+fn wrap_for_and(condition: &str) -> Cow<'_, str> {
+  if needs_parens_in_and(condition) {
+    Cow::Owned(format!("({condition})"))
+  } else {
+    Cow::Borrowed(condition)
+  }
+}
+
+fn negate_condition(condition: &str) -> String {
+  let trimmed = condition.trim();
+  if is_single_media_in_parens(trimmed) {
+    format!("not {trimmed}")
+  } else {
+    format!("not ({trimmed})")
+  }
+}
+
+fn combine_conditions(a: Option<&str>, b: Option<&str>) -> Option<String> {
+  match (a, b) {
+    (None, None) => None,
+    (Some(c), None) | (None, Some(c)) => Some(c.to_string()),
+    (Some(a), Some(b)) if a == b => Some(a.to_string()),
+    (Some(a), Some(b)) => Some(format!("{} and {}", wrap_for_and(a), wrap_for_and(b))),
+  }
+}
+
+fn is_unconstrained_all(query: &ParsedMediaQuery) -> bool {
+  matches!(
+    query,
+    ParsedMediaQuery::Positive {
+      only: false,
+      media_type: None,
+      condition: None,
+    }
+  ) || matches!(
+    query,
+    ParsedMediaQuery::Positive {
+      only: false,
+      media_type: Some(mt),
+      condition: None,
+    } if mt.eq_ignore_ascii_case("all")
+  )
+}
+
+fn expand_negated_query(media_type: &MediaType, condition: Option<&str>) -> Vec<ParsedMediaQuery> {
+  let mut expanded = Vec::new();
+  for known in ["screen", "print", "speech"] {
+    if !media_type.eq_ignore_ascii_case(known) {
+      expanded.push(ParsedMediaQuery::Positive {
+        only: false,
+        media_type: Some(MediaType::from_plain(known)),
+        condition: None,
+      });
+    }
+  }
+  if let Some(cond) = condition {
+    expanded.push(ParsedMediaQuery::Positive {
+      only: false,
+      media_type: Some(media_type.clone()),
+      condition: Some(negate_condition(cond)),
+    });
+  }
+  expanded
+}
+
+fn intersect_parsed_queries(a: &ParsedMediaQuery, b: &ParsedMediaQuery) -> Vec<ParsedMediaQuery> {
+  if matches!(a, ParsedMediaQuery::Never) || matches!(b, ParsedMediaQuery::Never) {
+    return Vec::new();
+  }
+  if is_unconstrained_all(a) {
+    return vec![b.clone()];
+  }
+  if is_unconstrained_all(b) {
+    return vec![a.clone()];
+  }
+
+  match (a, b) {
+    (
+      ParsedMediaQuery::Positive {
+        only: o1,
+        media_type: t1,
+        condition: c1,
+      },
+      ParsedMediaQuery::Positive {
+        only: o2,
+        media_type: t2,
+        condition: c2,
+      },
+    ) => {
+      let merged_type = match (t1.as_ref(), t2.as_ref()) {
+        (None, Some(t)) | (Some(t), None) => Some(t.clone()),
+        (None, None) => None,
+        (Some(a), Some(b)) if a.eq_ignore_ascii_case("all") => Some(b.clone()),
+        (Some(a), Some(b)) if b.eq_ignore_ascii_case("all") => Some(a.clone()),
+        (Some(a), Some(b)) if a.eq_ignore_ascii_case(&b.decoded) => Some(a.clone()),
+        (Some(_), Some(_)) => return Vec::new(),
+      };
+      let merged_cond = combine_conditions(c1.as_deref(), c2.as_deref());
+      let only = (*o1 || *o2) && merged_type.is_some();
+      vec![ParsedMediaQuery::Positive {
+        only,
+        media_type: merged_type,
+        condition: merged_cond,
+      }]
+    }
+    (
+      ParsedMediaQuery::Negated {
+        media_type: nt,
+        condition: nc,
+      },
+      ParsedMediaQuery::Positive {
+        only,
+        media_type: Some(pt),
+        condition: pc,
+      },
+    )
+    | (
+      ParsedMediaQuery::Positive {
+        only,
+        media_type: Some(pt),
+        condition: pc,
+      },
+      ParsedMediaQuery::Negated {
+        media_type: nt,
+        condition: nc,
+      },
+    ) if !pt.eq_ignore_ascii_case("all") => {
+      if !nt.eq_ignore_ascii_case(&pt.decoded) {
+        vec![ParsedMediaQuery::Positive {
+          only: *only,
+          media_type: Some(pt.clone()),
+          condition: pc.clone(),
+        }]
+      } else if let Some(nc) = nc {
+        vec![ParsedMediaQuery::Positive {
+          only: *only,
+          media_type: Some(pt.clone()),
+          condition: combine_conditions(Some(&negate_condition(nc)), pc.as_deref()),
+        }]
+      } else {
+        Vec::new()
+      }
+    }
+    (
+      ParsedMediaQuery::Negated {
+        media_type: t1,
+        condition: None,
+      },
+      ParsedMediaQuery::Negated {
+        media_type: t2,
+        condition: None,
+      },
+    ) if t1.eq_ignore_ascii_case(&t2.decoded) => {
+      vec![ParsedMediaQuery::Negated {
+        media_type: t1.clone(),
+        condition: None,
+      }]
+    }
+    (
+      ParsedMediaQuery::Negated {
+        media_type: nt,
+        condition: nc,
+      },
+      other,
+    ) => expand_negated_query(nt, nc.as_deref())
+      .into_iter()
+      .flat_map(|expanded| intersect_parsed_queries(&expanded, other))
+      .collect(),
+    (
+      other,
+      ParsedMediaQuery::Negated {
+        media_type: nt,
+        condition: nc,
+      },
+    ) => expand_negated_query(nt, nc.as_deref())
+      .into_iter()
+      .flat_map(|expanded| intersect_parsed_queries(other, &expanded))
+      .collect(),
+    _ => Vec::new(),
+  }
+}
+
+fn format_media_query(query: &ParsedMediaQuery) -> Option<String> {
+  match query {
+    ParsedMediaQuery::Never => None,
+    ParsedMediaQuery::Positive {
+      only,
+      media_type: Some(mt),
+      condition: Some(cond),
+    } => Some(format!(
+      "{}{} and {}",
+      if *only { "only " } else { "" },
+      mt.output,
+      wrap_for_and(cond)
+    )),
+    ParsedMediaQuery::Positive {
+      only,
+      media_type: Some(mt),
+      condition: None,
+    } => Some(format!("{}{}", if *only { "only " } else { "" }, mt.output)),
+    ParsedMediaQuery::Positive {
+      media_type: None,
+      condition: Some(cond),
+      ..
+    } => Some(cond.clone()),
+    ParsedMediaQuery::Positive {
+      media_type: None,
+      condition: None,
+      ..
+    } => Some("all".to_string()),
+    ParsedMediaQuery::Negated {
+      media_type,
+      condition: Some(cond),
+    } => Some(format!(
+      "not {} and {}",
+      media_type.output,
+      wrap_for_and(cond)
+    )),
+    ParsedMediaQuery::Negated {
+      media_type,
+      condition: None,
+    } => Some(format!("not {}", media_type.output)),
+  }
 }
 
 impl ExternalModule {
@@ -663,38 +1559,10 @@ impl ExternalModule {
       return None;
     }
     let request = self.try_get_request()?;
-    let mut source = format!(
-      "@import url({})",
-      rspack_util::json_stringify_str(request.primary())
-    );
-    if let Some(conditions) = &self.dependency_meta.css_import_conditions {
-      if let Some(layer) = &conditions.layer {
-        source.push_str(" layer(");
-        if let CssLayer::Named(layer) = layer {
-          source.push_str(layer);
-        }
-        source.push(')');
-      }
-      if let Some(supports) = conditions
-        .supports
-        .as_deref()
-        .filter(|value| !value.is_empty())
-      {
-        source.push_str(" supports(");
-        source.push_str(supports);
-        source.push(')');
-      }
-      if let Some(media) = conditions
-        .media
-        .as_deref()
-        .filter(|value| !value.is_empty())
-      {
-        source.push(' ');
-        source.push_str(media);
-      }
-    }
-    source.push(';');
-    Some(source)
+    Some(render_css_import_source(
+      request.primary(),
+      &self.dependency_meta.css_import_conditions,
+    ))
   }
 
   pub async fn chunk_condition_with_hooks(

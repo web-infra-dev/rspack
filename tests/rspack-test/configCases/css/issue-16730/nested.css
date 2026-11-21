@@ -1,0 +1,6 @@
+@import url("https://example.com/print-only.css");
+@import url("https://example.com/screen-print.css") screen;
+
+.nested {
+	color: blue;
+}

@@ -1,0 +1,8 @@
+@import url("https://example.com/feature-screen.css") screen and (max-width: 1200px);
+@import url("https://example.com/not-color.css") not (color);
+@import url("https://example.com/escaped-only.css") \6f nly \73 creen;
+@import url("https://example.com/escaped-not-cond.css") \6e ot (color);
+
+.feature {
+	color: yellow;
+}
