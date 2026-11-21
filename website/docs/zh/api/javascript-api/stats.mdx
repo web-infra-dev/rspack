@@ -119,8 +119,6 @@ const statsJson = stats.toJson({
 console.log(statsJson.hash);
 ```
 
-传入 `true` 会启用所有统计字段，传入 `false` 则会禁用所有字段。
-
 ### toString
 
 以格式化的字符串形式返回描述编译信息（类似 [CLI](/api/cli) 的输出）。
@@ -310,8 +308,6 @@ const statsJson = multiStats.toJson({
 });
 console.log(statsJson.children?.[0]?.errors);
 ```
-
-布尔类型的子编译选项会替换继承的选项：`true` 启用该子编译的所有字段，`false` 则禁用这些字段。只有所有子编译都启用了版本信息时，顶层结果才会包含 `version` 和 `rspackVersion` 字段。
 
 ### toString
 

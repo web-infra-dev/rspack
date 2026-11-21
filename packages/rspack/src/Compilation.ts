@@ -691,7 +691,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   ): NormalizedStatsOptions {
     let optionsOrPreset = statsValue;
     if (typeof optionsOrPreset === 'boolean') {
-      optionsOrPreset = { all: optionsOrPreset };
+      optionsOrPreset = {
+        preset: optionsOrPreset === false ? 'none' : 'normal',
+      };
     } else if (typeof optionsOrPreset === 'string') {
       optionsOrPreset = { preset: optionsOrPreset };
     }

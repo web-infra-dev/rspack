@@ -119,8 +119,6 @@ const statsJson = stats.toJson({
 console.log(statsJson.hash);
 ```
 
-Passing `true` enables all stats fields; passing `false` disables all fields.
-
 ### toString
 
 Return the compilation information in the form of a formatted string (similar to the output of [CLI](/api/cli)).
@@ -310,8 +308,6 @@ const statsJson = multiStats.toJson({
 });
 console.log(statsJson.children?.[0]?.errors);
 ```
-
-A boolean child option replaces the inherited options: `true` enables all fields for that child, while `false` disables them. The top-level `version` and `rspackVersion` fields are included only when version information is enabled for every child.
 
 ### toString
 
