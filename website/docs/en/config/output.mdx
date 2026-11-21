@@ -429,6 +429,8 @@ The following substitutions are available in template strings
 | [resource-path]          | The path used to resolve the file without any query params                                                            |
 | [namespace]              | The modules namespace. This is usually the library name when building as a library, empty otherwise                   |
 
+In string templates, filesystem resource paths in `[resource]`, `[resource-path]`, `[absolute-resource-path]`, and `[relative-resource-path]` are normalized to `/`. This also applies to the default and fallback templates. Module identifiers, composite source identifiers, and loader identifiers receive no additional normalization. Existing URLs, query strings, fragments, template text, and values returned by template functions are preserved. This intentionally differs from webpack's absolute-path behavior.
+
 When using a function, the same options are available camel-cased via the `info` parameter:
 
 ```js title="rspack.config.mjs"
