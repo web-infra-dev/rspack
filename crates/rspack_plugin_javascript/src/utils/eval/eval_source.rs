@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use rspack_error::{Error, Severity};
 use rspack_util::swc::RspackComments;
 use serde_json::json;
@@ -14,14 +16,14 @@ pub fn eval_source<'parser>(
   source: String,
   error_title: String,
 ) -> Option<BasicEvaluatedExpression<'parser>> {
-  eval_source_with_warning(parser, source, &error_title, |source| {
+  eval_source_with_warning(parser, source.into(), &error_title, |source| {
     (format!("failed to parse {}", json!(source)), None)
   })
 }
 
 pub(crate) fn eval_source_with_warning<'parser>(
   parser: &mut JavascriptParser<'parser>,
-  source: String,
+  source: Cow<'_, str>,
   title: &str,
   warning: impl FnOnce(&str) -> (String, Option<String>),
 ) -> Option<BasicEvaluatedExpression<'parser>> {
@@ -47,7 +49,7 @@ pub(crate) fn eval_source_with_warning<'parser>(
         .map_or_default(|diagnostic| diagnostic.span);
       let (message, help) = warning(&source);
       let mut error = Error::from_string(
-        Some(source),
+        Some(source.into_owned()),
         span.start as usize,
         span.end as usize,
         format!("{title} warning"),

@@ -22,16 +22,6 @@ use crate::{
 static TYPEOF_OPERATOR_REGEXP: LazyLock<Regex> =
   LazyLock::new(|| Regex::new("^typeof\\s+").expect("should init `TYPEOF_OPERATOR_REGEXP`"));
 
-type OnEvaluateIdentifier = dyn for<'p> Fn(
-    &DefineRecord,
-    &mut JavascriptParser<'p>,
-    &str, /* Ident */
-    u32,  /* start */
-    u32,  /* end */
-  ) -> Option<BasicEvaluatedExpression<'p>>
-  + Send
-  + Sync;
-
 type OnEvaluateTypeof = dyn for<'p> Fn(
     &DefineRecord,
     &mut JavascriptParser<'p>,
@@ -59,7 +49,6 @@ type OnTypeof = dyn Fn(&DefineRecord, &mut JavascriptParser, u32 /* start */, u3
 pub struct DefineRecord {
   name: Arc<str>,
   code: Value,
-  pub on_evaluate_identifier: Option<Box<OnEvaluateIdentifier>>,
   pub on_evaluate_typeof: Option<Box<OnEvaluateTypeof>>,
   pub on_expression: Option<Box<OnExpression>>,
   pub on_typeof: Option<Box<OnTypeof>>,
@@ -80,10 +69,6 @@ impl std::fmt::Debug for DefineRecord {
       .field("name", &self.name)
       .field("code", &self.code)
       .field(
-        "on_evaluate_identifier",
-        debug_fn_field!(self.on_evaluate_identifier),
-      )
-      .field(
         "on_evaluate_typeof",
         debug_fn_field!(self.on_evaluate_typeof),
       )
@@ -98,19 +83,26 @@ impl DefineRecord {
     Self {
       name,
       code,
-      on_evaluate_identifier: None,
       on_evaluate_typeof: None,
       on_expression: None,
       on_typeof: None,
     }
   }
 
-  fn evaluate<'p>(
+  pub(super) fn evaluate<'p>(
     &self,
     parser: &mut JavascriptParser<'p>,
-    source: String,
+    wrap_typeof: bool,
+    start: u32,
+    end: u32,
   ) -> Option<BasicEvaluatedExpression<'p>> {
-    eval_source_with_warning(parser, source, "DefinePlugin", |_| {
+    let code = code_to_string(&self.code, None, None);
+    let source = if wrap_typeof {
+      Cow::Owned(format!("typeof ({code})"))
+    } else {
+      code
+    };
+    let mut evaluated = eval_source_with_warning(parser, source, "DefinePlugin", |_| {
       let message = format!(
         "The value for '{}' is not a valid JavaScript expression.",
         self.name
@@ -122,15 +114,9 @@ impl DefineRecord {
         )
       });
       (message, help)
-    })
-  }
-
-  fn with_on_evaluate_identifier(
-    mut self,
-    on_evaluate_identifier: Box<OnEvaluateIdentifier>,
-  ) -> Self {
-    self.on_evaluate_identifier = Some(on_evaluate_identifier);
-    self
+    })?;
+    evaluated.set_range(start, end);
+    Some(evaluated)
   }
 
   fn with_on_evaluate_typeof(mut self, on_evaluate_typeof: Box<OnEvaluateTypeof>) -> Self {
@@ -282,58 +268,29 @@ impl WalkData {
       let mut define_record = DefineRecord::from_code(name, code.clone());
       if !is_typeof {
         walk_data.can_rename.insert(key.clone(), None);
-        define_record = define_record
-          .with_on_evaluate_identifier(Box::new(move |record, parser, _ident, start, end| {
-            record
-              .evaluate(
-                parser,
-                code_to_string(&record.code, None, None).into_owned(),
-              )
-              .map(|mut evaluated| {
-                evaluated.set_range(start, end);
-                evaluated
-              })
-          }))
-          .with_on_expression(Box::new(
-            move |record, parser, span, start, end, for_name| {
-              let code = code_to_string(
-                &record.code,
-                Some(!parser.is_asi_position(span.start)),
-                None,
-              );
-              for dep in gen_const_dep(parser, code, for_name, start, end) {
-                parser.add_presentational_dependency(dep);
-              }
+        define_record = define_record.with_on_expression(Box::new(
+          move |record, parser, span, start, end, for_name| {
+            let code = code_to_string(
+              &record.code,
+              Some(!parser.is_asi_position(span.start)),
+              None,
+            );
+            for dep in gen_const_dep(parser, code, for_name, start, end) {
+              parser.add_presentational_dependency(dep);
+            }
 
-              Some(true)
-            },
-          ));
+            Some(true)
+          },
+        ));
       }
 
       define_record = define_record
         .with_on_evaluate_typeof(Box::new(move |record, parser, start, end| {
-          let code = code_to_string(&record.code, None, None);
-          let typeof_code = if is_typeof {
-            code
-          } else {
-            Cow::Owned(format!("typeof ({code})"))
-          };
-          record
-            .evaluate(parser, typeof_code.into_owned())
-            .map(|mut evaluated| {
-              evaluated.set_range(start, end);
-              evaluated
-            })
+          record.evaluate(parser, !is_typeof, start, end)
         }))
         .with_on_typeof(Box::new(move |record, parser, start, end| {
-          let code = code_to_string(&record.code, None, None);
-          let typeof_code = if is_typeof {
-            code
-          } else {
-            Cow::Owned(format!("typeof ({code})"))
-          };
           record
-            .evaluate(parser, typeof_code.into_owned())
+            .evaluate(parser, !is_typeof, start, end)
             .and_then(|evaluated| {
               if !evaluated.is_string() {
                 return None;
