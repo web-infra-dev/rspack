@@ -487,10 +487,7 @@ impl FsWatcherInner {
     // is empty and the loop is a no-op.
     let paths: Vec<_> = accessor.files().1.iter().map(|p| p.clone()).collect();
     for path in paths {
-      if let Ok(mtime) = path
-        .metadata()
-        .and_then(|m| m.modified().or_else(|_| m.created()))
-      {
+      if let Some(mtime) = self.path_manager.file_mtime(&path) {
         self.path_manager.set_file_time_if_absent(path, mtime);
       }
     }

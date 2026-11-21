@@ -53,6 +53,9 @@ jobs:
       - name: Verify rename aggregation and replacement
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t "native-watcher-rename"
 
+      - name: Verify file symlink timestamps
+        run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-symlink-entry-time
+
   e2e:
     name: E2E Testing
     if: inputs.target == 'x86_64-unknown-linux-gnu' || inputs.target == 'wasm32-wasip1-threads'
