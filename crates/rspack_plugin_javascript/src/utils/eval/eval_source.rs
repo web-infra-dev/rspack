@@ -14,6 +14,17 @@ pub fn eval_source<'parser>(
   source: String,
   error_title: String,
 ) -> Option<BasicEvaluatedExpression<'parser>> {
+  eval_source_with_warning(parser, source, &error_title, |source| {
+    (format!("failed to parse {}", json!(source)), None)
+  })
+}
+
+pub(crate) fn eval_source_with_warning<'parser>(
+  parser: &mut JavascriptParser<'parser>,
+  source: String,
+  title: &str,
+  warning: impl FnOnce(&str) -> (String, Option<String>),
+) -> Option<BasicEvaluatedExpression<'parser>> {
   // Fragment ASTs use the module AST's arena so their source, nodes, semantic
   // model, and wrapper all live for the complete parser lifetime. This lets us
   // reuse the normal evaluator and parser hooks without unsafe owned handles.
@@ -34,14 +45,16 @@ pub fn eval_source<'parser>(
       let span = diagnostics
         .first()
         .map_or_default(|diagnostic| diagnostic.span);
+      let (message, help) = warning(&source);
       let mut error = Error::from_string(
-        Some(source.clone()),
+        Some(source),
         span.start as usize,
         span.end as usize,
-        format!("{error_title} warning"),
-        format!("failed to parse {}", json!(source.as_str())),
+        format!("{title} warning"),
+        message,
       );
       error.severity = Severity::Warning;
+      error.help = help;
       parser.add_warning(error.into());
       None
     }
