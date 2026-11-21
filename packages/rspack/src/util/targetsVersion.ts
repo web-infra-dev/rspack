@@ -4,11 +4,21 @@ export function encodeVersion(version: string) {
     .split('.')
     .map((v) => parseInt(v, 10));
 
-  if (Number.isNaN(major) || Number.isNaN(minor) || Number.isNaN(patch)) {
+  if (
+    Number.isNaN(major) ||
+    Number.isNaN(minor) ||
+    Number.isNaN(patch) ||
+    major < 0 ||
+    major > 0xffff ||
+    minor < 0 ||
+    minor > 0xff ||
+    patch < 0 ||
+    patch > 0xff
+  ) {
     return null;
   }
 
-  return (major << 16) | (minor << 8) | patch;
+  return ((major << 16) | (minor << 8) | patch) >>> 0;
 }
 
 export function decodeVersion(n: number) {
