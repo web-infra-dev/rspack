@@ -62,8 +62,12 @@ pub static RESERVED_IDENTIFIER: LazyLock<HashSet<&str>> = LazyLock::new(|| {
   ])
 });
 
+pub fn is_safe_identifier(name: &str) -> bool {
+  SAFE_IDENTIFIER.is_match(name) && !RESERVED_IDENTIFIER.contains(name)
+}
+
 pub fn property_name(prop: &str) -> Result<Cow<'_, str>> {
-  if SAFE_IDENTIFIER.is_match(prop) && !RESERVED_IDENTIFIER.contains(prop) {
+  if is_safe_identifier(prop) {
     Ok(Cow::from(prop))
   } else {
     Ok(Cow::from(json_stringify_str(prop)))

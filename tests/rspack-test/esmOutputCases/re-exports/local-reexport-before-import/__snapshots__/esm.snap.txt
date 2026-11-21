@@ -1,0 +1,23 @@
+```mjs title=main.mjs
+
+
+// ./y.js
+globalThis.__order = globalThis.__order || [];
+globalThis.__order.push("y");
+const yv = 2;
+
+// ./x.js
+globalThis.__order = globalThis.__order || [];
+globalThis.__order.push("x");
+
+// ./index.js
+
+
+
+it('keeps local side-effect order without externals', () => {
+  expect(globalThis.__order).toEqual(['y', 'x']);
+});
+
+export { yv };
+
+```

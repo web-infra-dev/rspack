@@ -4,7 +4,7 @@ use memchr::memchr_iter;
 use rspack_paths::Utf8Path;
 use rspack_sources::SourceMap;
 use rspack_util::identifier::{make_paths_relative, push_absolute_to_request};
-use swc_core::ecma::utils::is_valid_prop_ident;
+pub use swc_core::ecma::utils::is_valid_prop_ident;
 
 use crate::BoxLoader;
 
