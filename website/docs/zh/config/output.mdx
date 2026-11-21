@@ -1164,7 +1164,7 @@ export default {
 };
 ```
 
-使用 `'module'` 构建库时，如果库在加载后给导出的变量重新赋值，导入方读到的仍是原来的值。例如，库导出了 `export let count = 0`，调用库中的函数将 `count` 改为 `1` 后，导入方读到的 `count` 仍是 `0`。使用 [`'modern-module'`](#type-modern-module) 构建同一个库时，导入方会读到 `1`。
+`'module'` 不保留库入口导出的 ESM live binding。例如，库入口声明了 `export let count = 0`。调用库中的函数将 `count` 改为 `1` 后，导入方读到的仍是 `0`。使用 [`'modern-module'`](#type-modern-module) 构建时，导入方会读到更新后的值 `1`。
 
 ##### type: 'commonjs2'
 

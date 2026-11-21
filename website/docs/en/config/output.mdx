@@ -1173,7 +1173,7 @@ export default {
 };
 ```
 
-With `'module'`, consumers still see the original value if the library reassigns an exported variable after it loads. For example, suppose the library declares `export let count = 0`. After calling a library function that sets `count` to `1`, consumers still read `0` from the imported `count`. With [`'modern-module'`](#type-modern-module), they read `1`.
+The `'module'` library type does not preserve ESM live bindings for exports from the library entry. For example, suppose the entry declares `export let count = 0`. After calling a library function that sets `count` to `1`, consumers still read `0` from the imported `count`. With [`'modern-module'`](#type-modern-module), they read the updated value of `1`.
 
 ##### type: 'commonjs2'
 
