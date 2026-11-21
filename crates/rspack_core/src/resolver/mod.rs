@@ -159,14 +159,9 @@ pub async fn resolve_for_error_hints(
       };
       let suggestion =
         format_resolved_resource(&suggested_path, &resource.query, &resource.fragment);
-      return Some(format!("Did you mean '{}'?
-
-The request '{}' failed to resolve only because it was resolved as fully specified,
-probably because the origin is strict ECMAScript Module,
-e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\"type\": \"module\"'.
-
-The extension in the request is mandatory for it to be fully specified.
-Add the extension to the request.", suggestion, args.specifier));
+      return Some(format!(
+        "Did you mean '{suggestion}'? Use the full path to the module file."
+      ));
     }
   }
 

@@ -4,4 +4,9 @@ Array [
     moduleIdentifier: javascript/esm|<TEST_ROOT>/diagnosticsCases/factorize/fully-specified-resolve-suggestions/index.js,
     moduleName: ./index.js,
   },
+  Object {
+    loc: 2:1-15,
+    moduleIdentifier: javascript/esm|<TEST_ROOT>/diagnosticsCases/factorize/fully-specified-resolve-suggestions/index.js,
+    moduleName: ./index.js,
+  },
 ]

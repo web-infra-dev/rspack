@@ -1,14 +1,17 @@
 ERROR in ./index.js 1:1-27
   × Module not found: Can't resolve './foo?raw#section' in '<TEST_ROOT>/diagnosticsCases/factorize/fully-specified-resolve-suggestions'
-   ╭────
+   ╭─[1:0]
  1 │ import "./foo?raw#section"
    · ──────────────────────────
+ 2 │ import "./lib"
    ╰────
-  help: Did you mean './foo.js?raw#section'?
-        
-        The request './foo?raw#section' failed to resolve only because it was resolved as fully specified,
-        probably because the origin is strict ECMAScript Module,
-        e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '"type": "module"'.
-        
-        The extension in the request is mandatory for it to be fully specified.
-        Add the extension to the request.
+  help: Did you mean './foo.js?raw#section'? Use the full path to the module file.
+
+ERROR in ./index.js 2:1-15
+  × Module not found: Can't resolve './lib' in '<TEST_ROOT>/diagnosticsCases/factorize/fully-specified-resolve-suggestions'
+   ╭─[2:0]
+ 1 │ import "./foo?raw#section"
+ 2 │ import "./lib"
+   · ──────────────
+   ╰────
+  help: Did you mean './lib/index.js'? Use the full path to the module file.
