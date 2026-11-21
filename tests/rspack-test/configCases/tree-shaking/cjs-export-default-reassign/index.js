@@ -38,6 +38,7 @@ it('drops modules containing only pure CJS export assignments', () => {
     ['PURE', 'COMPUTED', 'MODULE', 'EXPORTS', 'SENTINEL'],
     ['PURE', 'NAMED', 'EXPORTS', 'SENTINEL'],
     ['PURE', 'CHAINED', 'EXPORTS', 'SENTINEL'],
+    ['REASSIGNED', 'MODULE', 'EXPORTS', 'SENTINEL'],
   ];
 
   for (const parts of sentinels) {
@@ -56,7 +57,6 @@ it('does not relax other assignment targets', () => {
   const sentinels = [
     ['ESM', 'EXPORTS', 'ASSIGNMENT', 'SENTINEL'],
     ['NESTED', 'EXPORT', 'WRITE', 'SENTINEL'],
-    ['REASSIGNED', 'MODULE', 'EXPORTS', 'SENTINEL'],
     ['PROTO', 'EXPORT', 'WRITE', 'SENTINEL'],
     ['COMPUTED', 'PROTO', 'EXPORT', 'WRITE', 'SENTINEL'],
   ];

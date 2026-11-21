@@ -1,0 +1,1 @@
+module.exports['value'] = 'PURE_MODULE_EXPORTS_COMPUTED_MEMBER_SENTINEL';
