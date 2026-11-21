@@ -1794,13 +1794,9 @@ See [Asset base path](/guide/features/asset-base-path) for more details.
 ## output.scriptType
 
 - **Type:** `false | 'text/javascript' | 'module'`
-- **Default:** `false`
+- **Default:** `'module'` when [`output.module`](#outputmodule) is enabled, otherwise `false`
 
-This option allows loading asynchronous chunks with a custom script type, such as `<script type="module" ...>`.
-
-:::tip
-If [`output.module`](#outputmodule) is set to `true`, `output.scriptType` will default to `'module'` instead of `false`.
-:::
+Sets the `type` attribute on `<script>` tags that the Rspack runtime creates to load async chunks. When set to `false`, the runtime omits the attribute. To configure the entry scripts in generated HTML, use [`HtmlRspackPlugin.scriptLoading`](/plugins/html-rspack-plugin#scriptloading).
 
 ```js title="rspack.config.mjs"
 export default {
