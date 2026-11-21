@@ -1125,11 +1125,11 @@ require('MyLibrary').doSomething();
 
 #### 模块定义系统
 
-选择库的使用环境支持的模块系统。
+构建库时，可以根据使用者加载库的方式来选择产物格式。例如，`'module'` 和 `'modern-module'` 都会生成可以用 `import` 导入的 ESM 库，而 [`'commonjs2'`](#type-commonjs2) 适用于通过 `require()` 加载的 CommonJS 库。
 
 ##### type: 'module'
 
-如果你正在从 webpack 迁移一个使用 `library.type: 'module'` 的库，希望沿用原有的产物格式，可以选择 `'module'`。Rspack 会按常规方式打包入口，再通过 ESM 的 `export` 语句导出入口提供的值。使用此类型时，请省略 [`output.library.name`](#outputlibraryname)。
+如果原来的 webpack 配置使用了 `library.type: 'module'`，迁移到 Rspack 时可以继续使用这个类型。配置时请省略 [`output.library.name`](#outputlibraryname)。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1139,11 +1139,13 @@ export default {
 };
 ```
 
-Rspack 会在产物初始化时读取入口的导出值。例如，入口声明了 `export let count = 0`，之后库内给 `count` 重新赋值，使用者读到的仍是初始值。如果使用者需要读到更新后的值，可以选择 [`'modern-module'`](#type-modern-module)。
+使用 `'module'` 时，Rspack 会在库初始化时读取入口的导出值。例如，入口声明了 `export let count = 0`，即使库稍后将 `count` 改为 `1`，使用者读到的仍是 `0`。
+
+对于新开发的库，更推荐使用 [`'modern-module'`](#type-modern-module)。它可以直接导出 `count`，因此使用者在这个例子中会读到更新后的值 `1`。
 
 ##### type: 'modern-module'
 
-构建新的 ESM 库时，推荐使用 `'modern-module'`。Rspack 可以直接导出入口中的变量和函数。以上面的 `count` 为例，库内重新赋值后，使用者也能读到新值。这种导出方式也便于下游打包器通过 [tree shaking](/guide/optimization/tree-shaking) 移除未使用的导出。
+构建新的 ESM 库时，推荐使用 `'modern-module'`。Rspack 可以直接用 `export` 导出入口中的函数和变量，便于下游打包器通过 [tree shaking](/guide/optimization/tree-shaking) 移除未使用的代码。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1153,9 +1155,9 @@ export default {
 };
 ```
 
-如果库使用 `import()` 按需加载某个模块，Rspack 可以生成独立的 ESM chunk，通过原生 `import()` 加载它。如果希望产物保留源码的目录结构，可以配置 [`output.library.preserveModules`](#outputlibrarypreservemodules)。
+如果库中通过 `import()` 按需加载模块，Rspack 可以将这些模块拆分为独立的 ESM chunk，供运行时通过原生 `import()` 加载。如果需要在产物中保留源码的目录结构，可以配置 [`output.library.preserveModules`](#outputlibrarypreservemodules)。
 
-关于如何在 `package.json` 中配置包的入口，请参考[构建 ESM 库](/guide/features/esm#build-an-esm-library)。
+你可以在 `package.json` 中指定使用者通过包名导入库时加载的入口文件。完整示例见[构建 ESM 库](/guide/features/esm#build-an-esm-library)。
 
 :::tip 注意事项
 
