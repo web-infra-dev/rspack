@@ -177,7 +177,7 @@ export default [
 			Object {
 			  "errors": Array [
 			    Object {
-			      "message": "  × Unable to resolve loader ./doesnt-exist-loader",
+			      "message": "  × Can't resolve loader './doesnt-exist-loader' in '<TEST_ROOT>/fixtures/errors'",
 			      "moduleTrace": Array [],
 			      "stack": undefined,
 			    },

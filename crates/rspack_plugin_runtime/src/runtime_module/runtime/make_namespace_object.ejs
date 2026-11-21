@@ -1,7 +1,10 @@
 // define __esModule on exports
 <%- define(MAKE_NAMESPACE_OBJECT) %> = <%- basicFunction("exports") %> {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+<% if (_define_properties) { %>	Object.defineProperties(exports, { [Symbol.toStringTag]: { value: 'Module' }, __esModule: { value: true } });
+<% } else if (_supports_symbol) { %>	Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+	Object.defineProperty(exports, '__esModule', { value: true });
+<% } else { %>	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
 		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
 	}
 	Object.defineProperty(exports, '__esModule', { value: true });
-};
+<% } %>};

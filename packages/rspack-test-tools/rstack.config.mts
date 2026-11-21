@@ -7,13 +7,6 @@ const commonConfig = {
 };
 
 define.lib({
-  tools: {
-    rspack: {
-      experiments: {
-        runtimeMode: 'rspack',
-      },
-    },
-  },
   lib: [
     {
       ...commonConfig,

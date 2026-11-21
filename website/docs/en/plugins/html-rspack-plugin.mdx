@@ -78,9 +78,11 @@ export default {
 
 ### Module scripts
 
-When [`output.module`](/config/output#outputmodule) is enabled and `scriptLoading` is not set, the plugin emits `<script type="module">` instead of `<script defer>`:
+When [`output.module`](/config/output#outputmodule) is enabled, [`scriptLoading`](#scriptloading) defaults to `'module'`. The plugin adds `type="module"` to the entry script tag and uses the emitted filename as its `src`.
 
 ```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
 export default {
   output: {
     module: true,
@@ -90,7 +92,7 @@ export default {
 ```
 
 ```html
-<script src="main.js" type="module"></script>
+<script src="main.mjs" type="module"></script>
 ```
 
 ### Production minification

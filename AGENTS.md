@@ -9,7 +9,7 @@ Before testing changed code, build the artifacts those tests consume using the [
 ## Adding tests
 
 - **Rust:** Do not add new Rust tests in ordinary changes. New cases belong in dedicated test crates; do not add inline `#[test]` functions or crate-local unit tests.
-- **JavaScript:** Reuse existing runners and add cases under `tests/rspack-test/{type}Cases/`. Do not add top-level or suite-level `test.js` runners. Harness-required files inside a case, such as `hookCases/**/test.js`, are allowed.
+- **JavaScript:** Reuse existing runners and add cases under `tests/rspack-test/{type}Cases/`. Do not add top-level or suite-level `test.js` runners. Harness-required files inside a case, such as `hookCases/**/test.js`, are allowed. Use `compilerCases` only when a test must drive the `Compiler` or `Compilation` API directly; otherwise use `configCases`, `normalCases`, `watchCases` or another runner that builds from config.
 
 ## Pull requests
 

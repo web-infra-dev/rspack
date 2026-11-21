@@ -21,12 +21,11 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
-  ArcComputed, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
-  ConstDependency, DependenciesBlock, Dependency, DependencyCodeGeneration,
-  DependencyCodeGenerationRef, DependencyId, DependencyLocation, DependencyRange, FactoryMeta,
-  ImportMeta, ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption,
-  JavascriptParserOptions, ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta,
-  ResolvedModuleOptions, ResourceData, ResourceIdentifier, SideEffectsBailoutItemWithSpan,
+  AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions, ConstDependency,
+  DependenciesBlock, Dependency, DependencyCodeGeneration, DependencyCodeGenerationRef,
+  DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMetaKnownProperties,
+  JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
+  ModuleType, ParseMeta, ResourceData, ResourceIdentifier, SideEffectsBailoutItemWithSpan,
   ValueCacheVersions,
 };
 use rspack_error::{Diagnostic, Result};
@@ -556,7 +555,6 @@ impl<'parser> JavascriptParser<'parser> {
     compiler_options: &CompilerOptions,
     javascript_options: &JavascriptParserOptions,
     module_type: &ModuleType,
-    import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,
     build_info: &mut BuildInfo,
     parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   ) -> JavaScriptParserPluginDrive {
@@ -580,6 +578,7 @@ impl<'parser> JavascriptParser<'parser> {
     plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
+      let import_meta = javascript_options.import_meta();
       plugins.push(Box::new(parser_plugin::ESMTopLevelThisParserPlugin));
       plugins.push(Box::<parser_plugin::ESMDetectionParserPlugin>::default());
       plugins.push(Box::new(
@@ -590,7 +589,7 @@ impl<'parser> JavascriptParser<'parser> {
         },
       ));
       if import_meta.is_enabled() {
-        plugins.push(Box::new(parser_plugin::ImportMetaPlugin(import_meta)));
+        plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
       } else {
         plugins.push(Box::new(parser_plugin::ImportMetaDisabledPlugin));
       }

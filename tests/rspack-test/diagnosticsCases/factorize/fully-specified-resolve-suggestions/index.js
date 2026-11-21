@@ -1,1 +1,1 @@
-import "./foo"
+import "./foo?raw#section"

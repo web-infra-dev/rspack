@@ -27,12 +27,13 @@ use crate::{
   AsyncDependenciesBlockRef, BindingCell, ChunkGraph, ChunkUkey, CodeGenerationResultBuilder,
   CollectedTypeScriptInfo, Compilation, CompilationAsset, CompilationAssets, CompilationId,
   CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
-  CssExportType, DependenciesBlock, DependenciesBlockData, DependencyCodeGenerationRef,
-  DependencyId, DependencyRef, ExportProvided, ExportsInfoArtifact, ExternalModule, FileSystemInfo,
-  Filename, GetTargetResult, ImportPhase, LoaderCache, ModuleCodeTemplate, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule, OptimizationBailoutItem,
-  RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule, SharedPluginDriver,
-  SideEffectsStateArtifact, Snapshot, SourceType, concatenated_module::ConcatenatedModule,
+  CssExportType, CssExportsConvention, DependenciesBlock, DependenciesBlockData,
+  DependencyCodeGenerationRef, DependencyId, DependencyRef, ExportProvided, ExportsInfoArtifact,
+  ExternalModule, FileSystemInfo, Filename, GetTargetResult, ImportPhase, LoaderCache,
+  ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleOptions,
+  ModuleType, NormalModule, OptimizationBailoutItem, RawModule, Resolve, ResolverFactory,
+  RuntimeSpec, SelfModule, SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
+  TypeReexportPresenceMode, concatenated_module::ConcatenatedModule,
   dependencies_block::dependencies_block_update_hash, get_target,
   value_cache_versions::ValueCacheVersions,
 };
@@ -224,6 +225,7 @@ pub fn push_css_module_identifier_part(identifier: &mut String, value: &str) {
 #[derive(Debug, Clone, Default)]
 pub struct CssBuildInfo {
   pub export_type: Option<CssExportType>,
+  pub exports_convention: CssExportsConvention,
   pub has_charset: bool,
   pub css_import_dependency: bool,
   #[cacheable(with=AsMap<AsPreset>)]
@@ -312,6 +314,7 @@ pub struct BuildInfo {
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
   pub inline_exports: bool,
+  pub type_reexports_presence: TypeReexportPresenceMode,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
   pub rsc: Option<Box<RscMeta>>,
   pub import_phase: ImportPhase,
@@ -351,6 +354,7 @@ impl Default for BuildInfo {
       assets: Default::default(),
       module: false,
       inline_exports: false,
+      type_reexports_presence: Default::default(),
       collected_typescript_info: None,
       rsc: None,
       import_phase: ImportPhase::Evaluation,
@@ -860,7 +864,7 @@ pub trait Module:
   /// Resolve options matched by module rules.
   /// e.g `javascript/esm` may have special resolving options like `fullySpecified`.
   /// `css` and `css/module` may have special resolving options like `preferRelative`.
-  fn get_resolve_options(&self) -> Option<Arc<Resolve>> {
+  fn get_resolve_options(&self, _module_options: &ModuleOptions) -> Option<Arc<Resolve>> {
     None
   }
 

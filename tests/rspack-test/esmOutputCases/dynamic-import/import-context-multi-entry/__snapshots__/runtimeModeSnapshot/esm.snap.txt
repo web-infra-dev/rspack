@@ -55,7 +55,7 @@ moduleFactories.add({
 
 module.exports = {
 
-  "./modules-a/a.js": function() { return ensureChunk(/*! esm */ "a").then(rspackRequire.bind(rspackRequire, /*! ./modules-a/a.js */ "./modules-a/a.js")); }
+  "./modules-a/a.js": function() { return ensureChunk(/*! esm */ "a").then(() => rspackRequire(/*! ./modules-a/a.js */ "./modules-a/a.js")); }
 };
 
 
@@ -86,7 +86,7 @@ moduleFactories.add({
 
 module.exports = {
 
-  "./modules-b/b.js": function() { return ensureChunk(/*! esm */ "b").then(rspackRequire.bind(rspackRequire, /*! ./modules-b/b.js */ "./modules-b/b.js")); }
+  "./modules-b/b.js": function() { return ensureChunk(/*! esm */ "b").then(() => rspackRequire(/*! ./modules-b/b.js */ "./modules-b/b.js")); }
 };
 
 
@@ -161,21 +161,13 @@ moduleFactories.add = function registerModules(modules) { Object.assign(moduleFa
 ;
 // rspack/runtime/get javascript chunk filename
 // This function allow to reference chunks
-var getChunkScriptFilename = (chunkId) => {
-  // return url for filenames not based on template
-
-  // return url for filenames based on template
-  return chunkId + ".mjs"
-};
+var getChunkScriptFilename = (chunkId) => (chunkId + ".mjs");
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
+	Object.defineProperties(exports, { [Symbol.toStringTag]: { value: 'Module' }, __esModule: { value: true } });
 };;
 export { makeNamespaceObject };
 // rspack/runtime/esm_chunk_loading
@@ -261,21 +253,13 @@ moduleFactories.add = function registerModules(modules) { Object.assign(moduleFa
 ;
 // rspack/runtime/get javascript chunk filename
 // This function allow to reference chunks
-var getChunkScriptFilename = (chunkId) => {
-  // return url for filenames not based on template
-
-  // return url for filenames based on template
-  return chunkId + ".mjs"
-};
+var getChunkScriptFilename = (chunkId) => (chunkId + ".mjs");
 // rspack/runtime/has_own_property
 var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop));
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
+	Object.defineProperties(exports, { [Symbol.toStringTag]: { value: 'Module' }, __esModule: { value: true } });
 };;
 export { makeNamespaceObject };
 // rspack/runtime/esm_chunk_loading

@@ -1,10 +1,10 @@
 use std::{path::PathBuf, sync::Arc};
 
 use criterion::Criterion;
-use rspack::builder::{Builder, CompilerBuilder, Devtool};
+use rspack::builder::{Builder, CompilerBuilder, Devtool, ModuleRuleBuilder};
 use rspack_core::{
-  AliasMap, CssModuleGeneratorOptions, GeneratorOptions, Mode, ModuleOptions, ModuleRule,
-  ModuleRuleEffect, ModuleType, Resolve, RuleSetCondition,
+  AliasMap, CssModuleGeneratorOptions, GeneratorOptions, Mode, ModuleOptions, ModuleRuleEffect,
+  ModuleRuleMatcher, ModuleType, Resolve, RuleSetCondition,
 };
 use rspack_regex::RspackRegex;
 use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_context_sync};
@@ -30,10 +30,13 @@ fn compiler() -> CompilerBuilder {
   // Adapt css-loader/rspack.config.mjs to the native Rust benchmark. foo.less
   // contains only CSS, so it can use the CSS parser without a JavaScript loader.
   let mut module = ModuleOptions::builder();
-  module.rule(ModuleRule {
-    test: Some(RuleSetCondition::Regexp(
-      RspackRegex::new("\\.(css|less)$").unwrap(),
-    )),
+  module.rule(ModuleRuleBuilder {
+    matcher: ModuleRuleMatcher {
+      test: Some(RuleSetCondition::Regexp(
+        RspackRegex::new("\\.(css|less)$").unwrap(),
+      )),
+      ..Default::default()
+    },
     effect: ModuleRuleEffect {
       r#type: Some(ModuleType::CssModule),
       ..Default::default()
@@ -73,16 +76,19 @@ fn compiler() -> CompilerBuilder {
   .into_iter()
   .enumerate()
   {
-    module.rule(ModuleRule {
-      test: Some(RuleSetCondition::Regexp(
-        RspackRegex::new("\\.css$").unwrap(),
-      )),
-      resource_query: Some(
-        RuleSetCondition::Regexp(
-          RspackRegex::new(&format!("\\?local-ident-name-{}$", index + 1)).unwrap(),
-        )
-        .into(),
-      ),
+    module.rule(ModuleRuleBuilder {
+      matcher: ModuleRuleMatcher {
+        test: Some(RuleSetCondition::Regexp(
+          RspackRegex::new("\\.css$").unwrap(),
+        )),
+        resource_query: Some(
+          RuleSetCondition::Regexp(
+            RspackRegex::new(&format!("\\?local-ident-name-{}$", index + 1)).unwrap(),
+          )
+          .into(),
+        ),
+        ..Default::default()
+      },
       effect: ModuleRuleEffect {
         generator: Some(GeneratorOptions::CssModule(CssModuleGeneratorOptions {
           local_ident_name: Some(name.into()),

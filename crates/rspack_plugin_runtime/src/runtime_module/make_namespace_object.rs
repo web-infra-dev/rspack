@@ -40,7 +40,15 @@ impl RuntimeModule for MakeNamespaceObjectRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let source = context.runtime_template.render(self.id(), None)?;
+    let environment = &context.compilation.options.output.environment;
+    let supports_symbol = environment.supports_symbol();
+    let source = context.runtime_template.render(
+      self.id(),
+      Some(serde_json::json!({
+        "_define_properties": supports_symbol && environment.supports_computed_property(),
+        "_supports_symbol": supports_symbol,
+      })),
+    )?;
 
     Ok(source)
   }

@@ -148,18 +148,14 @@ pub trait Dependency:
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
+    _context: &DependencyDiagnosticsContext,
   ) -> Option<Vec<Diagnostic>> {
     None
   }
 
-  fn get_diagnostics_with_context(
-    &self,
-    module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
-    exports_info_artifact: &ExportsInfoArtifact,
-    _context: &DependencyDiagnosticsContext,
-  ) -> Option<Vec<Diagnostic>> {
-    self.get_diagnostics(module_graph, module_graph_cache, exports_info_artifact)
+  /// Whether an import of a dynamic module may need its default interop getter.
+  fn may_read_default_export(&self, _module_graph: &ModuleGraph) -> bool {
+    true
   }
 
   fn get_referenced_exports(

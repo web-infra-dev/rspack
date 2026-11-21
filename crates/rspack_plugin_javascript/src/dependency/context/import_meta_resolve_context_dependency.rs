@@ -61,6 +61,7 @@ impl Dependency for ImportMetaResolveContextDependency {
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
+    _context: &rspack_core::DependencyDiagnosticsContext,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
       return Some(vec![critical]);

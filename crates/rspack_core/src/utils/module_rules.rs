@@ -7,7 +7,7 @@ use rspack_paths::Utf8Path;
 
 use crate::{
   DataRef, DependencyCategory, Filename, FilenameRenderValue, ImportAttributes, ImportPhase,
-  ModuleRule, ModuleRuleEffect, PlaceholderKind, RuleSetConditionWithEmpty,
+  ModuleRule, ModuleRuleEffectIndices, PlaceholderKind, RuleSetConditionWithEmpty,
 };
 
 pub struct MatchContext<'ctx> {
@@ -19,10 +19,10 @@ pub struct MatchContext<'ctx> {
   pub attributes: Option<&'ctx ImportAttributes>,
 }
 
-pub async fn module_rules_matcher<'rule, 'ctx>(
-  rules: &'rule [ModuleRule],
+pub async fn module_rules_matcher<'ctx>(
+  rules: &[ModuleRule],
   ctx: &MatchContext<'ctx>,
-  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
+  matched_rules: &mut ModuleRuleEffectIndices,
 ) -> Result<()> {
   let matched_rules_len = matched_rules.len();
   let mut resource_data = Cow::Borrowed(ctx.resource_data);
@@ -34,11 +34,11 @@ pub async fn module_rules_matcher<'rule, 'ctx>(
   module_rules_matcher_async(rules, ctx, &mut resource_data, matched_rules).await
 }
 
-fn module_rules_matcher_sync<'rule, 'ctx>(
-  rules: &'rule [ModuleRule],
+fn module_rules_matcher_sync<'ctx>(
+  rules: &[ModuleRule],
   ctx: &MatchContext<'ctx>,
   resource_data: &mut Cow<'ctx, ResourceData>,
-  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
+  matched_rules: &mut ModuleRuleEffectIndices,
 ) -> Option<Result<()>> {
   for rule in rules {
     match module_rule_matcher_sync(rule, ctx, resource_data, matched_rules) {
@@ -50,11 +50,11 @@ fn module_rules_matcher_sync<'rule, 'ctx>(
   Some(Ok(()))
 }
 
-async fn module_rules_matcher_async<'rule, 'ctx>(
-  rules: &'rule [ModuleRule],
+async fn module_rules_matcher_async<'ctx>(
+  rules: &[ModuleRule],
   ctx: &MatchContext<'ctx>,
   resource_data: &mut Cow<'ctx, ResourceData>,
-  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
+  matched_rules: &mut ModuleRuleEffectIndices,
 ) -> Result<()> {
   for rule in rules {
     module_rule_matcher_async(rule, ctx, resource_data, matched_rules).await?;
@@ -129,12 +129,12 @@ async fn check_optional_async(
   }
 }
 
-/// Match the `ModuleRule` against the given `ResourceData`, and return the matching `ModuleRule` if matched.
-pub async fn module_rule_matcher<'rule, 'ctx>(
-  module_rule: &'rule ModuleRule,
+/// Append matched effect indices and report whether the rule matched.
+pub async fn module_rule_matcher<'ctx>(
+  module_rule: &ModuleRule,
   ctx: &MatchContext<'ctx>,
   resource_data: &mut Cow<'ctx, ResourceData>,
-  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
+  matched_rules: &mut ModuleRuleEffectIndices,
 ) -> Result<bool> {
   let matched_rules_len = matched_rules.len();
   let original_resource_data = resource_data.clone();
@@ -146,13 +146,14 @@ pub async fn module_rule_matcher<'rule, 'ctx>(
   module_rule_matcher_async(module_rule, ctx, resource_data, matched_rules).await
 }
 
-fn module_rule_matcher_sync<'rule, 'ctx>(
-  module_rule: &'rule ModuleRule,
+fn module_rule_matcher_sync<'ctx>(
+  module_rule: &ModuleRule,
   ctx: &MatchContext<'ctx>,
   resource_data: &mut Cow<'ctx, ResourceData>,
-  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
+  matched_rules: &mut ModuleRuleEffectIndices,
 ) -> Option<Result<bool>> {
-  if let Some(test_rule) = &module_rule.rspack_resource {
+  let matcher = &module_rule.matcher;
+  if let Some(test_rule) = &matcher.rspack_resource {
     ensure_sync_matched!(test_rule.try_match_sync(resource_data.resource().into()));
   }
 
@@ -161,7 +162,7 @@ fn module_rule_matcher_sync<'rule, 'ctx>(
     .unwrap_or_else(|| Utf8Path::new(""))
     .as_str();
 
-  let test_unmatched = if let Some(test_rule) = &module_rule.test {
+  let test_unmatched = if let Some(test_rule) = &matcher.test {
     match test_rule.try_match_sync(resource_path.into()) {
       Some(Ok(true)) => false,
       Some(Ok(false)) => true,
@@ -173,40 +174,40 @@ fn module_rule_matcher_sync<'rule, 'ctx>(
   };
   if test_unmatched {
     return Some(Ok(false));
-  } else if let Some(resource_rule) = &module_rule.resource {
+  } else if let Some(resource_rule) = &matcher.resource {
     ensure_sync_matched!(resource_rule.try_match_sync(resource_path.into()));
   }
 
-  if let Some(include_rule) = &module_rule.include {
+  if let Some(include_rule) = &matcher.include {
     ensure_sync_matched!(include_rule.try_match_sync(resource_path.into()));
   }
 
-  if let Some(exclude_rule) = &module_rule.exclude {
+  if let Some(exclude_rule) = &matcher.exclude {
     ensure_sync_not_matched!(exclude_rule.try_match_sync(resource_path.into()));
   }
 
-  if let Some(resource_query_rule) = &module_rule.resource_query {
+  if let Some(resource_query_rule) = &matcher.resource_query {
     ensure_sync_matched!(check_optional_sync(
       resource_query_rule,
       resource_data.query().map(Into::into),
     ));
   }
 
-  if let Some(resource_fragment_condition) = &module_rule.resource_fragment {
+  if let Some(resource_fragment_condition) = &matcher.resource_fragment {
     ensure_sync_matched!(check_optional_sync(
       resource_fragment_condition,
       resource_data.fragment().map(Into::into),
     ));
   }
 
-  if let Some(mimetype_condition) = &module_rule.mimetype {
+  if let Some(mimetype_condition) = &matcher.mimetype {
     ensure_sync_matched!(check_optional_sync(
       mimetype_condition,
       resource_data.mimetype().map(Into::into),
     ));
   }
 
-  if let Some(scheme_condition) = &module_rule.scheme {
+  if let Some(scheme_condition) = &matcher.scheme {
     let scheme = resource_data.get_scheme();
     if scheme.is_none() {
       ensure_sync_matched!(scheme_condition.match_when_empty_sync());
@@ -214,26 +215,26 @@ fn module_rule_matcher_sync<'rule, 'ctx>(
     ensure_sync_matched!(scheme_condition.try_match_sync(scheme.as_str().into()));
   }
 
-  if let Some(issuer_rule) = &module_rule.issuer {
+  if let Some(issuer_rule) = &matcher.issuer {
     ensure_sync_matched!(check_optional_sync(issuer_rule, ctx.issuer.map(Into::into),));
   }
 
-  if let Some(issuer_layer_rule) = &module_rule.issuer_layer {
+  if let Some(issuer_layer_rule) = &matcher.issuer_layer {
     ensure_sync_matched!(check_optional_sync(
       issuer_layer_rule,
       ctx.issuer_layer.map(Into::into),
     ));
   }
 
-  if let Some(dependency_rule) = &module_rule.dependency {
+  if let Some(dependency_rule) = &matcher.dependency {
     ensure_sync_matched!(dependency_rule.try_match_sync(ctx.dependency.as_str().into()));
   }
 
-  if let Some(phase_rule) = &module_rule.phase {
+  if let Some(phase_rule) = &matcher.phase {
     ensure_sync_matched!(phase_rule.try_match_sync(ctx.phase.as_str().into()));
   }
 
-  if let Some(description_data) = &module_rule.description_data {
+  if let Some(description_data) = &matcher.description_data {
     if let Some(resource_description) = resource_data.description() {
       for (k, matcher) in description_data {
         let value = resource_description.get(k.split('.'));
@@ -249,7 +250,7 @@ fn module_rule_matcher_sync<'rule, 'ctx>(
     }
   }
 
-  if let Some(with) = &module_rule.with {
+  if let Some(with) = &matcher.with {
     if let Some(attributes) = ctx.attributes {
       for (k, matcher) in with {
         ensure_sync_matched!(check_optional_sync(
@@ -264,7 +265,7 @@ fn module_rule_matcher_sync<'rule, 'ctx>(
     }
   }
 
-  matched_rules.push(&module_rule.effect);
+  matched_rules.push(module_rule.effect);
   if let Some(template) = &module_rule.r#as
     && let Some(match_resource_data) = create_rule_as_resource(template, resource_data)
   {
@@ -301,13 +302,14 @@ fn module_rule_matcher_sync<'rule, 'ctx>(
 }
 
 #[async_recursion]
-async fn module_rule_matcher_async<'rule, 'ctx>(
-  module_rule: &'rule ModuleRule,
+async fn module_rule_matcher_async<'ctx>(
+  module_rule: &ModuleRule,
   ctx: &MatchContext<'ctx>,
   resource_data: &mut Cow<'ctx, ResourceData>,
-  matched_rules: &mut Vec<&'rule ModuleRuleEffect>,
+  matched_rules: &mut ModuleRuleEffectIndices,
 ) -> Result<bool> {
-  if let Some(test_rule) = &module_rule.rspack_resource {
+  let matcher = &module_rule.matcher;
+  if let Some(test_rule) = &matcher.rspack_resource {
     let input = match &*resource_data {
       Cow::Borrowed(resource_data) => resource_data.resource().into(),
       // A virtual path can contain delimiters. Pass its known parts directly.
@@ -325,35 +327,35 @@ async fn module_rule_matcher_async<'rule, 'ctx>(
     .unwrap_or_else(|| Utf8Path::new(""))
     .as_str();
 
-  if let Some(test_rule) = &module_rule.test
+  if let Some(test_rule) = &matcher.test
     && !test_rule.try_match(resource_path.into()).await?
   {
     return Ok(false);
-  } else if let Some(resource_rule) = &module_rule.resource
+  } else if let Some(resource_rule) = &matcher.resource
     && !resource_rule.try_match(resource_path.into()).await?
   {
     return Ok(false);
   }
 
-  if let Some(include_rule) = &module_rule.include
+  if let Some(include_rule) = &matcher.include
     && !include_rule.try_match(resource_path.into()).await?
   {
     return Ok(false);
   }
 
-  if let Some(exclude_rule) = &module_rule.exclude
+  if let Some(exclude_rule) = &matcher.exclude
     && exclude_rule.try_match(resource_path.into()).await?
   {
     return Ok(false);
   }
 
-  if let Some(resource_query_rule) = &module_rule.resource_query
+  if let Some(resource_query_rule) = &matcher.resource_query
     && !check_optional_async(resource_query_rule, resource_data.query().map(Into::into)).await?
   {
     return Ok(false);
   }
 
-  if let Some(resource_fragment_condition) = &module_rule.resource_fragment
+  if let Some(resource_fragment_condition) = &matcher.resource_fragment
     && !check_optional_async(
       resource_fragment_condition,
       resource_data.fragment().map(Into::into),
@@ -363,13 +365,13 @@ async fn module_rule_matcher_async<'rule, 'ctx>(
     return Ok(false);
   }
 
-  if let Some(mimetype_condition) = &module_rule.mimetype
+  if let Some(mimetype_condition) = &matcher.mimetype
     && !check_optional_async(mimetype_condition, resource_data.mimetype().map(Into::into)).await?
   {
     return Ok(false);
   }
 
-  if let Some(scheme_condition) = &module_rule.scheme {
+  if let Some(scheme_condition) = &matcher.scheme {
     let scheme = resource_data.get_scheme();
     if scheme.is_none() && !scheme_condition.match_when_empty().await? {
       return Ok(false);
@@ -379,19 +381,19 @@ async fn module_rule_matcher_async<'rule, 'ctx>(
     }
   }
 
-  if let Some(issuer_rule) = &module_rule.issuer
+  if let Some(issuer_rule) = &matcher.issuer
     && !check_optional_async(issuer_rule, ctx.issuer.map(Into::into)).await?
   {
     return Ok(false);
   }
 
-  if let Some(issuer_layer_rule) = &module_rule.issuer_layer
+  if let Some(issuer_layer_rule) = &matcher.issuer_layer
     && !check_optional_async(issuer_layer_rule, ctx.issuer_layer.map(Into::into)).await?
   {
     return Ok(false);
   }
 
-  if let Some(dependency_rule) = &module_rule.dependency
+  if let Some(dependency_rule) = &matcher.dependency
     && !dependency_rule
       .try_match(ctx.dependency.as_str().into())
       .await?
@@ -399,13 +401,13 @@ async fn module_rule_matcher_async<'rule, 'ctx>(
     return Ok(false);
   }
 
-  if let Some(phase_rule) = &module_rule.phase
+  if let Some(phase_rule) = &matcher.phase
     && !phase_rule.try_match(ctx.phase.as_str().into()).await?
   {
     return Ok(false);
   }
 
-  if let Some(description_data) = &module_rule.description_data {
+  if let Some(description_data) = &matcher.description_data {
     if let Some(resource_description) = resource_data.description() {
       for (k, matcher) in description_data {
         let value = resource_description.get(k.split('.'));
@@ -422,7 +424,7 @@ async fn module_rule_matcher_async<'rule, 'ctx>(
     }
   }
 
-  if let Some(with) = &module_rule.with {
+  if let Some(with) = &matcher.with {
     if let Some(attributes) = ctx.attributes {
       for (k, matcher) in with {
         if !check_optional_async(matcher, attributes.get(k).map(Into::into)).await? {
@@ -438,7 +440,7 @@ async fn module_rule_matcher_async<'rule, 'ctx>(
     }
   }
 
-  matched_rules.push(&module_rule.effect);
+  matched_rules.push(module_rule.effect);
   if let Some(template) = &module_rule.r#as
     && let Some(match_resource_data) = create_rule_as_resource(template, resource_data)
   {

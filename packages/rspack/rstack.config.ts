@@ -177,11 +177,17 @@ const removeDtsExportPlugin: RsbuildPlugin = {
 };
 
 define.lib({
+  exports: {
+    include: ['index'],
+    custom: {
+      './hot/*': './hot/*.js',
+      './hot/*.js': './hot/*.js',
+      './package.json': './package.json',
+      './module': './module.d.ts',
+    },
+  },
   tools: {
     rspack: {
-      experiments: {
-        runtimeMode: 'rspack',
-      },
       module: {
         parser: {
           javascript: {

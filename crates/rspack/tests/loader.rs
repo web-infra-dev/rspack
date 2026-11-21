@@ -1,8 +1,8 @@
 #![allow(unused_imports)]
 
-use rspack::builder::Builder as _;
+use rspack::builder::{Builder as _, ModuleRuleBuilder};
 use rspack_core::{
-  Compiler, Experiments, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleUse,
+  Compiler, Experiments, ModuleOptions, ModuleRuleEffect, ModuleRuleMatcher, ModuleRuleUse,
   ModuleRuleUseLoader, RuleSetCondition,
 };
 use rspack_paths::Utf8Path;
@@ -18,10 +18,13 @@ async fn lightningcss() {
     let mut compiler = Compiler::builder()
       .context(Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/lightningcss"))
       .entry("main", "./src/index.js")
-      .module(ModuleOptions::builder().rule(ModuleRule {
-        test: Some(RuleSetCondition::Regexp(
-          RspackRegex::new("\\.css$").unwrap(),
-        )),
+      .module(ModuleOptions::builder().rule(ModuleRuleBuilder {
+        matcher: ModuleRuleMatcher {
+          test: Some(RuleSetCondition::Regexp(
+            RspackRegex::new("\\.css$").unwrap(),
+          )),
+          ..Default::default()
+        },
         effect: ModuleRuleEffect {
           r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
           loader: "builtin:lightningcss-loader".to_string(),
@@ -58,10 +61,13 @@ async fn swc() {
     let mut compiler = Compiler::builder()
       .context(Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/swc"))
       .entry("main", "./src/index.jsx")
-      .module(ModuleOptions::builder().rule(ModuleRule {
-        test: Some(RuleSetCondition::Regexp(
-          RspackRegex::new("\\.jsx$").unwrap(),
-        )),
+      .module(ModuleOptions::builder().rule(ModuleRuleBuilder {
+        matcher: ModuleRuleMatcher {
+          test: Some(RuleSetCondition::Regexp(
+            RspackRegex::new("\\.jsx$").unwrap(),
+          )),
+          ..Default::default()
+        },
         effect: ModuleRuleEffect {
           r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
           loader: "builtin:swc-loader".to_string(),
@@ -112,10 +118,13 @@ async fn react_refresh() {
     let mut compiler = Compiler::builder()
       .context(Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/react-refresh"))
       .entry("main", "./src/index.jsx")
-      .module(ModuleOptions::builder().rule(ModuleRule {
-        test: Some(RuleSetCondition::Regexp(
-          RspackRegex::new("\\.jsx$").unwrap(),
-        )),
+      .module(ModuleOptions::builder().rule(ModuleRuleBuilder {
+        matcher: ModuleRuleMatcher {
+          test: Some(RuleSetCondition::Regexp(
+            RspackRegex::new("\\.jsx$").unwrap(),
+          )),
+          ..Default::default()
+        },
         effect: ModuleRuleEffect {
           r#use: ModuleRuleUse::Array(vec![
           ModuleRuleUseLoader {
@@ -175,10 +184,13 @@ async fn preact_refresh() {
     let mut compiler = Compiler::builder()
       .context(Utf8Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/preact-refresh"))
       .entry("main", "./src/index.jsx")
-      .module(ModuleOptions::builder().rule(ModuleRule {
-        test: Some(RuleSetCondition::Regexp(
-          RspackRegex::new("\\.jsx$").unwrap(),
-        )),
+      .module(ModuleOptions::builder().rule(ModuleRuleBuilder {
+        matcher: ModuleRuleMatcher {
+          test: Some(RuleSetCondition::Regexp(
+            RspackRegex::new("\\.jsx$").unwrap(),
+          )),
+          ..Default::default()
+        },
         effect: ModuleRuleEffect {
           r#use: ModuleRuleUse::Array(vec![
           ModuleRuleUseLoader {

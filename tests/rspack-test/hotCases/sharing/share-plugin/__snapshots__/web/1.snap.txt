@@ -44,7 +44,7 @@ __webpack_require__.d(__webpack_exports__, {
 /* import */ var common__rspack_import_0 = __webpack_require__("webpack/sharing/consume/default/common/./common?1");
 
 
-const getValue = () => __webpack_require__.e(/* import() */ "webpack_sharing_consume_default_common2_common_2").then(__webpack_require__.bind(__webpack_require__, "webpack/sharing/consume/default/common2/./common?2"));
+const getValue = () => __webpack_require__.e(/* import() */ "webpack_sharing_consume_default_common2_common_2").then(() => __webpack_require__("webpack/sharing/consume/default/common2/./common?2"));
 
 
 },
@@ -114,15 +114,15 @@ var parseRange = function(str) {
     );
     switch (start) {
       case "^":
-        if (remainder.length > 1 && remainder[1] === 0) {
-          if (remainder.length > 2 && remainder[2] === 0) {
+        if (remainder.length > 2 && remainder[1] === 0) {
+          if (remainder.length > 3 && remainder[2] === 0) {
             return [3].concat(remainder.slice(1));
           }
           return [2].concat(remainder.slice(1));
         }
-        return [1].concat(remainder.slice(1));
+        return [Math.min(1, remainder.length - 1)].concat(remainder.slice(1));
       case "~":
-        return [2].concat(remainder.slice(1));
+        return [Math.min(2, remainder.length - 1)].concat(remainder.slice(1));
       case ">=":
         return remainder;
       case "=":
@@ -649,8 +649,6 @@ if (installedChunkData !== 0) {
 			var promise = new Promise((resolve, reject) => (installedChunkData = jsonpInstalledChunks[chunkId] = [resolve, reject]));
 			promises.push((installedChunkData[2] = promise));
 
-			// start chunk loading
-			var url = __webpack_require__.p + __webpack_require__.u(chunkId);
 			// create error before stack unwound to get useful stacktrace later
 			var error = new Error();
 			var loadingEnded = function (event) {
@@ -681,7 +679,7 @@ if (installedChunkData !== 0) {
 					}
 				}
 			};
-			__webpack_require__.l(url, loadingEnded, "chunk-" + chunkId, chunkId);
+			__webpack_require__.l(__webpack_require__.p + __webpack_require__.u(chunkId), loadingEnded, "chunk-" + chunkId, chunkId);
 		} else jsonpInstalledChunks[chunkId] = 0;
 	}
 }

@@ -1,42 +1,107 @@
 ---
-description: '使用 Rsbuild 构建 Solid 应用，或直接在 Rspack 中配置 babel-loader 和 Solid Babel preset。'
+description: '在 Rspack 中为 Solid 2 配置 JSX 和 TSX，或使用 Babel 编译 Solid 1 项目。'
 ---
+
+import { PackageManagerTabs } from '@theme';
 
 # Solid
 
-## 如何使用
+## 如何使用 \{#how-to-use}
 
-Rspack 提供两种方案来支持 Solid：
+在 Rspack 中使用 Solid 有两种方式：
 
-- **使用 Rsbuild**：Rsbuild 提供对 Solid 开箱即用的支持，能够快速创建一个 Solid 项目，详见 [Rsbuild - Solid](https://rsbuild.rs/zh/guide/framework/solid)。
-- **手动配置 Rspack**：你可以参考当前文档，手动添加 Solid 相关的配置。
+- **使用 Rsbuild**：Rsbuild 为 Solid 项目提供开箱即用的 JSX 编译和模块热替换（HMR）支持。创建项目请参考 [Rsbuild 的 Solid 指南](https://rsbuild.rs/zh/guide/framework/solid)。
+- **手动配置 Rspack**：要在现有的 Rspack 项目中使用 Solid，可以按下文配置，也可以参考完整的 [Rspack + Solid 示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/solid)。
 
-## 配置 Solid
+## 配置 Solid \{#configure-solid}
 
-得益于 Rspack 对 babel-loader 的良好兼容，在 Rspack 里使用 Solid 是非常简单的。只需要 babel-loader 配合 Solid 的 [babel-solid-preset](https://www.npmjs.com/package/babel-preset-solid) 即可。Rspack 提供了一个 Solid 的[示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/solid)可供参考。
+Solid 组件通常使用 JSX 或 TSX 编写。[solid-loader](https://github.com/rstackjs/solid-loader) 将 Solid 的原生编译器接入 Rspack，用来编译这些组件。
 
-```js title="rspack.config.mjs"
+Rspack 和 Solid 均需 2.0.0 或更高版本。如果项目使用 Solid 1，请参阅 [Solid v1](#solid-v1)。
+
+### 编译 JSX 和 TSX \{#compile-jsx-and-tsx}
+
+将 `solid-loader` 安装为开发依赖。
+
+<PackageManagerTabs command="add solid-loader -D" />
+
+为 JavaScript 和 TypeScript 文件添加一条规则，由 `solid-loader` 编译 JSX 和 TSX，再由 [builtin:swc-loader](/guide/builtin-loaders/swc-loader) 移除 TypeScript 类型。
+
+```ts title="rspack.config.ts"
 import { defineConfig } from '@rspack/cli';
 
 export default defineConfig({
-  entry: {
-    main: './src/index.jsx',
+  resolve: {
+    extensions: ['...', '.ts', '.tsx', '.jsx'],
   },
   module: {
     rules: [
       {
-        test: /\.jsx$/,
+        test: /\.[cm]?[jt]sx?$/,
+        resolve: {
+          fullySpecified: false,
+        },
         use: [
           {
-            loader: 'babel-loader',
-            options: {
-              presets: ['solid'],
-              plugins: ['solid-refresh/babel'],
-            },
+            loader: 'builtin:swc-loader',
+            options: { detectSyntax: 'auto' },
           },
+          'solid-loader',
         ],
       },
     ],
   },
 });
 ```
+
+### 配置 TypeScript \{#configure-typescript}
+
+在 TypeScript 项目的 `tsconfig.json` 中加入以下配置，即可为 Solid JSX 提供类型检查和编辑器补全。Rspack 构建时仍按上面的 loader 规则编译 JSX 和 TSX。
+
+```json title="tsconfig.json"
+{
+  "compilerOptions": {
+    "jsx": "preserve",
+    "jsxImportSource": "@solidjs/web"
+  }
+}
+```
+
+### 解析 Solid 组件库 \{#resolve-solid-libraries}
+
+有些 Solid 组件库在包的导出配置中通过 `solid` 条件提供 JSX 源码。将 `'solid'` 加入 [resolve.conditionNames](/config/resolve#resolveconditionnames)，Rspack 就能找到这些源码，并用上面的规则编译它们。`'...'` 用来保留 Rspack 的默认条件。
+
+```ts title="rspack.config.ts"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  resolve: {
+    conditionNames: ['solid', '...'],
+  },
+});
+```
+
+### 加载水合模块 \{#load-hydration-modules}
+
+水合让服务端渲染的页面能在浏览器中响应用户操作。在这个过程中，Solid 的浏览器运行时 `@solidjs/web` 会按需加载模块。模块地址由服务端提供，浏览器通过 `import(url)` 加载对应的代码。
+
+将下面的规则添加到 `module.rules`。它只对 `@solidjs/web` 生效，通过 [parser.importDynamic](/config/module-parser#javascriptimportdynamic) 保留原生的 `import()` 调用，让浏览器直接加载模块。
+
+```ts title="rspack.config.ts"
+import { defineConfig } from '@rspack/cli';
+
+export default defineConfig({
+  module: {
+    rules: [
+      {
+        descriptionData: { name: /^@solidjs\/web$/ },
+        parser: { importDynamic: false },
+      },
+    ],
+  },
+});
+```
+
+## Solid v1
+
+如果项目使用 Solid 1，可以用 `babel-loader` 搭配 `babel-preset-solid` 编译 JSX，用 `solid-refresh` 实现热更新。完整配置见 [Solid v1 示例](https://github.com/rstackjs/rstack-examples/tree/260651fd01e490145e7f75f46689654d79e2bd94/rspack/solid)。使用 Rsbuild 的项目请参考 [Rsbuild 的 Solid v1 配置指南](https://rsbuild.rs/zh/plugins/list/plugin-solid#solid-v1)。

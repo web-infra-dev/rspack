@@ -32,7 +32,7 @@ use std::{
   hash::{BuildHasherDefault, Hash},
   mem,
   sync::{
-    Arc, OnceLock, Weak,
+    Arc, Weak,
     atomic::{AtomicBool, AtomicU32, Ordering},
   },
 };
@@ -325,8 +325,6 @@ pub struct Compilation {
   /// Rebuild will include previous compilation data, so persistent cache will not recovery anything
   pub is_rebuild: bool,
   pub compiler_context: Arc<CompilerContext>,
-  runtime_chunks_cache: OnceLock<HashSet<ChunkUkey>>,
-  hmr_loading_siblings_cache: OnceLock<HashMap<ChunkUkey, Box<[ChunkUkey]>>>,
 }
 
 impl Compilation {
@@ -463,8 +461,6 @@ impl Compilation {
       output_filesystem,
       is_rebuild,
       compiler_context,
-      runtime_chunks_cache: Default::default(),
-      hmr_loading_siblings_cache: Default::default(),
     }
   }
 
@@ -846,15 +842,22 @@ impl Compilation {
           filename,
           is_source_equal
         );
-        self.push_diagnostic(
-          rspack_error::error!(
-            "Conflict: Multiple assets emit different content to the same filename {}{}",
-            filename,
-            // TODO: source file name
-            ""
-          )
-          .into(),
-        );
+        let mut sources = [
+          original.info.source_filename.as_deref(),
+          asset.info.source_filename.as_deref(),
+        ]
+        .map(|source| source.filter(|name| !name.is_empty()));
+        sources.sort_unstable();
+        let source_info = match sources {
+          [Some(a), Some(b)] if a != b => format!(" (from {a:?} and {b:?})"),
+          [_, Some(source)] => format!(" (known source: {source:?})"),
+          _ => String::new(),
+        };
+        let mut diagnostic = Diagnostic::from(rspack_error::error!(
+          "Multiple assets{source_info} produce different content for the same output file {filename:?}."
+        ));
+        diagnostic.file = Some(filename.as_str().into());
+        self.push_diagnostic(diagnostic);
         self.set_asset_info(&filename, Some(asset.get_info()), None);
         self.assets.insert(filename, asset);
         return;
@@ -1351,69 +1354,6 @@ impl Compilation {
     template_type: DependencyTemplateType,
   ) -> Option<Arc<dyn DependencyTemplate>> {
     self.dependency_templates.get(&template_type).cloned()
-  }
-
-  pub fn runtime_chunks(&self) -> &HashSet<ChunkUkey> {
-    self.runtime_chunks_cache.get_or_init(|| {
-      let graph = &self.build_chunk_graph_artifact;
-      graph
-        .chunk_group_by_ukey
-        .values()
-        .filter(|group| group.kind.is_entrypoint())
-        .filter_map(|group| {
-          let runtime_ukey = group.get_runtime_chunk(&graph.chunk_group_by_ukey);
-          graph
-            .chunk_by_ukey
-            .get(&runtime_ukey)
-            .is_some_and(|chunk| chunk.groups().contains(&group.ukey))
-            .then_some(runtime_ukey)
-        })
-        .collect()
-    })
-  }
-
-  /// Maps each normal chunk group's last loading chunk to its unique ordered list of
-  /// preceding sibling loading chunks. If two normal chunk groups share the same last
-  /// loading chunk with different preceding loading chunks, the chunk is omitted.
-  pub fn hmr_loading_siblings(&self) -> &HashMap<ChunkUkey, Box<[ChunkUkey]>> {
-    self.hmr_loading_siblings_cache.get_or_init(|| {
-      let graph = &self.build_chunk_graph_artifact;
-      let runtime_chunks = self.runtime_chunks();
-      let mut plans: HashMap<ChunkUkey, Option<Box<[ChunkUkey]>>> = HashMap::default();
-      let mut scratch: Vec<ChunkUkey> = Vec::new();
-      for group in graph.chunk_group_by_ukey.values() {
-        if group.kind.get_normal_options().is_none() {
-          continue;
-        }
-        scratch.clear();
-        scratch.extend(group.chunks.iter().copied().filter(|ukey| {
-          !runtime_chunks.contains(ukey)
-            && graph
-              .chunk_by_ukey
-              .get(ukey)
-              .is_some_and(|chunk| chunk.id().is_some())
-        }));
-        let Some(last) = scratch.pop() else {
-          continue;
-        };
-        match plans.entry(last) {
-          hash_map::Entry::Vacant(vacant) => {
-            vacant.insert(Some(scratch.as_slice().into()));
-          }
-          hash_map::Entry::Occupied(mut occupied) => {
-            if let Some(existing) = occupied.get()
-              && existing.as_ref() != scratch.as_slice()
-            {
-              occupied.insert(None);
-            }
-          }
-        }
-      }
-      plans
-        .into_iter()
-        .filter_map(|(last, siblings)| siblings.map(|s| (last, s)))
-        .collect()
-    })
   }
 }
 

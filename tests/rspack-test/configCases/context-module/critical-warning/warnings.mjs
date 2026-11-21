@@ -1,5 +1,10 @@
 export default [
-  /Critical dependency: a part of the request of a dependency is an expression/,
-  /Critical dependency: a part of the request of a dependency is an expression/,
-  /Critical dependency: the request of a dependency is an expression/,
-]
+  /Dynamic module path: Rspack may bundle multiple modules that match this path pattern\./,
+  /Dynamic module path: Rspack may bundle multiple modules that match this path pattern\./,
+  [
+    /Dynamic module path: Rspack cannot determine which modules to bundle because the path is unknown at build time/,
+    /To bundle local modules, use a literal path or a pattern/,
+    /To load the module at runtime,.*rspackIgnore: true/,
+    /set `parser\.importDynamic` to `false` in a rule matching that package/,
+  ],
+];

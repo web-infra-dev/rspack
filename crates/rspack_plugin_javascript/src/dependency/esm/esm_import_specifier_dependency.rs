@@ -179,6 +179,13 @@ impl ESMImportSpecifierDependency {
 
 #[cacheable_dyn]
 impl Dependency for ESMImportSpecifierDependency {
+  fn may_read_default_export(&self, module_graph: &ModuleGraph) -> bool {
+    self
+      .get_ids(module_graph)
+      .first()
+      .is_some_and(|id| id == "default")
+  }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -228,20 +235,6 @@ impl Dependency for ESMImportSpecifierDependency {
 
   // #[tracing::instrument(skip_all)]
   fn get_diagnostics(
-    &self,
-    module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
-    exports_info_artifact: &ExportsInfoArtifact,
-  ) -> Option<Vec<Diagnostic>> {
-    self.get_diagnostics_with_context(
-      module_graph,
-      module_graph_cache,
-      exports_info_artifact,
-      &DependencyDiagnosticsContext::default(),
-    )
-  }
-
-  fn get_diagnostics_with_context(
     &self,
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,

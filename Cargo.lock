@@ -5691,6 +5691,7 @@ dependencies = [
  "futures",
  "indexmap",
  "json-strip-comments",
+ "memchr",
  "normalize-path",
  "pnp",
  "regex",
