@@ -11,14 +11,14 @@ export function encodeVersion(version: string) {
     major < 0 ||
     major > 0xffff ||
     minor < 0 ||
-    minor > 0xff ||
-    patch < 0 ||
-    patch > 0xff
+    patch < 0
   ) {
     return null;
   }
 
-  return ((major << 16) | (minor << 8) | patch) >>> 0;
+  return (
+    ((major << 16) | (Math.min(minor, 0xff) << 8) | Math.min(patch, 0xff)) >>> 0
+  );
 }
 
 export function decodeVersion(n: number) {
