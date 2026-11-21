@@ -201,12 +201,14 @@ export default {
 			        },
 			      },
 			      Object {
+			        as: [resource-path].text,
 			        type: asset/source,
 			        with: Object {
 			          type: text,
 			        },
 			      },
 			      Object {
+			        as: [resource-path].bytes,
 			        type: asset/bytes,
 			        with: Object {
 			          type: bytes,

@@ -672,10 +672,12 @@ const applyModuleDefaults = (
       {
         with: { type: 'text' },
         type: 'asset/source',
+        as: '[resource-path].text',
       },
       {
         with: { type: 'bytes' },
         type: 'asset/bytes',
+        as: '[resource-path].bytes',
       },
     );
 
