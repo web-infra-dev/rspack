@@ -288,6 +288,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     };
 
     let mut exposes_map: HashMap<String, StatsExpose> = HashMap::default();
+    let mut expose_aliases: Vec<(String, String, String)> = Vec::new();
     let mut expose_chunk_keys: HashMap<String, rspack_core::ChunkUkey> = HashMap::default();
     let mut expose_fallback_chunk_keys: HashMap<String, rspack_core::ChunkUkey> =
       HashMap::default();
@@ -339,6 +340,9 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
           };
           let id_comp = compose_id_with_separator(&container_name, &expose_name);
           let expose_file_key = strip_ext(import);
+          if exposes_map.contains_key(&expose_file_key) {
+            expose_aliases.push((expose_file_key.clone(), expose_key.clone(), id_comp.clone()));
+          }
           exposes_map
             .entry(expose_file_key.clone())
             .or_insert(StatsExpose {
@@ -710,7 +714,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       });
     }
 
-    let exposes = exposes_map.values().cloned().collect::<Vec<_>>();
+    let mut exposes = exposes_map.values().cloned().collect::<Vec<_>>();
+    exposes.extend(expose_aliases.into_iter().filter_map(|(file, path, id)| {
+      exposes_map.get(&file).map(|base| StatsExpose {
+        name: path.trim_start_matches("./").to_string(),
+        path,
+        id,
+        ..base.clone()
+      })
+    }));
     let shared = shared_map
       .into_values()
       .map(|mut v| {
