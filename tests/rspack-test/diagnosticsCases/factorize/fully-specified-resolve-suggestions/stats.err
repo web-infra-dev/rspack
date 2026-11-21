@@ -5,7 +5,7 @@ ERROR in ./index.js 1:1-27
    · ──────────────────────────
  2 │ import "./lib"
    ╰────
-  help: Did you mean './foo.js?raw#section'? With `resolve.fullySpecified` enabled, the path must include the filename and extension, even for a directory's index file.
+  help: Did you mean './foo.js?raw#section'? This import requires a fully specified path. Include the filename and extension, even for a directory's index file.
 
 ERROR in ./index.js 2:1-15
   × Module not found: Can't resolve './lib' in '<TEST_ROOT>/diagnosticsCases/factorize/fully-specified-resolve-suggestions'
@@ -14,4 +14,4 @@ ERROR in ./index.js 2:1-15
  2 │ import "./lib"
    · ──────────────
    ╰────
-  help: Did you mean './lib/index.js'? With `resolve.fullySpecified` enabled, the path must include the filename and extension, even for a directory's index file.
+  help: Did you mean './lib/index.js'? This import requires a fully specified path. Include the filename and extension, even for a directory's index file.
