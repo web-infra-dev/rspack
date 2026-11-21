@@ -1129,7 +1129,7 @@ require('MyLibrary').doSomething();
 
 ##### type: 'modern-module'
 
-构建 ESM 库时，推荐使用 `'modern-module'`。Rspack 可以直接用 `export` 导出入口中的函数和变量，便于下游打包器通过 [tree shaking](/guide/optimization/tree-shaking) 移除未使用的代码。
+构建 ESM 库时，推荐使用 `'modern-module'`。
 
 ```js title="rspack.config.mjs"
 export default {
