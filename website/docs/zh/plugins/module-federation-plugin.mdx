@@ -141,10 +141,33 @@ export default {
   interface ExposesConfig {
     import: ExposesItem | ExposesItems;
     name?: string;
+    layer?: string;
   }
   ```
 
 定义本地模块如何被远程应用引用。键是该模块在远程应用中作为远程模块引用时的名称，值是相对于当前文件夹的模块路径。你可以提供 `name` 来指定被暴露的本地模块的名称。
+
+#### exposes.layer
+
+- 类型：`string`
+
+为暴露的模块指定[模块层](/guide/advanced/layer)。无需通过 `module.rules` 指定层，即可将同一模块请求暴露到不同的层中：
+
+```js
+new rspack.container.ModuleFederationPlugin({
+  name: 'app',
+  exposes: {
+    './server': { import: './src/module.js', layer: 'server' },
+    './client': { import: './src/module.js', layer: 'client' },
+  },
+});
+```
+
+此选项适用于使用增强运行时的 Module Federation 1.5。直接使用 `ContainerPlugin` 时，需要设置 `enhanced: true`；Module Federation 1.0 不支持此选项。省略 `layer` 表示不指定层。层必须是非空字符串，空字符串会被拒绝。
+
+暴露同一模块请求的不同别名会在 `mf-stats.json` 和 `mf-manifest.json` 中保留为独立条目，包括为它们指定不同层的情况。
+
+公开的 TypeScript 配置类型保持结构兼容，便于在插件之间转发可复用的配置。直接使用旧版配置对象字面量时，类型检查会拒绝 `layer` 等仅增强运行时支持的字段。暴露分层模块时，请使用 `EnhancedContainerPluginOptions` 或 `EnhancedModuleFederationPluginV1Options`，并设置 `enhanced: true`。可复用的对象也会在运行时验证，因此转发对象不会自动启用增强功能。
 
 ### shared
 
