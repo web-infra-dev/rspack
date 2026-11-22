@@ -134,6 +134,10 @@ export default {
 
 Unlike the other forms, the function receives the entry with the platform path separators, and it has to exclude the entries below an excluded directory itself.
 
+With `followSymlinks: true`, the function may receive both symbolic link paths and resolved target paths. For explicitly watched directories, child entries use the resolved directory path; for directory links discovered inside a watched directory, child entries retain the link path. Account for both forms when filtering paths.
+
+When `followSymlinks` is enabled, deleting a symbolic link or changing its target can still trigger a rebuild even if the target is ignored, unless the link path is also ignored.
+
 ### watchOptions.poll
 
 - **Type:** `number | boolean`

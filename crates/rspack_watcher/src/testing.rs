@@ -79,6 +79,7 @@ impl DirectoryAnalyzer {
         (missing.0.into_iter(), missing.1.into_iter()),
       )
       .await
+      .map(|_| ())
   }
 
   pub fn analyze(&self) -> Vec<(InternedPath, RecursiveMode)> {

@@ -1,3 +1,5 @@
+#![cfg_attr(target_os = "windows", feature(windows_by_handle))]
+
 mod analyzer;
 mod disk_watcher;
 mod executor;
@@ -25,9 +27,9 @@ use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
 use executor::{Aggregated, Executor};
 pub use ignored::{FsWatcherIgnored, FsWatcherIgnoredItem, IgnoredFn};
-use paths::PathManager;
+use paths::{PathManager, links::DepKind};
 use rspack_error::Result;
-use rspack_paths::InternedPath;
+use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use scanner::Scanner;
 use tokio::sync::{mpsc, oneshot};
@@ -83,51 +85,30 @@ pub(crate) struct ResolvedEvents {
   pub context_removal: Vec<InternedPath>,
 }
 
-/// `EventAggregateHandler` is a trait for handling aggregated file system events.
-/// It provides methods to handle changes and deletions of files, as well as errors.
-/// Implementors of this trait can define custom behavior for these events.
-/// The default implementation does nothing for the `on_error` method.
-/// This trait is intended to be used with the file system watcher to aggregate events
-/// and handle them in a single place.
 pub trait EventAggregateHandler {
-  /// Handle a batch of file system events.
   fn on_event_handle(&self, _changed_files: HashSet<String>, _deleted_files: HashSet<String>);
 
-  /// Handle an error that occurs during file system watching.
-  fn on_error(&self, _error: rspack_error::Error) {
-    // Default implementation does nothing.
-  }
+  fn on_error(&self, _error: rspack_error::Error) {}
 }
 
-/// `EventHandler` is a trait for handling individual file system events.
-/// It provides methods to handle changes and deletions of files.
 pub trait EventHandler {
-  /// Handle a change in a file.
   fn on_change(&self, _changed_file: String) -> rspack_error::Result<()> {
     Ok(())
   }
 
-  /// Handle a deletion of a file.
   fn on_delete(&self, _deleted_file: String) -> rspack_error::Result<()> {
     Ok(())
   }
 
-  /// A removed context entry changes its parent directory's contents.
   fn on_context_remove(&self, removed_file: String) -> rspack_error::Result<()> {
     self.on_change(removed_file)
   }
 }
 
-/// `FsWatcherOptions` contains options for configuring the file system watcher.
 #[derive(Debug, Default)]
 pub struct FsWatcherOptions {
-  /// Whether to follow symbolic links when watching files.
   pub follow_symlinks: bool,
-
-  /// The interval in milliseconds to poll for changes.
   pub poll_interval: Option<u32>,
-
-  /// The timeout in milliseconds to aggregate events.
   pub aggregate_timeout: Option<u32>,
 }
 
@@ -153,10 +134,7 @@ pub struct FsWatcher {
   paused: Arc<AtomicBool>,
   trigger: Arc<Mutex<Option<Arc<Trigger>>>>,
   op_tx: mpsc::UnboundedSender<WatcherOp>,
-  /// Shared with the owner thread's [`FsWatcherInner`], so the synchronous
-  /// napi getter can read time info without awaiting the op channel.
   path_manager: Arc<PathManager>,
-  /// Shared with the executor for the same reason: `getInfo()` drains it.
   aggregated: Aggregated,
   #[cfg(feature = "testing")]
   executor_trace: testing::ExecutorTrace,
@@ -164,7 +142,7 @@ pub struct FsWatcher {
 
 struct FsWatcherInner {
   path_manager: Arc<PathManager>,
-  disk_watcher: DiskWatcher,
+  disk_watcher: Arc<Mutex<DiskWatcher>>,
   executor: Executor,
   scanner: Scanner,
   analyzer: Arc<RecommendedAnalyzer>,
@@ -172,7 +150,6 @@ struct FsWatcherInner {
 }
 
 impl FsWatcher {
-  /// Creates a new [`FsWatcher`] instance with the specified options and ignored paths.
   pub fn new(options: FsWatcherOptions, ignored: FsWatcherIgnored) -> Self {
     let (tx, rx) = mpsc::unbounded_channel();
 
@@ -180,11 +157,12 @@ impl FsWatcher {
       Arc::new(PathManager::new(ignored).with_follow_symlinks(options.follow_symlinks));
     let trigger = Arc::new(Trigger::new(Arc::clone(&path_manager), tx));
     let analyzer = Arc::clone(&trigger.analyzer);
-    let disk_watcher = DiskWatcher::new(
+    let disk_watcher = Arc::new(Mutex::new(DiskWatcher::new(
       options.follow_symlinks,
       options.poll_interval,
       trigger.clone(),
-    );
+    )));
+    trigger.set_disk_watcher(Arc::downgrade(&disk_watcher));
     let paused = Arc::new(AtomicBool::new(false));
     let executor = Executor::new(rx, options.aggregate_timeout, Arc::clone(&paused));
     let aggregated = executor.aggregated();
@@ -213,43 +191,25 @@ impl FsWatcher {
     }
   }
 
-  /// watchpack's `aggregatedChanges` / `aggregatedRemovals`: the events that
-  /// arrived since the last aggregated batch, typically while paused. Read,
-  /// not drained, so a caller peeking at them cannot swallow the batch they
-  /// are about to be delivered in.
   pub fn peek_aggregated(&self) -> (HashSet<String>, HashSet<String>) {
     let files = self.aggregated.lock().expect("aggregated sets poisoned");
     (files.changed.clone(), files.deleted.clone())
   }
 
-  /// [`Self::peek_aggregated`], drained: for the build that folds these events in,
-  /// so they are not delivered again as a batch of their own on resume.
-  /// Events arriving afterwards are kept.
   pub fn take_aggregated(&self) -> (HashSet<String>, HashSet<String>) {
     let files = std::mem::take(&mut *self.aggregated.lock().expect("aggregated sets poisoned"));
     (files.changed, files.deleted)
   }
 
-  /// watchpack's `collectTimeInfoEntries`, as `(fileTimestamps, directoryTimestamps)`.
   pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
     self.path_manager.collect_time_info_entries()
   }
 
-  /// How many directories index recorded paths (with their entries), and how
-  /// many index registered ones, so tests can check they are reclaimed.
   #[doc(hidden)]
   pub fn index_sizes(&self) -> (usize, usize) {
     self.path_manager.index_sizes()
   }
 
-  /// Starts the file system watcher.
-  ///
-  /// # Arguments
-  /// * `files` - An tuple of iterators for files to watch (added, removed).
-  /// * `directories` - An tuple of iterators for directories to watch (added, removed).
-  /// * `missing` - An tuple of iterators for missing paths to watch (added, removed).
-  /// * `event_aggregate_handler` - A boxed trait object for handling aggregated events.
-  /// * `event_handler` - A boxed trait object for handling individual events.
   pub fn watch(
     &self,
     files: (
@@ -293,7 +253,6 @@ impl FsWatcher {
     })
   }
 
-  /// Closes the file system watcher, stopping all background tasks and releasing resources.
   pub fn close(&self) -> Pin<Box<dyn Future<Output = Result<()>> + Send>> {
     let (done_tx, done_rx) = oneshot::channel();
     let submitted = self.op_tx.send(WatcherOp::Close { done: done_tx }).is_ok();
@@ -318,12 +277,88 @@ impl FsWatcher {
     }
   }
 
-  /// Pauses the file system watcher, stopping the execution of the event loop.
   pub fn pause(&self) -> Result<()> {
     self.paused.store(true, Ordering::Relaxed);
 
     Ok(())
   }
+}
+
+pub(crate) fn refresh_disk_watcher(
+  disk_watcher: &Mutex<DiskWatcher>,
+  analyzer: &RecommendedAnalyzer,
+  path_manager: &PathManager,
+) -> Result<()> {
+  let raw_patterns = analyzer.analyze(path_manager.watched_access());
+  let normalized = normalize_watch_patterns(raw_patterns, path_manager);
+  let mut guard = disk_watcher.lock().expect("disk_watcher lock poisoned");
+  guard.prepare_mode_changes(&normalized);
+  if let Err(error) = guard.watch(normalized.into_iter()) {
+    analyzer.invalidate_all();
+    return Err(error);
+  }
+  drop(guard);
+  path_manager.reset_watched_deltas();
+  Ok(())
+}
+
+fn normalize_watch_patterns(
+  patterns: Vec<WatchPattern>,
+  path_manager: &PathManager,
+) -> Vec<WatchPattern> {
+  let should_canonicalize = cfg!(any(target_os = "macos", target_os = "linux"));
+  let mut merged: InternedPathMap<notify::RecursiveMode> = InternedPathMap::default();
+  let mut insert = |path: InternedPath, mode: notify::RecursiveMode| {
+    let path = if should_canonicalize {
+      dunce::canonicalize(&path).map_or(path, InternedPath::from)
+    } else {
+      path
+    };
+    merged
+      .entry(path)
+      .and_modify(|cur| {
+        if mode == notify::RecursiveMode::Recursive {
+          *cur = mode;
+        }
+      })
+      .or_insert(mode);
+  };
+
+  for pattern in patterns {
+    insert(pattern.path, pattern.mode);
+  }
+
+  if cfg!(any(target_os = "windows", target_os = "linux")) {
+    for parent in path_manager.watched_root_parents() {
+      insert(parent, notify::RecursiveMode::NonRecursive);
+    }
+  }
+
+  let prune_under_recursive = cfg!(all(
+    not(feature = "testing"),
+    any(target_os = "macos", target_os = "windows")
+  ));
+  let recursive_roots: InternedPathSet = if prune_under_recursive {
+    merged
+      .iter()
+      .filter(|(_, mode)| **mode == notify::RecursiveMode::Recursive)
+      .map(|(p, _)| p.clone())
+      .collect()
+  } else {
+    InternedPathSet::default()
+  };
+
+  merged
+    .into_iter()
+    .filter(|(path, _)| {
+      recursive_roots.is_empty()
+        || !path
+          .ancestors()
+          .skip(1)
+          .any(|ancestor| recursive_roots.contains(&InternedPath::from(ancestor)))
+    })
+    .map(|(path, mode)| WatchPattern { path, mode })
+    .collect()
 }
 
 fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<WatcherOp> {
@@ -415,7 +450,11 @@ impl FsWatcherInner {
   }
 
   async fn close(&mut self) -> Result<()> {
-    self.disk_watcher.close();
+    self
+      .disk_watcher
+      .lock()
+      .expect("disk_watcher lock poisoned")
+      .close();
     self.scanner.close();
     self.executor.close().await;
     self.trigger.lock().expect("should lock trigger").take();
@@ -430,7 +469,8 @@ impl FsWatcherInner {
     missing: (Vec<InternedPath>, Vec<InternedPath>),
     start_time: SystemTime,
   ) -> Result<()> {
-    self
+    let watch_began = SystemTime::now();
+    let scan_plan = self
       .path_manager
       .update(
         (files.0.into_iter(), files.1.into_iter()),
@@ -439,60 +479,104 @@ impl FsWatcherInner {
       )
       .await?;
 
-    // Record baseline mtimes for files added in this watch() cycle, BEFORE
-    // starting the disk watcher. Synchronous so a stale FSEvent delivered
-    // immediately after subscription still finds a baseline to compare
-    // against.
-    //
-    // Only newly-added files are stat'd here. Files carried across cycles
-    // already have a baseline that `has_mtime_changed` advanced atomically
-    // on the previous event; re-stat'ing them on every rewatch would
-    // (a) cost O(N) syscalls per rebuild on large projects, and
-    // (b) re-introduce the race fixed by this PR — a user write that
-    //     landed in the gap between aggregate and rewatch would have its
-    //     post-write mtime become the new baseline, and the FSEvent still
-    //     in flight for that write would then be suppressed as a duplicate.
-    self.record_initial_file_mtimes();
+    self.record_initial_file_mtimes(&scan_plan.newly_added_files);
 
-    let watch_patterns = self.analyzer.analyze(self.path_manager.access());
-    if let Err(error) = self.disk_watcher.watch(watch_patterns.into_iter()) {
-      self.analyzer.invalidate_all();
-      return Err(error);
+    refresh_disk_watcher(&self.disk_watcher, &self.analyzer, &self.path_manager)?;
+    for rebound in &scan_plan.replaced_physical_dirs {
+      self
+        .disk_watcher
+        .lock()
+        .expect("disk_watcher lock poisoned")
+        .rebind_prefix(rebound.as_path());
     }
-    let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
+
+    let mut scan_out = self
+      .path_manager
+      .scan_contexts_with_plan(start_time, &scan_plan.contexts_to_scan, false)
+      .await;
+
+    let mut guard_iters = 0;
+    while (scan_out.added_watched_paths || self.path_manager.has_dirty_context_links())
+      && guard_iters < 4
+    {
+      guard_iters += 1;
+      let dirty_contexts = self.path_manager.refresh_dirty_contexts().await;
+      if !dirty_contexts.is_empty() {
+        scan_out
+          .changed_entries
+          .retain(|(_, ctx)| !dirty_contexts.iter().any(|(d, _)| d == ctx));
+      }
+      refresh_disk_watcher(&self.disk_watcher, &self.analyzer, &self.path_manager)?;
+
+      let mut next_added = false;
+      let mut next_attached = Vec::new();
+      if !scan_out.attached_contexts.is_empty() {
+        let recheck_targets: Vec<(InternedPath, bool)> = scan_out
+          .attached_contexts
+          .iter()
+          .filter(|c| !dirty_contexts.iter().any(|(d, _)| d == *c))
+          .map(|c| (c.clone(), false))
+          .collect();
+        if !recheck_targets.is_empty() {
+          let post = self
+            .path_manager
+            .scan_contexts_with_plan(watch_began, &recheck_targets, true)
+            .await;
+          scan_out.changed_entries.extend(post.changed_entries);
+          next_added |= post.added_watched_paths;
+          next_attached.extend(post.attached_contexts);
+        }
+      }
+      if !dirty_contexts.is_empty() {
+        let rescan = self
+          .path_manager
+          .scan_contexts_with_plan(start_time, &dirty_contexts, false)
+          .await;
+        scan_out.changed_entries.extend(rescan.changed_entries);
+        next_added |= rescan.added_watched_paths;
+        next_attached.extend(rescan.attached_contexts);
+      }
+      scan_out.added_watched_paths = next_added;
+      scan_out.attached_contexts = next_attached;
+    }
+
     if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
-      for path in &changed_in_contexts {
-        trigger.on_scanned_change(path);
+      for (raw_path, root_ctx) in scan_out.changed_entries {
+        trigger.on_scanned_context_change(raw_path, root_ctx);
       }
     }
 
-    // Scan AFTER the disk watcher is registered, not before. notify's `watch()`
-    // registers the underlying inotify/FSEvents watch synchronously, so once it
-    // returns every later change is delivered as a live event. Scanning here
-    // closes a startup race: previously the scan ran (in spawned tasks) before
-    // `disk_watcher.watch()`, so it could snapshot a file's mtime before the
-    // watch was active. A change landing in that gap was seen by neither path —
-    // the scan read the pre-change mtime, and the watch was not yet active to
-    // deliver the event — so no rebuild was triggered. With this order, a change
-    // before the watch is active is on disk by scan time (caught by
-    // `mtime > start_time`), and a change after it is active is delivered live.
-    self.scanner.scan(start_time);
+    self.scanner.scan_with_plan(start_time, scan_plan);
 
     Ok(())
   }
 
-  fn record_initial_file_mtimes(&self) {
-    let accessor = self.path_manager.access();
-    // `.1` is `files.added` — the diff set populated by `update()` and
-    // cleared by `reset()`. In steady state (no add/remove churn) this
-    // is empty and the loop is a no-op.
-    let paths: Vec<_> = accessor.files().1.iter().map(|p| p.clone()).collect();
-    for path in paths {
-      if let Ok(mtime) = path
-        .metadata()
-        .and_then(|m| m.modified().or_else(|_| m.created()))
+  fn record_initial_file_mtimes(&self, newly_added_files: &[InternedPath]) {
+    for logical_path in newly_added_files {
+      for item in self
+        .path_manager
+        .retained_items(DepKind::File, logical_path)
       {
-        self.path_manager.set_file_time_if_absent(path, mtime);
+        self.path_manager.seed_physical_baseline_if_absent(&item);
+      }
+      let target_ignored = self
+        .path_manager
+        .bound_dep(DepKind::File, logical_path)
+        .is_some_and(|b| !b.target_active);
+      let initial_mtime = logical_path
+        .metadata()
+        .or_else(|e| {
+          if self.path_manager.follows_symlinks() {
+            Err(e)
+          } else {
+            logical_path.symlink_metadata()
+          }
+        })
+        .and_then(|m| m.modified().or_else(|_| m.created()));
+      if !target_ignored && let Ok(mtime) = initial_mtime {
+        self
+          .path_manager
+          .set_file_time_if_absent(logical_path.clone(), mtime);
       }
     }
   }
