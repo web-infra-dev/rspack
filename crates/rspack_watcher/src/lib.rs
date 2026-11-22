@@ -4,6 +4,7 @@ mod executor;
 mod ignored;
 mod paths;
 mod scanner;
+mod subscription;
 mod time;
 mod trigger;
 
@@ -30,6 +31,7 @@ use rspack_error::Result;
 use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use scanner::Scanner;
+use subscription::LogicalKind;
 use tokio::sync::{mpsc, oneshot};
 use trigger::Trigger;
 
@@ -77,9 +79,9 @@ pub(crate) type EventBatch = Vec<FsEvent>;
 
 pub(crate) struct ResolvedEvents {
   pub dependencies: EventBatch,
-  pub raw: Option<FsEvent>,
+  pub raw: EventBatch,
   pub recovered: EventBatch,
-  pub context_removal: Option<InternedPath>,
+  pub context_removals: Vec<InternedPath>,
 }
 
 /// `EventAggregateHandler` is a trait for handling aggregated file system events.
@@ -173,17 +175,25 @@ struct FsWatcherInner {
 impl FsWatcher {
   /// Creates a new [`FsWatcher`] instance with the specified options and ignored paths.
   pub fn new(options: FsWatcherOptions, ignored: FsWatcherIgnored) -> Self {
+    let follow_symlinks = options.follow_symlinks;
+    let poll_interval = options.poll_interval;
+    Self::new_with_backend(options, ignored, move |trigger| {
+      disk_watcher::system_watch_backend(follow_symlinks, poll_interval, trigger)
+    })
+  }
+
+  pub(crate) fn new_with_backend(
+    options: FsWatcherOptions,
+    ignored: FsWatcherIgnored,
+    make_backend: impl FnOnce(Arc<Trigger>) -> Box<dyn disk_watcher::WatchBackend>,
+  ) -> Self {
     let (tx, rx) = mpsc::unbounded_channel();
 
     let path_manager =
       Arc::new(PathManager::new(ignored).with_follow_symlinks(options.follow_symlinks));
     let trigger = Arc::new(Trigger::new(Arc::clone(&path_manager), tx));
     let analyzer = Arc::clone(&trigger.analyzer);
-    let disk_watcher = DiskWatcher::new(
-      options.follow_symlinks,
-      options.poll_interval,
-      trigger.clone(),
-    );
+    let disk_watcher = DiskWatcher::new(make_backend(Arc::clone(&trigger)));
     let paused = Arc::new(AtomicBool::new(false));
     let executor = Executor::new(rx, options.aggregate_timeout, Arc::clone(&paused));
     let aggregated = executor.aggregated();
@@ -325,6 +335,22 @@ impl FsWatcher {
   }
 }
 
+#[inline(never)]
+pub(crate) fn block_on_current_thread(future: Pin<Box<dyn Future<Output = ()>>>) {
+  let runtime = tokio::runtime::Builder::new_current_thread()
+    .enable_all()
+    .build()
+    .expect("create watcher runtime");
+  runtime.block_on(future);
+}
+
+#[inline(never)]
+pub(crate) fn spawn_boxed(
+  future: Pin<Box<dyn Future<Output = ()> + Send>>,
+) -> tokio::task::JoinHandle<()> {
+  tokio::spawn(future)
+}
+
 fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<WatcherOp> {
   let (tx, mut rx) = mpsc::unbounded_channel::<WatcherOp>();
 
@@ -375,12 +401,7 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
   std::thread::Builder::new()
     .name("rspack-fs-watcher".to_string())
     .spawn(move || {
-      let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .expect("create watcher runtime");
-
-      runtime.block_on(owner_loop);
+      block_on_current_thread(Box::pin(owner_loop));
     })
     .expect("spawn watcher thread");
 
@@ -431,11 +452,7 @@ impl FsWatcherInner {
   ) -> Result<()> {
     self
       .path_manager
-      .update(
-        (files.0.into_iter(), files.1.into_iter()),
-        (directories.0.into_iter(), directories.1.into_iter()),
-        (missing.0.into_iter(), missing.1.into_iter()),
-      )
+      .update_vecs(files, directories, missing)
       .await?;
 
     // Record baseline mtimes for files added in this watch() cycle, BEFORE
@@ -444,8 +461,8 @@ impl FsWatcherInner {
     // against.
     //
     // Only newly-added files are stat'd here. Files carried across cycles
-    // already have a baseline that `has_mtime_changed` advanced atomically
-    // on the previous event; re-stat'ing them on every rewatch would
+    // already have a baseline that `check_and_advance_target_baseline` advanced
+    // atomically on the previous event; re-stat'ing them on every rewatch would
     // (a) cost O(N) syscalls per rebuild on large projects, and
     // (b) re-introduce the race fixed by this PR — a user write that
     //     landed in the gap between aggregate and rewatch would have its
@@ -458,10 +475,19 @@ impl FsWatcherInner {
       self.analyzer.invalidate_all();
       return Err(error);
     }
-    let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
-    if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
-      for path in &changed_in_contexts {
-        trigger.on_scanned_change(path);
+
+    let pending_contexts = self.path_manager.take_added_contexts();
+    if !pending_contexts.is_empty() {
+      let changed_in_contexts = self
+        .path_manager
+        .scan_contexts(pending_contexts, start_time)
+        .await;
+      let post_scan_patterns = self.analyzer.analyze(self.path_manager.access());
+      let _ = self.disk_watcher.watch(post_scan_patterns.into_iter());
+      if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
+        for path in &changed_in_contexts {
+          trigger.on_scanned_change(path);
+        }
       }
     }
 
@@ -481,17 +507,21 @@ impl FsWatcherInner {
   }
 
   fn record_initial_file_mtimes(&self) {
-    let accessor = self.path_manager.access();
-    // `.1` is `files.added` — the diff set populated by `update()` and
-    // cleared by `reset()`. In steady state (no add/remove churn) this
-    // is empty and the loop is a no-op.
-    let paths: Vec<_> = accessor.files().1.iter().map(|p| p.clone()).collect();
-    for path in paths {
-      if let Ok(mtime) = path
+    // `added_files()` reads `files.added` — the diff set populated by
+    // `update_vecs()` and cleared by `reset()`. In steady state (no add/remove
+    // churn) this is empty and the loop is a no-op.
+    let paths = self.path_manager.added_files();
+    for logical_path in paths {
+      let target_path = self
+        .path_manager
+        .target_path_of(LogicalKind::File, &logical_path);
+      if let Ok(mtime) = target_path
         .metadata()
         .and_then(|m| m.modified().or_else(|_| m.created()))
       {
-        self.path_manager.set_file_time_if_absent(path, mtime);
+        self
+          .path_manager
+          .set_file_time_if_absent(logical_path, mtime);
       }
     }
   }

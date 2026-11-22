@@ -1,7 +1,7 @@
-use std::{sync::Arc, time::Duration};
+use std::{path::Path, sync::Arc, time::Duration};
 
 use notify::{
-  Event, EventKind, RecommendedWatcher, Watcher,
+  Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
   event::{ModifyKind, RenameMode},
 };
 use rspack_paths::InternedPath;
@@ -9,44 +9,63 @@ use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use crate::{FsEventKind, WatchPattern, analyzer::Analyzer, trigger};
 
+pub(crate) trait WatchBackend: Send {
+  fn watch(&mut self, path: &Path, mode: RecursiveMode) -> notify::Result<()>;
+  fn unwatch(&mut self, path: &Path) -> notify::Result<()>;
+}
+
+impl WatchBackend for RecommendedWatcher {
+  fn watch(&mut self, path: &Path, mode: RecursiveMode) -> notify::Result<()> {
+    Watcher::watch(self, path, mode)
+  }
+
+  fn unwatch(&mut self, path: &Path) -> notify::Result<()> {
+    Watcher::unwatch(self, path)
+  }
+}
+
+pub(crate) fn system_watch_backend(
+  follow_symlinks: bool,
+  poll_interval: Option<u32>,
+  trigger: Arc<trigger::Trigger>,
+) -> Box<dyn WatchBackend> {
+  let config = match poll_interval {
+    Some(poll) => notify::Config::default()
+      .with_follow_symlinks(follow_symlinks)
+      .with_poll_interval(Duration::from_millis(u64::from(poll))),
+    None => notify::Config::default().with_follow_symlinks(follow_symlinks),
+  };
+
+  let inner = RecommendedWatcher::new(
+    move |result: notify::Result<Event>| match result {
+      Ok(event) => handle_event(event, &trigger),
+
+      Err(e) => {
+        tracing::error!(target: "rspack_watcher::fs_event", "file watcher error: {e:?}");
+        eprintln!("Error in file watcher: {e:?}",);
+      }
+    },
+    config,
+  )
+  .expect("Failed to create disk watcher");
+
+  Box::new(inner)
+}
+
 /// `DiskWatcher` is responsible for managing the underlying file system watcher
 /// and keeping track of the currently watched paths.
 pub struct DiskWatcher {
   /// The actual file system watcher from the `notify` crate.
-  inner: Option<RecommendedWatcher>,
+  inner: Option<Box<dyn WatchBackend>>,
   /// A set of pattern that are currently being watched.
   watch_patterns: HashSet<WatchPattern>,
 }
 
 impl DiskWatcher {
-  /// Creates a new `DiskWatcher` with the given configuration and trigger.
-  pub fn new(
-    follow_symlinks: bool,
-    poll_interval: Option<u32>,
-    trigger: Arc<trigger::Trigger>,
-  ) -> Self {
-    let config = match poll_interval {
-      Some(poll) => notify::Config::default()
-        .with_follow_symlinks(follow_symlinks)
-        .with_poll_interval(Duration::from_millis(u64::from(poll))),
-      None => notify::Config::default().with_follow_symlinks(follow_symlinks),
-    };
-
-    let inner = RecommendedWatcher::new(
-      move |result: notify::Result<Event>| match result {
-        Ok(event) => handle_event(event, &trigger),
-
-        Err(e) => {
-          tracing::error!(target: "rspack_watcher::fs_event", "file watcher error: {e:?}");
-          eprintln!("Error in file watcher: {e:?}",);
-        }
-      },
-      config,
-    )
-    .expect("Failed to create disk watcher");
-
+  /// Creates a new `DiskWatcher` wrapping the given [`WatchBackend`].
+  pub(crate) fn new(backend: Box<dyn WatchBackend>) -> Self {
     DiskWatcher {
-      inner: Some(inner),
+      inner: Some(backend),
       watch_patterns: HashSet::default(),
     }
   }
@@ -77,7 +96,7 @@ impl DiskWatcher {
       // Linux `notify` can return `EINVAL` for a subdirectory that was deleted while its parent
       // was watched recursively (https://github.com/notify-rs/notify/issues/709).
       if let Some(watcher) = &mut self.inner
-        && let Err(e) = watcher.unwatch(path)
+        && let Err(e) = watcher.unwatch(path.as_path())
         && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
       {
         tracing::warn!(
@@ -99,7 +118,7 @@ impl DiskWatcher {
 
       if let Some(watcher) = &mut self.inner {
         watcher
-          .watch(&pattern.path, pattern.mode)
+          .watch(pattern.path.as_path(), pattern.mode)
           .map_err(|e| rspack_error::error!(e.to_string()))?;
       }
 
@@ -178,7 +197,7 @@ mod tests {
     let (tx, _rx) = mpsc::unbounded_channel();
     let path_manager = Arc::new(PathManager::default());
     let trigger = Arc::new(trigger::Trigger::new(path_manager, tx));
-    DiskWatcher::new(false, None, trigger)
+    DiskWatcher::new(system_watch_backend(false, None, trigger))
   }
 
   #[test]
