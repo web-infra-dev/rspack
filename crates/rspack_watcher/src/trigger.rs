@@ -1,3 +1,5 @@
+#[cfg(feature = "testing")]
+use std::{ffi::OsString, path::Path, time::SystemTime};
 use std::{
   future::Future,
   pin::Pin,
@@ -5,7 +7,11 @@ use std::{
 };
 
 use rspack_paths::{InternedPath, InternedPathSet};
+#[cfg(feature = "testing")]
+use rspack_util::fx_hash::FxHashMap;
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
+#[cfg(feature = "testing")]
+use tokio::sync::oneshot;
 
 use super::{FsEvent, FsEventKind};
 use crate::{
@@ -18,6 +24,8 @@ use crate::{
     probe_waiting_advance,
   },
 };
+#[cfg(feature = "testing")]
+use crate::{paths::DiskEntryState, subscription::ObservedEntry, time::mtime_accuracy};
 
 /// Where an event comes from.
 #[derive(Clone, Copy)]
@@ -31,6 +39,16 @@ enum Origin {
   /// registered path the scanner backfills. Already judged a change, it is
   /// never dropped as a duplicate or as attribute-only.
   Scan,
+}
+
+enum PendingWork {
+  Event {
+    path: InternedPath,
+    kind: FsEventKind,
+    origin: Origin,
+  },
+  #[cfg(feature = "testing")]
+  ScanOnce { done: oneshot::Sender<()> },
 }
 
 /// Classifies one raw file system event: drops what the `ignored` filter
@@ -57,7 +75,7 @@ struct EventProcessor {
 /// It only buffers: the OS watcher callback hands an event over and returns
 /// immediately, and a dedicated thread drains the buffer one event at a time.
 pub struct Trigger {
-  pending: UnboundedSender<(InternedPath, FsEventKind, Origin)>,
+  pending: UnboundedSender<PendingWork>,
   pub(crate) analyzer: Arc<RecommendedAnalyzer>,
   disk_watcher: Arc<Mutex<Option<std::sync::Weak<Mutex<DiskWatcher>>>>>,
 }
@@ -65,7 +83,7 @@ pub struct Trigger {
 impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
   pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<ResolvedEvents>) -> Self {
-    let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind, Origin)>();
+    let (pending, mut incoming) = unbounded_channel::<PendingWork>();
     let analyzer = Arc::default();
     let disk_watcher = Arc::new(Mutex::new(None));
     let processor = EventProcessor {
@@ -84,8 +102,17 @@ impl Trigger {
       .name("rspack-fs-event-filter".to_string())
       .spawn(move || {
         crate::block_on_current_thread(Box::pin(async move {
-          while let Some((path, kind, origin)) = incoming.recv().await {
-            processor.process(&path, kind, origin).await;
+          while let Some(work) = incoming.recv().await {
+            match work {
+              PendingWork::Event { path, kind, origin } => {
+                processor.process(&path, kind, origin).await;
+              }
+              #[cfg(feature = "testing")]
+              PendingWork::ScanOnce { done } => {
+                processor.run_active_scan().await;
+                let _ = done.send(());
+              }
+            }
           }
         }));
       })
@@ -108,24 +135,39 @@ impl Trigger {
   /// Queues an explicit event from `FsWatcher::trigger_event` without blocking.
   pub fn on_event(&self, path: &InternedPath, kind: FsEventKind) {
     self.analyzer.invalidate_path(path);
-    let _ = self.pending.send((path.clone(), kind, Origin::Injected));
+    let _ = self.pending.send(PendingWork::Event {
+      path: path.clone(),
+      kind,
+      origin: Origin::Injected,
+    });
   }
 
   /// Preserves whether an OS event created or renamed a path into place,
   /// without treating ordinary directory changes as appearances.
   pub(crate) fn on_disk_event(&self, path: &InternedPath, kind: FsEventKind, appeared: bool) {
-    let _ = self
-      .pending
-      .send((path.clone(), kind, Origin::Disk { appeared }));
+    let _ = self.pending.send(PendingWork::Event {
+      path: path.clone(),
+      kind,
+      origin: Origin::Disk { appeared },
+    });
   }
 
   /// A context's initial scan found `path` changed since the start time, while
   /// the watch was not active yet: like watchpack's initial scan, it is
   /// reported as found, never taken for an attribute-only event.
   pub(crate) fn on_scanned_change(&self, path: &InternedPath) {
-    let _ = self
-      .pending
-      .send((path.clone(), FsEventKind::Change, Origin::Scan));
+    let _ = self.pending.send(PendingWork::Event {
+      path: path.clone(),
+      kind: FsEventKind::Change,
+      origin: Origin::Scan,
+    });
+  }
+
+  #[cfg(feature = "testing")]
+  pub(crate) fn scan_once(&self) -> oneshot::Receiver<()> {
+    let (done_tx, done_rx) = oneshot::channel();
+    let _ = self.pending.send(PendingWork::ScanOnce { done: done_tx });
+    done_rx
   }
 
   /// A sender for the scanner's backfilled events. They queue with the live
@@ -139,7 +181,11 @@ impl Trigger {
       .spawn(move || {
         while let Some(batch) = batches.blocking_recv() {
           for event in batch {
-            let _ = pending.send((event.path, event.kind, Origin::Scan));
+            let _ = pending.send(PendingWork::Event {
+              path: event.path,
+              kind: event.kind,
+              origin: Origin::Scan,
+            });
           }
         }
       })
@@ -701,6 +747,248 @@ impl EventProcessor {
         }
       }
     })
+  }
+
+  #[cfg(feature = "testing")]
+  async fn run_active_scan(&self) {
+    let plan = self.path_manager.plan_active_scan();
+    let mut ignored_memo: [InternedPathSet; 2] = Default::default();
+    let mut stat_cache: FxHashMap<InternedPath, (bool, Option<SystemTime>)> = FxHashMap::default();
+
+    let mut dependencies: Vec<(InternedPath, FsEventKind)> = Vec::new();
+    let mut raw: Vec<FsEvent> = Vec::new();
+    let mut recovered: Vec<FsEvent> = Vec::new();
+    let mut context_removals: Vec<InternedPath> = Vec::new();
+
+    // 1. Check direct subscribed file/missing entries (stat once per unique physical path).
+    for entry_scan in plan.stat_entries {
+      let (present, mtime) = *stat_cache
+        .entry(entry_scan.full_path.clone())
+        .or_insert_with(|| {
+          let present = std::fs::symlink_metadata(&entry_scan.full_path).is_ok();
+          let mtime = if present {
+            disk_mtime(&entry_scan.full_path).or_else(|| symlink_mtime(&entry_scan.full_path))
+          } else {
+            None
+          };
+          (present, mtime)
+        });
+
+      for (_sub_id, epoch, owner_kind, owner_path, notify_path) in entry_scan.targets {
+        if self
+          .check_ignored_cached(&mut ignored_memo, &owner_path)
+          .await
+        {
+          continue;
+        }
+        if let Some(emitted_kind) = self.path_manager.commit_active_entry_observation(
+          &entry_scan.dir,
+          &entry_scan.name,
+          owner_kind,
+          &owner_path,
+          epoch,
+          DiskEntryState { present, mtime },
+        ) {
+          dependencies.push((owner_path, emitted_kind));
+          raw.push(FsEvent {
+            path: notify_path,
+            kind: emitted_kind,
+          });
+        }
+      }
+    }
+
+    // 2. Check waiting prefixes along registered suffixes.
+    if !plan.waiting_entries.is_empty() {
+      let mut kept_waiting = Vec::with_capacity(plan.waiting_entries.len());
+      for w in plan.waiting_entries {
+        if !self
+          .check_ignored_cached(&mut ignored_memo, &w.owner_path)
+          .await
+        {
+          kept_waiting.push(w);
+        }
+      }
+      if !kept_waiting.is_empty() {
+        let dummy = InternedPath::from(Path::new(""));
+        self
+          .advance_waiting_list(
+            kept_waiting,
+            &dummy,
+            &mut dependencies,
+            &mut raw,
+            &mut recovered,
+          )
+          .await;
+      }
+    }
+
+    // 3. Enumerate subscribed context directories (readdir once per physical directory).
+    for ctx_scan in plan.context_dirs {
+      let read_res = std::fs::read_dir(&ctx_scan.dir);
+      match read_res {
+        Err(_) if !ctx_scan.dir.exists() => {
+          for (_sub_id, epoch, root_ctx, logical_dir, is_root) in &ctx_scan.bindings {
+            if !self
+              .path_manager
+              .is_registration_current(LogicalKind::Directory, root_ctx, *epoch)
+            {
+              continue;
+            }
+            if *is_root && !self.path_manager.is_absent_directory(root_ctx) {
+              self.path_manager.mark_directory_absent(root_ctx);
+              self.path_manager.remove_file_time(root_ctx);
+              self.path_manager.remove_file_times_under(root_ctx);
+              self
+                .path_manager
+                .handle_disk_directory_removed(&ctx_scan.dir);
+              dependencies.push((root_ctx.clone(), FsEventKind::Remove));
+              raw.push(FsEvent {
+                path: logical_dir.clone(),
+                kind: FsEventKind::Remove,
+              });
+            }
+          }
+        }
+        Err(_) => {}
+        Ok(entries_iter) => {
+          let prev_entries = ctx_scan.prev_entries;
+          let had_complete_listing = ctx_scan.had_complete_listing;
+          let mut current_entries: FxHashMap<OsString, ObservedEntry> = FxHashMap::default();
+          let mut all_ok = true;
+
+          for item_res in entries_iter {
+            let Ok(item) = item_res else {
+              all_ok = false;
+              continue;
+            };
+            let entry_name = item.file_name();
+            let entry_disk_path = InternedPath::from(item.path());
+            let Ok(meta) = std::fs::symlink_metadata(&entry_disk_path) else {
+              continue;
+            };
+            if meta.is_dir() {
+              if let Ok(m) = meta.modified() {
+                mtime_accuracy(m);
+              }
+              current_entries.insert(entry_name.clone(), ObservedEntry::Directory);
+              let was_dir = matches!(
+                prev_entries.get(&entry_name),
+                Some(ObservedEntry::Directory)
+              );
+              if !was_dir {
+                for (_sub_id, epoch, root_ctx, logical_dir, _) in &ctx_scan.bindings {
+                  if !self.path_manager.is_registration_current(
+                    LogicalKind::Directory,
+                    root_ctx,
+                    *epoch,
+                  ) {
+                    continue;
+                  }
+                  let logical_child = InternedPath::from(logical_dir.as_path().join(&entry_name));
+                  if self
+                    .check_ignored_cached(&mut ignored_memo, &logical_child)
+                    .await
+                  {
+                    continue;
+                  }
+                  let ctx_match = MatchedContext {
+                    epoch: *epoch,
+                    root_context: root_ctx.clone(),
+                    root_target: self
+                      .path_manager
+                      .target_path_of(LogicalKind::Directory, root_ctx),
+                    logical_entry_path: logical_child.clone(),
+                    is_root_self: false,
+                  };
+                  let _ = self
+                    .path_manager
+                    .set_context_entry_for_binding(&entry_disk_path, &ctx_match, true)
+                    .await;
+                  self.refresh_disk_watches();
+                  self.path_manager.set_last_watch_events(&logical_child);
+                  dependencies.push((root_ctx.clone(), FsEventKind::Change));
+                  raw.push(FsEvent {
+                    path: logical_child,
+                    kind: FsEventKind::Create,
+                  });
+                }
+              }
+            } else if let Ok(mtime) = meta.modified().or_else(|_| meta.created()) {
+              current_entries.insert(entry_name.clone(), ObservedEntry::File { mtime });
+              let unchanged = matches!(
+                prev_entries.get(&entry_name),
+                Some(ObservedEntry::File { mtime: prev }) if *prev == mtime
+              );
+              if !unchanged {
+                for (_sub_id, epoch, root_ctx, logical_dir, _) in &ctx_scan.bindings {
+                  if !self.path_manager.is_registration_current(
+                    LogicalKind::Directory,
+                    root_ctx,
+                    *epoch,
+                  ) {
+                    continue;
+                  }
+                  let logical_child = InternedPath::from(logical_dir.as_path().join(&entry_name));
+                  if self
+                    .check_ignored_cached(&mut ignored_memo, &logical_child)
+                    .await
+                  {
+                    continue;
+                  }
+                  self
+                    .path_manager
+                    .set_file_time(&logical_child, mtime, false, false);
+                  self.path_manager.set_last_watch_events(&logical_child);
+                  dependencies.push((root_ctx.clone(), FsEventKind::Change));
+                  raw.push(FsEvent {
+                    path: logical_child,
+                    kind: FsEventKind::Change,
+                  });
+                }
+              }
+            }
+          }
+
+          if all_ok && had_complete_listing {
+            for old_name in prev_entries.keys() {
+              if !current_entries.contains_key(old_name) {
+                for (_sub_id, epoch, root_ctx, logical_dir, _) in &ctx_scan.bindings {
+                  if !self.path_manager.is_registration_current(
+                    LogicalKind::Directory,
+                    root_ctx,
+                    *epoch,
+                  ) {
+                    continue;
+                  }
+                  let logical_child = InternedPath::from(logical_dir.as_path().join(old_name));
+                  if self
+                    .check_ignored_cached(&mut ignored_memo, &logical_child)
+                    .await
+                  {
+                    continue;
+                  }
+                  let may_contain = self.path_manager.may_contain_records(&logical_child);
+                  self.path_manager.remove_file_time(&logical_child);
+                  if may_contain {
+                    self.path_manager.remove_file_times_under(&logical_child);
+                  }
+                  self.path_manager.set_last_watch_events(logical_dir);
+                  dependencies.push((root_ctx.clone(), FsEventKind::Change));
+                  context_removals.push(logical_child);
+                }
+              }
+            }
+          }
+
+          self
+            .path_manager
+            .store_context_listing_snapshot(&ctx_scan.dir, current_entries, all_ok);
+        }
+      }
+    }
+
+    self.dispatch_deduped(dependencies, raw, recovered, context_removals);
   }
 
   #[inline(never)]

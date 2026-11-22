@@ -32,6 +32,13 @@ impl ReportedBaseline {
   }
 }
 
+#[cfg(feature = "testing")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum ObservedEntry {
+  File { mtime: SystemTime },
+  Directory,
+}
+
 pub(crate) enum SubscriptionRole {
   TargetEntry {
     dir: InternedPath,
@@ -66,6 +73,8 @@ pub(crate) struct LogicalRegistration {
 
 #[derive(Default)]
 pub(crate) struct ChildSlot {
+  #[cfg(feature = "testing")]
+  pub observed: Option<ObservedEntry>,
   pub entry_subs: Vec<SubId>,
   pub waiting_subs: Vec<SubId>,
   pub has_child_node: bool,
@@ -75,11 +84,24 @@ impl ChildSlot {
   pub fn is_unreferenced(&self) -> bool {
     self.entry_subs.is_empty() && self.waiting_subs.is_empty() && !self.has_child_node
   }
+
+  fn has_observed(&self) -> bool {
+    #[cfg(feature = "testing")]
+    {
+      self.observed.is_some()
+    }
+    #[cfg(not(feature = "testing"))]
+    {
+      false
+    }
+  }
 }
 
 #[derive(Default)]
 pub(crate) struct DirectoryNode {
   pub children: FxHashMap<OsString, ChildSlot>,
+  #[cfg(feature = "testing")]
+  pub has_complete_listing: bool,
   pub context_subs: Vec<SubId>,
 }
 
@@ -115,6 +137,30 @@ pub(crate) struct PendingAdvance {
   pub wait_name: OsString,
   pub remainder: PathBuf,
   pub notify_path: InternedPath,
+}
+
+/// Planned disk operations for one active scan pass (`scan_once`).
+#[cfg(feature = "testing")]
+pub(crate) struct ActiveScanPlan {
+  pub context_dirs: Vec<ActiveContextScan>,
+  pub stat_entries: Vec<ActiveEntryScan>,
+  pub waiting_entries: Vec<PendingAdvance>,
+}
+
+#[cfg(feature = "testing")]
+pub(crate) struct ActiveContextScan {
+  pub dir: InternedPath,
+  pub bindings: Vec<(SubId, u64, InternedPath, InternedPath, bool)>,
+  pub prev_entries: FxHashMap<OsString, ObservedEntry>,
+  pub had_complete_listing: bool,
+}
+
+#[cfg(feature = "testing")]
+pub(crate) struct ActiveEntryScan {
+  pub dir: InternedPath,
+  pub name: OsString,
+  pub full_path: InternedPath,
+  pub targets: Vec<(SubId, u64, LogicalKind, InternedPath, InternedPath)>,
 }
 
 #[derive(Default)]
@@ -280,6 +326,69 @@ impl SubscriptionGraph {
     self.registrations[kind as usize]
       .get(path)
       .map(|reg| reg.epoch)
+  }
+
+  #[cfg(feature = "testing")]
+  pub fn record_observed_entry(&mut self, path: &InternedPath, observed: ObservedEntry) {
+    let (Some(parent), Some(name)) = (path.parent(), path.file_name()) else {
+      return;
+    };
+    let parent_ip = InternedPath::from(parent);
+    if let Some(node) = self.directories.get_mut(&parent_ip) {
+      if !node.context_subs.is_empty() {
+        node
+          .children
+          .entry(name.to_os_string())
+          .or_default()
+          .observed = Some(observed);
+      } else if let Some(slot) = node.children.get_mut(name) {
+        slot.observed = Some(observed);
+      }
+    }
+  }
+
+  #[cfg(feature = "testing")]
+  pub fn remove_observed_entry(&mut self, path: &InternedPath) {
+    let (Some(parent), Some(name)) = (path.parent(), path.file_name()) else {
+      return;
+    };
+    let parent_ip = InternedPath::from(parent);
+    if let Some(node) = self.directories.get_mut(&parent_ip) {
+      let remove_slot = if let Some(slot) = node.children.get_mut(name) {
+        slot.observed = None;
+        node.context_subs.is_empty() && slot.is_unreferenced()
+      } else {
+        false
+      };
+      if remove_slot {
+        node.children.remove(name);
+      }
+    }
+  }
+
+  #[cfg(feature = "testing")]
+  pub fn set_dir_snapshot(
+    &mut self,
+    dir: &InternedPath,
+    snapshot: FxHashMap<OsString, ObservedEntry>,
+    complete: bool,
+  ) {
+    let Some(node) = self.directories.get_mut(dir) else {
+      return;
+    };
+    if node.context_subs.is_empty() {
+      return;
+    }
+    for slot in node.children.values_mut() {
+      slot.observed = None;
+    }
+    for (name, obs) in snapshot {
+      node.children.entry(name).or_default().observed = Some(obs);
+    }
+    node
+      .children
+      .retain(|_, slot| slot.observed.is_some() || !slot.is_unreferenced());
+    node.has_complete_listing = complete;
   }
 
   /// Resolves incoming OS / injected / backfill event on `disk_path` against active subscriptions.
@@ -517,7 +626,15 @@ impl SubscriptionGraph {
     let mut child_ctx_subs_to_drop: Vec<(InternedPath, SubId)> = Vec::new();
     for dir in &subtree_dirs {
       if let Some(node) = self.directories.get_mut(dir) {
+        #[cfg(feature = "testing")]
+        {
+          node.has_complete_listing = false;
+        }
         for slot in node.children.values_mut() {
+          #[cfg(feature = "testing")]
+          {
+            slot.observed = None;
+          }
           subs_to_demote.extend(slot.entry_subs.iter().copied());
           subs_to_demote.extend(slot.waiting_subs.iter().copied());
         }
@@ -643,6 +760,107 @@ impl SubscriptionGraph {
       reg.sub_ids.extend(new_ids);
     }
     true
+  }
+
+  /// Builds a minimal disk check plan for an active scan (`scan_once`) without holding I/O in lock.
+  #[cfg(feature = "testing")]
+  pub fn plan_active_scan(&self) -> ActiveScanPlan {
+    let mut context_dirs = Vec::new();
+    let mut stat_entries = Vec::new();
+    let mut waiting_entries = Vec::new();
+
+    for (dir_path, node) in &self.directories {
+      if !node.context_subs.is_empty() {
+        let mut bindings = Vec::new();
+        for &sub_id in &node.context_subs {
+          if let Some(sub) = self.get_sub(sub_id)
+            && let SubscriptionRole::ContextDir {
+              logical_dir,
+              is_root,
+              ..
+            } = &sub.role
+          {
+            bindings.push((
+              sub_id,
+              sub.epoch,
+              sub.owner_path.clone(),
+              logical_dir.clone(),
+              *is_root,
+            ));
+          }
+        }
+        if !bindings.is_empty() {
+          let mut prev_entries = FxHashMap::default();
+          for (k, slot) in &node.children {
+            if let Some(obs) = slot.observed {
+              prev_entries.insert(k.clone(), obs);
+            }
+          }
+          context_dirs.push(ActiveContextScan {
+            dir: dir_path.clone(),
+            bindings,
+            prev_entries,
+            had_complete_listing: node.has_complete_listing,
+          });
+        }
+      }
+
+      for (entry_name, slot) in &node.children {
+        if !slot.entry_subs.is_empty() {
+          let mut targets = Vec::new();
+          for &sub_id in &slot.entry_subs {
+            if let Some(sub) = self.get_sub(sub_id)
+              && let SubscriptionRole::TargetEntry { notify_path, .. } = &sub.role
+              && matches!(sub.owner_kind, LogicalKind::File | LogicalKind::Missing)
+            {
+              targets.push((
+                sub_id,
+                sub.epoch,
+                sub.owner_kind,
+                sub.owner_path.clone(),
+                notify_path.clone(),
+              ));
+            }
+          }
+          if !targets.is_empty() {
+            stat_entries.push(ActiveEntryScan {
+              dir: dir_path.clone(),
+              name: entry_name.clone(),
+              full_path: InternedPath::from(dir_path.as_path().join(entry_name)),
+              targets,
+            });
+          }
+        }
+
+        for &sub_id in &slot.waiting_subs {
+          if let Some(sub) = self.get_sub(sub_id)
+            && let SubscriptionRole::WaitingPrefix {
+              dir,
+              wait_name,
+              remainder,
+              notify_path,
+            } = &sub.role
+          {
+            waiting_entries.push(PendingAdvance {
+              sub_id,
+              owner_kind: sub.owner_kind,
+              owner_path: sub.owner_path.clone(),
+              epoch: sub.epoch,
+              current_dir: dir.clone(),
+              wait_name: wait_name.clone(),
+              remainder: remainder.clone(),
+              notify_path: notify_path.clone(),
+            });
+          }
+        }
+      }
+    }
+
+    ActiveScanPlan {
+      context_dirs,
+      stat_entries,
+      waiting_entries,
+    }
   }
 
   /// Active directory count for `index_sizes()` reclamation checks.
@@ -870,7 +1088,7 @@ impl SubscriptionGraph {
         if let Some(node) = self.directories.get_mut(dir) {
           let drop_child = if let Some(slot) = node.children.get_mut(wait_name) {
             slot.waiting_subs.retain(|&id| id != sub_id);
-            node.context_subs.is_empty() && slot.is_unreferenced()
+            (node.context_subs.is_empty() || !slot.has_observed()) && slot.is_unreferenced()
           } else {
             false
           };
@@ -884,6 +1102,10 @@ impl SubscriptionGraph {
         if let Some(node) = self.directories.get_mut(dir) {
           node.context_subs.retain(|&id| id != sub_id);
           if node.context_subs.is_empty() {
+            #[cfg(feature = "testing")]
+            {
+              node.has_complete_listing = false;
+            }
             node.children.retain(|_, slot| !slot.is_unreferenced());
           }
         }
@@ -939,7 +1161,7 @@ impl SubscriptionGraph {
       if let Some(parent_node) = self.directories.get_mut(&parent_ip) {
         let drop_child = if let Some(slot) = parent_node.children.get_mut(name) {
           slot.has_child_node = false;
-          parent_node.context_subs.is_empty() && slot.is_unreferenced()
+          (parent_node.context_subs.is_empty() || !slot.has_observed()) && slot.is_unreferenced()
         } else {
           false
         };

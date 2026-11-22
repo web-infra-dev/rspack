@@ -136,6 +136,18 @@ pub fn emit_native_event(watcher: &FsWatcher, event: Event) {
   }
 }
 
+/// Runs one active disk check pass (`ActiveScan`) over `watcher`'s current subscriptions and waits
+/// until state comparison and executor queueing have completed.
+pub async fn scan_once(watcher: &FsWatcher) {
+  let rx = {
+    let trigger = watcher.trigger.lock().expect("should lock trigger").clone();
+    trigger.map(|t| t.scan_once())
+  };
+  if let Some(rx) = rx {
+    let _ = rx.await;
+  }
+}
+
 pub struct DirectoryAnalyzer {
   paths: Arc<PathManager>,
   trigger: Arc<Trigger>,

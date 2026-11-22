@@ -1,3 +1,5 @@
+#[cfg(feature = "testing")]
+use std::ffi::OsString;
 use std::{
   ffi::OsStr,
   fmt::Debug,
@@ -18,6 +20,8 @@ use rspack_util::{
 };
 
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
+#[cfg(feature = "testing")]
+use crate::subscription::{ActiveScanPlan, ObservedEntry};
 use crate::{
   subscription::{
     LogicalKind, MatchedContext, MatchedTarget, PendingAdvance, ReportedBaseline, SubId,
@@ -475,8 +479,12 @@ impl PathManager {
   /// Use `check_and_advance_target_baseline` (which atomically reads-and-updates
   /// the baseline) to advance the recorded mtime in response to real events.
   pub fn set_file_time_if_absent(&self, path: InternedPath, mtime: SystemTime) {
+    #[cfg(feature = "testing")]
+    let target_path = self.target_path_of(LogicalKind::File, &path);
     {
       let mut graph = self.lock_graph();
+      #[cfg(feature = "testing")]
+      graph.record_observed_entry(&target_path, ObservedEntry::File { mtime });
       let entry = graph
         .baselines
         .entry(path.clone())
@@ -498,6 +506,14 @@ impl PathManager {
   pub fn set_reported_file_time(&self, path: &InternedPath, mtime: SystemTime) {
     {
       let mut graph = self.lock_graph();
+      #[cfg(feature = "testing")]
+      {
+        let target = graph
+          .target_of(LogicalKind::File, path)
+          .or_else(|| graph.target_of(LogicalKind::Missing, path))
+          .unwrap_or_else(|| path.clone());
+        graph.record_observed_entry(&target, ObservedEntry::File { mtime });
+      }
       graph
         .baselines
         .insert(path.clone(), ReportedBaseline::Present(mtime));
@@ -508,12 +524,14 @@ impl PathManager {
   pub fn commit_recovered_entry(
     &self,
     owner_path: &InternedPath,
-    _target_path: &InternedPath,
+    #[cfg_attr(not(feature = "testing"), allow(unused_variables))] target_path: &InternedPath,
     mtime: Option<SystemTime>,
   ) {
     if let Some(m) = mtime {
       {
         let mut graph = self.lock_graph();
+        #[cfg(feature = "testing")]
+        graph.record_observed_entry(target_path, ObservedEntry::File { mtime: m });
         graph
           .baselines
           .insert(owner_path.clone(), ReportedBaseline::Present(m));
@@ -543,11 +561,13 @@ impl PathManager {
   pub fn record_initial_missing_present(
     &self,
     path: &InternedPath,
-    _target: &InternedPath,
+    #[cfg_attr(not(feature = "testing"), allow(unused_variables))] target: &InternedPath,
     mtime: SystemTime,
   ) {
     {
       let mut graph = self.lock_graph();
+      #[cfg(feature = "testing")]
+      graph.record_observed_entry(target, ObservedEntry::File { mtime });
       if graph.baselines.get(path) == Some(&ReportedBaseline::ReportedRemoved) {
         graph
           .baselines
@@ -572,6 +592,8 @@ impl PathManager {
       .target_of(LogicalKind::File, path)
       .or_else(|| graph.target_of(LogicalKind::Missing, path))
       .unwrap_or_else(|| path.clone());
+    #[cfg(feature = "testing")]
+    graph.remove_observed_entry(&target);
     if registered && std::fs::symlink_metadata(&target).is_err() {
       graph
         .baselines
@@ -770,6 +792,11 @@ impl PathManager {
     graph.commit_waiting_advance(sub_id, expected_epoch, new_dir, step)
   }
 
+  #[cfg(feature = "testing")]
+  pub fn plan_active_scan(&self) -> ActiveScanPlan {
+    self.lock_graph().plan_active_scan()
+  }
+
   pub fn is_registration_current(
     &self,
     kind: LogicalKind,
@@ -785,6 +812,11 @@ impl PathManager {
 
   pub fn is_registered_file_or_missing(&self, path: &InternedPath) -> bool {
     self.files.all.contains(path) || self.missing.all.contains(path)
+  }
+
+  #[cfg(feature = "testing")]
+  pub fn is_absent_directory(&self, path: &InternedPath) -> bool {
+    self.absent_directories.contains(path)
   }
 
   pub fn mark_directory_absent(&self, path: &InternedPath) {
@@ -889,8 +921,19 @@ impl PathManager {
           continue;
         };
 
+        #[cfg(feature = "testing")]
+        let mut snapshot_entries: FxHashMap<OsString, ObservedEntry> = FxHashMap::default();
+        #[cfg(feature = "testing")]
+        let mut all_ok = true;
+        #[cfg(feature = "testing")]
+        let mut aborted = false;
+
         for entry_res in entries {
           let Ok(entry) = entry_res else {
+            #[cfg(feature = "testing")]
+            {
+              all_ok = false;
+            }
             continue;
           };
           let entry_name = entry.file_name();
@@ -900,12 +943,18 @@ impl PathManager {
             continue;
           }
           if !self.is_registration_current(LogicalKind::Directory, &root_ctx, epoch) {
+            #[cfg(feature = "testing")]
+            {
+              aborted = true;
+            }
             break;
           }
           let Ok(metadata) = Self::scan_metadata(ancestry.last(), &disk_entry_path) else {
             continue;
           };
           if metadata.is_dir() {
+            #[cfg(feature = "testing")]
+            snapshot_entries.insert(entry_name, ObservedEntry::Directory);
             let newly_added = self.record(&logical_entry_path, || {
               self.context_directories.insert(logical_entry_path.clone())
             });
@@ -914,6 +963,10 @@ impl PathManager {
               self.retain_watch_target(&mut graph, LogicalKind::Directory, disk_entry_path.clone());
             }
             if self.forget_if_orphaned(&logical_entry_path) {
+              #[cfg(feature = "testing")]
+              {
+                aborted = true;
+              }
               break;
             }
             if !self.follow_symlinks {
@@ -945,6 +998,8 @@ impl PathManager {
               false,
             ));
           } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
+            #[cfg(feature = "testing")]
+            snapshot_entries.insert(entry_name, ObservedEntry::File { mtime });
             {
               let mut graph = self.lock_graph();
               if graph.baselines.get(&logical_entry_path)
@@ -962,11 +1017,23 @@ impl PathManager {
             let registered = self.files.all.contains(&logical_entry_path)
               || self.missing.all.contains(&logical_entry_path);
             if self.forget_if_orphaned(&logical_entry_path) {
+              #[cfg(feature = "testing")]
+              {
+                aborted = true;
+              }
               break;
             }
             if !registered && changed_since.is_some_and(|since| mtime_safe_time(mtime) >= since) {
               changed.push(logical_entry_path);
             }
+          }
+        }
+
+        #[cfg(feature = "testing")]
+        if !aborted && !self.follow_symlinks {
+          let mut graph = self.lock_graph();
+          if graph.is_registration_current(LogicalKind::Directory, &root_ctx, epoch) {
+            graph.set_dir_snapshot(&disk_dir, snapshot_entries, all_ok);
           }
         }
       }
@@ -1055,12 +1122,17 @@ impl PathManager {
       return true;
     }
     if metadata.is_dir() {
-      self.lock_graph().attach_child_context(
-        &ctx.root_context,
-        ctx.epoch,
-        disk_path.clone(),
-        ctx.logical_entry_path.clone(),
-      );
+      {
+        let mut graph = self.lock_graph();
+        #[cfg(feature = "testing")]
+        graph.record_observed_entry(disk_path, ObservedEntry::Directory);
+        graph.attach_child_context(
+          &ctx.root_context,
+          ctx.epoch,
+          disk_path.clone(),
+          ctx.logical_entry_path.clone(),
+        );
+      }
       // Like watchpack's `setDirectory`, only a directory not known before is
       // scanned: an event on a known one, e.g. a `chmod`, changes nothing below.
       if self.record(&ctx.logical_entry_path, || {
@@ -1094,6 +1166,10 @@ impl PathManager {
     let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
       return true;
     };
+    #[cfg(feature = "testing")]
+    self
+      .lock_graph()
+      .record_observed_entry(disk_path, ObservedEntry::File { mtime });
     if judged {
       return true;
     }
@@ -1108,6 +1184,168 @@ impl PathManager {
     }
     self.set_file_time(&ctx.logical_entry_path, mtime, false, false);
     true
+  }
+}
+
+#[cfg(feature = "testing")]
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct DiskEntryState {
+  pub present: bool,
+  pub mtime: Option<SystemTime>,
+}
+
+#[cfg(feature = "testing")]
+impl PathManager {
+  /// Active-scan comparison and commit for one target entry (`File` or `Missing`).
+  pub fn commit_active_entry_observation(
+    &self,
+    dir: &InternedPath,
+    name: &OsStr,
+    owner_kind: LogicalKind,
+    owner_path: &InternedPath,
+    epoch: u64,
+    disk: DiskEntryState,
+  ) -> Option<crate::FsEventKind> {
+    let mut graph = self.lock_graph();
+    if !graph.is_registration_current(owner_kind, owner_path, epoch) {
+      return None;
+    }
+
+    if disk.present {
+      let prev_observed_mtime = graph
+        .directories
+        .get(dir)
+        .and_then(|n| n.children.get(name))
+        .and_then(|s| s.observed)
+        .and_then(|e| match e {
+          ObservedEntry::File { mtime } => Some(mtime),
+          ObservedEntry::Directory => None,
+        });
+      if let Some(m) = disk.mtime
+        && let Some(node) = graph.directories.get_mut(dir)
+      {
+        if !node.context_subs.is_empty() {
+          node
+            .children
+            .entry(name.to_os_string())
+            .or_default()
+            .observed = Some(ObservedEntry::File { mtime: m });
+        } else if let Some(slot) = node.children.get_mut(name) {
+          slot.observed = Some(ObservedEntry::File { mtime: m });
+        }
+      }
+      let current_baseline = graph
+        .baselines
+        .get(owner_path)
+        .copied()
+        .unwrap_or(ReportedBaseline::Unreported);
+      match current_baseline {
+        ReportedBaseline::InitialMissingAbsent | ReportedBaseline::ReportedRemoved => {
+          if let Some(m) = disk.mtime {
+            graph
+              .baselines
+              .insert(owner_path.clone(), ReportedBaseline::Present(m));
+            drop(graph);
+            self.set_file_time(owner_path, m, false, false);
+          } else {
+            graph
+              .baselines
+              .insert(owner_path.clone(), ReportedBaseline::Unreported);
+            drop(graph);
+          }
+          Some(crate::FsEventKind::Create)
+        }
+        ReportedBaseline::Present(prev_mtime) => {
+          if let Some(m) = disk.mtime
+            && m != prev_mtime
+          {
+            graph
+              .baselines
+              .insert(owner_path.clone(), ReportedBaseline::Present(m));
+            drop(graph);
+            self.set_file_time(owner_path, m, false, false);
+            Some(crate::FsEventKind::Change)
+          } else {
+            None
+          }
+        }
+        ReportedBaseline::Unreported => {
+          if let Some(m) = disk.mtime {
+            if prev_observed_mtime.is_some_and(|obs| obs != m) {
+              graph
+                .baselines
+                .insert(owner_path.clone(), ReportedBaseline::Present(m));
+              drop(graph);
+              self.set_file_time(owner_path, m, false, false);
+              return Some(crate::FsEventKind::Change);
+            }
+            graph
+              .baselines
+              .insert(owner_path.clone(), ReportedBaseline::Present(m));
+          }
+          None
+        }
+      }
+    } else {
+      if let Some(node) = graph.directories.get_mut(dir) {
+        let drop_slot = if let Some(slot) = node.children.get_mut(name) {
+          slot.observed = None;
+          node.context_subs.is_empty() && slot.is_unreferenced()
+        } else {
+          false
+        };
+        if drop_slot {
+          node.children.remove(name);
+        }
+      }
+      let current_baseline = graph
+        .baselines
+        .get(owner_path)
+        .copied()
+        .unwrap_or(ReportedBaseline::Unreported);
+      match current_baseline {
+        ReportedBaseline::Present(_) => {
+          graph
+            .baselines
+            .insert(owner_path.clone(), ReportedBaseline::ReportedRemoved);
+          drop(graph);
+          self.remove_file_time(owner_path);
+          self
+            .lock_graph()
+            .baselines
+            .insert(owner_path.clone(), ReportedBaseline::ReportedRemoved);
+          Some(crate::FsEventKind::Remove)
+        }
+        ReportedBaseline::Unreported if owner_kind == LogicalKind::File => {
+          graph
+            .baselines
+            .insert(owner_path.clone(), ReportedBaseline::ReportedRemoved);
+          drop(graph);
+          self.remove_file_time(owner_path);
+          self
+            .lock_graph()
+            .baselines
+            .insert(owner_path.clone(), ReportedBaseline::ReportedRemoved);
+          Some(crate::FsEventKind::Remove)
+        }
+        ReportedBaseline::Unreported => {
+          graph
+            .baselines
+            .insert(owner_path.clone(), ReportedBaseline::InitialMissingAbsent);
+          None
+        }
+        ReportedBaseline::InitialMissingAbsent | ReportedBaseline::ReportedRemoved => None,
+      }
+    }
+  }
+
+  pub fn store_context_listing_snapshot(
+    &self,
+    dir: &InternedPath,
+    entries: FxHashMap<OsString, ObservedEntry>,
+    complete: bool,
+  ) {
+    self.lock_graph().set_dir_snapshot(dir, entries, complete);
   }
 }
 
@@ -1255,10 +1493,20 @@ impl PathManager {
       return true;
     };
     let mtime_ms = mtime_to_millis(current_mtime);
-    let previous = self.lock_graph().baselines.insert(
-      logical_path.clone(),
-      ReportedBaseline::Present(current_mtime),
-    );
+    let previous = {
+      let mut graph = self.lock_graph();
+      #[cfg(feature = "testing")]
+      graph.record_observed_entry(
+        target_path,
+        ObservedEntry::File {
+          mtime: current_mtime,
+        },
+      );
+      graph.baselines.insert(
+        logical_path.clone(),
+        ReportedBaseline::Present(current_mtime),
+      )
+    };
     if previous == Some(ReportedBaseline::Present(current_mtime))
       && mtime_ms.saturating_add(mtime_accuracy(current_mtime)) < current_time()
     {

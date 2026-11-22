@@ -13,7 +13,9 @@ use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet;
 use rspack_watcher::{
   EventAggregateHandler, EventHandler, FsWatcher, FsWatcherOptions, TimeInfoEntry,
-  testing::{TestWatchBackend, bind_file_target, emit_native_event, new_isolated_watcher},
+  testing::{
+    TestWatchBackend, bind_file_target, emit_native_event, new_isolated_watcher, scan_once,
+  },
 };
 use tempfile::TempDir;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
@@ -192,16 +194,23 @@ fn find_time_entry<'a>(
     .map(|(_, e)| e)
 }
 
-#[tokio::test]
-async fn test_single_disk_path_notifies_two_files_and_revokes_cleanly_on_native_hint() {
+#[derive(Clone, Copy, Debug)]
+enum Driver {
+  NativeHint,
+  ActiveScan,
+}
+
+async fn run_shared_target_dispatch_and_revocation(driver: Driver) {
   let temp = TempDir::new().expect("create temp dir");
   let base = temp.path().canonicalize().expect("canonicalize temp dir");
   let disk_dir = base.join("disk");
   fs::create_dir_all(&disk_dir).expect("create disk dir");
   let shared = InternedPath::from(disk_dir.join("shared.js"));
   fs::write(&shared, "v0").expect("write initial shared.js");
-  set_mtime(&shared, SystemTime::now() - Duration::from_secs(60));
+  let base_mtime = SystemTime::now() - Duration::from_secs(60);
+  set_mtime(&shared, base_mtime);
 
+  // Logical paths do not exist on disk and no symlinks are created.
   let app_a = InternedPath::from(base.join("app/a.js"));
   let app_b = InternedPath::from(base.join("app/b.js"));
 
@@ -216,6 +225,7 @@ async fn test_single_disk_path_notifies_two_files_and_revokes_cleanly_on_native_
   )
   .await;
 
+  // Wait for initial scan tasks to settle and verify baseline readiness.
   tokio::time::sleep(Duration::from_millis(80)).await;
   h.assert_quiet(80).await;
   let (file_times, _) = h.watcher.collect_time_info_entries();
@@ -228,14 +238,23 @@ async fn test_single_disk_path_notifies_two_files_and_revokes_cleanly_on_native_
     Some(TimeInfoEntry::Entry { .. })
   ));
 
+  // Rewrite `disk/shared.js` once with a distinguishable mtime.
   let t1 = SystemTime::now() - Duration::from_secs(30);
   fs::write(&shared, "v1").expect("write v1");
   set_mtime(&shared, t1);
-  emit_native_event(
-    &h.watcher,
-    Event::new(EventKind::Modify(ModifyKind::Data(DataChange::Any)))
-      .add_path(shared.as_ref().to_path_buf()),
-  );
+
+  match driver {
+    Driver::NativeHint => {
+      emit_native_event(
+        &h.watcher,
+        Event::new(EventKind::Modify(ModifyKind::Data(DataChange::Any)))
+          .add_path(shared.as_ref().to_path_buf()),
+      );
+    }
+    Driver::ActiveScan => {
+      scan_once(&h.watcher).await;
+    }
+  }
 
   let batch = h.recv_batch().await;
   assert_eq!(batch.changed, set_of(&[&app_a, &app_b]));
@@ -250,6 +269,10 @@ async fn test_single_disk_path_notifies_two_files_and_revokes_cleanly_on_native_
   expected_imm.sort();
   assert_eq!(imm, expected_imm);
 
+  // An immediate follow-up scan without writes must stay completely quiet.
+  scan_once(&h.watcher).await;
+  h.assert_quiet(80).await;
+
   // Revoke `app/a.js`, rewrite `disk/shared.js`, and verify only `app/b.js` is notified.
   h.watch(
     (vec![], vec![app_a.clone()]),
@@ -258,16 +281,24 @@ async fn test_single_disk_path_notifies_two_files_and_revokes_cleanly_on_native_
     SystemTime::now(),
   )
   .await;
-  assert!(!h.backend.watched_patterns().is_empty());
+  assert!(h.backend.kernel_watch_count() > 0);
 
   let t2 = SystemTime::now() - Duration::from_secs(10);
   fs::write(&shared, "v2").expect("write v2");
   set_mtime(&shared, t2);
-  emit_native_event(
-    &h.watcher,
-    Event::new(EventKind::Modify(ModifyKind::Data(DataChange::Any)))
-      .add_path(shared.as_ref().to_path_buf()),
-  );
+
+  match driver {
+    Driver::NativeHint => {
+      emit_native_event(
+        &h.watcher,
+        Event::new(EventKind::Modify(ModifyKind::Data(DataChange::Any)))
+          .add_path(shared.as_ref().to_path_buf()),
+      );
+    }
+    Driver::ActiveScan => {
+      scan_once(&h.watcher).await;
+    }
+  }
 
   let batch2 = h.recv_batch().await;
   assert_eq!(batch2.changed, set_of(&[&app_b]));
@@ -277,7 +308,7 @@ async fn test_single_disk_path_notifies_two_files_and_revokes_cleanly_on_native_
     vec![(app_b.to_string_lossy().into_owned(), "change")]
   );
 
-  // Revoke `app/b.js` as well, rewrite `disk/shared.js`, and verify silence & handle cleanup.
+  // Revoke `app/b.js` as well, rewrite `disk/shared.js`, and verify complete silence & handle cleanup.
   h.watch(
     (vec![], vec![app_b.clone()]),
     (vec![], vec![]),
@@ -285,156 +316,216 @@ async fn test_single_disk_path_notifies_two_files_and_revokes_cleanly_on_native_
     SystemTime::now(),
   )
   .await;
-  assert!(
-    h.backend.watched_patterns().is_empty(),
+  assert_eq!(
+    h.backend.kernel_watch_count(),
+    0,
     "all disk watches should be released once the last subscription is removed"
   );
 
   let t3 = SystemTime::now() - Duration::from_secs(5);
   fs::write(&shared, "v3").expect("write v3");
   set_mtime(&shared, t3);
-  emit_native_event(
-    &h.watcher,
-    Event::new(EventKind::Modify(ModifyKind::Data(DataChange::Any)))
-      .add_path(shared.as_ref().to_path_buf()),
+
+  match driver {
+    Driver::NativeHint => {
+      emit_native_event(
+        &h.watcher,
+        Event::new(EventKind::Modify(ModifyKind::Data(DataChange::Any)))
+          .add_path(shared.as_ref().to_path_buf()),
+      );
+    }
+    Driver::ActiveScan => {
+      scan_once(&h.watcher).await;
+    }
+  }
+  h.assert_quiet(100).await;
+  h.close().await;
+}
+
+#[tokio::test]
+async fn test_shared_target_dispatch_and_revocation() {
+  for driver in [Driver::NativeHint, Driver::ActiveScan] {
+    run_shared_target_dispatch_and_revocation(driver).await;
+  }
+}
+
+async fn run_step_by_step_missing_ancestors(driver: Driver) {
+  let temp = TempDir::new().expect("create temp dir");
+  let base = temp.path().canonicalize().expect("canonicalize temp dir");
+  let app = base.join("app");
+  fs::create_dir_all(&app).expect("create /app");
+  let missing_dir = InternedPath::from(app.join("missing"));
+  let pkg_dir = InternedPath::from(app.join("missing/pkg"));
+  let target = InternedPath::from(app.join("missing/pkg/index.js"));
+
+  let mut h = Harness::new(40);
+  h.watch(
+    (vec![], vec![]),
+    (vec![], vec![]),
+    (vec![target.clone()], vec![]),
+    SystemTime::now(),
+  )
+  .await;
+  tokio::time::sleep(Duration::from_millis(80)).await;
+  h.assert_quiet(60).await;
+  assert_eq!(
+    find_time_entry(&h.watcher.collect_time_info_entries().0, &target),
+    Some(&TimeInfoEntry::Null)
   );
+
+  // Step 1: `/app/missing` appears, `pkg` still absent -> must stay quiet.
+  fs::create_dir(&missing_dir).expect("mkdir /app/missing");
+  match driver {
+    Driver::NativeHint => {
+      emit_native_event(
+        &h.watcher,
+        Event::new(EventKind::Create(CreateKind::Folder))
+          .add_path(missing_dir.as_ref().to_path_buf()),
+      );
+    }
+    Driver::ActiveScan => {
+      scan_once(&h.watcher).await;
+    }
+  }
+  h.assert_quiet(80).await;
+  assert_eq!(
+    find_time_entry(&h.watcher.collect_time_info_entries().0, &target),
+    Some(&TimeInfoEntry::Null)
+  );
+
+  // Step 2: `/app/missing/pkg` appears, `index.js` still absent -> must stay quiet.
+  fs::create_dir(&pkg_dir).expect("mkdir /app/missing/pkg");
+  match driver {
+    Driver::NativeHint => {
+      emit_native_event(
+        &h.watcher,
+        Event::new(EventKind::Create(CreateKind::Folder)).add_path(pkg_dir.as_ref().to_path_buf()),
+      );
+    }
+    Driver::ActiveScan => {
+      scan_once(&h.watcher).await;
+    }
+  }
+  h.assert_quiet(80).await;
+  assert_eq!(
+    find_time_entry(&h.watcher.collect_time_info_entries().0, &target),
+    Some(&TimeInfoEntry::Null)
+  );
+
+  // Step 3: `P` becomes visible -> notify `P` and populate readable time info.
+  fs::write(&target, "module.exports = 1;").expect("write index.js");
+  match driver {
+    Driver::NativeHint => {
+      emit_native_event(
+        &h.watcher,
+        Event::new(EventKind::Create(CreateKind::File)).add_path(target.as_ref().to_path_buf()),
+      );
+    }
+    Driver::ActiveScan => {
+      scan_once(&h.watcher).await;
+    }
+  }
+
+  let batch = h.recv_batch().await;
+  assert_eq!(batch.changed, set_of(&[&target]));
+  assert!(batch.deleted.is_empty());
+  assert_eq!(
+    h.take_immediate(),
+    vec![(target.to_string_lossy().into_owned(), "change")]
+  );
+  assert!(matches!(
+    find_time_entry(&h.watcher.collect_time_info_entries().0, &target),
+    Some(TimeInfoEntry::Entry { .. })
+  ));
+
+  // Empty-diff rewatch with a fresh `startTime` must NOT re-trigger for the already-reported file.
+  h.watch(
+    (vec![], vec![]),
+    (vec![], vec![]),
+    (vec![], vec![]),
+    SystemTime::now(),
+  )
+  .await;
+  scan_once(&h.watcher).await;
+  h.assert_quiet(100).await;
+  h.close().await;
+}
+
+async fn run_whole_missing_tree_moved_in_with_old_mtime(driver: Driver) {
+  let temp = TempDir::new().expect("create temp dir");
+  let base = temp.path().canonicalize().expect("canonicalize temp dir");
+  let app = base.join("app");
+  let staged = base.join("staged");
+  fs::create_dir_all(&app).expect("create /app");
+  fs::create_dir_all(staged.join("pkg")).expect("create staged/pkg");
+  let staged_file = staged.join("pkg/index.js");
+  fs::write(&staged_file, "module.exports = 'old';").expect("write staged index.js");
+  let old_mtime = SystemTime::now() - Duration::from_secs(86_400);
+  set_mtime(&staged_file, old_mtime);
+
+  let missing_dir = InternedPath::from(app.join("missing"));
+  let target = InternedPath::from(app.join("missing/pkg/index.js"));
+
+  let mut h = Harness::new(40);
+  h.watch(
+    (vec![], vec![]),
+    (vec![], vec![]),
+    (vec![target.clone()], vec![]),
+    SystemTime::now(),
+  )
+  .await;
+  tokio::time::sleep(Duration::from_millis(80)).await;
+  h.assert_quiet(60).await;
+
+  fs::rename(&staged, &missing_dir).expect("move staged tree into /app/missing");
+  match driver {
+    Driver::NativeHint => {
+      // Only provide the top-level `/app/missing` appearance clue.
+      emit_native_event(
+        &h.watcher,
+        Event::new(EventKind::Modify(ModifyKind::Name(RenameMode::To)))
+          .add_path(missing_dir.as_ref().to_path_buf()),
+      );
+    }
+    Driver::ActiveScan => {
+      scan_once(&h.watcher).await;
+    }
+  }
+
+  let batch = h.recv_batch().await;
+  assert_eq!(batch.changed, set_of(&[&target]));
+  assert!(batch.deleted.is_empty());
+  assert_eq!(
+    h.take_immediate(),
+    vec![(target.to_string_lossy().into_owned(), "change")]
+  );
+  assert!(matches!(
+    find_time_entry(&h.watcher.collect_time_info_entries().0, &target),
+    Some(TimeInfoEntry::Entry { .. })
+  ));
+
+  // Empty-diff rewatch with a fresh `startTime` stays quiet.
+  h.watch(
+    (vec![], vec![]),
+    (vec![], vec![]),
+    (vec![], vec![]),
+    SystemTime::now(),
+  )
+  .await;
+  scan_once(&h.watcher).await;
   h.assert_quiet(100).await;
   h.close().await;
 }
 
 #[tokio::test]
 async fn test_multi_level_missing_recovery() {
-  // 1. Step-by-step intermediate directory creation stays quiet until leaf appears.
-  {
-    let temp = TempDir::new().expect("create temp dir");
-    let base = temp.path().canonicalize().expect("canonicalize temp dir");
-    let app = base.join("app");
-    fs::create_dir_all(&app).expect("create /app");
-    let missing_dir = InternedPath::from(app.join("missing"));
-    let pkg_dir = InternedPath::from(app.join("missing/pkg"));
-    let target = InternedPath::from(app.join("missing/pkg/index.js"));
-
-    let mut h = Harness::new(40);
-    h.watch(
-      (vec![], vec![]),
-      (vec![], vec![]),
-      (vec![target.clone()], vec![]),
-      SystemTime::now(),
-    )
-    .await;
-    tokio::time::sleep(Duration::from_millis(80)).await;
-    h.assert_quiet(60).await;
-    assert_eq!(
-      find_time_entry(&h.watcher.collect_time_info_entries().0, &target),
-      Some(&TimeInfoEntry::Null)
-    );
-
-    fs::create_dir(&missing_dir).expect("mkdir /app/missing");
-    emit_native_event(
-      &h.watcher,
-      Event::new(EventKind::Create(CreateKind::Folder))
-        .add_path(missing_dir.as_ref().to_path_buf()),
-    );
-    h.assert_quiet(80).await;
-
-    fs::create_dir(&pkg_dir).expect("mkdir /app/missing/pkg");
-    emit_native_event(
-      &h.watcher,
-      Event::new(EventKind::Create(CreateKind::Folder)).add_path(pkg_dir.as_ref().to_path_buf()),
-    );
-    h.assert_quiet(80).await;
-
-    fs::write(&target, "module.exports = 1;").expect("write index.js");
-    emit_native_event(
-      &h.watcher,
-      Event::new(EventKind::Create(CreateKind::File)).add_path(target.as_ref().to_path_buf()),
-    );
-
-    let batch = h.recv_batch().await;
-    assert_eq!(batch.changed, set_of(&[&target]));
-    assert!(batch.deleted.is_empty());
-    assert_eq!(
-      h.take_immediate(),
-      vec![(target.to_string_lossy().into_owned(), "change")]
-    );
-    assert!(matches!(
-      find_time_entry(&h.watcher.collect_time_info_entries().0, &target),
-      Some(TimeInfoEntry::Entry { .. })
-    ));
-
-    h.watch(
-      (vec![], vec![]),
-      (vec![], vec![]),
-      (vec![], vec![]),
-      SystemTime::now(),
-    )
-    .await;
-    h.assert_quiet(100).await;
-    h.close().await;
-  }
-
-  // 2. Whole missing tree moved in at once with an aged mtime notifies from top-dir hint alone.
-  {
-    let temp = TempDir::new().expect("create temp dir");
-    let base = temp.path().canonicalize().expect("canonicalize temp dir");
-    let app = base.join("app");
-    let staged = base.join("staged");
-    fs::create_dir_all(&app).expect("create /app");
-    fs::create_dir_all(staged.join("pkg")).expect("create staged/pkg");
-    let staged_file = staged.join("pkg/index.js");
-    fs::write(&staged_file, "module.exports = 'old';").expect("write staged index.js");
-    set_mtime(
-      &staged_file,
-      SystemTime::now() - Duration::from_secs(86_400),
-    );
-
-    let missing_dir = InternedPath::from(app.join("missing"));
-    let target = InternedPath::from(app.join("missing/pkg/index.js"));
-
-    let mut h = Harness::new(40);
-    h.watch(
-      (vec![], vec![]),
-      (vec![], vec![]),
-      (vec![target.clone()], vec![]),
-      SystemTime::now(),
-    )
-    .await;
-    tokio::time::sleep(Duration::from_millis(80)).await;
-    h.assert_quiet(60).await;
-
-    fs::rename(&staged, &missing_dir).expect("move staged tree into /app/missing");
-    emit_native_event(
-      &h.watcher,
-      Event::new(EventKind::Modify(ModifyKind::Name(RenameMode::To)))
-        .add_path(missing_dir.as_ref().to_path_buf()),
-    );
-
-    let batch = h.recv_batch().await;
-    assert_eq!(batch.changed, set_of(&[&target]));
-    assert!(batch.deleted.is_empty());
-    assert_eq!(
-      h.take_immediate(),
-      vec![(target.to_string_lossy().into_owned(), "change")]
-    );
-    assert!(matches!(
-      find_time_entry(&h.watcher.collect_time_info_entries().0, &target),
-      Some(TimeInfoEntry::Entry { .. })
-    ));
-
-    h.watch(
-      (vec![], vec![]),
-      (vec![], vec![]),
-      (vec![], vec![]),
-      SystemTime::now(),
-    )
-    .await;
-    h.assert_quiet(100).await;
-    h.close().await;
+  for driver in [Driver::NativeHint, Driver::ActiveScan] {
+    run_step_by_step_missing_ancestors(driver).await;
+    run_whole_missing_tree_moved_in_with_old_mtime(driver).await;
   }
 }
 
-#[tokio::test]
-async fn test_file_and_directory_overlap_on_native_hint() {
+async fn run_overlapping_file_and_directory_subscription(driver: Driver) {
   let temp = TempDir::new().expect("create temp dir");
   let base = temp.path().canonicalize().expect("canonicalize temp dir");
   let src = InternedPath::from(base.join("src"));
@@ -459,11 +550,18 @@ async fn test_file_and_directory_overlap_on_native_hint() {
   let t1 = SystemTime::now() - Duration::from_secs(30);
   fs::write(&file_a, "v1").expect("write v1");
   set_mtime(&file_a, t1);
-  emit_native_event(
-    &h.watcher,
-    Event::new(EventKind::Modify(ModifyKind::Data(DataChange::Any)))
-      .add_path(file_a.as_ref().to_path_buf()),
-  );
+  match driver {
+    Driver::NativeHint => {
+      emit_native_event(
+        &h.watcher,
+        Event::new(EventKind::Modify(ModifyKind::Data(DataChange::Any)))
+          .add_path(file_a.as_ref().to_path_buf()),
+      );
+    }
+    Driver::ActiveScan => {
+      scan_once(&h.watcher).await;
+    }
+  }
 
   let batch1 = h.recv_batch().await;
   assert_eq!(batch1.changed, set_of(&[&file_a, &src]));
@@ -485,11 +583,18 @@ async fn test_file_and_directory_overlap_on_native_hint() {
   let t2 = SystemTime::now() - Duration::from_secs(10);
   fs::write(&file_a, "v2").expect("write v2");
   set_mtime(&file_a, t2);
-  emit_native_event(
-    &h.watcher,
-    Event::new(EventKind::Modify(ModifyKind::Data(DataChange::Any)))
-      .add_path(file_a.as_ref().to_path_buf()),
-  );
+  match driver {
+    Driver::NativeHint => {
+      emit_native_event(
+        &h.watcher,
+        Event::new(EventKind::Modify(ModifyKind::Data(DataChange::Any)))
+          .add_path(file_a.as_ref().to_path_buf()),
+      );
+    }
+    Driver::ActiveScan => {
+      scan_once(&h.watcher).await;
+    }
+  }
 
   let batch2 = h.recv_batch().await;
   assert_eq!(batch2.changed, set_of(&[&src]));
@@ -499,4 +604,214 @@ async fn test_file_and_directory_overlap_on_native_hint() {
     vec![(file_a.to_string_lossy().into_owned(), "change")]
   );
   h.close().await;
+}
+
+#[tokio::test]
+async fn test_overlapping_file_and_directory_subscription() {
+  for driver in [Driver::NativeHint, Driver::ActiveScan] {
+    run_overlapping_file_and_directory_subscription(driver).await;
+  }
+}
+
+#[tokio::test]
+async fn test_active_scan_file_context_and_scope_isolation() {
+  // 1. File edit detected even when parent directory mtime is unchanged, with stable safeTime.
+  {
+    let temp = TempDir::new().expect("create temp dir");
+    let base = temp.path().canonicalize().expect("canonicalize temp dir");
+    let src = base.join("src");
+    fs::create_dir_all(&src).expect("create src");
+    let file = InternedPath::from(src.join("a.js"));
+    fs::write(&file, "initial").expect("write initial file");
+    let t0 = SystemTime::now() - Duration::from_millis(60_123);
+    set_mtime(&file, t0);
+    set_mtime(&src, t0);
+    let dir_mtime_before = fs::metadata(&src)
+      .expect("stat src")
+      .modified()
+      .expect("src mtime");
+
+    let mut h = Harness::new(40);
+    h.watch(
+      (vec![file.clone()], vec![]),
+      (vec![], vec![]),
+      (vec![], vec![]),
+      SystemTime::now(),
+    )
+    .await;
+    tokio::time::sleep(Duration::from_millis(80)).await;
+
+    let read_base_safe_time = |watcher: &FsWatcher| -> u64 {
+      let (files, _) = watcher.collect_time_info_entries();
+      match find_time_entry(&files, &file) {
+        Some(TimeInfoEntry::Entry {
+          safe_time,
+          accuracy,
+          ..
+        }) => safe_time.saturating_sub(*accuracy),
+        other => panic!("expected Entry for {file:?}, got {other:?}"),
+      }
+    };
+
+    let initial_safe_time = read_base_safe_time(&h.watcher);
+
+    scan_once(&h.watcher).await;
+    scan_once(&h.watcher).await;
+    h.assert_quiet(80).await;
+    assert_eq!(read_base_safe_time(&h.watcher), initial_safe_time);
+
+    let t1 = SystemTime::now() - Duration::from_millis(20_456);
+    fs::write(&file, "modified").expect("rewrite file");
+    set_mtime(&file, t1);
+    set_mtime(&src, dir_mtime_before);
+    assert_eq!(
+      fs::metadata(&src)
+        .expect("stat src")
+        .modified()
+        .expect("src mtime"),
+      dir_mtime_before
+    );
+
+    scan_once(&h.watcher).await;
+    let batch = h.recv_batch().await;
+    assert_eq!(batch.changed, set_of(&[&file]));
+    assert!(batch.deleted.is_empty());
+    assert_eq!(
+      h.take_immediate(),
+      vec![(file.to_string_lossy().into_owned(), "change")]
+    );
+    let post_edit_safe_time = read_base_safe_time(&h.watcher);
+    assert!(post_edit_safe_time > initial_safe_time);
+
+    tokio::time::sleep(Duration::from_millis(20)).await;
+    scan_once(&h.watcher).await;
+    h.assert_quiet(80).await;
+    assert_eq!(read_base_safe_time(&h.watcher), post_edit_safe_time);
+    h.close().await;
+  }
+
+  // 2. Context child deletion (`changed: src`) and subscribed file deletion (`deleted: tracked`).
+  {
+    let temp = TempDir::new().expect("create temp dir");
+    let base = temp.path().canonicalize().expect("canonicalize temp dir");
+    let src = InternedPath::from(base.join("src"));
+    let tracked = InternedPath::from(base.join("tracked.js"));
+    let ctx_child = InternedPath::from(src.join("child.js"));
+    fs::create_dir_all(&src).expect("create src");
+    fs::write(&tracked, "t0").expect("write tracked");
+    fs::write(&ctx_child, "c0").expect("write child");
+    let old = SystemTime::now() - Duration::from_secs(60);
+    set_mtime(&tracked, old);
+    set_mtime(&ctx_child, old);
+    set_mtime(&src, old);
+
+    let mut h = Harness::new(40);
+    h.watch(
+      (vec![tracked.clone()], vec![]),
+      (vec![src.clone()], vec![]),
+      (vec![], vec![]),
+      SystemTime::now(),
+    )
+    .await;
+    tokio::time::sleep(Duration::from_millis(80)).await;
+    h.assert_quiet(60).await;
+
+    fs::remove_file(&tracked).expect("remove tracked");
+    fs::remove_file(&ctx_child).expect("remove ctx child");
+    scan_once(&h.watcher).await;
+
+    let batch = h.recv_batch().await;
+    assert_eq!(batch.changed, set_of(&[&src]));
+    assert_eq!(batch.deleted, set_of(&[&tracked]));
+    let mut imm = h.take_immediate();
+    imm.sort();
+    let mut expected_imm = vec![
+      (tracked.to_string_lossy().into_owned(), "remove"),
+      (ctx_child.to_string_lossy().into_owned(), "change"),
+    ];
+    expected_imm.sort();
+    assert_eq!(imm, expected_imm);
+
+    scan_once(&h.watcher).await;
+    h.assert_quiet(80).await;
+    h.close().await;
+  }
+
+  // 3. Single-file active scan does not inspect unrelated siblings or subdirectories.
+  {
+    let temp = TempDir::new().expect("create temp dir");
+    let base = temp.path().canonicalize().expect("canonicalize temp dir");
+    let src = base.join("src");
+    let unrelated_dir = src.join("unrelated_dir");
+    fs::create_dir_all(&unrelated_dir).expect("create dirs");
+    let subscribed = InternedPath::from(src.join("subscribed.js"));
+    let sibling = src.join("sibling.js");
+    let deep_unrelated = unrelated_dir.join("deep.js");
+    fs::write(&subscribed, "0").expect("write subscribed");
+    fs::write(&sibling, "0").expect("write sibling");
+    fs::write(&deep_unrelated, "0").expect("write deep_unrelated");
+    let old = SystemTime::now() - Duration::from_secs(60);
+    set_mtime(&subscribed, old);
+
+    let inspected = Arc::new(Mutex::new(Vec::<String>::new()));
+    let inspected_log = Arc::clone(&inspected);
+    let ignored = rspack_watcher::FsWatcherIgnored::Function(Arc::new(move |path: String| {
+      inspected_log
+        .lock()
+        .expect("inspected lock poisoned")
+        .push(path);
+      Box::pin(async { false })
+    }));
+
+    let backend = TestWatchBackend::default();
+    let watcher = new_isolated_watcher(
+      FsWatcherOptions {
+        follow_symlinks: false,
+        poll_interval: None,
+        aggregate_timeout: Some(40),
+      },
+      ignored,
+      &backend,
+    );
+    let (batches_tx, mut batches_rx) = unbounded_channel();
+    let errors = Arc::new(Mutex::new(Vec::new()));
+    let immediate = Arc::new(Mutex::new(Vec::new()));
+    watcher
+      .watch(
+        (vec![subscribed.clone()].into_iter(), std::iter::empty()),
+        (std::iter::empty(), std::iter::empty()),
+        (std::iter::empty(), std::iter::empty()),
+        SystemTime::now(),
+        Box::new(RecordingAggregate {
+          batches: batches_tx,
+          errors,
+        }),
+        Box::new(RecordingImmediate { events: immediate }),
+      )
+      .await;
+    tokio::time::sleep(Duration::from_millis(80)).await;
+    inspected.lock().expect("inspected lock poisoned").clear();
+
+    fs::write(&sibling, "1").expect("write sibling");
+    fs::write(&deep_unrelated, "1").expect("write deep");
+    fs::write(&subscribed, "1").expect("write subscribed");
+    set_mtime(&subscribed, SystemTime::now() - Duration::from_secs(10));
+
+    scan_once(&watcher).await;
+    let batch = tokio::time::timeout(Duration::from_secs(5), batches_rx.recv())
+      .await
+      .expect("batch timeout")
+      .expect("batch closed");
+    assert_eq!(batch.changed, set_of(&[&subscribed]));
+
+    let queried = inspected.lock().expect("inspected lock poisoned").clone();
+    assert!(
+      queried
+        .iter()
+        .all(|p| p == subscribed.to_string_lossy().as_ref()),
+      "single-file scan must not inspect unrelated siblings, queried: {queried:?}"
+    );
+
+    watcher.close().await.expect("close watcher");
+  }
 }
