@@ -5687,6 +5687,7 @@ version = "0.103.3"
 dependencies = [
  "cow-utils",
  "dashmap",
+ "dunce",
  "futures",
  "notify",
  "regex",

@@ -12,6 +12,7 @@ testing = []
 [dependencies]
 cow-utils    = { workspace = true }
 dashmap      = { workspace = true }
+dunce        = { workspace = true }
 futures      = { workspace = true }
 notify       = { workspace = true, features = ["macos_fsevent"] }
 regex        = { workspace = true }

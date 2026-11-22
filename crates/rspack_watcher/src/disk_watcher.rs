@@ -109,6 +109,74 @@ impl DiskWatcher {
     Ok(())
   }
 
+  #[allow(dead_code)]
+  pub(crate) fn prepare_mode_changes(&mut self, next: &[WatchPattern]) {
+    let next_modes: rspack_paths::InternedPathMap<notify::RecursiveMode> =
+      next.iter().map(|p| (p.path.clone(), p.mode)).collect();
+    let mut mode_changed_roots: Vec<(InternedPath, bool)> = Vec::new();
+    for cur in &self.watch_patterns {
+      match next_modes.get(&cur.path) {
+        Some(&next_mode) if next_mode != cur.mode => {
+          let was_recursive = cur.mode == notify::RecursiveMode::Recursive;
+          mode_changed_roots.push((cur.path.clone(), was_recursive));
+        }
+        None if cur.mode == notify::RecursiveMode::Recursive => {
+          mode_changed_roots.push((cur.path.clone(), true));
+        }
+        _ => {}
+      }
+    }
+    if mode_changed_roots.is_empty() {
+      return;
+    }
+    let affected: Vec<WatchPattern> = self
+      .watch_patterns
+      .iter()
+      .filter(|cur| {
+        mode_changed_roots.iter().any(|(root, was_recursive)| {
+          cur.path == *root || (*was_recursive && cur.path.starts_with(root.as_path()))
+        })
+      })
+      .cloned()
+      .collect();
+    for pattern in &affected {
+      if let Some(watcher) = &mut self.inner {
+        let _ = watcher.unwatch(&pattern.path);
+      }
+      self.watch_patterns.remove(pattern);
+    }
+  }
+
+  #[allow(dead_code)]
+  pub(crate) fn rebind_prefix(&mut self, prefix: &std::path::Path) {
+    let affected: Vec<WatchPattern> = self
+      .watch_patterns
+      .iter()
+      .filter(|p| p.path.starts_with(prefix))
+      .cloned()
+      .collect();
+    if affected.is_empty() {
+      return;
+    }
+    for pattern in &affected {
+      if let Some(watcher) = &mut self.inner {
+        let _ = watcher.unwatch(&pattern.path);
+      }
+      self.watch_patterns.remove(pattern);
+    }
+    for pattern in affected {
+      if !pattern.path.exists() {
+        continue;
+      }
+      if let Some(watcher) = &mut self.inner
+        && watcher.watch(&pattern.path, pattern.mode).is_err()
+      {
+        continue;
+      }
+      self.watch_patterns.insert(pattern);
+    }
+  }
+
   pub fn close(&mut self) {
     // the trigger.tx is dropped in the FsWatcher
     std::mem::drop(self.inner.take());

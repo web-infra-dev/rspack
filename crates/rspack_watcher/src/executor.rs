@@ -14,7 +14,7 @@ use tokio::{
 };
 
 use super::{EventAggregateHandler, EventHandler, FsEventKind};
-use crate::{EventBatch, FsEvent, ResolvedEvents};
+use crate::{EventBatch, ResolvedEvents};
 
 type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
 type ThreadSafety<T> = Arc<Mutex<T>>;
@@ -77,7 +77,7 @@ enum ExecAggregateEvent {
 }
 
 enum ExecEvent {
-  Execute(Option<FsEvent>, EventBatch, Option<InternedPath>),
+  Execute(EventBatch, EventBatch, Vec<InternedPath>),
   Aggregate(FilesData),
   Close,
 }
@@ -294,8 +294,13 @@ fn create_execute_task(
               continue 'deliveries;
             }
           }
-          if let Some(path) = context_removal {
-            let _ = event_handler.on_context_remove(path.to_string_lossy().to_string());
+          for path in context_removal {
+            if event_handler
+              .on_context_remove(path.to_string_lossy().to_string())
+              .is_err()
+            {
+              continue 'deliveries;
+            }
           }
         }
         ExecEvent::Aggregate(files) => {

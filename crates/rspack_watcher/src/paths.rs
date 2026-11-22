@@ -1,3 +1,6 @@
+#[allow(dead_code)]
+pub(crate) mod links;
+
 use std::{
   ffi::OsStr,
   fmt::Debug,
@@ -197,28 +200,32 @@ impl PathUpdater {
 ///
 /// This struct enables efficient updates and queries for the file system watcher,
 /// ensuring that changes to the set of watched paths are tracked and managed correctly.
-struct PathTracker {
+pub(crate) struct PathTracker {
   added: InternedPathDashSet,
   removed: InternedPathDashSet,
   all: InternedPathDashSet,
 }
 
 impl PathTracker {
-  fn reset(&self) {
+  pub fn reset(&self) {
     self.added.clear();
     self.removed.clear();
   }
 
   /// Adds a path to the tracker; whether it was not tracked before.
-  fn add(&self, path: InternedPath) -> bool {
-    self.added.insert(path.clone());
+  pub fn add(&self, path: InternedPath) -> bool {
+    if self.removed.remove(&path).is_none() {
+      self.added.insert(path.clone());
+    }
     self.all.insert(path)
   }
 
   /// Removes a path from the tracker; whether it was tracked.
-  fn remove(&self, path: InternedPath) -> bool {
+  pub fn remove(&self, path: InternedPath) -> bool {
     let tracked = self.all.remove(&path).is_some();
-    self.removed.insert(path);
+    if self.added.remove(&path).is_none() {
+      self.removed.insert(path);
+    }
     tracked
   }
 }

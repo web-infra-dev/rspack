@@ -430,9 +430,9 @@ impl EventProcessor {
           .into_iter()
           .map(|(path, kind)| FsEvent { path, kind })
           .collect(),
-        raw,
+        raw: raw.into_iter().collect(),
         recovered,
-        context_removal,
+        context_removal: context_removal.into_iter().collect(),
       })
       .is_ok()
   }

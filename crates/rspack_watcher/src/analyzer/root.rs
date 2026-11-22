@@ -1,5 +1,5 @@
 #![allow(unused)]
-use std::ops::Deref;
+use std::{ops::Deref, path::Path};
 
 use dashmap::DashSet as HashSet;
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
@@ -18,9 +18,9 @@ pub struct WatcherRootAnalyzer {
 
 impl Analyzer for WatcherRootAnalyzer {
   fn analyze<'a>(&self, path_accessor: PathAccessor<'a>) -> Vec<WatchPattern> {
-    let (_, added_files, removed_files) = path_accessor.files();
-    let (_, added_directories, removed_directories) = path_accessor.directories();
-    let (_, added_missing, removed_missing) = path_accessor.missing();
+    let (all_files, added_files, removed_files) = path_accessor.files();
+    let (all_directories, added_directories, removed_directories) = path_accessor.directories();
+    let (all_missing, added_missing, removed_missing) = path_accessor.missing();
 
     // files / directories / missing share one `path_tree`. On recovery a path
     // can migrate between sets within a single cycle (e.g. the unresolved
@@ -33,17 +33,11 @@ impl Analyzer for WatcherRootAnalyzer {
     let removes = union3(removed_files, removed_directories, removed_missing);
     let added = difference(&adds, &removes);
     let removed = difference(&removes, &adds);
-    self.path_tree.update_paths(&added, &removed);
+    self
+      .path_tree
+      .sync_paths(&added, &removed, [all_files, all_directories, all_missing]);
 
-    let common_root = self.path_tree.find_common_root();
-
-    match common_root {
-      Some(root) => vec![WatchPattern {
-        path: root,
-        mode: notify::RecursiveMode::Recursive,
-      }],
-      None => vec![],
-    }
+    self.path_tree.find_common_patterns()
   }
 }
 
@@ -52,8 +46,8 @@ fn union3(
   a: &InternedPathDashSet,
   b: &InternedPathDashSet,
   c: &InternedPathDashSet,
-) -> InternedPathDashSet {
-  let out = InternedPathDashSet::default();
+) -> InternedPathSet {
+  let mut out = InternedPathSet::default();
   for set in [a, b, c] {
     for path in set.iter() {
       out.insert(path.deref().clone());
@@ -63,14 +57,22 @@ fn union3(
 }
 
 /// Set difference `a - b` into a fresh set.
-fn difference(a: &InternedPathDashSet, b: &InternedPathDashSet) -> InternedPathDashSet {
-  let out = InternedPathDashSet::default();
-  for path in a.iter() {
-    if !b.contains(path.deref()) {
-      out.insert(path.deref().clone());
+fn difference(a: &InternedPathSet, b: &InternedPathSet) -> InternedPathSet {
+  let mut out = InternedPathSet::default();
+  for path in a {
+    if !b.contains(path) {
+      out.insert(path.clone());
     }
   }
   out
+}
+
+fn is_real_directory(path: &Path) -> bool {
+  if path.parent().is_none() {
+    path.is_dir()
+  } else {
+    std::fs::symlink_metadata(path).is_ok_and(|meta| meta.is_dir())
+  }
 }
 
 #[derive(Debug, Default)]
@@ -79,48 +81,158 @@ struct PathTree {
 }
 
 impl PathTree {
-  pub fn find_common_root(&self) -> Option<InternedPath> {
-    let root = self.find_root()?;
-    Some(self.find_common_root_recursive(root))
-  }
-
-  fn find_common_root_recursive(&self, path: InternedPath) -> InternedPath {
-    let node = self
-      .inner
-      .get(&path)
-      .expect("Path should exist in the tree");
-    // We need make sure the path is exists
-    assert!(path.exists(), "Path should exist");
-
-    if let Some(child) = node
-      .only_child()
-      // Check if the child exists in the tree
-      .filter(|child| child.is_dir())
-    {
-      self.find_common_root_recursive(child)
-    } else {
-      path // Return the current path if it has no single child
+  pub fn find_common_patterns(&self) -> Vec<WatchPattern> {
+    let mut top_roots = InternedPathSet::default();
+    for entry in self.inner.iter() {
+      if entry.value().is_explicit {
+        top_roots.insert(self.find_root_recursive(entry.key().clone()));
+      }
     }
+    let mut out = Vec::new();
+    let mut seen = InternedPathSet::default();
+    for root in top_roots {
+      self.collect_roots_recursive(root, &mut out, &mut seen);
+    }
+    out
   }
 
-  pub fn update_paths(
+  pub fn find_common_roots(&self) -> Vec<InternedPath> {
+    self
+      .find_common_patterns()
+      .into_iter()
+      .map(|p| p.path)
+      .collect()
+  }
+
+  fn has_active_descendant(&self, path: &InternedPath) -> bool {
+    let Some(node) = self.inner.get(path) else {
+      return false;
+    };
+    if node.is_explicit {
+      return true;
+    }
+    let children: Vec<InternedPath> = node.children.iter().cloned().collect();
+    drop(node);
+    children
+      .iter()
+      .any(|child| self.has_active_descendant(child))
+  }
+
+  fn collect_roots_recursive(
     &self,
-    added_paths: &InternedPathDashSet,
-    removed_paths: &InternedPathDashSet,
+    path: InternedPath,
+    out: &mut Vec<WatchPattern>,
+    seen: &mut InternedPathSet,
   ) {
-    for added in added_paths.iter() {
-      self.add_path(added.deref());
+    let Some((is_explicit, children)) = self.inner.get(&path).map(|node| {
+      (
+        node.is_explicit,
+        node.children.iter().cloned().collect::<Vec<_>>(),
+      )
+    }) else {
+      return;
+    };
+
+    if !is_real_directory(path.as_path()) {
+      if let Some(existing_ancestor) = path
+        .ancestors()
+        .skip(1)
+        .find(|ancestor| is_real_directory(ancestor))
+        .map(InternedPath::from)
+        && seen.insert(existing_ancestor.clone())
+      {
+        out.push(WatchPattern {
+          path: existing_ancestor,
+          mode: notify::RecursiveMode::Recursive,
+        });
+      }
+      return;
     }
-    for removed in removed_paths.iter() {
-      self.remove_path(removed.deref());
+
+    let active_children: Vec<InternedPath> = children
+      .into_iter()
+      .filter(|child| self.has_active_descendant(child))
+      .collect();
+
+    if !is_explicit && active_children.len() == 1 && is_real_directory(active_children[0].as_path())
+    {
+      self.collect_roots_recursive(
+        active_children.into_iter().next().expect("single child"),
+        out,
+        seen,
+      );
+      return;
+    }
+
+    if seen.insert(path.clone()) {
+      out.push(WatchPattern {
+        path,
+        mode: notify::RecursiveMode::Recursive,
+      });
+    }
+  }
+
+  pub fn sync_paths(
+    &self,
+    added_paths: &InternedPathSet,
+    removed_paths: &InternedPathSet,
+    active_sets: [&InternedPathDashSet; 3],
+  ) {
+    let is_active = |p: &InternedPath| active_sets.iter().any(|set| set.contains(p));
+    for added in added_paths {
+      if is_active(added) {
+        self.add_path(added);
+      }
+    }
+    for removed in removed_paths {
+      if !is_active(removed) {
+        self.unmark_and_prune(removed);
+      }
     }
   }
 
   pub fn add_path(&self, path: &InternedPath) {
-    self.inner.entry(path.clone()).or_default();
+    self.inner.entry(path.clone()).or_default().is_explicit = true;
     self.add_path_recursive(path);
   }
 
+  fn unmark_and_prune(&self, path: &InternedPath) {
+    let should_prune = if let Some(mut node) = self.inner.get_mut(path) {
+      node.is_explicit = false;
+      node.children.is_empty()
+    } else {
+      false
+    };
+    if !should_prune {
+      return;
+    }
+    let mut curr = path.clone();
+    loop {
+      let removable = self
+        .inner
+        .get(&curr)
+        .is_some_and(|n| !n.is_explicit && n.children.is_empty());
+      if !removable {
+        break;
+      }
+      self.inner.remove(&curr);
+      let Some(parent) = curr.parent().map(InternedPath::from) else {
+        break;
+      };
+      let parent_empty = if let Some(mut parent_node) = self.inner.get_mut(&parent) {
+        parent_node.children.remove(&curr);
+        !parent_node.is_explicit && parent_node.children.is_empty()
+      } else {
+        false
+      };
+      if !parent_empty {
+        break;
+      }
+      curr = parent;
+    }
+  }
+
+  #[cfg(test)]
   pub fn remove_path(&self, path: &InternedPath) {
     self.inner.remove(path);
     // Detach from the PARENT's child set. The previous code removed `path` from
@@ -133,18 +245,9 @@ impl PathTree {
     }
   }
 
-  fn find_root(&self) -> Option<InternedPath> {
-    // Start from the current path and find the root recursively
-    let path = self.inner.iter().next()?.key().clone();
-    Some(self.find_root_recursive(path))
-  }
-
   fn find_root_recursive(&self, path: InternedPath) -> InternedPath {
-    // If the path is already a root, return it
-
     match path.parent() {
       Some(parent) => {
-        // If the parent exists in the tree, continue searching up
         if self.inner.get(&InternedPath::from(parent)).is_some() {
           self.find_root_recursive(InternedPath::from(parent))
         } else {
@@ -173,19 +276,12 @@ impl PathTree {
 #[derive(Debug, Default)]
 struct TreeNode {
   children: InternedPathSet,
+  is_explicit: bool,
 }
 
 impl TreeNode {
   fn add_child(&mut self, child: InternedPath) {
     self.children.insert(child);
-  }
-
-  fn only_child(&self) -> Option<InternedPath> {
-    if self.children.len() == 1 {
-      self.children.iter().next().cloned()
-    } else {
-      None
-    }
   }
 }
 

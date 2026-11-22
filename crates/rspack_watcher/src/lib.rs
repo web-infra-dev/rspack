@@ -75,11 +75,12 @@ pub type TimeInfoEntries = Vec<(String, TimeInfoEntry)>;
 
 pub(crate) type EventBatch = Vec<FsEvent>;
 
+#[derive(Default)]
 pub(crate) struct ResolvedEvents {
   pub dependencies: EventBatch,
-  pub raw: Option<FsEvent>,
+  pub raw: EventBatch,
   pub recovered: EventBatch,
-  pub context_removal: Option<InternedPath>,
+  pub context_removal: Vec<InternedPath>,
 }
 
 /// `EventAggregateHandler` is a trait for handling aggregated file system events.

@@ -80,26 +80,49 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
         }
       }
       if is_registered(&path) {
-        let pattern =
-          find_existing_directory(path.clone(), &mut resolutions, &mut symlink_ancestors).map(
-            |(dir, depth, recheck, non_directory_symlink)| {
-              if recheck
-                || (non_directory_symlink
-                  && (path_accessor.directories().0.contains(&path)
-                    || path_accessor.missing().0.contains(&path)))
-              {
-                state.symlink_dependent_paths.insert(path.clone());
-              }
-              WatchPattern {
-                path: dir,
-                mode: if depth >= DIRECTORY_WATCH_DEPTH {
-                  notify::RecursiveMode::Recursive
-                } else {
-                  notify::RecursiveMode::NonRecursive
-                },
-              }
+        let is_file_only_symlink = path_accessor.files().0.contains(&path)
+          && !path_accessor.directories().0.contains(&path)
+          && !path_accessor.missing().0.contains(&path)
+          && path.is_symlink();
+        let resolved = if is_file_only_symlink {
+          let unresolved_symlink = path.metadata().is_err();
+          path
+            .parent()
+            .and_then(|parent| {
+              find_existing_directory(
+                InternedPath::from(parent),
+                &mut resolutions,
+                &mut symlink_ancestors,
+              )
+            })
+            .map(|(directory, depth, recheck, parent_symlink)| {
+              (
+                directory,
+                depth + 1,
+                recheck || unresolved_symlink || parent_symlink,
+                false,
+              )
+            })
+        } else {
+          find_existing_directory(path.clone(), &mut resolutions, &mut symlink_ancestors)
+        };
+        let pattern = resolved.map(|(dir, depth, recheck, non_directory_symlink)| {
+          if recheck
+            || (non_directory_symlink
+              && (path_accessor.directories().0.contains(&path)
+                || path_accessor.missing().0.contains(&path)))
+          {
+            state.symlink_dependent_paths.insert(path.clone());
+          }
+          WatchPattern {
+            path: dir,
+            mode: if depth >= DIRECTORY_WATCH_DEPTH {
+              notify::RecursiveMode::Recursive
+            } else {
+              notify::RecursiveMode::NonRecursive
             },
-          );
+          }
+        });
         if let Some(pattern) = &pattern {
           *state.patterns.entry(pattern.clone()).or_default() += 1;
         }
@@ -149,8 +172,7 @@ fn find_existing_directory(
   if let Some(resolution) = resolutions.get(&path) {
     return resolution.clone();
   }
-  let metadata = path.metadata();
-  let resolution = if metadata.as_ref().is_ok_and(|metadata| metadata.is_dir()) {
+  let resolution = if path.metadata().is_ok_and(|metadata| metadata.is_dir()) {
     Some((
       path.clone(),
       0,
@@ -160,7 +182,7 @@ fn find_existing_directory(
   } else {
     // A non-directory link can become a directory outside native watch coverage.
     let non_directory_symlink = path.is_symlink();
-    let unresolved_symlink = metadata.is_err() && non_directory_symlink;
+    let unresolved_symlink = non_directory_symlink && path.metadata().is_err();
     path
       .parent()
       .and_then(|parent| {
