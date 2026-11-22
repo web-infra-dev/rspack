@@ -7,7 +7,7 @@ use std::{
 
 use notify::{
   Event, EventKind,
-  event::{DataChange, ModifyKind},
+  event::{CreateKind, DataChange, ModifyKind, RenameMode},
 };
 use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet;
@@ -300,6 +300,137 @@ async fn test_single_disk_path_notifies_two_files_and_revokes_cleanly_on_native_
   );
   h.assert_quiet(100).await;
   h.close().await;
+}
+
+#[tokio::test]
+async fn test_multi_level_missing_recovery() {
+  // 1. Step-by-step intermediate directory creation stays quiet until leaf appears.
+  {
+    let temp = TempDir::new().expect("create temp dir");
+    let base = temp.path().canonicalize().expect("canonicalize temp dir");
+    let app = base.join("app");
+    fs::create_dir_all(&app).expect("create /app");
+    let missing_dir = InternedPath::from(app.join("missing"));
+    let pkg_dir = InternedPath::from(app.join("missing/pkg"));
+    let target = InternedPath::from(app.join("missing/pkg/index.js"));
+
+    let mut h = Harness::new(40);
+    h.watch(
+      (vec![], vec![]),
+      (vec![], vec![]),
+      (vec![target.clone()], vec![]),
+      SystemTime::now(),
+    )
+    .await;
+    tokio::time::sleep(Duration::from_millis(80)).await;
+    h.assert_quiet(60).await;
+    assert_eq!(
+      find_time_entry(&h.watcher.collect_time_info_entries().0, &target),
+      Some(&TimeInfoEntry::Null)
+    );
+
+    fs::create_dir(&missing_dir).expect("mkdir /app/missing");
+    emit_native_event(
+      &h.watcher,
+      Event::new(EventKind::Create(CreateKind::Folder))
+        .add_path(missing_dir.as_ref().to_path_buf()),
+    );
+    h.assert_quiet(80).await;
+
+    fs::create_dir(&pkg_dir).expect("mkdir /app/missing/pkg");
+    emit_native_event(
+      &h.watcher,
+      Event::new(EventKind::Create(CreateKind::Folder)).add_path(pkg_dir.as_ref().to_path_buf()),
+    );
+    h.assert_quiet(80).await;
+
+    fs::write(&target, "module.exports = 1;").expect("write index.js");
+    emit_native_event(
+      &h.watcher,
+      Event::new(EventKind::Create(CreateKind::File)).add_path(target.as_ref().to_path_buf()),
+    );
+
+    let batch = h.recv_batch().await;
+    assert_eq!(batch.changed, set_of(&[&target]));
+    assert!(batch.deleted.is_empty());
+    assert_eq!(
+      h.take_immediate(),
+      vec![(target.to_string_lossy().into_owned(), "change")]
+    );
+    assert!(matches!(
+      find_time_entry(&h.watcher.collect_time_info_entries().0, &target),
+      Some(TimeInfoEntry::Entry { .. })
+    ));
+
+    h.watch(
+      (vec![], vec![]),
+      (vec![], vec![]),
+      (vec![], vec![]),
+      SystemTime::now(),
+    )
+    .await;
+    h.assert_quiet(100).await;
+    h.close().await;
+  }
+
+  // 2. Whole missing tree moved in at once with an aged mtime notifies from top-dir hint alone.
+  {
+    let temp = TempDir::new().expect("create temp dir");
+    let base = temp.path().canonicalize().expect("canonicalize temp dir");
+    let app = base.join("app");
+    let staged = base.join("staged");
+    fs::create_dir_all(&app).expect("create /app");
+    fs::create_dir_all(staged.join("pkg")).expect("create staged/pkg");
+    let staged_file = staged.join("pkg/index.js");
+    fs::write(&staged_file, "module.exports = 'old';").expect("write staged index.js");
+    set_mtime(
+      &staged_file,
+      SystemTime::now() - Duration::from_secs(86_400),
+    );
+
+    let missing_dir = InternedPath::from(app.join("missing"));
+    let target = InternedPath::from(app.join("missing/pkg/index.js"));
+
+    let mut h = Harness::new(40);
+    h.watch(
+      (vec![], vec![]),
+      (vec![], vec![]),
+      (vec![target.clone()], vec![]),
+      SystemTime::now(),
+    )
+    .await;
+    tokio::time::sleep(Duration::from_millis(80)).await;
+    h.assert_quiet(60).await;
+
+    fs::rename(&staged, &missing_dir).expect("move staged tree into /app/missing");
+    emit_native_event(
+      &h.watcher,
+      Event::new(EventKind::Modify(ModifyKind::Name(RenameMode::To)))
+        .add_path(missing_dir.as_ref().to_path_buf()),
+    );
+
+    let batch = h.recv_batch().await;
+    assert_eq!(batch.changed, set_of(&[&target]));
+    assert!(batch.deleted.is_empty());
+    assert_eq!(
+      h.take_immediate(),
+      vec![(target.to_string_lossy().into_owned(), "change")]
+    );
+    assert!(matches!(
+      find_time_entry(&h.watcher.collect_time_info_entries().0, &target),
+      Some(TimeInfoEntry::Entry { .. })
+    ));
+
+    h.watch(
+      (vec![], vec![]),
+      (vec![], vec![]),
+      (vec![], vec![]),
+      SystemTime::now(),
+    )
+    .await;
+    h.assert_quiet(100).await;
+    h.close().await;
+  }
 }
 
 #[tokio::test]

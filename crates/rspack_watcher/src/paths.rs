@@ -19,7 +19,10 @@ use rspack_util::{
 
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
 use crate::{
-  subscription::{LogicalKind, MatchedContext, MatchedTarget, ReportedBaseline, SubscriptionGraph},
+  subscription::{
+    LogicalKind, MatchedContext, MatchedTarget, PendingAdvance, ReportedBaseline, SubId,
+    SubscriptionGraph, WaitingStepResult,
+  },
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
 };
 
@@ -502,6 +505,30 @@ impl PathManager {
     self.set_file_time(path, mtime, true, true);
   }
 
+  pub fn commit_recovered_entry(
+    &self,
+    owner_path: &InternedPath,
+    _target_path: &InternedPath,
+    mtime: Option<SystemTime>,
+  ) {
+    if let Some(m) = mtime {
+      {
+        let mut graph = self.lock_graph();
+        graph
+          .baselines
+          .insert(owner_path.clone(), ReportedBaseline::Present(m));
+      }
+      self.set_file_time(owner_path, m, false, false);
+    } else {
+      let mut graph = self.lock_graph();
+      if matches!(graph.baselines.get(owner_path), Some(b) if b.is_absent()) {
+        graph
+          .baselines
+          .insert(owner_path.clone(), ReportedBaseline::Unreported);
+      }
+    }
+  }
+
   pub fn mark_initial_missing_absent(&self, path: &InternedPath) {
     let mut graph = self.lock_graph();
     let entry = graph
@@ -724,12 +751,23 @@ impl PathManager {
   pub fn lookup_disk_event(
     &self,
     disk_path: &InternedPath,
-  ) -> (Vec<MatchedTarget>, Vec<MatchedContext>) {
+  ) -> (Vec<MatchedTarget>, Vec<MatchedContext>, Vec<PendingAdvance>) {
     self.lock_graph().lookup_disk_event(disk_path)
   }
 
   pub fn collect_subtree_targets(&self, root_dir: &InternedPath) -> Vec<MatchedTarget> {
     self.lock_graph().collect_subtree_targets(root_dir)
+  }
+
+  pub fn commit_waiting_advance(
+    &self,
+    sub_id: SubId,
+    expected_epoch: u64,
+    new_dir: InternedPath,
+    step: WaitingStepResult,
+  ) -> bool {
+    let mut graph = self.lock_graph();
+    graph.commit_waiting_advance(sub_id, expected_epoch, new_dir, step)
   }
 
   pub fn is_registration_current(
@@ -961,22 +999,6 @@ impl PathManager {
     true
   }
 
-  pub async fn recover_absent_contexts_under(&self, disk_dir: &InternedPath) -> Vec<InternedPath> {
-    let recovered: Vec<InternedPath> = self
-      .absent_directories
-      .iter()
-      .filter(|context| context.starts_with(disk_dir.as_ref() as &Path) && context.is_dir())
-      .map(|context| context.clone())
-      .collect();
-    for context in &recovered {
-      self.absent_directories.remove(context);
-      let target = self.target_path_of(LogicalKind::Directory, context);
-      self.recover_context(target, context.clone()).await;
-      self.set_last_watch_events(context);
-    }
-    recovered
-  }
-
   /// An event named `disk_path` below a registered context: index it the way the
   /// scan would have (watchpack's `DirectoryWatcher.setFileTime` /
   /// `setDirectory` on a watch event). A file's record becomes the live
@@ -995,9 +1017,29 @@ impl PathManager {
     ctx: &MatchedContext,
     judged: bool,
   ) -> bool {
-    let _ = self
-      .recover_absent_contexts_under(&ctx.logical_entry_path)
-      .await;
+    let recovered: Vec<InternedPath> = self
+      .absent_directories
+      .iter()
+      .filter(|context| {
+        context.starts_with(ctx.logical_entry_path.as_ref() as &Path) && context.is_dir()
+      })
+      .map(|context| context.clone())
+      .collect();
+    if !recovered.is_empty() {
+      for context in &recovered {
+        self.absent_directories.remove(context);
+        let target = self.target_path_of(LogicalKind::Directory, context);
+        {
+          let mut graph = self.lock_graph();
+          if graph.directories.contains_key(context)
+            || graph.registrations[LogicalKind::Directory as usize].contains_key(context)
+          {
+            graph.register(LogicalKind::Directory, context.clone());
+          }
+        }
+        self.recover_context(target, context.clone()).await;
+      }
+    }
 
     // Like watchpack's live events, `lstat`: a link is a file entry here even
     // with `followSymlinks`; only the scan descends into links.
@@ -1067,7 +1109,9 @@ impl PathManager {
     self.set_file_time(&ctx.logical_entry_path, mtime, false, false);
     true
   }
+}
 
+impl PathManager {
   /// A scanned entry's metadata. `real_dir`, the real path of the directory
   /// being scanned, is known only with `followSymlinks`; a link is then
   /// followed like watchpack's scan does, except a dangling link, one into its
@@ -1558,6 +1602,12 @@ impl PathManager {
 pub(crate) fn disk_mtime(path: &InternedPath) -> Option<SystemTime> {
   path
     .metadata()
+    .and_then(|m| m.modified().or_else(|_| m.created()))
+    .ok()
+}
+
+pub(crate) fn symlink_mtime(path: &InternedPath) -> Option<SystemTime> {
+  std::fs::symlink_metadata(path)
     .and_then(|m| m.modified().or_else(|_| m.created()))
     .ok()
 }

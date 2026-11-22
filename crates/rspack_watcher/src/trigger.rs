@@ -1,4 +1,8 @@
-use std::sync::Arc;
+use std::{
+  future::Future,
+  pin::Pin,
+  sync::{Arc, Mutex},
+};
 
 use rspack_paths::{InternedPath, InternedPathSet};
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
@@ -7,8 +11,12 @@ use super::{FsEvent, FsEventKind};
 use crate::{
   EventBatch, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
-  paths::PathManager,
-  subscription::{LogicalKind, MatchedContext},
+  disk_watcher::DiskWatcher,
+  paths::{PathManager, disk_mtime, symlink_mtime},
+  subscription::{
+    LogicalKind, MatchedContext, MatchedTarget, PendingAdvance, WaitingStepResult,
+    probe_waiting_advance,
+  },
 };
 
 /// Where an event comes from.
@@ -40,6 +48,7 @@ struct EventProcessor {
   /// Sender for communicating file system events to the watcher executor.
   tx: UnboundedSender<ResolvedEvents>,
   analyzer: Arc<RecommendedAnalyzer>,
+  disk_watcher: Arc<Mutex<Option<std::sync::Weak<Mutex<DiskWatcher>>>>>,
 }
 
 /// `Trigger` is responsible for sending file system events to the event channel
@@ -50,6 +59,7 @@ struct EventProcessor {
 pub struct Trigger {
   pending: UnboundedSender<(InternedPath, FsEventKind, Origin)>,
   pub(crate) analyzer: Arc<RecommendedAnalyzer>,
+  disk_watcher: Arc<Mutex<Option<std::sync::Weak<Mutex<DiskWatcher>>>>>,
 }
 
 impl Trigger {
@@ -57,10 +67,12 @@ impl Trigger {
   pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<ResolvedEvents>) -> Self {
     let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind, Origin)>();
     let analyzer = Arc::default();
+    let disk_watcher = Arc::new(Mutex::new(None));
     let processor = EventProcessor {
       path_manager,
       tx,
       analyzer: Arc::clone(&analyzer),
+      disk_watcher: Arc::clone(&disk_watcher),
     };
 
     // One event at a time, in arrival order: the JS `ignored` predicate is
@@ -79,7 +91,18 @@ impl Trigger {
       })
       .expect("spawn watcher event filter thread");
 
-    Self { pending, analyzer }
+    Self {
+      pending,
+      analyzer,
+      disk_watcher,
+    }
+  }
+
+  pub(crate) fn set_disk_watcher(&self, disk_watcher: std::sync::Weak<Mutex<DiskWatcher>>) {
+    *self
+      .disk_watcher
+      .lock()
+      .expect("disk_watcher slot lock poisoned") = Some(disk_watcher);
   }
 
   /// Queues an explicit event from `FsWatcher::trigger_event` without blocking.
@@ -126,6 +149,28 @@ impl Trigger {
 }
 
 impl EventProcessor {
+  #[inline(never)]
+  fn refresh_disk_watches(&self) {
+    let watcher_arc = self
+      .disk_watcher
+      .lock()
+      .expect("trigger disk_watcher lock poisoned")
+      .as_ref()
+      .and_then(std::sync::Weak::upgrade);
+    let Some(watcher_arc) = watcher_arc else {
+      return;
+    };
+    let patterns = self.analyzer.analyze(self.path_manager.access());
+    let mut guard = watcher_arc.lock().expect("disk_watcher lock poisoned");
+    if let Err(err) = guard.watch(patterns.into_iter()) {
+      tracing::warn!(
+        target: "rspack_watcher::disk_watcher",
+        "failed to refresh watch patterns dynamically: {err}",
+      );
+      self.analyzer.invalidate_all();
+    }
+  }
+
   async fn check_ignored_cached(
     &self,
     memo: &mut [InternedPathSet; 2],
@@ -151,10 +196,12 @@ impl EventProcessor {
     let skip_ignore = matches!(origin, Origin::Scan);
     let mut ignored_memo: [InternedPathSet; 2] = Default::default();
 
-    let (mut targets, mut contexts) = self.path_manager.lookup_disk_event(input_path);
+    let (mut targets, mut contexts, mut waiting) = self.path_manager.lookup_disk_event(input_path);
     let mut disk_path = input_path.clone();
 
-    if targets.is_empty() && contexts.is_empty() {
+    // If `input_path` came from `Scanner` (or `trigger_event`) naming a logical path bound to a
+    // distinct physical target, resolve to its physical target and scope target matches on Scan.
+    if targets.is_empty() && contexts.is_empty() && waiting.is_empty() {
       let mapped = [
         LogicalKind::File,
         LogicalKind::Directory,
@@ -167,15 +214,17 @@ impl EventProcessor {
       });
       if let Some(target_disk) = mapped {
         disk_path = target_disk;
-        let (t, c) = self.path_manager.lookup_disk_event(&disk_path);
+        let (t, c, w) = self.path_manager.lookup_disk_event(&disk_path);
         targets = t;
         contexts = c;
+        waiting = w;
       }
     }
 
     if matches!(origin, Origin::Scan) && disk_path != *input_path {
       targets.retain(|t| t.owner_path == *input_path);
       contexts.retain(|c| c.root_context == *input_path || c.logical_entry_path == *input_path);
+      waiting.retain(|w| w.owner_path == *input_path);
     }
 
     // Drop events inside ignored subtrees. The recursive-root watch delivers
@@ -184,6 +233,7 @@ impl EventProcessor {
     if !skip_ignore
       && targets.is_empty()
       && contexts.is_empty()
+      && waiting.is_empty()
       && self
         .check_ignored_cached(&mut ignored_memo, input_path)
         .await
@@ -213,6 +263,17 @@ impl EventProcessor {
         }
       }
       contexts = kept_contexts;
+
+      let mut kept_waiting = Vec::with_capacity(waiting.len());
+      for w in waiting {
+        if !self
+          .check_ignored_cached(&mut ignored_memo, &w.owner_path)
+          .await
+        {
+          kept_waiting.push(w);
+        }
+      }
+      waiting = kept_waiting;
     }
 
     // A watched path that no longer exists on disk is a removal, regardless of
@@ -235,6 +296,49 @@ impl EventProcessor {
       FsEventKind::Remove if exists => FsEventKind::Change,
       other => other,
     };
+
+    // Promote waiting subscriptions whose full target matches `disk_path` into `targets`/`contexts`
+    // when reporting a removal or an invalid/dangling directory target.
+    for w in &waiting {
+      let full_target = if w.remainder.as_os_str().is_empty() {
+        w.current_dir.as_path().join(&w.wait_name)
+      } else {
+        w.current_dir
+          .as_path()
+          .join(&w.wait_name)
+          .join(&w.remainder)
+      };
+      if full_target != disk_path.as_path() {
+        continue;
+      }
+      match w.owner_kind {
+        LogicalKind::Directory
+          if !disk_path.is_dir()
+            && !contexts
+              .iter()
+              .any(|c| c.is_root_self && c.root_context == w.owner_path) =>
+        {
+          contexts.push(MatchedContext {
+            epoch: w.epoch,
+            root_context: w.owner_path.clone(),
+            root_target: InternedPath::from(full_target),
+            logical_entry_path: w.notify_path.clone(),
+            is_root_self: true,
+          });
+        }
+        LogicalKind::File | LogicalKind::Missing
+          if effective_kind == FsEventKind::Remove
+            && !targets.iter().any(|t| t.owner_path == w.owner_path) =>
+        {
+          targets.push(MatchedTarget {
+            owner_path: w.owner_path.clone(),
+            target_path: InternedPath::from(full_target),
+            notify_path: w.notify_path.clone(),
+          });
+        }
+        _ => {}
+      }
+    }
 
     // Drop a removed path's record so it reads as `null`, like watchpack. A
     // directory moved or deleted as a whole is one event with no per-file
@@ -281,7 +385,6 @@ impl EventProcessor {
           if accepted {
             any_accepted = true;
             judged_logical_paths.insert(t.owner_path.clone());
-            self.path_manager.set_last_watch_events(&t.notify_path);
             dependencies.push((t.owner_path.clone(), effective_kind));
             raw.push(FsEvent {
               path: t.notify_path.clone(),
@@ -290,6 +393,8 @@ impl EventProcessor {
           }
         }
       }
+      // If all registered file/missing targets rejected the event as an unchanged mtime duplicate,
+      // do not let context indexing re-interpret the event (e.g. via symlink own mtime).
       if !any_accepted
         && (effective_kind == FsEventKind::Change || effective_kind == FsEventKind::Create)
         && !matches!(origin, Origin::Scan)
@@ -298,7 +403,20 @@ impl EventProcessor {
       }
     }
 
-    // 2. Context directory subscriptions.
+    // 2. Advance any waiting prefixes if their awaited entry has appeared.
+    if exists && !waiting.is_empty() {
+      self
+        .advance_waiting_list(
+          waiting,
+          &disk_path,
+          &mut dependencies,
+          &mut raw,
+          &mut recovered,
+        )
+        .await;
+    }
+
+    // 3. Context directory subscriptions.
     // A directory above changes with `disk_path`, unless it is gone itself: an
     // event below it may arrive after the directory's own removal.
     // Its records go with it, as for `disk_path` itself.
@@ -325,6 +443,7 @@ impl EventProcessor {
             .path_manager
             .recover_context(ctx.root_target.clone(), ctx.root_context.clone())
             .await;
+          self.refresh_disk_watches();
         }
 
         let accepted = self
@@ -333,6 +452,9 @@ impl EventProcessor {
           .await;
         if !accepted {
           continue;
+        }
+        if !ctx.is_root_self && disk_path.is_dir() {
+          self.refresh_disk_watches();
         }
         self
           .path_manager
@@ -402,7 +524,8 @@ impl EventProcessor {
       }
     }
 
-    // 3. If a directory appeared, check registered subtree targets and absent contexts inside it.
+    // 4. If an entire directory appeared, also check any pre-existing `TargetEntry` bindings
+    // inside its active `SubscriptionGraph` subtree without blind filesystem walks.
     // On Linux, inotify adds a new directory's watch before emitting its
     // Create event, so files written before that watch existed are already
     // on disk; later writes produce their own events. On every backend, a
@@ -410,27 +533,14 @@ impl EventProcessor {
     // descendants here, off the OS reader thread. Duplicate events coalesce
     // in the aggregate sets.
     if appeared && disk_path.is_dir() && !disk_path.is_symlink() {
-      for ctx_dir in self
-        .path_manager
-        .recover_absent_contexts_under(&disk_path)
-        .await
-      {
-        if !skip_ignore && self.check_ignored_cached(&mut ignored_memo, &ctx_dir).await {
-          continue;
-        }
-        dependencies.push((ctx_dir.clone(), FsEventKind::Change));
-        recovered.push(FsEvent {
-          path: ctx_dir,
-          kind: FsEventKind::Change,
-        });
-      }
-
       let subtree_targets = self.path_manager.collect_subtree_targets(&disk_path);
       for sub_target in subtree_targets {
         if sub_target.target_path == disk_path {
           continue;
         }
-        if std::fs::symlink_metadata(&sub_target.target_path).is_err() {
+        if !sub_target.target_path.exists()
+          && std::fs::symlink_metadata(&sub_target.target_path).is_err()
+        {
           continue;
         }
         if !skip_ignore
@@ -444,27 +554,11 @@ impl EventProcessor {
           .path_manager
           .check_and_advance_target_baseline(&sub_target.owner_path, &sub_target.target_path)
         {
-          self
-            .path_manager
-            .set_last_watch_events(&sub_target.notify_path);
           dependencies.push((sub_target.owner_path.clone(), FsEventKind::Create));
           recovered.push(FsEvent {
             path: sub_target.notify_path.clone(),
             kind: FsEventKind::Create,
           });
-          let (_, covering_contexts) = self.path_manager.lookup_disk_event(&sub_target.target_path);
-          for ctx in covering_contexts {
-            if !ctx.is_root_self && ctx.root_target.is_dir() {
-              let _ = self
-                .path_manager
-                .set_context_entry_for_binding(&sub_target.target_path, &ctx, true)
-                .await;
-              self
-                .path_manager
-                .set_last_watch_events(&ctx.logical_entry_path);
-              dependencies.push((ctx.root_context.clone(), FsEventKind::Change));
-            }
-          }
         }
       }
     }
@@ -481,6 +575,132 @@ impl EventProcessor {
     }
 
     self.dispatch_deduped(dependencies, raw, recovered, context_removals);
+  }
+
+  fn advance_waiting_list<'a>(
+    &'a self,
+    waiting: Vec<PendingAdvance>,
+    hint_disk_path: &'a InternedPath,
+    dependencies: &'a mut Vec<(InternedPath, FsEventKind)>,
+    raw: &'a mut Vec<FsEvent>,
+    recovered: &'a mut Vec<FsEvent>,
+  ) -> Pin<Box<dyn Future<Output = ()> + Send + 'a>> {
+    Box::pin(async move {
+      for mut item in waiting {
+        loop {
+          let Some((new_dir, step)) = probe_waiting_advance(
+            item.owner_kind,
+            item.current_dir.as_path(),
+            &item.wait_name,
+            &item.remainder,
+          ) else {
+            break;
+          };
+
+          match step {
+            WaitingStepResult::StillWaiting {
+              wait_name,
+              remainder,
+            } => {
+              if !self.path_manager.commit_waiting_advance(
+                item.sub_id,
+                item.epoch,
+                new_dir.clone(),
+                WaitingStepResult::StillWaiting {
+                  wait_name,
+                  remainder,
+                },
+              ) {
+                break;
+              }
+              self.analyzer.invalidate_path(&new_dir);
+              self.refresh_disk_watches();
+              // After attaching watch on `new_dir`, re-probe once in case the remainder was written
+              // before the watch handle was active (attach watch, then re-probe).
+              let (_, _, refreshed_waiting) = self.path_manager.lookup_disk_event(&new_dir);
+              if let Some(updated) = refreshed_waiting.into_iter().find(|w| {
+                w.owner_kind == item.owner_kind
+                  && w.owner_path == item.owner_path
+                  && w.epoch == item.epoch
+              }) {
+                item = updated;
+                continue;
+              }
+              break;
+            }
+            WaitingStepResult::ReachedEntry { entry_name } => {
+              if !self.path_manager.commit_waiting_advance(
+                item.sub_id,
+                item.epoch,
+                new_dir.clone(),
+                WaitingStepResult::ReachedEntry {
+                  entry_name: entry_name.clone(),
+                },
+              ) {
+                break;
+              }
+              let leaf_disk_path = InternedPath::from(new_dir.as_path().join(&entry_name));
+              self.analyzer.invalidate_path(&new_dir);
+              self.analyzer.invalidate_path(&leaf_disk_path);
+              self.refresh_disk_watches();
+
+              match item.owner_kind {
+                LogicalKind::Directory => {
+                  self.path_manager.clear_directory_absent(&item.owner_path);
+                  self
+                    .path_manager
+                    .recover_context(leaf_disk_path.clone(), item.owner_path.clone())
+                    .await;
+                  self.refresh_disk_watches();
+                  self.path_manager.set_last_watch_events(&item.owner_path);
+                  dependencies.push((item.owner_path.clone(), FsEventKind::Change));
+                  raw.push(FsEvent {
+                    path: item.notify_path.clone(),
+                    kind: FsEventKind::Change,
+                  });
+                }
+                LogicalKind::File | LogicalKind::Missing => {
+                  let eff_mtime =
+                    disk_mtime(&leaf_disk_path).or_else(|| symlink_mtime(&leaf_disk_path));
+                  self.path_manager.commit_recovered_entry(
+                    &item.owner_path,
+                    &leaf_disk_path,
+                    eff_mtime,
+                  );
+                  self.path_manager.set_last_watch_events(&item.notify_path);
+                  dependencies.push((item.owner_path.clone(), FsEventKind::Create));
+                  let event = FsEvent {
+                    path: item.notify_path.clone(),
+                    kind: FsEventKind::Create,
+                  };
+                  if leaf_disk_path == *hint_disk_path {
+                    raw.push(event);
+                  } else {
+                    recovered.push(event);
+                  }
+                  // Also notify any covering context directories above `leaf_disk_path`.
+                  let (_, covering_contexts, _) =
+                    self.path_manager.lookup_disk_event(&leaf_disk_path);
+                  for ctx in covering_contexts {
+                    if !ctx.is_root_self && ctx.root_target.is_dir() {
+                      let _ = self
+                        .path_manager
+                        .set_context_entry_for_binding(&leaf_disk_path, &ctx, true)
+                        .await;
+                      self
+                        .path_manager
+                        .set_last_watch_events(&ctx.logical_entry_path);
+                      dependencies.push((ctx.root_context.clone(), FsEventKind::Change));
+                    }
+                  }
+                }
+              }
+              break;
+            }
+          }
+        }
+      }
+    })
   }
 
   #[inline(never)]

@@ -1,5 +1,6 @@
 use std::{
   ffi::{OsStr, OsString},
+  path::{Component, Path, PathBuf},
   time::SystemTime,
 };
 
@@ -37,6 +38,12 @@ pub(crate) enum SubscriptionRole {
     name: OsString,
     notify_path: InternedPath,
   },
+  WaitingPrefix {
+    dir: InternedPath,
+    wait_name: OsString,
+    remainder: PathBuf,
+    notify_path: InternedPath,
+  },
   ContextDir {
     dir: InternedPath,
     logical_dir: InternedPath,
@@ -60,12 +67,13 @@ pub(crate) struct LogicalRegistration {
 #[derive(Default)]
 pub(crate) struct ChildSlot {
   pub entry_subs: Vec<SubId>,
+  pub waiting_subs: Vec<SubId>,
   pub has_child_node: bool,
 }
 
 impl ChildSlot {
   pub fn is_unreferenced(&self) -> bool {
-    self.entry_subs.is_empty() && !self.has_child_node
+    self.entry_subs.is_empty() && self.waiting_subs.is_empty() && !self.has_child_node
   }
 }
 
@@ -95,6 +103,18 @@ pub(crate) struct MatchedContext {
   pub root_target: InternedPath,
   pub logical_entry_path: InternedPath,
   pub is_root_self: bool,
+}
+
+/// Waiting subscription that may advance now that `disk_path` exists.
+pub(crate) struct PendingAdvance {
+  pub sub_id: SubId,
+  pub owner_kind: LogicalKind,
+  pub owner_path: InternedPath,
+  pub epoch: u64,
+  pub current_dir: InternedPath,
+  pub wait_name: OsString,
+  pub remainder: PathBuf,
+  pub notify_path: InternedPath,
 }
 
 #[derive(Default)]
@@ -263,13 +283,16 @@ impl SubscriptionGraph {
   }
 
   /// Resolves incoming OS / injected / backfill event on `disk_path` against active subscriptions.
+  /// Supports both exact entry events (`disk_path = parent/name`) and parent-directory-only events
+  /// (e.g. macOS FSEvents coalesced directory clues where `disk_path` is a watched directory).
   #[inline(never)]
   pub fn lookup_disk_event(
     &self,
     disk_path: &InternedPath,
-  ) -> (Vec<MatchedTarget>, Vec<MatchedContext>) {
+  ) -> (Vec<MatchedTarget>, Vec<MatchedContext>, Vec<PendingAdvance>) {
     let mut targets = Vec::new();
     let mut contexts = Vec::new();
+    let mut waiting = Vec::new();
 
     if let (Some(parent), Some(name)) = (disk_path.parent(), disk_path.file_name()) {
       let parent_ip = InternedPath::from(parent);
@@ -307,10 +330,61 @@ impl SubscriptionGraph {
             }
           }
         }
+
+        for &sub_id in &slot.waiting_subs {
+          if let Some(sub) = self.get_sub(sub_id)
+            && let SubscriptionRole::WaitingPrefix {
+              dir,
+              wait_name,
+              remainder,
+              notify_path,
+            } = &sub.role
+          {
+            waiting.push(PendingAdvance {
+              sub_id,
+              owner_kind: sub.owner_kind,
+              owner_path: sub.owner_path.clone(),
+              epoch: sub.epoch,
+              current_dir: dir.clone(),
+              wait_name: wait_name.clone(),
+              remainder: remainder.clone(),
+              notify_path: notify_path.clone(),
+            });
+          }
+        }
       }
     }
 
+    // When `disk_path` itself has a `DirectoryNode` (e.g. directory-only FSEvents clue or
+    // direct event on a context root), include its direct `waiting_subs` and `context_subs`.
     if let Some(dir_node) = self.directories.get(disk_path) {
+      for slot in dir_node.children.values() {
+        for &sub_id in &slot.waiting_subs {
+          if waiting.iter().any(|w| w.sub_id == sub_id) {
+            continue;
+          }
+          if let Some(sub) = self.get_sub(sub_id)
+            && let SubscriptionRole::WaitingPrefix {
+              dir,
+              wait_name,
+              remainder,
+              notify_path,
+            } = &sub.role
+          {
+            waiting.push(PendingAdvance {
+              sub_id,
+              owner_kind: sub.owner_kind,
+              owner_path: sub.owner_path.clone(),
+              epoch: sub.epoch,
+              current_dir: dir.clone(),
+              wait_name: wait_name.clone(),
+              remainder: remainder.clone(),
+              notify_path: notify_path.clone(),
+            });
+          }
+        }
+      }
+
       for &sub_id in &dir_node.context_subs {
         if let Some(sub) = self.get_sub(sub_id)
           && let SubscriptionRole::ContextDir {
@@ -336,6 +410,45 @@ impl SubscriptionGraph {
       }
     }
 
+    // Also match waiting prefixes when an event arrives directly for a deeper path inside a
+    // newly created directory tree before the intermediate directory's own event was seen.
+    for ancestor in disk_path.ancestors().skip(1) {
+      let (Some(ancestor_parent), Some(ancestor_name)) = (ancestor.parent(), ancestor.file_name())
+      else {
+        continue;
+      };
+      let ancestor_parent_path = InternedPath::from(ancestor_parent);
+      if let Some(node) = self.directories.get(&ancestor_parent_path)
+        && let Some(slot) = node.children.get(ancestor_name)
+      {
+        for &sub_id in &slot.waiting_subs {
+          if waiting.iter().any(|w| w.sub_id == sub_id) {
+            continue;
+          }
+          if let Some(sub) = self.get_sub(sub_id)
+            && let SubscriptionRole::WaitingPrefix {
+              dir,
+              wait_name,
+              remainder,
+              notify_path,
+            } = &sub.role
+          {
+            waiting.push(PendingAdvance {
+              sub_id,
+              owner_kind: sub.owner_kind,
+              owner_path: sub.owner_path.clone(),
+              epoch: sub.epoch,
+              current_dir: dir.clone(),
+              wait_name: wait_name.clone(),
+              remainder: remainder.clone(),
+              notify_path: notify_path.clone(),
+            });
+          }
+        }
+      }
+    }
+
+    // Match context subscriptions on `disk_path.parent()` or nearest covering context ancestor.
     if let Some(parent) = disk_path.parent() {
       for ancestor in parent.ancestors() {
         let ancestor_path = InternedPath::from(ancestor);
@@ -369,11 +482,12 @@ impl SubscriptionGraph {
       }
     }
 
-    (targets, contexts)
+    (targets, contexts, waiting)
   }
 
-  /// Collects affected logical files and contexts inside `removed_dir`'s subtree and drops
-  /// discovered child `ContextDir` bindings underneath it.
+  /// When `removed_dir` is removed on disk, collects affected logical paths below it and demotes
+  /// subscriptions inside `removed_dir`'s subtree back to `WaitingPrefix` on the nearest
+  /// surviving ancestor directory so later directory recreation recovers automatically.
   #[inline(never)]
   pub fn handle_directory_removed(
     &mut self,
@@ -399,33 +513,28 @@ impl SubscriptionGraph {
       subtree_dirs.push(dir);
     }
 
+    let mut subs_to_demote: Vec<SubId> = Vec::new();
     let mut child_ctx_subs_to_drop: Vec<(InternedPath, SubId)> = Vec::new();
     for dir in &subtree_dirs {
-      let Some(node) = self.directories.get(dir) else {
-        continue;
-      };
-      for slot in node.children.values() {
-        for &sub_id in &slot.entry_subs {
-          if let Some(sub) = self.get_sub(sub_id) {
-            match sub.owner_kind {
-              LogicalKind::File | LogicalKind::Missing => {
-                affected_files.insert(sub.owner_path.clone());
-              }
-              LogicalKind::Directory => {
-                affected_contexts.insert(sub.owner_path.clone());
-              }
-            }
-          }
+      if let Some(node) = self.directories.get_mut(dir) {
+        for slot in node.children.values_mut() {
+          subs_to_demote.extend(slot.entry_subs.iter().copied());
+          subs_to_demote.extend(slot.waiting_subs.iter().copied());
         }
-      }
-      for &sub_id in &node.context_subs {
-        if let Some(sub) = self.get_sub(sub_id)
-          && let SubscriptionRole::ContextDir { is_root, .. } = &sub.role
-        {
-          if *is_root {
-            affected_contexts.insert(sub.owner_path.clone());
-          } else {
-            child_ctx_subs_to_drop.push((sub.owner_path.clone(), sub_id));
+        node.children.retain(|_, slot| !slot.is_unreferenced());
+        for &sub_id in &node.context_subs {
+          if let Some(sub) = self
+            .subscriptions
+            .get(sub_id.0 as usize)
+            .and_then(Option::as_ref)
+            && let SubscriptionRole::ContextDir { is_root, .. } = &sub.role
+          {
+            if *is_root {
+              affected_contexts.insert(sub.owner_path.clone());
+              subs_to_demote.push(sub_id);
+            } else {
+              child_ctx_subs_to_drop.push((sub.owner_path.clone(), sub_id));
+            }
           }
         }
       }
@@ -438,7 +547,102 @@ impl SubscriptionGraph {
       }
     }
 
+    let mut registrations_to_rebind: [InternedPathSet; 3] = Default::default();
+    for sub_id in subs_to_demote {
+      if let Some(sub) = self.get_sub(sub_id) {
+        match sub.owner_kind {
+          LogicalKind::File | LogicalKind::Missing => {
+            affected_files.insert(sub.owner_path.clone());
+          }
+          LogicalKind::Directory => {
+            affected_contexts.insert(sub.owner_path.clone());
+          }
+        }
+        registrations_to_rebind[sub.owner_kind as usize].insert(sub.owner_path.clone());
+      }
+    }
+
+    for kind in [
+      LogicalKind::File,
+      LogicalKind::Directory,
+      LogicalKind::Missing,
+    ] {
+      for path in &registrations_to_rebind[kind as usize] {
+        let Some((target_path, epoch)) = self.registrations[kind as usize]
+          .get(path)
+          .map(|r| (r.target_path.clone(), r.epoch))
+        else {
+          continue;
+        };
+        self.detach_registration_subs(kind, path);
+        let new_subs = self.attach_initial_subs(kind, path, epoch, &target_path);
+        if let Some(reg) = self.registrations[kind as usize].get_mut(path) {
+          reg.sub_ids = new_subs;
+        }
+      }
+    }
+
     (affected_files, affected_contexts)
+  }
+
+  /// Replaces a `WaitingPrefix` subscription either with a deeper `WaitingPrefix` (when
+  /// intermediate directories appeared) or with final `TargetEntry` / `ContextDir` subscriptions
+  /// (when the full suffix has appeared). Returns `true` if the subscription was still valid.
+  #[inline(never)]
+  pub fn commit_waiting_advance(
+    &mut self,
+    sub_id: SubId,
+    expected_epoch: u64,
+    new_dir: InternedPath,
+    next_step: WaitingStepResult,
+  ) -> bool {
+    let Some(sub) = self.get_sub(sub_id) else {
+      return false;
+    };
+    if sub.epoch != expected_epoch {
+      return false;
+    }
+    let owner_kind = sub.owner_kind;
+    let owner_path = sub.owner_path.clone();
+    let notify_path = match &sub.role {
+      SubscriptionRole::WaitingPrefix { notify_path, .. } => notify_path.clone(),
+      _ => return false,
+    };
+
+    self.remove_sub(sub_id);
+
+    let new_ids = match next_step {
+      WaitingStepResult::StillWaiting {
+        wait_name,
+        remainder,
+      } => vec![self.push_waiting_sub(
+        owner_kind,
+        &owner_path,
+        expected_epoch,
+        (new_dir, wait_name, remainder),
+        notify_path,
+      )],
+      WaitingStepResult::ReachedEntry { entry_name } => match owner_kind {
+        LogicalKind::File | LogicalKind::Missing => vec![self.push_target_entry_sub(
+          owner_kind,
+          &owner_path,
+          expected_epoch,
+          new_dir,
+          entry_name,
+          notify_path,
+        )],
+        LogicalKind::Directory => {
+          let full_dir = InternedPath::from(new_dir.as_path().join(&entry_name));
+          self.push_directory_subs(&owner_path, expected_epoch, &full_dir, &notify_path)
+        }
+      },
+    };
+
+    if let Some(reg) = self.registrations[owner_kind as usize].get_mut(&owner_path) {
+      reg.sub_ids.retain(|&id| id != sub_id);
+      reg.sub_ids.extend(new_ids);
+    }
+    true
   }
 
   /// Active directory count for `index_sizes()` reclamation checks.
@@ -446,7 +650,7 @@ impl SubscriptionGraph {
     self.directories.len()
   }
 
-  /// Collects bound `TargetEntry` subscriptions (`File` / `Missing`) inside `root_dir`'s
+  /// Collects already-bound `TargetEntry` subscriptions (`File` / `Missing`) inside `root_dir`'s
   /// active subtree in `SubscriptionGraph` without scanning unsubscribed disk directories.
   #[inline(never)]
   pub fn collect_subtree_targets(&self, root_dir: &InternedPath) -> Vec<MatchedTarget> {
@@ -528,6 +732,35 @@ impl SubscriptionGraph {
     sub_id
   }
 
+  fn push_waiting_sub(
+    &mut self,
+    kind: LogicalKind,
+    owner_path: &InternedPath,
+    epoch: u64,
+    (dir, wait_name, remainder): (InternedPath, OsString, PathBuf),
+    notify_path: InternedPath,
+  ) -> SubId {
+    let sub_id = self.alloc_sub(Subscription {
+      owner_kind: kind,
+      owner_path: owner_path.clone(),
+      epoch,
+      role: SubscriptionRole::WaitingPrefix {
+        dir: dir.clone(),
+        wait_name: wait_name.clone(),
+        remainder,
+        notify_path,
+      },
+    });
+    self
+      .ensure_dir_node(&dir)
+      .children
+      .entry(wait_name)
+      .or_default()
+      .waiting_subs
+      .push(sub_id);
+    sub_id
+  }
+
   fn push_directory_subs(
     &mut self,
     owner_path: &InternedPath,
@@ -571,7 +804,9 @@ impl SubscriptionGraph {
   ) -> Vec<SubId> {
     match kind {
       LogicalKind::File | LogicalKind::Missing => {
-        if let (Some(parent), Some(name)) = (target_path.parent(), target_path.file_name()) {
+        if let (Some(parent), Some(name)) = (target_path.parent(), target_path.file_name())
+          && parent.is_dir()
+        {
           return vec![self.push_target_entry_sub(
             kind,
             owner_path,
@@ -581,12 +816,18 @@ impl SubscriptionGraph {
             owner_path.clone(),
           )];
         }
-        Vec::new()
       }
       LogicalKind::Directory => {
-        self.push_directory_subs(owner_path, epoch, target_path, owner_path)
+        if target_path.is_dir() {
+          return self.push_directory_subs(owner_path, epoch, target_path, owner_path);
+        }
       }
     }
+
+    if let Some(split) = find_waiting_split(target_path.as_path()) {
+      return vec![self.push_waiting_sub(kind, owner_path, epoch, split, owner_path.clone())];
+    }
+    Vec::new()
   }
 
   fn detach_registration_subs(&mut self, kind: LogicalKind, owner_path: &InternedPath) {
@@ -621,6 +862,20 @@ impl SubscriptionGraph {
           };
           if drop_child {
             node.children.remove(name);
+          }
+        }
+        dir.clone()
+      }
+      SubscriptionRole::WaitingPrefix { dir, wait_name, .. } => {
+        if let Some(node) = self.directories.get_mut(dir) {
+          let drop_child = if let Some(slot) = node.children.get_mut(wait_name) {
+            slot.waiting_subs.retain(|&id| id != sub_id);
+            node.context_subs.is_empty() && slot.is_unreferenced()
+          } else {
+            false
+          };
+          if drop_child {
+            node.children.remove(wait_name);
           }
         }
         dir.clone()
@@ -695,4 +950,124 @@ impl SubscriptionGraph {
       current = parent_ip;
     }
   }
+}
+
+pub(crate) enum WaitingStepResult {
+  StillWaiting {
+    wait_name: OsString,
+    remainder: PathBuf,
+  },
+  ReachedEntry {
+    entry_name: OsString,
+  },
+}
+
+/// Walks down `current_dir / wait_name / remainder` on disk without holding any lock.
+/// Returns `None` if `current_dir / wait_name` is still absent on disk.
+pub(crate) fn probe_waiting_advance(
+  owner_kind: LogicalKind,
+  current_dir: &Path,
+  wait_name: &OsStr,
+  remainder: &Path,
+) -> Option<(InternedPath, WaitingStepResult)> {
+  let first_step = current_dir.join(wait_name);
+  if remainder.as_os_str().is_empty() {
+    let present = match owner_kind {
+      LogicalKind::Directory => first_step.is_dir(),
+      LogicalKind::File | LogicalKind::Missing => std::fs::symlink_metadata(&first_step).is_ok(),
+    };
+    if !present {
+      return None;
+    }
+    return Some((
+      InternedPath::from(current_dir),
+      WaitingStepResult::ReachedEntry {
+        entry_name: wait_name.to_os_string(),
+      },
+    ));
+  }
+
+  if !first_step.is_dir() {
+    return None;
+  }
+
+  let components: Vec<OsString> = remainder
+    .components()
+    .filter_map(|c| match c {
+      Component::Normal(s) => Some(s.to_os_string()),
+      _ => None,
+    })
+    .collect();
+  if components.is_empty() {
+    return Some((
+      InternedPath::from(current_dir),
+      WaitingStepResult::ReachedEntry {
+        entry_name: wait_name.to_os_string(),
+      },
+    ));
+  }
+
+  let mut dir = first_step;
+  for (idx, comp) in components.iter().enumerate() {
+    let is_last = idx + 1 == components.len();
+    if is_last {
+      let leaf = dir.join(comp);
+      let present = match owner_kind {
+        LogicalKind::Directory => leaf.is_dir(),
+        LogicalKind::File | LogicalKind::Missing => std::fs::symlink_metadata(&leaf).is_ok(),
+      };
+      if present {
+        return Some((
+          InternedPath::from(dir),
+          WaitingStepResult::ReachedEntry {
+            entry_name: comp.clone(),
+          },
+        ));
+      }
+      return Some((
+        InternedPath::from(dir),
+        WaitingStepResult::StillWaiting {
+          wait_name: comp.clone(),
+          remainder: PathBuf::new(),
+        },
+      ));
+    }
+
+    let next_dir = dir.join(comp);
+    if next_dir.is_dir() {
+      dir = next_dir;
+    } else {
+      let mut rem = PathBuf::new();
+      for rest in &components[idx + 1..] {
+        rem.push(rest);
+      }
+      return Some((
+        InternedPath::from(dir),
+        WaitingStepResult::StillWaiting {
+          wait_name: comp.clone(),
+          remainder: rem,
+        },
+      ));
+    }
+  }
+  None
+}
+
+fn find_waiting_split(target_path: &Path) -> Option<(InternedPath, OsString, PathBuf)> {
+  for ancestor in target_path.ancestors().skip(1) {
+    if ancestor.is_dir() {
+      let rel = target_path.strip_prefix(ancestor).ok()?;
+      let mut comps = rel.components().filter_map(|c| match c {
+        Component::Normal(s) => Some(s.to_os_string()),
+        _ => None,
+      });
+      let wait_name = comps.next()?;
+      let mut remainder = PathBuf::new();
+      for rest in comps {
+        remainder.push(rest);
+      }
+      return Some((InternedPath::from(ancestor), wait_name, remainder));
+    }
+  }
+  None
 }
