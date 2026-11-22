@@ -20,6 +20,10 @@ pub(crate) trait Analyzer: Default {
   fn invalidate_path(&self, _path: &InternedPath) {}
 
   fn invalidate_all(&self) {}
+
+  /// Links whose target is not watched (it is ignored): watch the link itself,
+  /// never follow it.
+  fn set_unfollowed_links(&self, _links: &rspack_paths::InternedPathSet) {}
 }
 
 #[cfg(all(

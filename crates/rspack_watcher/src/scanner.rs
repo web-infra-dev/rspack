@@ -33,7 +33,7 @@ impl Scanner {
   /// so a change landing before the watch is on disk and caught here.
   /// align watchpack action: https://github.com/webpack/watchpack/blob/v2.4.4/lib/DirectoryWatcher.js#L565-L568
   pub fn scan(&self, start_time: SystemTime) {
-    let accessor = self.path_manager.access();
+    let accessor = self.path_manager.logical_access();
     let has_added_paths = !accessor.files().1.is_empty()
       || !accessor.directories().1.is_empty()
       || !accessor.missing().1.is_empty();
@@ -60,7 +60,14 @@ impl Scanner {
         removed.retain(|path| !files_path_manager.is_known_absent(path));
         let changed = files
           .iter()
-          .filter(|p| changed_since(p, start_time))
+          .filter(|p| {
+            // A file link whose target is ignored reports only the link's own
+            // state, never its target's change.
+            if files_path_manager.is_unfollowed(p) {
+              return false;
+            }
+            changed_since(p, start_time)
+          })
           .cloned()
           .collect::<Vec<_>>();
         // A `Change` is judged here, not by `Trigger`'s baseline check: the
@@ -83,6 +90,7 @@ impl Scanner {
         .collect::<Vec<_>>();
       let missing = accessor.missing().0.clone();
       let dirs_tx = tx.clone();
+      let path_manager_for_dirs = Arc::clone(&self.path_manager);
       tokio::spawn(async move {
         _ = send_events(
           // A directory is there only through a link that resolves, like
@@ -93,7 +101,14 @@ impl Scanner {
         );
         let changed = directories
           .into_iter()
-          .filter(|p| changed_since(p, start_time))
+          .filter(|p| {
+            // A link whose target is ignored reports only itself: its target's
+            // change is not this dependency's change.
+            if path_manager_for_dirs.is_unfollowed(p) {
+              return false;
+            }
+            changed_since(p, start_time)
+          })
           .collect::<Vec<_>>();
         _ = send_events(changed, FsEventKind::Change, &dirs_tx);
       });
@@ -114,6 +129,11 @@ impl Scanner {
         // must not deduplicate that path's own event.
         let mut created = Vec::new();
         for path in missing_added {
+          // A missing dependency that is a link to an ignored target stays
+          // quiet: the target is not watched, so it cannot "appear" here.
+          if path_manager.is_unfollowed(&path) {
+            continue;
+          }
           let Some(mtime) = disk_mtime(&path) else {
             continue;
           };

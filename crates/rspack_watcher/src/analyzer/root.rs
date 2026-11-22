@@ -1,5 +1,5 @@
 #![allow(unused)]
-use std::ops::Deref;
+use std::{ops::Deref, path::Path};
 
 use dashmap::DashSet as HashSet;
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
@@ -18,8 +18,8 @@ pub struct WatcherRootAnalyzer {
 
 impl Analyzer for WatcherRootAnalyzer {
   fn analyze<'a>(&self, path_accessor: PathAccessor<'a>) -> Vec<WatchPattern> {
-    let (_, added_files, removed_files) = path_accessor.files();
-    let (_, added_directories, removed_directories) = path_accessor.directories();
+    let (files, added_files, removed_files) = path_accessor.files();
+    let (directories, added_directories, removed_directories) = path_accessor.directories();
     let (_, added_missing, removed_missing) = path_accessor.missing();
 
     // files / directories / missing share one `path_tree`. On recovery a path
@@ -34,16 +34,42 @@ impl Analyzer for WatcherRootAnalyzer {
     let added = difference(&adds, &removes);
     let removed = difference(&removes, &adds);
     self.path_tree.update_paths(&added, &removed);
+    self
+      .path_tree
+      .set_boundaries(files, directories, path_accessor.missing().0);
 
-    let common_root = self.path_tree.find_common_root();
+    self
+      .path_tree
+      .find_common_roots()
+      .into_iter()
+      .map(|root| {
+        let unfollowed = self.path_tree.is_unfollowed_link(&root);
+        let path = if unfollowed {
+          root
+            .parent()
+            .map_or_else(|| root.clone(), InternedPath::from)
+        } else {
+          root
+        };
+        WatchPattern {
+          // A link whose target is not watched must not be followed by the
+          // backend: watching it recursively would reach the ignored target.
+          // FSEvents still reports through a non-recursive link watch, so the
+          // link's *parent* is watched instead — it sees the link itself being
+          // created, removed, or renamed.
+          mode: if unfollowed {
+            notify::RecursiveMode::NonRecursive
+          } else {
+            notify::RecursiveMode::Recursive
+          },
+          path,
+        }
+      })
+      .collect()
+  }
 
-    match common_root {
-      Some(root) => vec![WatchPattern {
-        path: root,
-        mode: notify::RecursiveMode::Recursive,
-      }],
-      None => vec![],
-    }
+  fn set_unfollowed_links(&self, links: &InternedPathSet) {
+    self.path_tree.set_unfollowed_links(links);
   }
 }
 
@@ -73,26 +99,201 @@ fn difference(a: &InternedPathDashSet, b: &InternedPathDashSet) -> InternedPathD
   out
 }
 
+/// Whether two paths share an ancestor worth watching recursively: one that is
+/// not a filesystem top level (`/`, `/Users`, `/private`, `/var`, `/tmp` on
+/// Unix; a drive root on Windows). Two repositories under one home directory
+/// qualify; `/Users/me/app` and `/private/tmp/pkg` do not.
+fn share_watchable_ancestor(a: &InternedPath, b: &InternedPath) -> bool {
+  let b_ancestors: Vec<InternedPath> = b.ancestors().map(InternedPath::from).collect();
+  a.ancestors()
+    .map(InternedPath::from)
+    .any(|ancestor| b_ancestors.contains(&ancestor) && !is_top_level(&ancestor))
+}
+
+fn is_top_level(path: &Path) -> bool {
+  let depth = path.ancestors().count();
+  if cfg!(windows) {
+    return depth <= 1;
+  }
+  depth <= 2 || is_system_top_level(path)
+}
+
+/// Directories every macOS/Linux box has directly under `/`; watching one
+/// recursively is watching most of the filesystem.
+fn is_system_top_level(path: &Path) -> bool {
+  matches!(
+    path.to_str(),
+    Some("/Users" | "/private" | "/var" | "/tmp" | "/home" | "/usr" | "/etc" | "/opt" | "/mnt")
+  )
+}
+
+/// The deepest directory containing every path in `group`.
+fn common_root(group: &[InternedPath]) -> InternedPath {
+  let Some(first) = group.first() else {
+    unreachable!("a group is never empty")
+  };
+  let mut common = first.clone();
+  for path in &group[1..] {
+    while !path.starts_with(common.as_ref() as &Path) {
+      let Some(parent) = common.parent().map(InternedPath::from) else {
+        return common;
+      };
+      if parent == common {
+        return common;
+      }
+      common = parent;
+    }
+  }
+  common
+}
+
 #[derive(Debug, Default)]
 struct PathTree {
   inner: InternedPathDashMap<TreeNode>,
+  /// Paths the watch must not shrink below: a registered context itself, or
+  /// the directory holding a registered file or missing dependency. A single
+  /// child below one of them cannot pull the recursive root down with it.
+  boundaries: InternedPathDashSet,
+  /// Registered links whose physical target is not watched (it is ignored).
+  /// They are watched themselves, never followed.
+  unfollowed_links: InternedPathDashSet,
 }
 
 impl PathTree {
-  pub fn find_common_root(&self) -> Option<InternedPath> {
-    let root = self.find_root()?;
-    Some(self.find_common_root_recursive(root))
+  /// Recompute the protected boundaries from the current registration sets.
+  /// A boundary is a registered context itself, or the nearest existing
+  /// directory above a registered file or missing dependency: a missing path's
+  /// own parent may not exist either, and watching it is not possible.
+  pub fn set_boundaries(
+    &self,
+    files: &InternedPathDashSet,
+    directories: &InternedPathDashSet,
+    missing: &InternedPathDashSet,
+  ) {
+    self.boundaries.clear();
+    for path in directories.iter() {
+      self.boundaries.insert(path.deref().clone());
+    }
+    // A link whose target is ignored is a watch boundary of its own: it must
+    // not be merged into a parent root, or the backend would follow it.
+    for link in self.unfollowed_links.iter() {
+      self.boundaries.insert(link.clone());
+    }
+    for path in files.iter().chain(missing.iter()) {
+      // A link whose target is ignored is watched on its own; watching its
+      // parent directory recursively would follow it into the ignored target.
+      if self.unfollowed_links.contains(path.deref()) {
+        continue;
+      }
+      let Some(parent) = path.parent().map(InternedPath::from) else {
+        continue;
+      };
+      let existing = std::iter::once(parent.clone())
+        .chain(parent.ancestors().skip(1).map(InternedPath::from))
+        .find(|ancestor| ancestor.is_dir())
+        .unwrap_or(parent);
+      self.boundaries.insert(existing);
+    }
+  }
+
+  /// Whether `path` is a link whose target is not in the physical watch set.
+  /// The analyzer only sees physical paths, so a registered link whose target
+  /// was dropped as ignored appears here on its own.
+  pub fn is_unfollowed_link(&self, path: &InternedPath) -> bool {
+    self.unfollowed_links.contains(path)
+  }
+
+  /// Record the links the caller decided not to follow.
+  pub fn set_unfollowed_links(&self, links: &InternedPathSet) {
+    self.unfollowed_links.clear();
+    for link in links {
+      self.unfollowed_links.insert(link.clone());
+    }
+  }
+
+  /// Whether `path` must not be followed by the backend: it is a link whose
+  /// target is ignored.
+  fn is_unfollowed(&self, path: &InternedPath) -> bool {
+    self.unfollowed_links.contains(path)
+  }
+
+  /// One root per disjoint registered subtree. Boundaries sharing a common
+  /// ancestor below the filesystem's top level collapse into that ancestor, so
+  /// a normal project still gets a single recursive watch; only boundaries
+  /// that would force a watch of `/`, `/Users`, `C:\` and the like — a link to
+  /// another drive or repository — stay split.
+  pub fn find_common_roots(&self) -> Vec<InternedPath> {
+    let mut boundaries: Vec<InternedPath> = self.boundaries.iter().map(|p| p.clone()).collect();
+    boundaries.sort_by(|a, b| a.as_ref().cmp(b.as_ref()));
+    // A boundary already inside another one adds nothing: the outer recursive
+    // watch covers it.
+    let mut outermost: Vec<InternedPath> = Vec::with_capacity(boundaries.len());
+    for boundary in boundaries {
+      // An unfollowed link is never covered by an outer root: the outer watch
+      // would follow it.
+      let protected = self.is_unfollowed(&boundary);
+      if !protected
+        && outermost
+          .iter()
+          .any(|outer| boundary.starts_with(outer.as_ref() as &Path))
+      {
+        continue;
+      }
+      if !protected {
+        outermost.retain(|outer| !outer.starts_with(boundary.as_ref() as &Path));
+      }
+      outermost.push(boundary);
+    }
+    let mut groups: Vec<Vec<InternedPath>> = Vec::new();
+    for boundary in outermost {
+      match groups
+        .iter_mut()
+        .find(|group| share_watchable_ancestor(&group[0], &boundary))
+      {
+        Some(group) => group.push(boundary),
+        None => groups.push(vec![boundary]),
+      }
+    }
+    groups
+      .into_iter()
+      .flat_map(|group| {
+        // A group with one boundary can shrink to its deepest single-child
+        // directory, as before. Several boundaries stay separate: collapsing
+        // them into their common ancestor would recursively watch a directory
+        // that contains unrelated trees (a sibling checkout, a temp link
+        // target), which both wastes watches and overlaps another watcher's
+        // own root.
+        if group.len() == 1 {
+          vec![self.find_common_root_recursive(group[0].clone())]
+        } else {
+          group
+            .into_iter()
+            .map(|boundary| self.find_common_root_recursive(boundary))
+            .collect()
+        }
+      })
+      .collect()
   }
 
   fn find_common_root_recursive(&self, path: InternedPath) -> InternedPath {
-    let node = self
-      .inner
-      .get(&path)
-      .expect("Path should exist in the tree");
-    // We need make sure the path is exists
-    assert!(path.exists(), "Path should exist");
+    // A boundary is a root on its own, whether or not the tree indexed it: an
+    // unfollowed link's parent may hold no watched path of its own.
+    if self.boundaries.contains(&path) {
+      return path;
+    }
+
+    let Some(node) = self.inner.get(&path) else {
+      return path;
+    };
+
+    // We need make sure the path is exists. A missing dependency's directory
+    // may not, and then it cannot pull the root down with it.
+    if !path.exists() {
+      return path;
+    }
 
     if let Some(child) = node
+      .value()
       .only_child()
       // Check if the child exists in the tree
       .filter(|child| child.is_dir())

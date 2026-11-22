@@ -12,6 +12,7 @@ testing = []
 [dependencies]
 cow-utils    = { workspace = true }
 dashmap      = { workspace = true }
+dunce        = { workspace = true }
 futures      = { workspace = true }
 notify       = { workspace = true, features = ["macos_fsevent"] }
 regex        = { workspace = true }
@@ -19,6 +20,7 @@ rspack_error = { workspace = true }
 rspack_paths = { workspace = true }
 rspack_regex = { workspace = true }
 rspack_util  = { workspace = true }
+smallvec     = { workspace = true }
 tokio        = { workspace = true, features = ["rt", "macros", "sync", "time"] }
 tracing      = { workspace = true }
 

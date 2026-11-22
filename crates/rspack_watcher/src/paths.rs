@@ -1,3 +1,5 @@
+mod links;
+
 use std::{
   ffi::OsStr,
   fmt::Debug,
@@ -7,6 +9,9 @@ use std::{
 };
 
 use dashmap::setref::multiple::RefMulti;
+pub(crate) use links::{
+  DepKind, EntrySubscriber, LinkMappings, LinkResolver, LinkUpdate, PhysicalSet, RebindRequest,
+};
 use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
 use rspack_util::{
@@ -49,20 +54,28 @@ impl<'a> Iterator for All<'a> {
   }
 }
 
+/// The three sets of one [`PathTracker`] or one physical set.
+#[derive(Clone, Copy)]
+struct SetRefs<'a> {
+  all: &'a InternedPathDashSet,
+  added: &'a InternedPathDashSet,
+  removed: &'a InternedPathDashSet,
+}
+
 /// `PathAccessor` provides access to the sets of files, directories, and missing paths.
 pub(crate) struct PathAccessor<'a> {
-  files: &'a PathTracker,
-  directories: &'a PathTracker,
-  missing: &'a PathTracker,
+  files: SetRefs<'a>,
+  directories: SetRefs<'a>,
+  missing: SetRefs<'a>,
 }
 
 impl<'a> PathAccessor<'a> {
   /// Creates a new `PathAccessor` with references to the sets of files, directories, and missing paths.
-  fn new(path_manager: &'a PathManager) -> Self {
+  fn new(files: SetRefs<'a>, directories: SetRefs<'a>, missing: SetRefs<'a>) -> Self {
     Self {
-      files: &path_manager.files,
-      directories: &path_manager.directories,
-      missing: &path_manager.missing,
+      files,
+      directories,
+      missing,
     }
   }
 
@@ -74,7 +87,7 @@ impl<'a> PathAccessor<'a> {
     &'a InternedPathDashSet,
     &'a InternedPathDashSet,
   ) {
-    (&self.files.all, &self.files.added, &self.files.removed)
+    (self.files.all, self.files.added, self.files.removed)
   }
 
   /// Returns references to the set of directories, including added and removed directories.
@@ -86,9 +99,9 @@ impl<'a> PathAccessor<'a> {
     &'a InternedPathDashSet,
   ) {
     (
-      &self.directories.all,
-      &self.directories.added,
-      &self.directories.removed,
+      self.directories.all,
+      self.directories.added,
+      self.directories.removed,
     )
   }
 
@@ -100,16 +113,12 @@ impl<'a> PathAccessor<'a> {
     &'a InternedPathDashSet,
     &'a InternedPathDashSet,
   ) {
-    (
-      &self.missing.all,
-      &self.missing.added,
-      &self.missing.removed,
-    )
+    (self.missing.all, self.missing.added, self.missing.removed)
   }
 
   /// Returns an iterator that combines all files, directories, and missing paths into a single sequence.
   pub fn all(&self) -> impl Iterator<Item = InternedPath> + '_ {
-    All::new(&self.files.all, &self.directories.all, &self.missing.all)
+    All::new(self.files.all, self.directories.all, self.missing.all)
   }
 }
 
@@ -223,6 +232,41 @@ impl PathTracker {
   }
 }
 
+/// A directory's filesystem identity: `(device, inode)` on Unix, the volume
+/// serial and file index on Windows. Two observations with different
+/// identities are two different directories, however equal their mtimes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct DirectoryIdentity {
+  device: u64,
+  index: u64,
+}
+
+impl DirectoryIdentity {
+  fn of(metadata: &std::fs::Metadata) -> Option<Self> {
+    #[cfg(unix)]
+    {
+      use std::os::unix::fs::MetadataExt;
+      Some(Self {
+        device: metadata.dev(),
+        index: metadata.ino(),
+      })
+    }
+    #[cfg(windows)]
+    {
+      use std::os::windows::fs::MetadataExt;
+      Some(Self {
+        device: metadata.volume_serial_number()?.into(),
+        index: metadata.file_index()?,
+      })
+    }
+    #[cfg(not(any(unix, windows)))]
+    {
+      let _ = metadata;
+      None
+    }
+  }
+}
+
 /// One value of watchpack's `files` map, as written by `setFileTime`: the mtime
 /// a path was last seen with, plus the safe time and accuracy fixed at that
 /// observation.
@@ -275,6 +319,18 @@ impl FileTime {
   }
 }
 
+/// What one observed entry event means for the subscriptions above it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum EntryChange {
+  /// Nothing changed — an attribute-only file event, or an event on an existing
+  /// directory whose identity is unchanged.
+  Unchanged,
+  /// The directory still exists and is the same one: only a subscription to the
+  /// directory itself needs the event, its parent context does not.
+  ExistingDirectory,
+  Changed,
+}
+
 /// `PathManager` is responsible for managing the set of files, directories, and missing paths.
 #[derive(Default)]
 pub(crate) struct PathManager {
@@ -304,9 +360,13 @@ pub(crate) struct PathManager {
   /// context by its initial scan or reported there by an event. Their records
   /// live in `file_times`; this set is what `collect_time_info_entries` walks.
   context_files: InternedPathDashSet,
-  /// watchpack's nested `DirectoryWatcher.directories`: every subdirectory
-  /// found below a registered context.
+  /// Every directory found below a registered context, with the filesystem
+  /// identity it was first seen with. A directory can be replaced without ever
+  /// being observed absent (a rename pair, a `mv` over it), so its identity —
+  /// not its mtime — decides whether its recorded children still belong to it.
   context_directories: InternedPathDashSet,
+  /// The filesystem identity each context directory was last observed with.
+  directory_identities: InternedPathDashMap<Option<DirectoryIdentity>>,
   /// Every directory above a registered path: a removal of one of them may
   /// have taken registered records, or a registered context, with it. Each
   /// counts the registrations directly in it plus its subdirectories here,
@@ -329,6 +389,13 @@ pub(crate) struct PathManager {
   /// The `followSymlinks` watch option: the context scan descends into
   /// symlinked directories, as watchpack does.
   follow_symlinks: bool,
+  /// Physical paths behind the logical registrations. Only the OS layer needs
+  /// them; events are mapped back to logical paths through this table.
+  links: std::sync::RwLock<LinkMappings>,
+  /// The physical sets handed to the analyzer while any mapping is live.
+  physical_files: PhysicalSet,
+  physical_directories: PhysicalSet,
+  physical_missing: PhysicalSet,
 }
 
 impl PathManager {
@@ -344,17 +411,193 @@ impl PathManager {
       last_watch_events: InternedPathDashMap::default(),
       context_files: InternedPathDashSet::default(),
       context_directories: InternedPathDashSet::default(),
+      directory_identities: InternedPathDashMap::default(),
       registered_ancestors: InternedPathDashMap::default(),
       absent_directories: InternedPathDashSet::default(),
       recorded_children: InternedPathDashMap::default(),
       index_lock: std::sync::Mutex::default(),
       follow_symlinks: false,
+      links: std::sync::RwLock::default(),
+      physical_files: PhysicalSet::default(),
+      physical_directories: PhysicalSet::default(),
+      physical_missing: PhysicalSet::default(),
     }
   }
 
   pub fn with_follow_symlinks(mut self, follow_symlinks: bool) -> Self {
     self.follow_symlinks = follow_symlinks;
+    self.links = std::sync::RwLock::new(LinkMappings::new());
     self
+  }
+
+  pub(crate) fn follows_symlinks(&self) -> bool {
+    self.follow_symlinks
+  }
+
+  fn lock_links(&self) -> std::sync::RwLockWriteGuard<'_, LinkMappings> {
+    self
+      .links
+      .write()
+      .unwrap_or_else(std::sync::PoisonError::into_inner)
+  }
+
+  fn read_links(&self) -> std::sync::RwLockReadGuard<'_, LinkMappings> {
+    self
+      .links
+      .read()
+      .unwrap_or_else(std::sync::PoisonError::into_inner)
+  }
+
+  /// The logical subscribers of a physical entry path.
+  pub(crate) fn entry_subscribers(
+    &self,
+    disk_path: &InternedPath,
+  ) -> smallvec::SmallVec<[EntrySubscriber; 2]> {
+    self.read_links().entry_subscribers(disk_path)
+  }
+
+  /// The `(root context, logical path)` pairs a physical path belongs to.
+  pub(crate) fn context_subscribers(
+    &self,
+    disk_path: &InternedPath,
+  ) -> smallvec::SmallVec<[(InternedPath, InternedPath, InternedPath); 2]> {
+    self.read_links().context_subscribers(disk_path)
+  }
+
+  /// The dependencies waiting for a missing component to appear.
+  pub(crate) fn pending_waiters(
+    &self,
+    disk_path: &InternedPath,
+  ) -> smallvec::SmallVec<[RebindRequest; 2]> {
+    self.read_links().pending_waiters(disk_path)
+  }
+
+  /// The logical dependencies whose physical chain includes this link.
+  pub(crate) fn link_waiters(&self, link: &InternedPath) -> smallvec::SmallVec<[RebindRequest; 2]> {
+    self.read_links().link_waiters(link)
+  }
+
+  /// Whether `path` is a link whose state the mappings track.
+  pub(crate) fn tracks_link(&self, path: &InternedPath) -> bool {
+    self.read_links().tracks_link(path)
+  }
+
+  /// Whether `path` is a link whose target is ignored.
+  #[allow(dead_code)]
+  pub(crate) fn is_unfollowed(&self, path: &InternedPath) -> bool {
+    self.read_links().is_unfollowed(path)
+  }
+
+  /// Whether any ancestor of `path` is a link whose target is ignored: the
+  /// event came from behind that link and must not be reported.
+  pub(crate) fn is_behind_unfollowed_link(&self, path: &InternedPath) -> bool {
+    let links = self.read_links();
+    if links.unfollowed_is_empty() {
+      return false;
+    }
+    path
+      .ancestors()
+      .skip(1)
+      .map(InternedPath::from)
+      .any(|ancestor| links.is_unfollowed(&ancestor))
+  }
+
+  /// Resolve the physical target of a link a context scan found, and remember
+  /// it so events on that target map back to the logical link path.
+  pub(crate) async fn bind_context_link(
+    &self,
+    root_context: &InternedPath,
+    logical_path: &InternedPath,
+    directory: bool,
+  ) -> bool {
+    if !self.follow_symlinks || !logical_path.is_symlink() {
+      return false;
+    }
+    let mut resolver = LinkResolver::new(self.follow_symlinks);
+    let resolved = if directory {
+      resolver.resolve_directory(logical_path)
+    } else {
+      resolver.resolve_entry(logical_path)
+    };
+    if resolved.is_identity(logical_path) {
+      return false;
+    }
+    // A link that resolves inside its own context is already covered by that
+    // context's watch: subscribing the target again would report it twice.
+    if resolved.target.starts_with(root_context.as_ref() as &Path) {
+      return false;
+    }
+    let mut links = self.lock_links();
+    let mut files = links.files.clone();
+    let mut directories = links.directories.clone();
+    links.bind_context_target(
+      root_context,
+      logical_path,
+      &resolved,
+      directory,
+      &mut files,
+      &mut directories,
+    );
+    links.files = files;
+    links.directories = directories;
+    true
+  }
+
+  /// Rebuild the physical subscription of every logical dependency and hand the
+  /// resulting physical sets to the analyzer.
+  pub(crate) async fn refresh_links(&self) -> LinkUpdate {
+    let files: InternedPathSet = self.files.all.iter().map(|path| path.clone()).collect();
+    let directories: InternedPathSet = self
+      .directories
+      .all
+      .iter()
+      .map(|path| path.clone())
+      .collect();
+    let missing: InternedPathSet = self.missing.all.iter().map(|path| path.clone()).collect();
+    // A target the caller ignores is not watched: only the link itself is,
+    // so redirecting it is still seen while the target stays quiet.
+    let mut ignored_targets = InternedPathSet::default();
+    let mut unfollowed_links = InternedPathSet::default();
+    if self.follow_symlinks {
+      let mut resolver = LinkResolver::new(self.follow_symlinks);
+      for logical in files.iter().chain(directories.iter()).chain(missing.iter()) {
+        let resolved = if directories.contains(logical) {
+          resolver.resolve_directory(logical)
+        } else {
+          resolver.resolve_entry(logical)
+        };
+        if resolved.target == *logical {
+          continue;
+        }
+        if !ignored_targets.contains(&resolved.target)
+          && self.is_ignored_path(resolved.target.as_ref()).await
+        {
+          ignored_targets.insert(resolved.target.clone());
+        }
+        if ignored_targets.contains(&resolved.target) {
+          unfollowed_links.insert(logical.clone());
+        }
+        let _ = &resolved.target;
+      }
+    }
+    let mut resolver = LinkResolver::new(self.follow_symlinks);
+    let mut links = self.lock_links();
+    let update = links.rebuild(
+      &mut resolver,
+      &files,
+      &directories,
+      &missing,
+      &ignored_targets,
+      &unfollowed_links,
+    );
+    let next_files = links.files.clone();
+    let next_directories = links.directories.clone();
+    let next_missing = links.missing.clone();
+    drop(links);
+    self.physical_files.replace(&next_files);
+    self.physical_directories.replace(&next_directories);
+    self.physical_missing.replace(&next_missing);
+    update
   }
 
   /// Reset the per-`watch()`-call diff state (added / removed sets) without
@@ -431,6 +674,7 @@ impl PathManager {
     self.context_files.remove(path);
     if self.context_directories.remove(path).is_some() {
       self.last_watch_events.remove(path);
+      self.directory_identities.remove(path);
     }
     self.unindex_record(path);
   }
@@ -448,6 +692,7 @@ impl PathManager {
       self.baselines.remove_if(&path, |_, time| time.is_some());
       self.context_files.remove(&path);
       self.context_directories.remove(&path);
+      self.directory_identities.remove(&path);
       if !self.directories.all.contains(&path) {
         self.last_watch_events.remove(&path);
       }
@@ -596,11 +841,14 @@ impl PathManager {
     // Each directory carries the real paths of the directories above it: with
     // `followSymlinks`, a link back into its own ancestry is a loop, while two
     // links to one directory are two aliases, each scanned.
-    let mut pending: Vec<(InternedPath, Vec<PathBuf>, bool)> = roots
+    let mut pending: Vec<(InternedPath, Vec<PathBuf>, bool, InternedPath)> = roots
       .into_iter()
-      .map(|root| (root, Vec::new(), recovered))
+      .map(|root| {
+        let context = root.clone();
+        (root, Vec::new(), recovered, context)
+      })
       .collect();
-    while let Some((dir, mut ancestry, observed)) = pending.pop() {
+    while let Some((dir, mut ancestry, observed, root_context)) = pending.pop() {
       if self.follow_symlinks {
         let Ok(real) = std::fs::canonicalize(&dir) else {
           continue;
@@ -621,8 +869,20 @@ impl PathManager {
         let Ok(metadata) = Self::scan_metadata(ancestry.last(), &path) else {
           continue;
         };
+        // A link to somewhere outside the context needs its physical target
+        // watched and mapped back to this logical link path.
+        if self.follow_symlinks && path.is_symlink() {
+          self
+            .bind_context_link(&root_context, &path, metadata.is_dir())
+            .await;
+        }
         if metadata.is_dir() {
-          self.record(&path, || self.context_directories.insert(path.clone()));
+          self.record(&path, || {
+            self.context_directories.insert(path.clone());
+            self
+              .directory_identities
+              .insert(path.clone(), DirectoryIdentity::of(&metadata));
+          });
           if self.forget_if_orphaned(&path) {
             break;
           }
@@ -638,8 +898,13 @@ impl PathManager {
           }) {
             changed.push(path.clone());
           }
-          pending.push((path, ancestry.clone(), false));
+          pending.push((path, ancestry.clone(), false, root_context.clone()));
         } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
+          // A file behind a link whose target is ignored is not reported: only
+          // the link itself is a dependency.
+          if self.is_behind_unfollowed_link(&path) {
+            continue;
+          }
           self.record(&path, || {
             self.context_files.insert(path.clone());
             self.write_file_time(&path, mtime, !observed, true)
@@ -690,7 +955,12 @@ impl PathManager {
   /// An event already `judged` a change — a file the scan found changed since
   /// the start time, or a registered path past its baseline check — skips the
   /// attribute-only check and keeps the record already written for it.
-  pub async fn set_context_entry(&self, path: &InternedPath, judged: bool) -> bool {
+  pub async fn set_context_entry(&self, disk_path: &InternedPath, judged: bool) -> EntryChange {
+    // A disk event names the physical target of a followed link. Everything
+    // recorded here is keyed by the logical path the caller registered, so
+    // `collect_time_info_entries` reports the link, not its target.
+    let logical = self.logical_entry(disk_path);
+    let path = &logical;
     let recovered: Vec<InternedPath> = self
       .absent_directories
       .iter()
@@ -706,12 +976,20 @@ impl PathManager {
 
     let registered_directory = self.directories.all.contains(path);
     if !registered_directory && !self.is_below_context(path) {
-      return true;
+      // A registered file reached through a link: record the target's time
+      // under the logical path, so its time info follows the file behind it.
+      if self.files.all.contains(path)
+        && let Ok(target) = std::fs::metadata(path)
+        && let Ok(mtime) = target.modified().or_else(|_| target.created())
+      {
+        self.set_file_time(path, mtime, false, false);
+      }
+      return EntryChange::Changed;
     }
     // Like watchpack's live events, `lstat`: a link is a file entry here even
     // with `followSymlinks`; only the scan descends into links.
     let Ok(metadata) = std::fs::symlink_metadata(path) else {
-      return true;
+      return EntryChange::Changed;
     };
     if metadata.is_dir()
       && let Ok(mtime) = metadata.modified()
@@ -719,22 +997,75 @@ impl PathManager {
       mtime_accuracy(mtime);
     }
     if registered_directory {
-      return true;
+      // A registered context reports its own event, but only its parent
+      // context needs to hear about it when it was replaced by another
+      // directory. An unchanged directory (a `chmod`, a repeated Create for a
+      // path already there) leaves everything below it in place.
+      let identity = DirectoryIdentity::of(&metadata);
+      let previous = self.directory_identities.get(path).map(|old| *old);
+      let replaced = match (identity, previous) {
+        (Some(now), Some(Some(was))) => now != was,
+        // First observation of a registered context: its parent has not been
+        // told about this directory yet, so the event is a change.
+        (Some(_), None) => true,
+        _ => false,
+      };
+      self.directory_identities.insert(path.clone(), identity);
+      return if replaced {
+        EntryChange::Changed
+      } else {
+        EntryChange::ExistingDirectory
+      };
     }
     if metadata.is_dir() {
       // Like watchpack's `setDirectory`, only a directory not known before is
       // scanned: an event on a known one, e.g. a `chmod`, changes nothing below.
-      if self.record(path, || self.context_directories.insert(path.clone())) {
+      // A directory replaced under the same path — a rename pair, a `mv` over
+      // it — is a new directory even though the path was known: its old
+      // children belong to another directory, so it is scanned again.
+      let identity = DirectoryIdentity::of(&metadata);
+      let replaced = match (
+        identity,
+        self.directory_identities.get(path).map(|old| *old),
+      ) {
+        (Some(now), Some(Some(was))) => now != was,
+        _ => false,
+      };
+      if replaced {
+        self.remove_file_times_under(path);
+      }
+      self.directory_identities.insert(path.clone(), identity);
+      let known = self.record(path, || self.context_directories.insert(path.clone()));
+      if known || replaced {
         self.scan_below(vec![path.clone()], false, None).await;
       }
-      return true;
+      return if known || replaced {
+        EntryChange::Changed
+      } else {
+        // A directory that is still the same one: its own subscription needs
+        // the event, its parent context does not — nothing below it moved.
+        EntryChange::ExistingDirectory
+      };
     }
     self.record(path, || self.context_files.insert(path.clone()));
-    let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
-      return true;
+    // A file reached through a link reports its target's time when the event
+    // named the target; an event on the link itself keeps the link's own time,
+    // so a newly made link to an old file is still a change.
+    let reached_through_link = logical != *disk_path;
+    let file_metadata =
+      if reached_through_link && self.follow_symlinks && metadata.file_type().is_symlink() {
+        std::fs::metadata(path).unwrap_or(metadata)
+      } else {
+        metadata
+      };
+    let Ok(mtime) = file_metadata
+      .modified()
+      .or_else(|_| file_metadata.created())
+    else {
+      return EntryChange::Changed;
     };
     if judged {
-      return true;
+      return EntryChange::Changed;
     }
     let mtime_ms = mtime_to_millis(mtime);
     let accuracy = mtime_accuracy(mtime);
@@ -743,10 +1074,16 @@ impl PathManager {
       .get(path)
       .is_some_and(|old| old.mtime == mtime && mtime_ms + accuracy < current_time());
     if untouched {
-      return false;
+      return EntryChange::Unchanged;
     }
     self.set_file_time(path, mtime, false, false);
-    true
+    // Every other registration sharing this physical target moved with it.
+    for other in self.logical_entries(disk_path) {
+      if other != *path {
+        self.set_file_time(&other, mtime, false, false);
+      }
+    }
+    EntryChange::Changed
   }
 
   /// A scanned entry's metadata. `real_dir`, the real path of the directory
@@ -801,6 +1138,9 @@ impl PathManager {
   /// derived from the mtime) or from a live event (safe time = now). With
   /// `ignore_when_equal`, a record already carrying this mtime is kept as is.
   /// Returns whether a record was written.
+  ///
+  /// A physical path reached through a link is recorded under the logical path
+  /// the caller registered: `collect_time_info_entries` reports logical paths.
   pub fn set_file_time(
     &self,
     path: &InternedPath,
@@ -808,9 +1148,58 @@ impl PathManager {
     initial: bool,
     ignore_when_equal: bool,
   ) -> bool {
-    self.record(path, || {
-      self.write_file_time(path, mtime, initial, ignore_when_equal)
+    let logical = self.logical_entry(path);
+    self.record(&logical, || {
+      self.write_file_time(&logical, mtime, initial, ignore_when_equal)
     })
+  }
+
+  /// Whether `path` was explicitly registered as a context.
+  pub(crate) fn is_registered_directory(&self, path: &InternedPath) -> bool {
+    self.directories.all.contains(path)
+  }
+
+  /// Every logical registration a physical path serves.
+  pub(crate) fn logical_entries(&self, path: &InternedPath) -> Vec<InternedPath> {
+    let mut logical: Vec<InternedPath> = self
+      .entry_subscribers(path)
+      .iter()
+      .map(|subscriber| subscriber.logical_path().clone())
+      .collect();
+    logical.extend(
+      self
+        .context_subscribers(path)
+        .into_iter()
+        .map(|(_, logical, _)| logical),
+    );
+    logical.sort_by(|a, b| a.as_ref().cmp(b.as_ref()));
+    logical.dedup();
+    logical
+  }
+
+  /// The logical registration a physical path serves, or the path itself.
+  fn logical_entry(&self, path: &InternedPath) -> InternedPath {
+    if self.files.all.contains(path)
+      || self.missing.all.contains(path)
+      || self.context_files.contains(path)
+    {
+      return path.clone();
+    }
+    let mut logical: Vec<InternedPath> = self
+      .entry_subscribers(path)
+      .iter()
+      .map(|subscriber| subscriber.logical_path().clone())
+      .collect();
+    // A file found below a context link: the physical target maps back to the
+    // logical path under the link.
+    logical.extend(
+      self
+        .context_subscribers(path)
+        .into_iter()
+        .map(|(_, logical, _)| logical),
+    );
+    logical.sort_by(|a, b| a.as_ref().cmp(b.as_ref()));
+    logical.first().cloned().unwrap_or_else(|| path.clone())
   }
 
   /// [`Self::set_file_time`]'s write, for a caller already inside
@@ -862,20 +1251,31 @@ impl PathManager {
   /// unfiltered.
   /// Equal mtimes are only stale once they are past the filesystem accuracy window.
   pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
-    if !self.files.all.contains(path) && !self.missing.all.contains(path) {
+    // A disk event names the physical target of a followed link; the baseline
+    // belongs to the logical dependency, which is what the build knows.
+    let logical = self.entry_subscribers(path).first().map_or_else(
+      || path.clone(),
+      |subscriber| subscriber.logical_path().clone(),
+    );
+    let logical = &logical;
+    if !self.files.all.contains(logical) && !self.missing.all.contains(logical) {
       return true;
     }
 
-    let Some(current_mtime) = disk_mtime(path) else {
+    // A watched link's own record is the link's `lstat`, not its target's.
+    if self.tracks_link(path) {
+      return true;
+    }
+    let Some(current_mtime) = disk_mtime(logical) else {
       return true;
     };
     let mtime_ms = mtime_to_millis(current_mtime);
-    if self.baselines.insert(path.clone(), Some(current_mtime)) == Some(Some(current_mtime))
+    if self.baselines.insert(logical.clone(), Some(current_mtime)) == Some(Some(current_mtime))
       && mtime_ms.saturating_add(mtime_accuracy(current_mtime)) < current_time()
     {
       return false;
     }
-    self.set_file_time(path, current_mtime, false, false);
+    self.set_file_time(logical, current_mtime, false, false);
     true
   }
 
@@ -916,6 +1316,13 @@ impl PathManager {
     for dir in self.directories.added.iter() {
       if dir.exists() {
         self.absent_directories.remove(&*dir);
+        // Record the identity a registered context is observed with, so a
+        // later event on the same directory is not mistaken for a replacement.
+        if let Ok(metadata) = std::fs::symlink_metadata(dir.as_path()) {
+          self
+            .directory_identities
+            .insert(dir.clone(), DirectoryIdentity::of(&metadata));
+        }
       } else {
         self.absent_directories.insert(dir.clone());
       }
@@ -1002,8 +1409,53 @@ impl PathManager {
   }
 
   /// Create a new `PathAccessor` to access the current state of paths, directories, and missing paths.
+  ///
+  /// When a symbolic link maps a logical dependency onto another physical
+  /// path, the analyzer must watch that physical path instead. Everything else
+  /// — event routing, time info, `ignored` — keeps using the logical sets.
   pub fn access(&self) -> PathAccessor<'_> {
-    PathAccessor::new(self)
+    if self.read_links().is_empty() {
+      return self.logical_access();
+    }
+    PathAccessor::new(
+      SetRefs {
+        all: &self.physical_files.all,
+        added: &self.physical_files.added,
+        removed: &self.physical_files.removed,
+      },
+      SetRefs {
+        all: &self.physical_directories.all,
+        added: &self.physical_directories.added,
+        removed: &self.physical_directories.removed,
+      },
+      SetRefs {
+        all: &self.physical_missing.all,
+        added: &self.physical_missing.added,
+        removed: &self.physical_missing.removed,
+      },
+    )
+  }
+
+  /// Create a `PathAccessor` over the logical registrations, regardless of the
+  /// physical mapping.
+  pub(crate) fn logical_access(&self) -> PathAccessor<'_> {
+    PathAccessor::new(
+      SetRefs {
+        all: &self.files.all,
+        added: &self.files.added,
+        removed: &self.files.removed,
+      },
+      SetRefs {
+        all: &self.directories.all,
+        added: &self.directories.added,
+        removed: &self.directories.removed,
+      },
+      SetRefs {
+        all: &self.missing.all,
+        added: &self.missing.added,
+        removed: &self.missing.removed,
+      },
+    )
   }
 
   /// Whether `path` is excluded from watching by the configured ignored
@@ -1053,7 +1505,7 @@ impl PathManager {
   /// Absent on disk reads as `null` in both. Only a context known to be
   /// absent is stat'ed, to see whether it came back.
   pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
-    let accessor = self.access();
+    let accessor = self.logical_access();
     let path_to_string = |path: &Path| {
       path
         .to_str()
@@ -1105,6 +1557,21 @@ impl PathManager {
         .filter(|dir| !accessor.directories().0.contains(dir))
         .map(|dir| dir.clone()),
     );
+    // A directory registered through a symbolic link reports the time of the
+    // directory it resolves to, like watchpack's `DirectoryWatcher` for the
+    // link: the link itself is only a name for that directory.
+    let mut link_directory_times: FxHashMap<InternedPath, SystemTime> = FxHashMap::default();
+    for dir in &dir_paths {
+      if !dir.is_symlink() {
+        continue;
+      }
+      if let Ok(mtime) = dir
+        .metadata()
+        .and_then(|metadata| metadata.modified().or_else(|_| metadata.created()))
+      {
+        link_directory_times.insert(dir.clone(), mtime);
+      }
+    }
     let mut dir_safe_times: FxHashMap<InternedPath, Option<u64>> =
       FxHashMap::with_capacity_and_hasher(dir_paths.len(), Default::default());
     for dir in &dir_paths {
@@ -1151,9 +1618,34 @@ impl PathManager {
         }
       }
     }
+    // A directory registered through a symbolic link is reported as a file
+    // entry carrying its time, like watchpack's `DirectoryWatcher` for the
+    // link: the link itself is a directory entry, and its time info is what a
+    // consumer uses to decide the link still resolves where it did.
+    let link_directories: InternedPathSet = link_directory_times.keys().cloned().collect();
+    for (dir, mtime) in link_directory_times {
+      let time = FileTime::observed(mtime);
+      file_timestamps.push((path_to_string(dir.as_path()), Self::entry(time)));
+    }
+
     let mut directory_timestamps = TimeInfoEntries::with_capacity(dir_paths.len());
     for dir in &dir_paths {
       let path = path_to_string(dir.as_path());
+      // A link to a directory reports its own time as a file entry, like
+      // watchpack; its directory entry still takes the same safe time as any
+      // context.
+      if link_directories.contains(dir) {
+        match dir_safe_times.get(dir).copied().flatten() {
+          Some(safe_time) => {
+            directory_timestamps.push((path, TimeInfoEntry::OnlySafeTimeEntry { safe_time }));
+          }
+          None => {
+            file_timestamps.push((path.clone(), TimeInfoEntry::Null));
+            directory_timestamps.push((path, TimeInfoEntry::Null));
+          }
+        }
+        continue;
+      }
       match dir_safe_times.get(dir).copied().flatten() {
         Some(safe_time) => {
           file_timestamps.push((path.clone(), TimeInfoEntry::ExistenceOnlyTimeEntry));
@@ -1235,7 +1727,7 @@ mod tests {
 
     path_manager.update(files, dirs, missing).await.unwrap();
 
-    let accessor = PathAccessor::new(&path_manager);
+    let accessor = path_manager.logical_access();
     let mut all_paths = vec![];
 
     for path in accessor.all() {

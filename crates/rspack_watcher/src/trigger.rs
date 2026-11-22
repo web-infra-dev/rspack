@@ -7,7 +7,7 @@ use super::{FsEvent, FsEventKind};
 use crate::{
   EventBatch, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
-  paths::PathManager,
+  paths::{DepKind, EntrySubscriber, PathManager, RebindRequest, disk_mtime},
 };
 /// `DependencyFinder` provides references to sets of files, directories, and missing paths,
 /// allowing efficient lookup and dependency resolution for a given path.
@@ -54,6 +54,53 @@ impl<'a> DependencyFinder<'a> {
     // Recursively add all parent directories that are registered as directories or missing.
     self.recurse_parent_directories(path, &mut paths);
 
+    paths
+  }
+
+  /// Like [`Self::find_associated_event`], but resolving the logical
+  /// subscribers of a *physical* path through the link table first: a disk
+  /// event names the physical target, while the caller registered the link.
+  pub fn find_aliased_event(
+    &self,
+    path: &InternedPath,
+    kind_of_event: FsEventKind,
+    path_manager: &PathManager,
+  ) -> Vec<(InternedPath, FsEventKind)> {
+    let mut paths = self.find_associated_event(path, kind_of_event);
+    for subscriber in path_manager.entry_subscribers(path) {
+      let logical = subscriber.logical_path();
+      if logical == path {
+        continue;
+      }
+      match &subscriber {
+        EntrySubscriber::Registered { kind, .. } => {
+          let event_kind = match kind {
+            DepKind::Directory => FsEventKind::Change,
+            _ => kind_of_event,
+          };
+          if !paths.iter().any(|(existing, _)| existing == logical) {
+            paths.push((logical.clone(), event_kind));
+          }
+        }
+        // A file link found by a context scan reports only its context, like
+        // watchpack's `DirectoryWatcher` for the link: the context is what was
+        // registered, and the link path is what its scan found. A target that
+        // went away leaves the link itself in place, so nothing changed.
+        EntrySubscriber::ContextFile { root_context, .. } => {
+          if kind_of_event != FsEventKind::Remove
+            && !paths.iter().any(|(existing, _)| existing == root_context)
+          {
+            paths.push((root_context.clone(), FsEventKind::Change));
+          }
+        }
+      }
+    }
+    // A context link's target reports the context root it was found under.
+    for (root_context, _, _) in path_manager.context_subscribers(path) {
+      if !paths.iter().any(|(existing, _)| existing == &root_context) {
+        paths.push((root_context, FsEventKind::Change));
+      }
+    }
     paths
   }
 
@@ -191,6 +238,17 @@ impl Trigger {
       .send((path.clone(), FsEventKind::Change, Origin::Scan));
   }
 
+  /// A watched link moved: the logical dependency must be re-resolved and, if
+  /// its new target is already on disk, reported as changed.
+  pub(crate) fn on_rebind(&self, request: RebindRequest) {
+    self.analyzer.invalidate_path(&request.logical_path);
+    if request.logical_path.exists() {
+      let _ = self
+        .pending
+        .send((request.logical_path, FsEventKind::Change, Origin::Scan));
+    }
+  }
+
   /// A sender for the scanner's backfilled events. They queue with the live
   /// ones, so whichever is processed last for a path ends as its state on
   /// disk: a removal backfilled for a file back on disk by then is a change.
@@ -233,8 +291,30 @@ impl EventProcessor {
     // `find_associated_event` bubbles them to a registered parent and triggers
     // a spurious rebuild.
     // A scan's event was filtered when the scan found the path.
-    if !matches!(origin, Origin::Scan) && self.path_manager.is_ignored_path(path.as_ref()).await {
-      return;
+    //
+    // A physical target reached through a link is judged by the logical path
+    // the caller registered: ignoring a target directory must not hide a link
+    // to it that is itself visible.
+    if !matches!(origin, Origin::Scan) {
+      // An event from behind a link whose target is ignored is dropped: the
+      // backend still reports through such a link even when only its parent
+      // directory is watched.
+      if self.path_manager.is_behind_unfollowed_link(path) {
+        return;
+      }
+      let reported = self.report_path(path);
+      if self.path_manager.is_ignored_path(reported.as_ref()).await {
+        return;
+      }
+    }
+
+    // A watched link was replaced or removed: its logical dependencies must be
+    // resolved again, and a new target already on disk reported as changed.
+    if !matches!(origin, Origin::Scan)
+      && (self.path_manager.tracks_link(path)
+        || !self.path_manager.pending_waiters(path).is_empty())
+    {
+      self.rebind_links(path).await;
     }
 
     // A watched path that no longer exists on disk is a removal, regardless of
@@ -258,8 +338,18 @@ impl EventProcessor {
       kind => kind,
     };
 
-    let accessor = self.path_manager.access();
-    let is_watched_path = accessor.files().0.contains(path) || accessor.missing().0.contains(path);
+    let accessor = self.path_manager.logical_access();
+    // A disk event names the physical target of a followed link; the watched
+    // path is the logical dependency it serves.
+    let is_watched_path = accessor.files().0.contains(path)
+      || accessor.missing().0.contains(path)
+      || self
+        .path_manager
+        .logical_entries(path)
+        .iter()
+        .any(|logical| {
+          accessor.files().0.contains(logical) || accessor.missing().0.contains(logical)
+        });
 
     // Drop a removed path's record so it reads as `null`, like watchpack. A
     // directory moved or deleted as a whole is one event with no per-file
@@ -289,18 +379,36 @@ impl EventProcessor {
       return;
     }
 
-    if kind != FsEventKind::Remove
-      && !self
+    if kind != FsEventKind::Remove {
+      let entry_change = self
         .path_manager
         .set_context_entry(path, matches!(origin, Origin::Scan) || is_watched_path)
-        .await
-    {
-      return;
+        .await;
+      if entry_change == crate::paths::EntryChange::Unchanged {
+        return;
+      }
+      // A directory that is still the same one: only a subscription to that
+      // directory itself needs a *disk* event; the context above it does not.
+      // An explicit or scanned event was already declared a change, so it
+      // keeps bubbling like any other.
+      let existing_directory = entry_change == crate::paths::EntryChange::ExistingDirectory
+        && !matches!(origin, Origin::Injected | Origin::Scan);
+      if existing_directory {
+        let mut associated_event = self
+          .finder()
+          .find_aliased_event(path, kind, &self.path_manager);
+        associated_event.retain(|(dependency, _)| dependency == path);
+        if !associated_event.is_empty() {
+          self.path_manager.set_last_watch_events(path);
+          self.trigger_events(associated_event, None, Vec::new(), None);
+        }
+        return;
+      }
     }
     self.path_manager.set_last_watch_events(path);
 
     let finder = self.finder();
-    let mut associated_event = finder.find_associated_event(path, kind);
+    let mut associated_event = finder.find_aliased_event(path, kind, &self.path_manager);
     // A directory above changes with `path`, unless it is gone itself: an
     // event below it may arrive after the directory's own removal.
     // Its records go with it, as for `path` itself.
@@ -324,7 +432,7 @@ impl EventProcessor {
       && associated_event
         .iter()
         .any(|(associated, kind)| associated != path && *kind == FsEventKind::Change))
-    .then(|| path.clone());
+    .then(|| self.report_path(path));
     let context_only_removal = context_removal.is_some() && !finder.contains_file(path);
     if context_removal.is_some() {
       associated_event.retain_mut(|(associated, associated_kind)| {
@@ -337,10 +445,16 @@ impl EventProcessor {
         true
       });
     }
+    // The raw (undelayed) event names what the caller registered. A file
+    // reached through a link found by a context scan is reported under that
+    // link's logical path; a link that is itself a registered context keeps
+    // the physical target, which is what watchpack reports.
+    let raw_path = self.report_path(path);
     let raw = (!associated_event.is_empty() && !context_only_removal).then(|| FsEvent {
-      path: path.clone(),
+      path: raw_path,
       kind,
     });
+
     let mut recovered = Vec::new();
     if appeared && path.is_dir() && !path.is_symlink() {
       // On Linux, inotify adds a new directory's watch before emitting its
@@ -399,9 +513,66 @@ impl EventProcessor {
     }
     self.trigger_events(associated_event, raw, recovered, context_removal);
   }
+  /// A watched link (or a missing component a dependency waits on) changed on
+  /// disk: re-resolve the affected logical dependencies, refresh the physical
+  /// watch set, and report the ones whose target is already present.
+  async fn rebind_links(&self, path: &InternedPath) {
+    let mut requests = self.path_manager.link_waiters(path);
+    requests.extend(self.path_manager.pending_waiters(path));
+    if requests.is_empty() {
+      return;
+    }
+    let update = self.path_manager.refresh_links().await;
+    let mut events = ResolvedEvents::default();
+    for request in update.retargeted.into_iter().chain(requests) {
+      self.analyzer.invalidate_path(&request.logical_path);
+      // A file reached through a link whose target went away changes nothing
+      // about the link itself: watchpack stays quiet until the link or its
+      // target comes back. A link that moved — or a missing component that
+      // appeared — does change what the dependency resolves to.
+      let Some(mtime) = disk_mtime(&request.logical_path) else {
+        continue;
+      };
+      self
+        .path_manager
+        .set_file_time(&request.logical_path, mtime, false, false);
+      events.dependencies.push(FsEvent {
+        path: request.logical_path,
+        kind: FsEventKind::Change,
+      });
+    }
+    if !events.dependencies.is_empty() {
+      let _ = self.tx.send(events);
+    }
+  }
+
+  /// The path an event on `path` is reported under: the logical registration
+  /// that reaches it, or `path` itself when nothing aliases it.
+  fn report_path(&self, path: &InternedPath) -> InternedPath {
+    if self.path_manager.logical_access().files().0.contains(path) {
+      return path.clone();
+    }
+    let mut logical: Vec<InternedPath> = self
+      .path_manager
+      .entry_subscribers(path)
+      .iter()
+      .map(|subscriber| subscriber.logical_path().clone())
+      .collect();
+    for (_, entry, link) in self.path_manager.context_subscribers(path) {
+      if !self.path_manager.is_registered_directory(&link) {
+        logical.push(entry);
+      }
+    }
+    logical.sort_by(|a, b| a.as_ref().cmp(b.as_ref()));
+    logical.first().cloned().unwrap_or_else(|| path.clone())
+  }
+
   /// Helper to construct a `DependencyFinder` for the current path register state.
+  /// Always over the *logical* registrations: a disk event is mapped back to
+  /// the logical path through the link table, never reported as the physical
+  /// path the caller never registered.
   fn finder(&self) -> DependencyFinder<'_> {
-    let accessor = self.path_manager.access();
+    let accessor = self.path_manager.logical_access();
 
     let files = accessor.files().0;
     let directories = accessor.directories().0;
