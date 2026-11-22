@@ -275,12 +275,22 @@ impl FileTime {
   }
 }
 
+#[derive(Default)]
+struct PendingScans {
+  files: InternedPathSet,
+  directories: InternedPathSet,
+  context_scans: InternedPathSet,
+  missing: InternedPathSet,
+  dispatched: bool,
+}
+
 /// `PathManager` is responsible for managing the set of files, directories, and missing paths.
 #[derive(Default)]
 pub(crate) struct PathManager {
   files: PathTracker,
   directories: PathTracker,
   missing: PathTracker,
+  pending_scans: std::sync::Mutex<PendingScans>,
   ignored: IgnoredMatcher,
   /// watchpack's `files` map: the last observation of each registered file,
   /// each registered-missing path found on disk, and each file found below a
@@ -335,26 +345,51 @@ impl PathManager {
   /// Create a new `PathManager` with an optional ignored paths filter.
   pub fn new(ignored: FsWatcherIgnored) -> Self {
     Self {
-      files: PathTracker::default(),
-      directories: PathTracker::default(),
-      missing: PathTracker::default(),
       ignored: IgnoredMatcher::new(ignored),
-      file_times: InternedPathDashMap::default(),
-      baselines: InternedPathDashMap::default(),
-      last_watch_events: InternedPathDashMap::default(),
-      context_files: InternedPathDashSet::default(),
-      context_directories: InternedPathDashSet::default(),
-      registered_ancestors: InternedPathDashMap::default(),
-      absent_directories: InternedPathDashSet::default(),
-      recorded_children: InternedPathDashMap::default(),
-      index_lock: std::sync::Mutex::default(),
-      follow_symlinks: false,
+      ..Default::default()
     }
   }
 
   pub fn with_follow_symlinks(mut self, follow_symlinks: bool) -> Self {
     self.follow_symlinks = follow_symlinks;
     self
+  }
+
+  fn lock_pending_scans(&self) -> std::sync::MutexGuard<'_, PendingScans> {
+    self
+      .pending_scans
+      .lock()
+      .expect("pending scans lock poisoned")
+  }
+
+  pub fn pending_added_files(&self) -> Vec<InternedPath> {
+    self.lock_pending_scans().files.iter().cloned().collect()
+  }
+
+  pub fn take_pending_context_scans(&self) -> Vec<InternedPath> {
+    let mut scans = self.lock_pending_scans();
+    std::mem::take(&mut scans.context_scans)
+      .into_iter()
+      .collect()
+  }
+
+  pub fn read_pending_scans(
+    &self,
+  ) -> Option<(Vec<InternedPath>, Vec<InternedPath>, Vec<InternedPath>)> {
+    let mut scans = self.lock_pending_scans();
+    if scans.files.is_empty() && scans.directories.is_empty() && scans.missing.is_empty() {
+      return None;
+    }
+    scans.dispatched = true;
+    Some((
+      scans.files.iter().cloned().collect(),
+      scans.directories.iter().cloned().collect(),
+      scans.missing.iter().cloned().collect(),
+    ))
+  }
+
+  pub fn is_registered_missing(&self, path: &InternedPath) -> bool {
+    self.missing.all.contains(path)
   }
 
   /// Reset the per-`watch()`-call diff state (added / removed sets) without
@@ -373,6 +408,13 @@ impl PathManager {
     self.files.reset();
     self.directories.reset();
     self.missing.reset();
+    let mut scans = self.lock_pending_scans();
+    if scans.dispatched {
+      scans.dispatched = false;
+      scans.files.clear();
+      scans.directories.clear();
+      scans.missing.clear();
+    }
   }
 
   /// Record an initial baseline mtime for `path`, but only if no present
@@ -573,8 +615,11 @@ impl PathManager {
   /// Returns the files that changed since `start_time` (watchpack's
   /// `checkStartTime`): they changed before the watch was active, so no event
   /// will come for them.
-  pub async fn scan_contexts(&self, start_time: SystemTime) -> Vec<InternedPath> {
-    let contexts: Vec<InternedPath> = self.directories.added.iter().map(|p| p.clone()).collect();
+  pub async fn scan_contexts(
+    &self,
+    contexts: Vec<InternedPath>,
+    start_time: SystemTime,
+  ) -> Vec<InternedPath> {
     self
       .scan_below(contexts, false, Some(system_time_to_millis(start_time)))
       .await
@@ -897,15 +942,46 @@ impl PathManager {
   ) -> Result<()> {
     let mut registered = Vec::new();
     let mut unregistered = Vec::new();
-    for (paths, tracker) in [
-      (PathUpdater::from(files), &self.files),
-      (PathUpdater::from(directories), &self.directories),
-      (PathUpdater::from(missing), &self.missing),
-    ] {
-      let (added, removed) = paths.update(tracker, &self.ignored).await?;
-      registered.extend(added);
-      unregistered.extend(removed);
+    let (added_files, removed_files_diff) = PathUpdater::from(files)
+      .update(&self.files, &self.ignored)
+      .await?;
+    let (added_dirs, removed_dirs_diff) = PathUpdater::from(directories)
+      .update(&self.directories, &self.ignored)
+      .await?;
+    let (added_missing, removed_missing_diff) = PathUpdater::from(missing)
+      .update(&self.missing, &self.ignored)
+      .await?;
+
+    {
+      let mut scans = self.lock_pending_scans();
+      for path in &removed_files_diff {
+        scans.files.remove(path);
+      }
+      for path in &removed_dirs_diff {
+        scans.directories.remove(path);
+        scans.context_scans.remove(path);
+      }
+      for path in &removed_missing_diff {
+        scans.missing.remove(path);
+      }
+      for path in &added_files {
+        scans.files.insert(path.clone());
+      }
+      for path in &added_dirs {
+        scans.directories.insert(path.clone());
+        scans.context_scans.insert(path.clone());
+      }
+      for path in &added_missing {
+        scans.missing.insert(path.clone());
+      }
     }
+
+    registered.extend(added_files);
+    registered.extend(added_dirs);
+    registered.extend(added_missing);
+    unregistered.extend(removed_files_diff);
+    unregistered.extend(removed_dirs_diff);
+    unregistered.extend(removed_missing_diff);
     for path in &registered {
       self.retain_registered_ancestors(path);
     }

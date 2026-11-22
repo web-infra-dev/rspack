@@ -1,18 +1,24 @@
 //! Internal test support for the watcher.
 
 use std::{
+  collections::VecDeque,
+  path::Path,
   sync::{Arc, Mutex},
   time::{Instant, SystemTime},
 };
 
 use notify::{Event, RecursiveMode};
 use rspack_paths::InternedPath;
-use rspack_util::fx_hash::FxHashSet;
+use rspack_util::fx_hash::{FxHashMap, FxHashSet};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
 use crate::{
-  EventBatch, FsEventKind, FsWatcher, ResolvedEvents, analyzer::Analyzer,
-  disk_watcher::handle_event, paths::PathManager, scanner::Scanner, trigger::Trigger,
+  EventBatch, FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions, ResolvedEvents,
+  analyzer::Analyzer,
+  disk_watcher::{WatchBackend, handle_event},
+  paths::PathManager,
+  scanner::Scanner,
+  trigger::Trigger,
 };
 
 /// Recorded under the aggregate-set lock to preserve acceptance and snapshot order.
@@ -39,6 +45,249 @@ pub fn take_executor_events(watcher: &FsWatcher) -> Vec<ExecutorEvent> {
       .lock()
       .expect("executor trace poisoned"),
   )
+}
+
+#[derive(Default)]
+struct ControlledBackendState {
+  /// Mirrors `notify::INotifyWatcher::watches`: `path -> is_recursive`.
+  watches: FxHashMap<InternedPath, bool>,
+  fail_next_for_path: FxHashMap<InternedPath, VecDeque<String>>,
+  fail_any_next: VecDeque<String>,
+  max_watches: Option<usize>,
+  unwatch_calls: usize,
+  dropped: bool,
+}
+
+impl ControlledBackendState {
+  fn refresh_from_disk(&mut self) {
+    self.watches.retain(|p, _| p.as_path().exists());
+    let limit = self.max_watches;
+    let rec_dirs: Vec<InternedPath> = self
+      .watches
+      .iter()
+      .filter(|(_, is_rec)| **is_rec)
+      .map(|(p, _)| p.clone())
+      .collect();
+    let mut stack = rec_dirs;
+    while let Some(dir) = stack.pop() {
+      let Ok(entries) = std::fs::read_dir(dir.as_path()) else {
+        continue;
+      };
+      for entry in entries.flatten() {
+        if !entry.file_type().is_ok_and(|ft| ft.is_dir()) {
+          continue;
+        }
+        let child = InternedPath::from(entry.path());
+        if self.watches.contains_key(&child) {
+          continue;
+        }
+        if let Some(max) = limit
+          && self.watches.len() >= max
+        {
+          continue;
+        }
+        self.watches.insert(child.clone(), true);
+        stack.push(child);
+      }
+    }
+  }
+}
+
+/// Deterministic test backend that isolates OS events and can inject watch installation errors.
+#[derive(Clone, Default)]
+pub struct TestWatchBackend {
+  state: Arc<Mutex<ControlledBackendState>>,
+}
+
+impl TestWatchBackend {
+  pub fn set_max_watches(&self, max_watches: Option<usize>) {
+    self
+      .state
+      .lock()
+      .expect("test backend lock poisoned")
+      .max_watches = max_watches;
+  }
+
+  pub fn fail_next_watch_on(&self, path: impl Into<InternedPath>, message: impl Into<String>) {
+    self
+      .state
+      .lock()
+      .expect("test backend lock poisoned")
+      .fail_next_for_path
+      .entry(path.into())
+      .or_default()
+      .push_back(message.into());
+  }
+
+  pub fn fail_next_watch(&self, message: impl Into<String>) {
+    self
+      .state
+      .lock()
+      .expect("test backend lock poisoned")
+      .fail_any_next
+      .push_back(message.into());
+  }
+
+  pub fn has_kernel_watch(&self, path: &Path) -> bool {
+    let mut state = self.state.lock().expect("test backend lock poisoned");
+    state.refresh_from_disk();
+    state.watches.contains_key(&InternedPath::from(path))
+  }
+
+  pub fn kernel_watch_count(&self) -> usize {
+    let mut state = self.state.lock().expect("test backend lock poisoned");
+    state.refresh_from_disk();
+    state.watches.len()
+  }
+
+  pub fn unwatch_count(&self) -> usize {
+    self
+      .state
+      .lock()
+      .expect("test backend lock poisoned")
+      .unwatch_calls
+  }
+
+  pub fn is_dropped(&self) -> bool {
+    self
+      .state
+      .lock()
+      .expect("test backend lock poisoned")
+      .dropped
+  }
+}
+
+struct ControlledBackendHandle {
+  state: Arc<Mutex<ControlledBackendState>>,
+  _trigger: Arc<Trigger>,
+}
+
+impl Drop for ControlledBackendHandle {
+  fn drop(&mut self) {
+    if let Ok(mut state) = self.state.lock() {
+      state.dropped = true;
+    }
+  }
+}
+
+impl WatchBackend for ControlledBackendHandle {
+  fn watch(&mut self, path: &Path, mode: RecursiveMode) -> notify::Result<()> {
+    let ip = InternedPath::from(path);
+    let mut state = self.state.lock().expect("test backend lock poisoned");
+
+    match mode {
+      RecursiveMode::NonRecursive => {
+        if let Some(msg) = state
+          .fail_next_for_path
+          .get_mut(&ip)
+          .and_then(VecDeque::pop_front)
+        {
+          return Err(notify::Error::generic(&msg));
+        }
+        if let Some(msg) = state.fail_any_next.pop_front() {
+          return Err(notify::Error::generic(&msg));
+        }
+        if let Some(limit) = state.max_watches
+          && !state.watches.contains_key(&ip)
+          && state.watches.len() >= limit
+        {
+          return Err(notify::Error::new(notify::ErrorKind::MaxFilesWatch));
+        }
+        state.watches.insert(ip, false);
+        Ok(())
+      }
+      RecursiveMode::Recursive => {
+        let mut newly_added: Vec<InternedPath> = Vec::new();
+        let mut upgraded: Vec<InternedPath> = Vec::new();
+        let rollback =
+          |state: &mut ControlledBackendState, added: &[InternedPath], upg: &[InternedPath]| {
+            for p in added {
+              state.watches.remove(p);
+            }
+            for p in upg {
+              state.watches.insert(p.clone(), false);
+            }
+          };
+
+        let mut stack = vec![ip];
+        while let Some(dir) = stack.pop() {
+          if let Some(msg) = state
+            .fail_next_for_path
+            .get_mut(&dir)
+            .and_then(VecDeque::pop_front)
+          {
+            rollback(&mut state, &newly_added, &upgraded);
+            return Err(notify::Error::generic(&msg));
+          }
+          if let Some(msg) = state.fail_any_next.pop_front() {
+            rollback(&mut state, &newly_added, &upgraded);
+            return Err(notify::Error::generic(&msg));
+          }
+          match state.watches.get(&dir).copied() {
+            None => {
+              if let Some(limit) = state.max_watches
+                && state.watches.len() >= limit
+              {
+                rollback(&mut state, &newly_added, &upgraded);
+                return Err(notify::Error::new(notify::ErrorKind::MaxFilesWatch));
+              }
+              state.watches.insert(dir.clone(), true);
+              newly_added.push(dir.clone());
+            }
+            Some(false) => {
+              state.watches.insert(dir.clone(), true);
+              upgraded.push(dir.clone());
+            }
+            Some(true) => {}
+          }
+          if let Ok(entries) = std::fs::read_dir(dir.as_path()) {
+            for entry in entries.flatten() {
+              if entry.file_type().is_ok_and(|ft| ft.is_dir()) {
+                stack.push(InternedPath::from(entry.path()));
+              }
+            }
+          }
+        }
+        Ok(())
+      }
+    }
+  }
+
+  fn unwatch(&mut self, path: &Path) -> notify::Result<()> {
+    let ip = InternedPath::from(path);
+    let mut state = self.state.lock().expect("test backend lock poisoned");
+    state.unwatch_calls += 1;
+    let Some(is_recursive) = state.watches.remove(&ip) else {
+      return Err(notify::Error::watch_not_found());
+    };
+    if is_recursive {
+      state.watches.retain(|p, _| !p.as_path().starts_with(path));
+    }
+    Ok(())
+  }
+}
+
+/// Creates an `FsWatcher` backed by [`TestWatchBackend`] so spontaneous OS notifications are isolated.
+pub fn new_isolated_watcher(
+  options: FsWatcherOptions,
+  ignored: FsWatcherIgnored,
+  backend: &TestWatchBackend,
+) -> FsWatcher {
+  let state = Arc::clone(&backend.state);
+  FsWatcher::new_with_backend(options, ignored, move |trigger| {
+    Box::new(ControlledBackendHandle {
+      state,
+      _trigger: trigger,
+    })
+  })
+}
+
+/// Sends a synthetic `notify::Event` into `watcher`'s production OS event handler.
+pub fn emit_native_event(watcher: &FsWatcher, event: Event) {
+  let trigger = watcher.trigger.lock().expect("should lock trigger").clone();
+  if let Some(trigger) = trigger {
+    handle_event(event, &trigger);
+  }
 }
 
 pub struct DirectoryAnalyzer {

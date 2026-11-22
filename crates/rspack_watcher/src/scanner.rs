@@ -1,6 +1,6 @@
-use std::{ops::Deref, sync::Arc, time::SystemTime};
+use std::{sync::Arc, time::SystemTime};
 
-use rspack_paths::{InternedPath, InternedPathDashSet};
+use rspack_paths::InternedPath;
 use rspack_util::time::system_time_to_millis;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -33,99 +33,82 @@ impl Scanner {
   /// so a change landing before the watch is on disk and caught here.
   /// align watchpack action: https://github.com/webpack/watchpack/blob/v2.4.4/lib/DirectoryWatcher.js#L565-L568
   pub fn scan(&self, start_time: SystemTime) {
-    let accessor = self.path_manager.access();
-    let has_added_paths = !accessor.files().1.is_empty()
-      || !accessor.directories().1.is_empty()
-      || !accessor.missing().1.is_empty();
-    if !has_added_paths {
+    let Some((files, directories, missing_added)) = self.path_manager.read_pending_scans() else {
       return;
-    }
+    };
 
     if let Some(tx) = self.tx.clone() {
       // only apply for added files
-      let files = accessor
-        .files()
-        .1
-        .iter()
-        .map(|file| file.deref().clone())
-        .collect::<Vec<_>>();
-      let missing = accessor.missing().0.clone();
-      let files_tx = tx.clone();
-      let files_path_manager = Arc::clone(&self.path_manager);
-      tokio::spawn(async move {
-        // A file is there as `lstat` sees it, so a dangling link counts.
-        let mut removed = absent_paths(&files, &missing, |path| {
-          std::fs::symlink_metadata(path).is_ok()
-        });
-        removed.retain(|path| !files_path_manager.is_known_absent(path));
-        let changed = files
-          .iter()
-          .filter(|p| changed_since(p, start_time))
-          .cloned()
-          .collect::<Vec<_>>();
-        // A `Change` is judged here, not by `Trigger`'s baseline check: the
-        // record is re-read now, in case the mtime moved on since it was
-        // seeded.
-        for path in &changed {
-          if let Some(mtime) = disk_mtime(path) {
-            files_path_manager.set_reported_file_time(path, mtime);
+      if !files.is_empty() {
+        let files_tx = tx.clone();
+        let files_path_manager = Arc::clone(&self.path_manager);
+        tokio::spawn(async move {
+          // A file is there as `lstat` sees it, so a dangling link counts.
+          let mut removed = absent_paths(&files, &files_path_manager, |path| {
+            std::fs::symlink_metadata(path).is_ok()
+          });
+          removed.retain(|path| !files_path_manager.is_known_absent(path));
+          let changed = files
+            .iter()
+            .filter(|p| changed_since(p, start_time))
+            .cloned()
+            .collect::<Vec<_>>();
+          // A `Change` is judged here, not by `Trigger`'s baseline check: the
+          // record is re-read now, in case the mtime moved on since it was
+          // seeded.
+          for path in &changed {
+            if let Some(mtime) = disk_mtime(path) {
+              files_path_manager.set_reported_file_time(path, mtime);
+            }
           }
-        }
-        _ = send_events(removed, FsEventKind::Remove, &files_tx);
-        _ = send_events(changed, FsEventKind::Change, &files_tx);
-      });
+          _ = send_events(removed, FsEventKind::Remove, &files_tx);
+          _ = send_events(changed, FsEventKind::Change, &files_tx);
+        });
+      }
 
-      let directories = accessor
-        .directories()
-        .1
-        .iter()
-        .map(|file| file.deref().clone())
-        .collect::<Vec<_>>();
-      let missing = accessor.missing().0.clone();
-      let dirs_tx = tx.clone();
-      tokio::spawn(async move {
-        _ = send_events(
-          // A directory is there only through a link that resolves, like
-          // watchpack's `readdir`.
-          absent_paths(&directories, &missing, |path| path.exists()),
-          FsEventKind::Remove,
-          &dirs_tx,
-        );
-        let changed = directories
-          .into_iter()
-          .filter(|p| changed_since(p, start_time))
-          .collect::<Vec<_>>();
-        _ = send_events(changed, FsEventKind::Change, &dirs_tx);
-      });
+      if !directories.is_empty() {
+        let dirs_tx = tx.clone();
+        let dirs_path_manager = Arc::clone(&self.path_manager);
+        tokio::spawn(async move {
+          _ = send_events(
+            // A directory is there only through a link that resolves, like
+            // watchpack's `readdir`.
+            absent_paths(&directories, &dirs_path_manager, |path| path.exists()),
+            FsEventKind::Remove,
+            &dirs_tx,
+          );
+          let changed = directories
+            .into_iter()
+            .filter(|p| changed_since(p, start_time))
+            .collect::<Vec<_>>();
+          _ = send_events(changed, FsEventKind::Change, &dirs_tx);
+        });
+      }
 
       // Backfill registered-missing dependencies created in the gap before this
       // `watch()` registration: a `Create` once the file appears on disk.
-      let missing_added = accessor
-        .missing()
-        .1
-        .iter()
-        .map(|p| p.deref().clone())
-        .collect::<Vec<_>>();
-      let path_manager = Arc::clone(&self.path_manager);
-      tokio::spawn(async move {
-        // Record the file time of every one found on disk and, like
-        // watchpack's initial scan, notify only those changed since
-        // `start_time`. A record for one not notified is time info only: it
-        // must not deduplicate that path's own event.
-        let mut created = Vec::new();
-        for path in missing_added {
-          let Some(mtime) = disk_mtime(&path) else {
-            continue;
-          };
-          if changed_since(&path, start_time) {
-            path_manager.set_reported_file_time(&path, mtime);
-            created.push(path);
-          } else {
-            path_manager.set_file_time(&path, mtime, true, true);
+      if !missing_added.is_empty() {
+        let path_manager = Arc::clone(&self.path_manager);
+        tokio::spawn(async move {
+          // Record the file time of every one found on disk and, like
+          // watchpack's initial scan, notify only those changed since
+          // `start_time`. A record for one not notified is time info only: it
+          // must not deduplicate that path's own event.
+          let mut created = Vec::new();
+          for path in missing_added {
+            let Some(mtime) = disk_mtime(&path) else {
+              continue;
+            };
+            if changed_since(&path, start_time) {
+              path_manager.set_reported_file_time(&path, mtime);
+              created.push(path);
+            } else {
+              path_manager.set_file_time(&path, mtime, true, true);
+            }
           }
-        }
-        _ = send_events(created, FsEventKind::Create, &tx);
-      });
+          _ = send_events(created, FsEventKind::Create, &tx);
+        });
+      }
     }
   }
 
@@ -139,12 +122,12 @@ impl Scanner {
 /// is expected to be absent and is not one of them).
 fn absent_paths(
   paths: &[InternedPath],
-  missing: &InternedPathDashSet,
+  path_manager: &PathManager,
   present: impl Fn(&InternedPath) -> bool,
 ) -> Vec<InternedPath> {
   paths
     .iter()
-    .filter(|path| !present(path) && !missing.contains(*path))
+    .filter(|path| !present(path) && !path_manager.is_registered_missing(path))
     .cloned()
     .collect()
 }

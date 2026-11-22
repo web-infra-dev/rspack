@@ -173,17 +173,25 @@ struct FsWatcherInner {
 impl FsWatcher {
   /// Creates a new [`FsWatcher`] instance with the specified options and ignored paths.
   pub fn new(options: FsWatcherOptions, ignored: FsWatcherIgnored) -> Self {
+    let follow_symlinks = options.follow_symlinks;
+    let poll_interval = options.poll_interval;
+    Self::new_with_backend(options, ignored, move |trigger| {
+      disk_watcher::system_watch_backend(follow_symlinks, poll_interval, trigger)
+    })
+  }
+
+  pub(crate) fn new_with_backend(
+    options: FsWatcherOptions,
+    ignored: FsWatcherIgnored,
+    make_backend: impl FnOnce(Arc<Trigger>) -> Box<dyn disk_watcher::WatchBackend>,
+  ) -> Self {
     let (tx, rx) = mpsc::unbounded_channel();
 
     let path_manager =
       Arc::new(PathManager::new(ignored).with_follow_symlinks(options.follow_symlinks));
     let trigger = Arc::new(Trigger::new(Arc::clone(&path_manager), tx));
     let analyzer = Arc::clone(&trigger.analyzer);
-    let disk_watcher = DiskWatcher::new(
-      options.follow_symlinks,
-      options.poll_interval,
-      trigger.clone(),
-    );
+    let disk_watcher = DiskWatcher::new(make_backend(Arc::clone(&trigger)));
     let paused = Arc::new(AtomicBool::new(false));
     let executor = Executor::new(rx, options.aggregate_timeout, Arc::clone(&paused));
     let aggregated = executor.aggregated();
@@ -458,10 +466,16 @@ impl FsWatcherInner {
       self.analyzer.invalidate_all();
       return Err(error);
     }
-    let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
-    if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
-      for path in &changed_in_contexts {
-        trigger.on_scanned_change(path);
+    let pending_contexts = self.path_manager.take_pending_context_scans();
+    if !pending_contexts.is_empty() {
+      let changed_in_contexts = self
+        .path_manager
+        .scan_contexts(pending_contexts, start_time)
+        .await;
+      if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
+        for path in &changed_in_contexts {
+          trigger.on_scanned_change(path);
+        }
       }
     }
 
@@ -481,11 +495,10 @@ impl FsWatcherInner {
   }
 
   fn record_initial_file_mtimes(&self) {
-    let accessor = self.path_manager.access();
-    // `.1` is `files.added` — the diff set populated by `update()` and
-    // cleared by `reset()`. In steady state (no add/remove churn) this
-    // is empty and the loop is a no-op.
-    let paths: Vec<_> = accessor.files().1.iter().map(|p| p.clone()).collect();
+    // `pending_added_files()` holds files added since the last dispatched scan
+    // (cleared by `reset()` once dispatched). In steady state (no add/remove
+    // churn) this is empty and the loop is a no-op.
+    let paths = self.path_manager.pending_added_files();
     for path in paths {
       if let Ok(mtime) = path
         .metadata()
