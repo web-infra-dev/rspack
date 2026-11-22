@@ -18,12 +18,12 @@ use rspack_core::{
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ForwardId, ImportAttributes, ImportPhase,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions, LazyUntil,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment,
-  NormalReexportItem, ReferencedExport, ResourceIdentifier, RuntimeCondition, RuntimeGlobals,
-  RuntimeSpec, SideEffectsStateArtifact, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
-  create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
-  get_terminal_binding, property_access, property_name,
+  ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  NormalInitFragment, NormalReexportItem, ReferencedExport, ResourceIdentifier, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, StarReexportsInfo, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
+  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
+  get_runtime_key, get_terminal_binding, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
@@ -948,7 +948,7 @@ impl ESMExportImportedSpecifierDependency {
     name: &str,
     value_key: ValueKey,
   ) -> ESMExportInitFragment {
-    let return_value = Self::get_return_value(name.to_owned(), value_key);
+    let return_value = Self::get_return_value(ctxt.runtime_template, name.to_owned(), value_key);
     let is_circular_module = ctxt
       .compilation
       .circular_modules
@@ -1008,10 +1008,14 @@ impl ESMExportImportedSpecifierDependency {
     )
   }
 
-  fn get_return_value(name: String, value_key: ValueKey) -> String {
+  fn get_return_value(
+    runtime_template: &mut ModuleCodeTemplate,
+    name: String,
+    value_key: ValueKey,
+  ) -> String {
     match value_key {
       ValueKey::False => "/* unused export */ undefined".to_string(),
-      ValueKey::Null => format!("{name}_default.a"),
+      ValueKey::Null => format!("{}.a", runtime_template.default_interop_var(&name)),
       ValueKey::Name => name,
       ValueKey::UsedName(used) => match used {
         UsedName::Normal(used) => format!("{}{}", name, property_access(used, 0)),
@@ -1038,7 +1042,7 @@ impl ESMExportImportedSpecifierDependency {
       runtime_template,
       ..
     } = ctxt;
-    let return_value = Self::get_return_value(name.clone(), value_key);
+    let return_value = Self::get_return_value(runtime_template, name.clone(), value_key);
     let exports_name = module.get_exports_argument();
     format!(
       "if({}({}, {})) {}({}, {{ {}: function() {{ return {}; }} }});\n",
@@ -1259,13 +1263,6 @@ impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
 
 #[cacheable_dyn]
 impl Dependency for ESMExportImportedSpecifierDependency {
-  fn may_read_default_export(&self, module_graph: &ModuleGraph) -> bool {
-    self
-      .get_ids(module_graph)
-      .first()
-      .is_none_or(|id| id == "default")
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

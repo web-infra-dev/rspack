@@ -5,9 +5,9 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportsInfoArtifact,
-  ImportAttributes, ImportPhase, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
-  create_exports_object_referenced, create_referenced_exports_by_referenced_specifiers,
+  ImportAttributes, ImportPhase, ModuleDependency, ModuleGraphCacheArtifact, ReferencedSpecifier,
+  ResourceIdentifier, TemplateContext, TemplateReplaceSource, create_exports_object_referenced,
+  create_referenced_exports_by_referenced_specifiers,
 };
 
 use super::create_resource_identifier_for_esm_dependency;
@@ -69,10 +69,6 @@ impl ImportWeakDependency {
 
 #[cacheable_dyn]
 impl Dependency for ImportWeakDependency {
-  fn may_read_default_export(&self, _module_graph: &ModuleGraph) -> bool {
-    false
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }
