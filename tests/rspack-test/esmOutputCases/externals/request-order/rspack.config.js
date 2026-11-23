@@ -14,6 +14,8 @@ module.exports = [false, true].flatMap((rslib) =>
       mixed: './mixed.js',
       duplicate: './duplicate.js',
       wrapped: './wrapped.js',
+      descendant: './descendant.js',
+      descendantBefore: './descendant-before.js',
     },
     output: {
       filename: `${rslib ? 'rslib' : 'rspack'}-${minimize ? 'min' : 'plain'}/[name].mjs`,

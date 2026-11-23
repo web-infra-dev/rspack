@@ -5,20 +5,22 @@ use std::{
 };
 
 use rayon::iter::Either;
-use rspack_collections::{IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, SsoHashSet};
+use rspack_collections::{
+  IdentifierIndexMap, IdentifierIndexSet, IdentifierMap, IdentifierSet, SsoHashSet,
+};
 use rspack_core::{
   ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
   CodeGenerationDataChunkInitFragments, CodeGenerationDataConcatenationScopeOutput,
   CodeGenerationDataPreservedAssetImport, CodeGenerationPublicPathAutoReplace, Compilation,
   ConcatenationBindingPlan, ConcatenationBindingResolver, ConcatenationBindingTarget,
   ConcatenationContext, ConcatenationInterop, ConcatenationNameAllocator, ConditionalInitFragment,
-  DependencyType, ExportInfo, ExportMode, ExportProvided, ExportsInfoArtifact, ExportsType,
-  FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals, RuntimeGlobalsRenderMode,
-  RuntimeTemplateRenderMode, RuntimeVariable, SideEffectsStateArtifact, SourceType, URLStaticMode,
-  UsageState, UsedName, UsedNameItem, all_runtime_module_variables, analyze_module_scope,
-  find_target, get_cached_readable_identifier, get_module_directives, get_module_hashbang,
-  property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
+  DependencyId, DependencyType, ExportInfo, ExportMode, ExportProvided, ExportsInfoArtifact,
+  ExportsType, FindTargetResult, ImportSpec, InitFragmentKey, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleInfo, NAMESPACE_OBJECT_EXPORT, RuntimeGlobals,
+  RuntimeGlobalsRenderMode, RuntimeTemplateRenderMode, RuntimeVariable, SideEffectsStateArtifact,
+  SourceType, URLStaticMode, UsageState, UsedName, UsedNameItem, all_runtime_module_variables,
+  analyze_module_scope, find_target, get_cached_readable_identifier, get_module_directives,
+  get_module_hashbang, property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
   rspack_sources::ReplaceSource, runtime_variable_name, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Result};
@@ -530,6 +532,42 @@ impl EsmLibraryPlugin {
     None
   }
 
+  fn request_order_frame(
+    module_graph: &ModuleGraph,
+    module_infos: &IdentifierIndexMap<ModuleInfo>,
+    module_id: &ModuleIdentifier,
+  ) -> (std::vec::IntoIter<DependencyId>, FxHashSet<RawImportSource>) {
+    let preserved_requests = module_infos
+      .get(module_id)
+      .and_then(|info| {
+        if let ModuleInfo::Concatenated(info) = info {
+          Some(&info.chunk_init_fragments)
+        } else {
+          None
+        }
+      })
+      .into_iter()
+      .flatten()
+      .filter_map(|fragment| {
+        Self::module_external_fragment_content(fragment.clone())
+          .and_then(|content| Self::parse_external_request(&content))
+      })
+      .collect::<FxHashSet<_>>();
+    let mut dependencies = module_graph
+      .get_outgoing_deps_in_order(module_id)
+      .filter_map(|id| {
+        let dependency = module_graph.dependency_by_id(id);
+        Some((dependency.source_order()?, *id))
+      })
+      .collect::<Vec<_>>();
+    dependencies.sort_by_key(|(order, _)| *order);
+    let ordered_deps = dependencies
+      .into_iter()
+      .map(|(_, id)| id)
+      .collect::<Vec<_>>();
+    (ordered_deps.into_iter(), preserved_requests)
+  }
+
   fn collect_request_order(
     compilation: &Compilation,
     chunk_link: &mut ChunkLinkContext,
@@ -537,45 +575,40 @@ impl EsmLibraryPlugin {
     external_module_init_fragments: &IdentifierMap<ChunkInitFragments>,
   ) {
     let module_graph = compilation.get_module_graph();
-    // Keep the existing module traversal. Source order is only comparable within one module;
-    // shared chunks and requests shared by several modules retain their first request position.
-    for module_id in chunk_link
+    // Walk non-external modules in this chunk in DFS dependency source order starting from
+    // pre-order roots so an importer's earlier requests stay ahead of a descendant module's
+    // requests (and earlier local subtrees stay ahead of later requests in the importer).
+    let mut chunk_modules: IdentifierIndexSet = chunk_link
       .hoisted_modules
       .iter()
       .chain(&chunk_link.decl_modules)
-    {
-      let module = module_graph
-        .module_by_identifier(module_id)
-        .expect("should have module");
-      if module.as_external_module().is_some() {
+      .copied()
+      .filter(|module_id| {
+        module_graph
+          .module_by_identifier(module_id)
+          .is_some_and(|module| module.as_external_module().is_none())
+      })
+      .collect();
+    chunk_modules.sort_by(|a, b| {
+      module_graph
+        .get_pre_order_index(a)
+        .unwrap_or(u32::MAX)
+        .cmp(&module_graph.get_pre_order_index(b).unwrap_or(u32::MAX))
+    });
+
+    let mut visited = IdentifierSet::default();
+    let mut stack = Vec::new();
+    for root in &chunk_modules {
+      if !visited.insert(*root) {
         continue;
       }
-      let preserved_requests = module_infos
-        .get(module_id)
-        .and_then(|info| {
-          if let ModuleInfo::Concatenated(info) = info {
-            Some(&info.chunk_init_fragments)
-          } else {
-            None
-          }
-        })
-        .into_iter()
-        .flatten()
-        .filter_map(|fragment| {
-          Self::module_external_fragment_content(fragment.clone())
-            .and_then(|content| Self::parse_external_request(&content))
-        })
-        .collect::<FxHashSet<_>>();
-      let mut dependencies = module_graph
-        .get_outgoing_deps_in_order(module_id)
-        .filter_map(|id| {
-          let dependency = module_graph.dependency_by_id(id);
-          Some((dependency.source_order()?, id))
-        })
-        .collect::<Vec<_>>();
-      dependencies.sort_by_key(|(order, _)| *order);
-      for (_, dependency_id) in dependencies {
-        let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
+      stack.push(Self::request_order_frame(module_graph, module_infos, root));
+      while let Some((dependencies, preserved_requests)) = stack.last_mut() {
+        let Some(dependency_id) = dependencies.next() else {
+          stack.pop();
+          continue;
+        };
+        let Some(connection) = module_graph.connection_by_dependency_id(&dependency_id) else {
           continue;
         };
         let target = connection.module_identifier();
@@ -651,6 +684,14 @@ impl EsmLibraryPlugin {
                 .map(|(source, _)| source),
             );
           }
+          continue;
+        }
+        if chunk_modules.contains(target) && visited.insert(*target) {
+          stack.push(Self::request_order_frame(
+            module_graph,
+            module_infos,
+            target,
+          ));
         }
       }
     }
