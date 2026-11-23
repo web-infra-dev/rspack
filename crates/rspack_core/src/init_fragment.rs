@@ -765,6 +765,10 @@ impl DefaultInteropInitFragment {
     }
   }
 
+  pub fn import_var(&self) -> &str {
+    &self.import_var
+  }
+
   pub fn merge(one: Self, other: Self) -> Self {
     let fragment = ConditionalInitFragment::merge(Box::new(one.fragment), Box::new(other.fragment));
     Self {
@@ -785,9 +789,15 @@ impl InitFragment for DefaultInteropInitFragment {
       mut fragment,
     } = *self;
     let runtime_template = context.runtime_template();
-    if runtime_template.uses_default_interop(&import_var) {
-      fragment.content = runtime_template.default_interop_statement(&import_var, false);
+    if matches!(fragment.runtime_condition, RuntimeCondition::Boolean(false))
+      || !runtime_template.uses_default_interop(&import_var)
+    {
+      return Ok(InitFragmentContents {
+        start: String::new(),
+        end: None,
+      });
     }
+    fragment.content = runtime_template.default_interop_statement(&import_var, false);
     Box::new(fragment).contents(context)
   }
 
