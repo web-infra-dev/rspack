@@ -236,7 +236,7 @@ export default {
 
 #### customMedia
 
-将 `drafts.customMedia` 设为 `true`，loader 就能解析用 `@custom-media` 定义的命名媒体查询。默认情况下，loader 会保留这些定义和 `@media (--wide)` 这样的引用。
+将 `drafts.customMedia` 设为 `true`，loader 就能解析用 `@custom-media` 定义的命名媒体查询。未启用此选项时，loader 会保留这些定义和 `@media (--wide)` 这样的引用。
 
 开启此选项后，只要启用了 `include.customMediaQueries` 或配置了目标浏览器，loader 就会将引用替换为对应的媒体条件，并移除定义。Lightning CSS 将自定义媒体查询视为所有浏览器均不支持的特性，因此指定任意目标浏览器都会触发展开，包括从 Rspack 的 [`target`](/config/target) 推导出的浏览器。
 
@@ -311,6 +311,6 @@ export default {
 
 #### scrollNavigationControls
 
-将 `drafts.scrollNavigationControls` 设为 `true`，Lightning CSS 就能识别滚动标记伪类 `:target-current`、`:target-before` 和 `:target-after`，并根据目标浏览器的支持情况决定如何输出包含它们的选择器。默认情况下，Lightning CSS 将这些伪类视为未知伪类。
+将 `drafts.scrollNavigationControls` 设为 `true`，Lightning CSS 就能识别滚动标记伪类 `:target-current`、`:target-before` 和 `:target-after`，并根据目标浏览器的支持情况决定如何输出包含它们的选择器。未启用此选项时，Lightning CSS 将这些伪类视为未知伪类。
 
 例如，目标浏览器为 Chrome 150 时，开启此选项会保留选择器列表 `a:target-before, a:target-after`。关闭时，Lightning CSS 会将其写成 `:is(a:target-before, a:target-after)`。

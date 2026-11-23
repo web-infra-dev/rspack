@@ -236,7 +236,7 @@ Use `drafts` to choose which CSS draft features Lightning CSS recognizes when it
 
 #### customMedia
 
-Set `drafts.customMedia` to `true` to let the loader resolve named media queries defined with `@custom-media`. By default, it keeps both the definitions and references such as `@media (--wide)` in the output.
+Set `drafts.customMedia` to `true` to let the loader resolve named media queries defined with `@custom-media`. When this option is disabled, it keeps both the definitions and references such as `@media (--wide)` in the output.
 
 With the option enabled, the loader expands each reference and removes its definition when `include.customMediaQueries` is enabled or a browser target is configured. Lightning CSS treats custom media as unsupported in all browsers, so any browser target triggers expansion, including one inherited from Rspack's [`target`](/config/target).
 
@@ -311,6 +311,6 @@ Alternatively, leave custom media to [`LightningCssMinimizerRspackPlugin`](/plug
 
 #### scrollNavigationControls
 
-Set `drafts.scrollNavigationControls` to `true` to let Lightning CSS recognize the scroll marker pseudo-classes `:target-current`, `:target-before`, and `:target-after`. It then uses the configured browser targets to decide how to write selectors that contain them. By default, it treats these pseudo-classes as unknown.
+Set `drafts.scrollNavigationControls` to `true` to let Lightning CSS recognize the scroll marker pseudo-classes `:target-current`, `:target-before`, and `:target-after`. It then uses the configured browser targets to decide how to write selectors that contain them. When this option is disabled, it treats these pseudo-classes as unknown.
 
 For example, when targeting Chrome 150, enabling this option preserves the selector list `a:target-before, a:target-after`. With the option disabled, Lightning CSS writes `:is(a:target-before, a:target-after)`.
