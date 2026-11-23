@@ -1,9 +1,9 @@
-import other from './other.cjs';
 import './setup.js';
 import './pure-member.cjs';
 import './pure-computed-member.cjs';
-import './reassigned-to-require.cjs';
+import './reassigned-to-shared.cjs';
 import './reassigned-to-global.cjs';
+import './reassigned-in-function.cjs';
 import './setter.cjs';
 import './prototype-setter.cjs';
 import './shadowed-module.cjs';
@@ -12,6 +12,7 @@ import './proto-member.cjs';
 
 afterAll(() => {
   delete globalThis.__CJS_MEMBER_GLOBAL_WRITE__;
+  delete globalThis.__CJS_MEMBER_SHARED_EXPORTS__;
   delete globalThis.__CJS_MEMBER_SETTER_COUNT__;
   delete globalThis.__CJS_MEMBER_PROTOTYPE_SETTER_COUNT__;
   delete globalThis.__CJS_MEMBER_SHADOWED_COUNT__;
@@ -24,6 +25,7 @@ it('drops modules containing only module.exports member writes', () => {
   const sentinels = [
     ['PURE', 'MODULE', 'EXPORTS', 'MEMBER', 'SENTINEL'],
     ['PURE', 'MODULE', 'EXPORTS', 'COMPUTED', 'MEMBER', 'SENTINEL'],
+    ['PURE', 'MODULE', 'EXPORTS', 'FUNCTION', 'REASSIGN', 'SENTINEL'],
   ];
 
   for (const parts of sentinels) {
@@ -32,7 +34,7 @@ it('drops modules containing only module.exports member writes', () => {
 });
 
 it('keeps module.exports member writes after module.exports is reassigned to another object', () => {
-  expect(other.fromReassigned).toBe(true);
+  expect(globalThis.__CJS_MEMBER_SHARED_EXPORTS__.fromReassigned).toBe(true);
   expect(globalThis.__CJS_MEMBER_GLOBAL_WRITE__).toBe(1);
 });
 

@@ -1,4 +1,10 @@
-use std::{borrow::Cow, sync::LazyLock};
+use std::{
+  borrow::Cow,
+  sync::{
+    LazyLock,
+    atomic::{AtomicBool, Ordering},
+  },
+};
 
 use rspack_core::{
   DeferredPureCheck, Dependency, DependencyRange, ModuleDependency, SideEffectsBailoutItemWithSpan,
@@ -6,22 +12,26 @@ use rspack_core::{
 use rspack_intern::{AtomRef, AtomSet};
 use rspack_util::{
   SpanExt,
-  swc::{AstSubRangeExt, PropertyKeyValue, RspackComments, classify_property_key},
+  swc::{AstSubRangeExt, RspackComments},
 };
 use rustc_hash::FxHashSet;
 use swc_next_ecma_ast::{
-  ArgumentData, ArrowFunctionBodyData, ArrowFunctionExpression, AssignmentExpression,
-  AssignmentOperator, AssignmentTargetData, Ast, BindingPattern, BindingPatternData,
-  CallExpression, Class, ClassElement, ClassElementData, CommentKind, Decl, DeclData,
-  ExportDefaultDeclarationKindData, Expr, ExprData, ForStatementInitData, FormalParameterItemData,
-  FormalParameterPatternData, Function, GetSpan, MemberExpression, MethodDefinitionKind,
-  ModuleExportName, ModuleExportNameData, NodeKindData, ObjectPropertyKindData, Program,
-  PropertyKey, PropertyKeyData, PropertyKind, ScopeId, SimpleAssignmentTargetData, SourceType,
-  Span, Stmt, StmtData, VariableDeclaration as AstVariableDeclaration, VariableKind,
+  ArgumentData, ArrowFunctionBodyData, ArrowFunctionExpression, AssignmentExpression, Ast,
+  BindingPattern, BindingPatternData, CallExpression, Class, ClassElement, ClassElementData,
+  CommentKind, Decl, DeclData, ExportDefaultDeclarationKindData, Expr, ExprData,
+  ForStatementInitData, FormalParameterItemData, FormalParameterPatternData, Function, GetSpan,
+  MethodDefinitionKind, ModuleExportName, ModuleExportNameData, NodeKindData, Program, PropertyKey,
+  PropertyKeyData, ScopeId, SourceType, Span, Stmt, StmtData,
+  VariableDeclaration as AstVariableDeclaration, VariableKind,
 };
 use swc_next_ecma_semantic::Semantic;
 
-use super::side_effects_analysis::{SideEffectsContext, may_have_side_effects, property_key_is};
+use super::{
+  common_js_side_effects_analysis::{
+    CommonJsExports, common_js_export_write, is_plain_object_literal,
+  },
+  side_effects_analysis::{SideEffectsContext, may_have_side_effects},
+};
 use crate::{
   Atom, JavascriptParserPlugin,
   dependency::ESMImportSideEffectDependency,
@@ -35,12 +45,14 @@ static PURE_COMMENTS: LazyLock<regex::Regex> = LazyLock::new(|| {
 
 pub struct SideEffectsParserPlugin {
   analyze_side_effects_free: bool,
+  cjs_module_exports_plain_object: AtomicBool,
 }
 
 impl SideEffectsParserPlugin {
   pub fn new(analyze_side_effects_free: bool) -> Self {
     Self {
       analyze_side_effects_free,
+      cjs_module_exports_plain_object: AtomicBool::new(true),
     }
   }
 }
@@ -1117,59 +1129,15 @@ fn is_pure_var_decl(
 /// Recognize a top-level CommonJS export assignment whose target write is
 /// ignored only for module-evaluation side-effect analysis. The RHS is still
 /// judged by the regular parser purity behavior.
-fn is_common_js_export_assignment(
+fn top_level_common_js_export_write(
   parser: &mut JavascriptParser,
   assignment: AssignmentExpression,
-) -> bool {
-  let ast = parser.ast.ast;
-  if parser.is_esm
-    || !parser.is_top_level_scope()
-    || assignment.operator(ast) != AssignmentOperator::Assign
-  {
-    return false;
+) -> Option<CommonJsExports> {
+  if parser.is_esm || !parser.is_top_level_scope() {
+    return None;
   }
-
-  let AssignmentTargetData::SimpleAssignmentTarget(target) =
-    ast.assignment_target_data(assignment.left(ast))
-  else {
-    return false;
-  };
-  let SimpleAssignmentTargetData::MemberExpression(member) =
-    ast.simple_assignment_target_data(target)
-  else {
-    return false;
-  };
-  let Some(property) = static_member_property(ast, member) else {
-    return false;
-  };
-  let object = member.object(ast);
-
-  if let Some(identifier) = object.as_identifier_reference(ast) {
-    let name = ast.get_utf8(identifier.name(ast));
-    let property_is_side_effect_free = match name {
-      "exports" => property != "__proto__",
-      "module" => property == "exports",
-      _ => false,
-    };
-    if !property_is_side_effect_free || !is_free_variable(parser, name) {
-      return false;
-    }
-    if name == "module" && !is_plain_object_literal(ast, assignment.right(ast)) {
-      parser.module_exports_is_plain_object = false;
-    }
-    return true;
-  }
-
-  property != "__proto__"
-    && parser.module_exports_is_plain_object
-    && object.as_member_expression(ast).is_some_and(|object| {
-      static_member_property(ast, object) == Some("exports")
-        && object
-          .object(ast)
-          .as_identifier_reference(ast)
-          .is_some_and(|identifier| ast.get_utf8(identifier.name(ast)) == "module")
-    })
-    && is_free_variable(parser, "module")
+  let exports = common_js_export_write(parser.ast.ast, assignment)?;
+  is_free_variable(parser, exports.root_name()).then_some(exports)
 }
 
 fn is_free_variable(parser: &mut JavascriptParser, name: &str) -> bool {
@@ -1178,57 +1146,30 @@ fn is_free_variable(parser: &mut JavascriptParser, name: &str) -> bool {
     .is_none_or(|info| info.is_free())
 }
 
-fn static_member_property<'a>(ast: &Ast<'a>, member: MemberExpression) -> Option<&'a str> {
-  match classify_property_key(ast, member.property(ast)) {
-    PropertyKeyValue::IdentifierName(property) if !member.computed(ast) => {
-      Some(ast.get_utf8(property.name(ast)))
-    }
-    PropertyKeyValue::StringLiteral(property) if member.computed(ast) => {
-      ast.get_wtf8(property.value(ast)).as_str()
-    }
-    _ => None,
-  }
-}
-
-fn is_plain_object_literal(ast: &Ast<'_>, expression: Expr) -> bool {
-  let ExprData::ObjectExpression(object) = ast.expr_data(expression) else {
-    return false;
-  };
-  ast.nodes(object.properties(ast)).all(|property| {
-    let ObjectPropertyKindData::ObjectProperty(property) = ast.object_property_kind_data(property)
-    else {
-      return true;
-    };
-    if property.kind(ast) != PropertyKind::Init {
-      return false;
-    }
-    if property.computed(ast)
-      || property.shorthand(ast)
-      || property.method(ast)
-      || !property_key_is(ast, property.key(ast), "__proto__")
-    {
-      return true;
-    }
-    let prototype = property.value(ast);
-    matches!(ast.expr_data(prototype), ExprData::NullLiteral(_))
-      || is_plain_object_literal(ast, prototype)
-  })
-}
-
 /// Keep the CommonJS export-write exception out of `is_pure_expression`,
 /// because innerGraph also consumes that shared function.
 fn is_module_eval_pure_expression(
   parser: &mut JavascriptParser,
+  cjs_module_exports_plain_object: &AtomicBool,
   analyze_side_effects_free: bool,
   mut expression: Expr,
   comments: &RspackComments<'_>,
   callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
-  while let ExprData::AssignmentExpression(assignment) = parser.ast.ast.expr_data(expression) {
-    if !is_common_js_export_assignment(parser, assignment) {
-      break;
+  let ast = parser.ast.ast;
+  while let ExprData::AssignmentExpression(assignment) = ast.expr_data(expression) {
+    match top_level_common_js_export_write(parser, assignment) {
+      Some(CommonJsExports::ExportsMember) => {}
+      Some(CommonJsExports::ModuleExports) => {
+        if !is_plain_object_literal(ast, assignment.right(ast)) {
+          cjs_module_exports_plain_object.store(false, Ordering::Relaxed);
+        }
+      }
+      Some(CommonJsExports::ModuleExportsMember)
+        if cjs_module_exports_plain_object.load(Ordering::Relaxed) => {}
+      _ => break,
     }
-    expression = assignment.right(parser.ast.ast);
+    expression = assignment.right(ast);
   }
   is_pure_expression(
     parser,
@@ -1241,6 +1182,7 @@ fn is_module_eval_pure_expression(
 
 fn is_module_eval_pure_var_decl(
   parser: &mut JavascriptParser,
+  cjs_module_exports_plain_object: &AtomicBool,
   analyze_side_effects_free: bool,
   variable: AstVariableDeclaration,
   comments: &RspackComments<'_>,
@@ -1257,6 +1199,7 @@ fn is_module_eval_pure_var_decl(
     declarator.init(ast).is_none_or(|initializer| {
       is_module_eval_pure_expression(
         parser,
+        cjs_module_exports_plain_object,
         analyze_side_effects_free,
         initializer,
         comments,
@@ -1444,6 +1387,7 @@ impl SideEffectsParserPlugin {
             .is_none_or(|init| match ast.for_statement_init_data(init) {
               ForStatementInitData::VariableDeclaration(variable) => is_module_eval_pure_var_decl(
                 parser,
+                &self.cjs_module_exports_plain_object,
                 self.analyze_side_effects_free,
                 variable,
                 comments,
@@ -1479,6 +1423,7 @@ impl SideEffectsParserPlugin {
       }
       NodeKindData::ExpressionStatement(statement) => is_module_eval_pure_expression(
         parser,
+        &self.cjs_module_exports_plain_object,
         self.analyze_side_effects_free,
         statement.expression(ast),
         comments,
@@ -1500,6 +1445,7 @@ impl SideEffectsParserPlugin {
       ),
       NodeKindData::VariableDeclaration(statement) => is_module_eval_pure_var_decl(
         parser,
+        &self.cjs_module_exports_plain_object,
         self.analyze_side_effects_free,
         statement,
         comments,
