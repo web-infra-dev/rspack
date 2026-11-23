@@ -852,11 +852,13 @@ impl<'parser> JavascriptParser<'parser> {
     &mut self,
     f: impl FnOnce(&mut JavascriptParser) -> T,
   ) -> T {
-    let old_deps = self
-      .dependencies_in_branch_guard
-      .replace(Default::default());
+    if self.dependencies_in_branch_guard.is_some() {
+      // Keep references from nested tests available when evaluating the outer test.
+      return f(self);
+    }
+    self.dependencies_in_branch_guard = Some(Default::default());
     let result = f(self);
-    self.dependencies_in_branch_guard = old_deps;
+    self.dependencies_in_branch_guard = None;
     result
   }
 
