@@ -235,6 +235,28 @@ impl<'template> CompiledStringTemplate<'template> {
     })
   }
 
+  pub fn parts(&self) -> impl Iterator<Item = (&str, Option<StringTemplatePlaceholder>)> {
+    self.segments.iter().map(|segment| {
+      let (range, placeholder) = match segment {
+        StringTemplateSegment::Plain(range) => (range, None),
+        StringTemplateSegment::Placeholder { id, range } => {
+          let data = &self.placeholder_data[usize::from(*id)];
+          (
+            range,
+            Some(StringTemplatePlaceholder {
+              kind: data.kind,
+              parameters: data.parameters,
+            }),
+          )
+        }
+      };
+      (
+        &self.template[usize::from(range.start)..usize::from(range.end)],
+        placeholder,
+      )
+    })
+  }
+
   fn render_with_writer(
     &self,
     mut renderer: impl FnMut(StringTemplatePlaceholder, &mut String) -> bool,
@@ -246,26 +268,9 @@ impl<'template> CompiledStringTemplate<'template> {
       .min(MAX_ESTIMATED_TEMPLATE_GROWTH);
     let mut output = String::with_capacity(self.template.len().saturating_add(estimated_growth));
 
-    for segment in &self.segments {
-      match segment {
-        StringTemplateSegment::Plain(range) => {
-          output.push_str(&self.template[usize::from(range.start)..usize::from(range.end)]);
-        }
-        StringTemplateSegment::Placeholder { id, range } => {
-          let data = self
-            .placeholder_data
-            .get(usize::from(*id))
-            .expect("filename placeholder segment references missing side-table data");
-          let start = usize::from(range.start);
-          let end = usize::from(range.end);
-          let placeholder = StringTemplatePlaceholder {
-            kind: data.kind,
-            parameters: data.parameters,
-          };
-          if !renderer(placeholder, &mut output) {
-            output.push_str(&self.template[start..end]);
-          }
-        }
+    for (text, placeholder) in self.parts() {
+      if !placeholder.is_some_and(|placeholder| renderer(placeholder, &mut output)) {
+        output.push_str(text);
       }
     }
 

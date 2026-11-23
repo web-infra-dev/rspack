@@ -1906,6 +1906,11 @@ impl Debug for RuntimeCodeTemplate {
   }
 }
 
+pub enum ConcatenationPart<'a> {
+  Literal(Cow<'a, str>),
+  Expression(Cow<'a, str>),
+}
+
 impl RuntimeCodeTemplate {
   fn new(
     compiler_options: Arc<CompilerOptions>,
@@ -1976,6 +1981,75 @@ impl RuntimeCodeTemplate {
       ModuleArgument::Module => "module".to_string(),
       ModuleArgument::RspackModule => self.render_runtime_variable(&RuntimeVariable::Module),
     }
+  }
+
+  pub fn concatenation(&self, parts: &[ConcatenationPart<'_>]) -> String {
+    use ConcatenationPart::{Expression, Literal};
+
+    if parts.is_empty() {
+      return r#""""#.to_string();
+    }
+
+    if self.compiler_options.output.environment.template_literal && parts.len() > 2 {
+      // webpack estimates the minified cost: an interpolation costs three characters,
+      // while a run of n expressions between string literals costs 3 + n with '+'.
+      let mut template_cost = 0;
+      let mut plus_cost = 0;
+      let mut previous_expression = false;
+      for part in parts {
+        let expression = matches!(part, Expression(_));
+        if expression {
+          template_cost += 3;
+          plus_cost += if previous_expression { 1 } else { 4 };
+        }
+        previous_expression = expression;
+      }
+      if previous_expression {
+        plus_cost -= 3;
+      }
+      if matches!(parts, [Expression(_), Literal(_), ..]) {
+        plus_cost -= 3;
+      }
+
+      if template_cost < plus_cost {
+        let mut output = String::from("`");
+        for part in parts {
+          match part {
+            Expression(expr) => write!(output, "${{{expr}}}").expect("infallible write to String"),
+            Literal(text) => {
+              for c in text.chars() {
+                match c {
+                  '\\' | '`' | '$' => {
+                    output.push('\\');
+                    output.push(c);
+                  }
+                  '\r' => output.push_str("\\r"),
+                  '\n' => output.push_str("\\n"),
+                  _ => output.push(c),
+                }
+              }
+            }
+          }
+        }
+        output.push('`');
+        return output;
+      }
+    }
+
+    let mut output = String::new();
+    if matches!(parts, [Expression(_)] | [Expression(_), Expression(_), ..]) {
+      output.push_str(r#""" + "#);
+    }
+    for (index, part) in parts.iter().enumerate() {
+      if index > 0 {
+        output.push_str(" + ");
+      }
+      match part {
+        Literal(text) => output.push_str(&rspack_util::json_stringify_str(text)),
+        Expression(expr) => output.push_str(expr),
+      }
+    }
+    output
   }
 
   pub fn basic_function(&self, args: &str, body: &str) -> String {

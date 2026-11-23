@@ -1,8 +1,8 @@
 use std::fmt::Write as _;
 
 use rspack_core::{
-  Chunk, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, PathData, RuntimeCodeTemplate,
-  RuntimeVariable, SourceType,
+  Chunk, ChunkLoading, ChunkLoadingType, ChunkUkey, Compilation, ConcatenationPart, PathData,
+  RuntimeCodeTemplate, RuntimeVariable, SourceType,
   chunk_graph_chunk::{ChunkId, ChunkIdSet},
   get_js_chunk_filename_template, get_undo_path,
 };
@@ -158,22 +158,11 @@ pub fn is_enabled_for_chunk(
   chunk_loading == expected
 }
 
-pub fn unquoted_stringify(chunk_id: Option<&ChunkId>, str: &str) -> String {
-  if let Some(chunk_id) = chunk_id
-    && str.len() >= 5
-    && str == chunk_id.as_str()
-  {
-    return "\" + chunkId + \"".to_string();
-  }
-  let result = rspack_util::json_stringify_str(str);
-  result[1..result.len() - 1].to_string()
-}
-
 pub fn stringify_dynamic_chunk_map<F>(
   f: F,
   chunks: &FxIndexSet<ChunkUkey>,
   chunk_map: &FxIndexMap<ChunkUkey, &Chunk>,
-) -> String
+) -> ConcatenationPart<'static>
 where
   F: Fn(&Chunk) -> Option<String>,
 {
@@ -188,25 +177,28 @@ where
       if value.as_str() == chunk_id.as_str() {
         use_id = true;
       } else {
-        entries.push((chunk_id, rspack_util::json_stringify_str(&value)));
+        entries.push((chunk_id, value));
       }
     }
   }
 
-  let content = match entries.as_mut_slice() {
+  let expression = match entries.as_mut_slice() {
     [] => "chunkId".to_string(),
     [(chunk_id, value)] => {
       if use_id {
         format!(
           "(chunkId === {} ? {} : chunkId)",
           rspack_util::json_stringify(*chunk_id),
-          value
+          rspack_util::json_stringify_str(value)
         )
       } else {
-        value.clone()
+        return ConcatenationPart::Literal(std::mem::take(value).into());
       }
     }
     entries => {
+      for (_, value) in entries.iter_mut() {
+        *value = rspack_util::json_stringify_str(value);
+      }
       let map = stringify_map(entries);
       if use_id {
         format!("({map}[chunkId] || chunkId)")
@@ -215,7 +207,7 @@ where
       }
     }
   };
-  format!("\" + {content} + \"")
+  ConcatenationPart::Expression(expression.into())
 }
 
 pub fn stringify_static_chunk_map(filename: &str, chunk_ids: &[&ChunkId]) -> String {
