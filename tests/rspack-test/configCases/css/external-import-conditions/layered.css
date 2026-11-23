@@ -1,0 +1,5 @@
+@import url("https://example.com/layered.css") layer(inner) supports(display: flex);
+
+.layered {
+	color: purple;
+}
