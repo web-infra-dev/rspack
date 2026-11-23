@@ -82,7 +82,7 @@ impl Cutout {
 
     // Propagate producer invalidation forward to generated module-executor results
     // without rebuilding sibling producers, preserving rebuild locality.
-    expand_module_executor_results(module_graph, &mut force_build_modules, false);
+    expand_module_executor_results(module_graph, force_build_modules, false);
 
     // analyze force_build_module and force_build_deps
     self
