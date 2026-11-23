@@ -288,10 +288,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     let identifier_state = if let ExportDefaultDeclarationKindData::Expr(expression) = expr_data
       && let ExprData::IdentifierReference(identifier) = ast.expr_data(expression)
     {
-      let resolution = parser
-        .definitions_db
-        .semantic_context
-        .identifier_resolution(parser.ast, identifier);
+      let resolution = parser.ast.identifier_resolution(identifier);
       parser
         .definitions_db
         .resolve_identifier(parser.ast, identifier, resolution)

@@ -8,74 +8,31 @@ use super::{
   SymbolBinding,
 };
 
-/// Append-only registry of immutable semantic lookup data for all retained ASTs.
-#[derive(Default)]
-pub(crate) struct SemanticStore<'ast> {
-  /// Per-AST lookup records, with the original module registered first.
-  asts: Vec<AstSemantic<'ast>>,
-  /// Total size of the disjoint symbol ranges reserved by registered ASTs.
-  symbol_count: u32,
-  /// Total size of the disjoint semantic-scope ranges reserved by registered ASTs.
-  scope_count: u32,
-}
-
-/// Active semantic environment, separate from stored AST data and mutable bindings.
-pub(crate) struct SemanticContext<'ast> {
-  /// Index of the currently active AST in the semantic store.
-  active_ast: usize,
-  /// Cached active AST reference, avoiding a registry lookup per identifier.
-  ast: Option<&'ast ParsedJavaScriptAst<'ast>>,
-  /// Cached offset mapping active AST symbol indices into the binding-state array.
-  symbol_start: u32,
-  /// Cached offset mapping active AST scopes into the shared default-owner array.
-  scope_start: u32,
-  /// Saved caller (AST index, SWC scope) pairs for name lookup and context restoration.
-  parents: Vec<(usize, ScopeId)>,
-  /// Current SWC scope within the active AST, independent of the Rspack scope.
-  pub(crate) scope: ScopeId,
-}
-
-impl Default for SemanticContext<'_> {
-  /// Creates an inactive context, ready for the first AST to be registered.
-  fn default() -> Self {
-    Self {
-      active_ast: 0,
-      ast: None,
-      symbol_start: 0,
-      scope_start: 0,
-      parents: Vec::new(),
-      scope: ScopeId::ROOT,
-    }
-  }
-}
-
-/// Per-AST lookup data, immutable after registration and separate from mutable binding state.
-struct AstSemantic<'ast> {
-  /// Borrowed parsed AST and its existing SWC semantic analysis, without cloning either.
-  ast: &'ast ParsedJavaScriptAst<'ast>,
-  /// Start of this AST's disjoint binding-state range in `ScopeInfoDB::symbols`.
-  symbol_start: u32,
-  /// Start of this AST's disjoint scope range in `ScopeInfoDB::semantic_scope_owners`.
-  scope_start: u32,
-  /// SWC program scope activated when this AST is entered.
-  root_scope: ScopeId,
-}
-
-/// Maps a symbol and its semantic declaration scope into the database-wide ranges.
-fn symbol_binding(
-  semantic: &Semantic<'_>,
-  symbol_start: u32,
-  scope_start: u32,
-  symbol: SymbolId,
-) -> SymbolBinding {
+/// Maps a module symbol to its override slot and semantic declaration scope.
+fn symbol_binding(semantic: &Semantic<'_>, symbol: SymbolId) -> SymbolBinding {
   SymbolBinding {
-    index: NonZeroU32::new(symbol_start + symbol.index() as u32 + 1)
+    index: NonZeroU32::new(symbol.index() as u32 + 1)
       .expect("semantic symbol indices start at one"),
     scope: SemanticScopeId(
-      NonZeroU32::new(scope_start + semantic.scope_of_symbol(symbol).raw())
+      NonZeroU32::new(semantic.scope_of_symbol(symbol).raw())
         .expect("semantic scope indices start at one"),
     ),
   }
+}
+
+#[inline(never)]
+pub(super) fn symbol_for_name(
+  semantic: Option<&Semantic<'_>>,
+  scope: ScopeId,
+  name: &str,
+) -> Option<SymbolBinding> {
+  // These roots and the synthetic default export live in the name-based overlay.
+  if matches!(name, "this" | "import.meta" | "new.target" | "*default*") {
+    return None;
+  }
+  let semantic = semantic?;
+  let symbol = semantic.lookup(scope, name.as_bytes(), ReferenceSpace::Value)?;
+  Some(symbol_binding(semantic, symbol))
 }
 
 /// Immutable lookup information only; mutable binding state must be read again after hooks.
@@ -86,168 +43,55 @@ pub(crate) enum IdentifierResolution {
   Unresolved,
 }
 
-impl<'ast> SemanticStore<'ast> {
-  /// Registers semantic lookup tables and reserves a disjoint range for this AST's symbols.
-  fn register_ast(&mut self, ast: &'ast ParsedJavaScriptAst<'ast>) -> usize {
-    let info = AstSemantic {
-      ast,
-      symbol_start: self.symbol_count,
-      scope_start: self.scope_count,
-      root_scope: ast
-        .semantic
-        .scope_of(ast.program.node_id())
-        .expect("program has a semantic scope"),
-    };
-    let scope_count = ast.semantic.iter_scopes().count() as u32;
-    self.scope_count = self
-      .scope_count
-      .checked_add(scope_count)
-      .filter(|count| *count < u32::MAX - 1)
-      .expect("too many semantic scopes");
-    let mut symbol_count = 0;
-    for entry in ast.semantic.iter_symbols() {
-      symbol_count = symbol_count.max(entry.id.index() + 1);
-    }
-    let symbol_end = info
-      .symbol_start
-      .checked_add(u32::try_from(symbol_count).expect("too many semantic bindings"))
-      .expect("too many semantic bindings");
-    self.symbol_count = symbol_end;
-    let index = self.asts.len();
-    self.asts.push(info);
-    index
-  }
-
-  /// Finds a value symbol in the active AST, then in saved fragment callers.
-  #[inline(never)]
-  pub(super) fn symbol_for_name(
-    &self,
-    context: &SemanticContext<'_>,
-    name: &str,
-  ) -> Option<SymbolBinding> {
-    // These roots and the synthetic default export cannot name lexical bindings.
-    // Their aliases and tags live in the Rspack overlay, also for replacement ASTs.
-    if matches!(name, "this" | "import.meta" | "new.target" | "*default*") {
-      return None;
-    }
-    let semantic = context.ast?.semantic;
-    semantic
-      .lookup(context.scope, name.as_bytes(), ReferenceSpace::Value)
-      .map(|symbol| symbol_binding(semantic, context.symbol_start, context.scope_start, symbol))
-      .or_else(|| {
-        if context.parents.is_empty() {
-          None
-        } else {
-          self.symbol_in_parent_ast(context, name)
-        }
-      })
-  }
-
-  /// Keeps fragment-only caller lookup out of the inlined ordinary-name path.
-  #[cold]
-  #[inline(never)]
-  fn symbol_in_parent_ast(
-    &self,
-    context: &SemanticContext<'_>,
-    name: &str,
-  ) -> Option<SymbolBinding> {
-    context.parents.iter().rev().find_map(|&(ast, scope)| {
-      let info = &self.asts[ast];
-      info
-        .ast
-        .semantic
-        .lookup(scope, name.as_bytes(), ReferenceSpace::Value)
-        .map(|symbol| {
-          symbol_binding(
-            info.ast.semantic,
-            info.symbol_start,
-            info.scope_start,
-            symbol,
-          )
-        })
-    })
-  }
-}
-
-impl<'ast> SemanticContext<'ast> {
-  /// Activates a fragment's root scope, saving its caller for lookup and restoration.
-  fn enter_ast(&mut self, store: &SemanticStore<'ast>, index: usize) {
-    self.parents.push((self.active_ast, self.scope));
-    self.set_ast(store, index);
-    self.scope = store.asts[index].root_scope;
-  }
-
-  /// Restores the caller's AST and semantic scope after processing a fragment.
-  fn leave_ast(&mut self, store: &SemanticStore<'ast>) {
-    let (index, scope) = self.parents.pop().expect("active fragment");
-    self.set_ast(store, index);
-    self.scope = scope;
-  }
-
-  /// Switches the active AST and refreshes the cached reference and symbol offset.
-  fn set_ast(&mut self, store: &SemanticStore<'ast>, index: usize) {
-    let info = &store.asts[index];
-    self.active_ast = index;
-    self.ast = Some(info.ast);
-    self.symbol_start = info.symbol_start;
-    self.scope_start = info.scope_start;
-  }
-
-  /// Classifies an identifier using semantic data without reading mutable binding state.
+impl ParsedJavaScriptAst<'_> {
+  /// Eval fragments have no semantic data and resolve names in the caller's scope.
   #[inline]
   pub(crate) fn identifier_resolution(
     &self,
-    parsed: &ParsedJavaScriptAst<'_>,
     identifier: IdentifierReference,
   ) -> IdentifierResolution {
-    debug_assert!(self.ast.is_some_and(|ast| std::ptr::eq(ast, parsed)));
-    let semantic = parsed.semantic;
+    let Some(semantic) = self.semantic else {
+      return IdentifierResolution::Name;
+    };
     let Some(reference) = semantic.reference_of(identifier.node_id()) else {
       return IdentifierResolution::Name;
     };
-    let reference = semantic.reference(reference);
-    match reference.symbol {
+    match semantic.reference(reference).symbol {
       Some(symbol) => IdentifierResolution::Symbol(symbol),
-      // A fragment is evaluated in its caller's environment, not as a separate module.
-      None if !self.parents.is_empty() => IdentifierResolution::Name,
       None => IdentifierResolution::Unresolved,
     }
   }
 }
 
 impl<'ast> ScopeInfoDB<'ast> {
-  /// Creates the module scope and initializes its bindings from the original AST's semantic data.
-  pub fn with_semantic(ast: &'ast ParsedJavaScriptAst<'ast>) -> Self {
+  /// Creates the module scope and initializes bindings from the module's semantic data.
+  pub fn with_semantic(parsed: &ParsedJavaScriptAst<'ast>) -> Self {
+    let ast = parsed.ast;
+    let semantic = parsed.semantic.expect("module AST has semantic data");
     let mut db = Self::new();
-    let index = db.register_ast(ast);
-    db.semantic_context.set_ast(&db.semantic, index);
-    db.semantic_context.scope = db.semantic.asts[index].root_scope;
+    db.module_semantic = Some((ast, semantic));
+    db.semantic_scope = semantic
+      .scope_of(ast.root_program().node_id())
+      .expect("program has a semantic scope");
+    let scope_count = semantic.iter_scopes().count();
+    assert!(
+      scope_count < (u32::MAX - 1) as usize,
+      "too many semantic scopes"
+    );
+    db.semantic_scope_owners.resize(scope_count, None);
+    let symbol_count = semantic
+      .iter_symbols()
+      .map(|entry| entry.id.index() + 1)
+      .max()
+      .unwrap_or_default();
+    assert!(
+      u32::try_from(symbol_count).is_ok(),
+      "too many semantic bindings"
+    );
+    db.symbols.resize(symbol_count, None);
     db.create();
     db.initialize_scope_bindings();
     db
-  }
-
-  /// Registers an AST and allocates its initially unset binding-state slots.
-  pub(crate) fn register_ast(&mut self, ast: &'ast ParsedJavaScriptAst<'ast>) -> usize {
-    let index = self.semantic.register_ast(ast);
-    self
-      .symbols
-      .resize(self.semantic.symbol_count as usize, None);
-    self
-      .semantic_scope_owners
-      .resize(self.semantic.scope_count as usize, None);
-    index
-  }
-
-  /// Activates a registered fragment and initializes its bindings in the current Rspack scope.
-  pub(crate) fn enter_ast(&mut self, index: usize) {
-    self.semantic_context.enter_ast(&self.semantic, index);
-    self.initialize_scope_bindings();
-  }
-
-  /// Restores the caller's semantic context; Rspack scope exit handles binding rollback separately.
-  pub(crate) fn leave_ast(&mut self) {
-    self.semantic_context.leave_ast(&self.semantic);
   }
 
   /// Reads an override or derives the default state from the symbol's active semantic scope.
@@ -322,9 +166,11 @@ impl<'ast> ScopeInfoDB<'ast> {
     name: impl Into<AtomRef<'key>>,
   ) -> (Option<BindingState>, Option<SymbolBinding>) {
     let name = name.into();
-    let symbol = self
-      .semantic
-      .symbol_for_name(&self.semantic_context, name.as_str());
+    let symbol = symbol_for_name(
+      self.module_semantic.map(|(_, semantic)| semantic),
+      self.semantic_scope,
+      name.as_str(),
+    );
     if let Some(symbol) = symbol {
       if let Some(state) = self.symbol_state(symbol) {
         return (state.defined(), Some(symbol));
@@ -345,53 +191,44 @@ impl<'ast> ScopeInfoDB<'ast> {
     resolution: IdentifierResolution,
   ) -> Option<BindingState> {
     let ast = parsed.ast;
-    if let IdentifierResolution::Name = resolution {
-      return self.resolve_identifier_fallback(parsed, identifier, resolution);
-    }
-    if let IdentifierResolution::Symbol(symbol) = resolution {
-      let index = self.semantic_context.symbol_start as usize + symbol.index();
-      if let Some(state) = self.symbols[index] {
-        return state.defined();
+    match resolution {
+      IdentifierResolution::Name => {
+        self.resolve_identifier_name(ast.get_utf8(identifier.name(ast)))
       }
-      let scope = self.semantic_context.scope_start as usize
-        + parsed.semantic.scope_of_symbol(symbol).raw() as usize
-        - 1;
-      if let Some(owner) = self.semantic_scope_owners[scope] {
-        return Some(BindingState::Normal(owner));
+      IdentifierResolution::Symbol(symbol) => {
+        if let Some(state) = self.symbols[symbol.index()] {
+          return state.defined();
+        }
+        let semantic = parsed.semantic.expect("resolved symbol has semantic data");
+        let scope = semantic.scope_of_symbol(symbol).raw() as usize - 1;
+        if let Some(owner) = self.semantic_scope_owners[scope] {
+          return Some(BindingState::Normal(owner));
+        }
+        self.resolve_inactive_symbol(
+          ast.get_utf8(identifier.name(ast)),
+          symbol_binding(semantic, symbol),
+        )
       }
-      return self.resolve_identifier_fallback(parsed, identifier, resolution);
+      IdentifierResolution::Unresolved => {
+        self.get(self.current_scope(), ast.get_utf8(identifier.name(ast)))
+      }
     }
-    self.get(self.current_scope(), ast.get_utf8(identifier.name(ast)))
   }
 
-  /// Shares dynamic-name and inactive-symbol handling instead of inlining it at every use.
   #[cold]
   #[inline(never)]
-  fn resolve_identifier_fallback(
-    &mut self,
-    parsed: &ParsedJavaScriptAst<'_>,
-    identifier: IdentifierReference,
-    resolution: IdentifierResolution,
-  ) -> Option<BindingState> {
-    let ast = parsed.ast;
-    let name = ast.get_utf8(identifier.name(ast));
-    if let IdentifierResolution::Name = resolution {
-      return self.resolve(name);
+  fn resolve_identifier_name(&mut self, name: &str) -> Option<BindingState> {
+    self.resolve(name)
+  }
+
+  #[cold]
+  #[inline(never)]
+  fn resolve_inactive_symbol(&mut self, name: &str, symbol: SymbolBinding) -> Option<BindingState> {
+    let scope = self.current_scope();
+    if let Some(state) = self.bind_existing_symbol(scope, name, symbol) {
+      return state.defined();
     }
-    if let IdentifierResolution::Symbol(symbol) = resolution {
-      let symbol = symbol_binding(
-        parsed.semantic,
-        self.semantic_context.symbol_start,
-        self.semantic_context.scope_start,
-        symbol,
-      );
-      if let Some(state) = self.bind_existing_symbol(self.current_scope(), name, symbol) {
-        return state.defined();
-      }
-      // Replacement trees and legacy scope mappings can still introduce a
-      // binding through the name-based overlay.
-    }
-    self.get(self.current_scope(), name)
+    self.get(scope, name)
   }
 
   /// Reuses a declaration's semantic symbol while still observing mutable tags and aliases.
@@ -400,19 +237,10 @@ impl<'ast> ScopeInfoDB<'ast> {
     parsed: &ParsedJavaScriptAst<'_>,
     identifier: BindingIdentifier,
   ) -> (Option<BindingState>, Option<SymbolBinding>) {
-    debug_assert!(
-      self
-        .semantic_context
-        .ast
-        .is_some_and(|ast| std::ptr::eq(ast, parsed))
-    );
-    if let Some(symbol) = parsed.semantic.symbol_of(identifier.node_id()) {
-      let symbol = symbol_binding(
-        parsed.semantic,
-        self.semantic_context.symbol_start,
-        self.semantic_context.scope_start,
-        symbol,
-      );
+    if let Some(semantic) = parsed.semantic
+      && let Some(symbol) = semantic.symbol_of(identifier.node_id())
+    {
+      let symbol = symbol_binding(semantic, symbol);
       if let Some(state) = self.symbol_state(symbol) {
         return (state.defined(), Some(symbol));
       }
@@ -436,9 +264,7 @@ impl<'ast> ScopeInfoDB<'ast> {
   /// Activates shared default owners for the current scope.
   pub fn initialize_scope_bindings(&mut self) {
     let scope = self.current_scope();
-    let id = SemanticScopeId::from_index(
-      self.semantic_context.scope_start as usize + self.semantic_context.scope.raw() as usize - 1,
-    );
+    let id = SemanticScopeId::from_index(self.semantic_scope.raw() as usize - 1);
     if self.semantic_scope_owners[id.index()].is_none() {
       self.semantic_scope_owners[id.index()] = Some(scope);
       self.scope_activations.push(id);
@@ -447,22 +273,19 @@ impl<'ast> ScopeInfoDB<'ast> {
 
   /// Hides callback parameter bindings to preserve require.ensure's free-name handling.
   pub fn suppress_scope_parameters(&mut self) {
-    let parsed = self.semantic_context.ast.expect("active AST");
+    let (_, semantic) = self.module_semantic.expect("module AST has semantic data");
     let scope = self.current_scope();
-    for symbol in parsed.semantic.bindings(self.semantic_context.scope) {
-      if parsed
-        .semantic
+    for symbol in semantic.bindings(self.semantic_scope) {
+      if semantic
         .symbol(symbol)
         .flags
         .contains(SymbolFlags::PARAMETER)
       {
-        let index = symbol_binding(
-          parsed.semantic,
-          self.semantic_context.symbol_start,
-          self.semantic_context.scope_start,
-          symbol,
+        self.set_symbol(
+          symbol_binding(semantic, symbol),
+          BindingState::Tombstone,
+          scope,
         );
-        self.set_symbol(index, BindingState::Tombstone, scope);
       }
     }
   }
@@ -474,13 +297,11 @@ impl<'ast> ScopeInfoDB<'ast> {
       .scope_variable_bindings(scope)
       .filter_map(|(name, _, visible)| visible.defined().map(|state| (name.clone(), state)))
       .collect::<Vec<_>>();
-    let Some(info) = self.semantic.asts.get(self.semantic_context.active_ast) else {
+    let Some((ast, semantic)) = self.module_semantic else {
       return variables;
     };
-    let parsed = info.ast;
-    for symbol in parsed.semantic.bindings(self.semantic_context.scope) {
-      if !parsed
-        .semantic
+    for symbol in semantic.bindings(self.semantic_scope) {
+      if !semantic
         .symbol(symbol)
         .flags
         .visible_in(ReferenceSpace::Value)
@@ -488,12 +309,7 @@ impl<'ast> ScopeInfoDB<'ast> {
         continue;
       }
       let Some(state) = self
-        .symbol_state(symbol_binding(
-          parsed.semantic,
-          info.symbol_start,
-          info.scope_start,
-          symbol,
-        ))
+        .symbol_state(symbol_binding(semantic, symbol))
         .and_then(BindingState::defined)
       else {
         continue;
@@ -501,8 +317,8 @@ impl<'ast> ScopeInfoDB<'ast> {
       if self.expect_get_variable(state).declared_scope != scope {
         continue;
       }
-      let name = parsed.semantic.symbol(symbol).name;
-      let name = parsed.ast.get_wtf8(name).to_string_lossy();
+      let name = semantic.symbol(symbol).name;
+      let name = ast.get_wtf8(name).to_string_lossy();
       // The overlay has already supplied visible metadata for names it owns,
       // including tombstones and persistent ancestor writes.
       if self.get_raw(scope, name.as_ref()).is_none() {

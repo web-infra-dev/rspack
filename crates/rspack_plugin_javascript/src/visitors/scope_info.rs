@@ -3,12 +3,12 @@ use std::num::NonZeroU32;
 use bitflags::bitflags;
 use rspack_intern::{AtomMap, AtomRef};
 use smallvec::SmallVec;
+use swc_next_ecma_ast::{Ast, ScopeId};
+use swc_next_ecma_semantic::Semantic;
 
 use crate::{Atom, visitors::ParsedJavaScriptAst};
 
 mod semantic;
-
-use semantic::{SemanticContext, SemanticStore};
 
 macro_rules! dense_id {
   ($name:ident) => {
@@ -89,7 +89,7 @@ enum BindingTarget {
   Local(BindingState),
 }
 
-/// A symbol's override slot and default owner scope, both mapped across retained ASTs.
+/// A module symbol's override slot and default owner scope.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct SymbolBinding {
   index: NonZeroU32,
@@ -125,17 +125,17 @@ pub struct ScopeInfoDB<'ast> {
   variable_metadata: Vec<VariableMetadata>,
   /// Plugin tag payloads and linked tag chains indexed by `TagInfoId`.
   tag_info_db: TagInfoDB,
-  /// Registered ASTs and their immutable semantic lookup data.
-  pub(crate) semantic: SemanticStore<'ast>,
-  /// Active semantic environment and the context stack for replacement ASTs.
-  pub(crate) semantic_context: SemanticContext<'ast>,
-  /// Binding overrides in disjoint per-AST ranges; `None` uses the active semantic scope's default.
+  /// The module's AST and semantic data, also used for name lookup from eval fragments.
+  module_semantic: Option<(&'ast Ast<'ast>, &'ast Semantic<'ast>)>,
+  /// Current semantic scope in the module, independent of the current Rspack scope.
+  pub(crate) semantic_scope: ScopeId,
+  /// Binding overrides indexed by module symbol; `None` uses the semantic scope's default.
   symbols: Vec<Option<BindingState>>,
   /// Active Rspack owner of each semantic scope, shared by all its ordinary bindings.
   semantic_scope_owners: Vec<Option<ScopeInfoId>>,
   /// Semantic scopes activated during the walk, cleared when their Rspack owner exits.
   scope_activations: Vec<SemanticScopeId>,
-  /// Scope-exit undo log of (global symbol index, previous state, owning Rspack scope).
+  /// Scope-exit undo log of (symbol, previous state, owning Rspack scope).
   overrides: Vec<(SymbolBinding, Option<BindingState>, ScopeInfoId)>,
 }
 
@@ -153,8 +153,8 @@ impl<'ast> ScopeInfoDB<'ast> {
       current: None,
       variable_metadata: Vec::new(),
       tag_info_db: TagInfoDB::new(),
-      semantic: SemanticStore::default(),
-      semantic_context: SemanticContext::default(),
+      module_semantic: None,
+      semantic_scope: ScopeId::ROOT,
       symbols: Vec::new(),
       semantic_scope_owners: Vec::new(),
       scope_activations: Vec::new(),
@@ -368,8 +368,10 @@ impl<'ast> ScopeInfoDB<'ast> {
     state: BindingState,
     symbol: Option<Option<SymbolBinding>>,
   ) {
+    let semantic = self.module_semantic.map(|(_, semantic)| semantic);
+    let scope = self.semantic_scope;
     let resolve_symbol =
-      || symbol.unwrap_or_else(|| self.semantic.symbol_for_name(&self.semantic_context, &key));
+      || symbol.unwrap_or_else(|| semantic::symbol_for_name(semantic, scope, &key));
     let stack = self.bindings.entry(key.clone()).or_default();
     let symbol = if let Some(top) = stack.last_mut()
       && top.scope == id

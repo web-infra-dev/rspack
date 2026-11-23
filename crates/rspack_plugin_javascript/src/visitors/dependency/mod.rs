@@ -10,7 +10,7 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_util::swc::RspackComments;
 use rustc_hash::FxHashSet;
-use swc_next_ecma_ast::{Ast, Program};
+use swc_next_ecma_ast::Ast;
 use swc_next_ecma_semantic::Semantic;
 
 pub(crate) use self::parser::{StatementPath, member_property_key_to_atom};
@@ -37,8 +37,8 @@ pub struct ScanDependenciesResult {
 pub struct ParsedJavaScriptAst<'ast> {
   pub ast: &'ast Ast<'ast>,
   pub comments: &'ast RspackComments<'ast>,
-  pub semantic: &'ast Semantic<'ast>,
-  pub program: Program,
+  /// Evaluated fragment ast does not have semantic information
+  pub semantic: Option<&'ast Semantic<'ast>>,
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -92,6 +92,6 @@ pub fn scan_dependencies(
     parser_runtime_requirements,
   );
 
-  parser.walk_program(ast.program);
+  parser.walk_program(ast.ast.root_program());
   parser.into_results()
 }

@@ -361,13 +361,11 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let (ast, semantic) = semantic.into_parts();
     // SAFETY: The dependency scan keeps handles with their owning AST and does not mutate it.
     let ast = unsafe { ast.ast() };
-    let program = ast.root_program();
     let comments = RspackComments::from_ast(ast);
     let parsed_ast = ParsedJavaScriptAst {
       ast,
       comments: &comments,
-      semantic: &semantic,
-      program,
+      semantic: Some(&semantic),
     };
     let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
 

@@ -270,16 +270,15 @@ fn already_marked_or_duplicate(
   name: &str,
   identifier: swc_next_ecma_ast::BindingIdentifier,
 ) -> bool {
-  parser
-    .ast
-    .semantic
-    .symbol_of(identifier.node_id())
-    .is_some_and(|symbol| parser.ast.semantic.declarations(symbol).len() > 1)
-    || parser
-      .build_info
-      .side_effects_free
-      .as_ref()
-      .is_some_and(|side_effects_free| side_effects_free.contains(name))
+  parser.ast.semantic.is_some_and(|semantic| {
+    semantic
+      .symbol_of(identifier.node_id())
+      .is_some_and(|symbol| semantic.declarations(symbol).len() > 1)
+  }) || parser
+    .build_info
+    .side_effects_free
+    .as_ref()
+    .is_some_and(|side_effects_free| side_effects_free.contains(name))
 }
 
 fn try_mark_auto_side_effects_free_variable(
@@ -420,13 +419,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
           .extend(detected);
       }
 
-      if let Some(configured) = &parser.javascript_options.side_effects_free {
-        let defined = collect_defined_configured_side_effects_free(
-          ast,
-          program,
-          configured,
-          parser.ast.semantic,
-        );
+      if let Some(configured) = &parser.javascript_options.side_effects_free
+        && let Some(semantic) = parser.ast.semantic
+      {
+        let defined =
+          collect_defined_configured_side_effects_free(ast, program, configured, semantic);
         if !defined.is_empty() {
           parser
             .build_info
@@ -602,17 +599,16 @@ fn resolve_explicit_side_effects_free_callee(
     }
   }
 
-  if parser.active_synthetic_ast.is_none() {
-    let reference = parser
-      .ast
-      .semantic
+  if let Some(semantic) = parser.ast.semantic {
+    let reference = semantic
       .reference_of(identifier.node_id())
-      .map(|reference| parser.ast.semantic.reference(reference));
+      .map(|reference| semantic.reference(reference));
     return match reference {
       Some(reference) if reference.symbol.is_some() => {
-        if reference.symbol.is_some_and(|symbol| {
-          parser.ast.semantic.scope_of_symbol(symbol) == top_level_scope(parser.ast.ast)
-        }) {
+        if reference
+          .symbol
+          .is_some_and(|symbol| semantic.scope_of_symbol(symbol) == top_level_scope(parser.ast.ast))
+        {
           ExplicitSideEffectsFreeCallee::Direct
         } else {
           ExplicitSideEffectsFreeCallee::Invalid

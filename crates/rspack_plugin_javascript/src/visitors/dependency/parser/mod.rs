@@ -483,7 +483,7 @@ pub struct JavascriptParser<'parser> {
   // ===== inputs =======
   pub(crate) source: &'parser str,
   pub ast: &'parser ParsedJavaScriptAst<'parser>,
-  synthetic_asts: Vec<(&'parser ParsedJavaScriptAst<'parser>, usize)>,
+  synthetic_asts: Vec<&'parser ParsedJavaScriptAst<'parser>>,
   /// Active replacement AST index; `None` means the original module AST.
   pub(crate) active_synthetic_ast: Option<usize>,
   pub parse_meta: ParseMeta,
@@ -1166,10 +1166,7 @@ impl<'parser> JavascriptParser<'parser> {
     let ExprData::IdentifierReference(identifier) = self.ast.ast.expr_data(root) else {
       return self.get_name_info_from_variable(root.get_root_name(self.ast.ast)?);
     };
-    let resolution = self
-      .definitions_db
-      .semantic_context
-      .identifier_resolution(self.ast, identifier);
+    let resolution = self.ast.identifier_resolution(identifier);
     let Some(state) = self
       .definitions_db
       .resolve_identifier(self.ast, identifier, resolution)
@@ -1716,12 +1713,12 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn detect_mode(&mut self, program: Program) {
     // Semantic can rule out strict directives; module classification still follows Rspack.
     if self.is_strict()
-      || !self
-        .ast
-        .semantic
-        .scope(self.definitions_db.semantic_context.scope)
-        .flags
-        .strict
+      || self.ast.semantic.is_some_and(|semantic| {
+        !semantic
+          .scope(self.definitions_db.semantic_scope)
+          .flags
+          .strict
+      })
     {
       return;
     }
@@ -1759,28 +1756,14 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn add_synthetic_ast(&mut self, ast: &'parser ParsedJavaScriptAst<'parser>) -> usize {
-    let index = self.synthetic_asts.len();
-    let semantic = self.definitions_db.register_ast(ast);
-    self.synthetic_asts.push((ast, semantic));
-    index
-  }
-
   pub(crate) fn evaluate_expression_in_ast(
     &mut self,
     expression: Expr,
     ast: &'parser ParsedJavaScriptAst<'parser>,
   ) -> BasicEvaluatedExpression<'parser> {
-    let ast = self.add_synthetic_ast(ast);
-    let (synthetic_ast, semantic) = self.synthetic_asts[ast];
-    let previous_ast = std::mem::replace(&mut self.ast, synthetic_ast);
-    let previous_synthetic_ast = self.active_synthetic_ast.replace(ast);
-    self.definitions_db.enter_ast(semantic);
-    let evaluated = self.evaluate_expression(expression);
-    self.definitions_db.leave_ast();
-    self.active_synthetic_ast = previous_synthetic_ast;
-    self.ast = previous_ast;
-    evaluated
+    let index = self.synthetic_asts.len();
+    self.synthetic_asts.push(ast);
+    self.with_synthetic_ast(index, |parser| parser.evaluate_expression(expression))
   }
 
   pub(crate) fn walk_expression_in_ast(&mut self, expression: Expr, ast: Option<usize>) {
@@ -1788,14 +1771,16 @@ impl<'parser> JavascriptParser<'parser> {
       self.walk_expression(expression);
       return;
     };
-    let (synthetic_ast, semantic) = self.synthetic_asts[ast];
-    let previous_ast = std::mem::replace(&mut self.ast, synthetic_ast);
-    let previous_synthetic_ast = self.active_synthetic_ast.replace(ast);
-    self.definitions_db.enter_ast(semantic);
-    self.walk_expression(expression);
-    self.definitions_db.leave_ast();
+    self.with_synthetic_ast(ast, |parser| parser.walk_expression(expression));
+  }
+
+  fn with_synthetic_ast<T>(&mut self, index: usize, f: impl FnOnce(&mut Self) -> T) -> T {
+    let previous_ast = std::mem::replace(&mut self.ast, self.synthetic_asts[index]);
+    let previous_synthetic_ast = self.active_synthetic_ast.replace(index);
+    let result = f(self);
     self.active_synthetic_ast = previous_synthetic_ast;
     self.ast = previous_ast;
+    result
   }
 
   pub fn evaluate<T: Display>(
@@ -1841,10 +1826,7 @@ impl<'parser> JavascriptParser<'parser> {
         let span = ident.span(ast);
         let name = ast.get_utf8(ident.name(ast));
         let drive = self.plugin_drive();
-        let resolution = self
-          .definitions_db
-          .semantic_context
-          .identifier_resolution(self.ast, ident);
+        let resolution = self.ast.identifier_resolution(ident);
         let evaluate = |parser: &mut Self, name: &str| {
           drive.evaluate_identifier(parser, name, None, span.real_lo(), span.real_hi())
         };
