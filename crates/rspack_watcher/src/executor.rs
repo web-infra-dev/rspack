@@ -14,7 +14,7 @@ use tokio::{
 };
 
 use super::{EventAggregateHandler, EventHandler, FsEventKind};
-use crate::{EventBatch, FsEvent, ResolvedEvents};
+use crate::{EventBatch, ResolvedEvents};
 
 type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
 type ThreadSafety<T> = Arc<Mutex<T>>;
@@ -77,7 +77,7 @@ enum ExecAggregateEvent {
 }
 
 enum ExecEvent {
-  Execute(Option<FsEvent>, EventBatch, Option<InternedPath>),
+  Execute(EventBatch, EventBatch, Vec<InternedPath>),
   Aggregate(FilesData),
   Close,
 }
@@ -212,7 +212,7 @@ impl Executor {
             let _ = exec_tx.send(ExecEvent::Execute(
               events.raw,
               events.recovered,
-              events.context_removal,
+              events.context_removals,
             ));
           }
 
@@ -225,7 +225,7 @@ impl Executor {
         let _ = exec_tx.send(ExecEvent::Close);
       };
 
-      tokio::spawn(future);
+      crate::spawn_boxed(Box::pin(future));
       self.start_waiting = true;
     }
 
@@ -280,7 +280,7 @@ fn create_execute_task(
   let future = async move {
     'deliveries: while let Some(exec_event) = exec_rx.lock().await.recv().await {
       match exec_event {
-        ExecEvent::Execute(raw, recovered, context_removal) => {
+        ExecEvent::Execute(raw, recovered, context_removals) => {
           for event in raw.into_iter().chain(recovered) {
             // Handle each event based on its kind
             let path = event.path.to_string_lossy().to_string();
@@ -294,8 +294,13 @@ fn create_execute_task(
               continue 'deliveries;
             }
           }
-          if let Some(path) = context_removal {
-            let _ = event_handler.on_context_remove(path.to_string_lossy().to_string());
+          for path in context_removals {
+            if event_handler
+              .on_context_remove(path.to_string_lossy().to_string())
+              .is_err()
+            {
+              continue 'deliveries;
+            }
           }
         }
         ExecEvent::Aggregate(files) => {
@@ -307,7 +312,7 @@ fn create_execute_task(
       }
     }
   };
-  tokio::spawn(future)
+  crate::spawn_boxed(Box::pin(future))
 }
 
 fn create_execute_aggregate_task(
@@ -376,5 +381,5 @@ fn create_execute_aggregate_task(
     }
   };
 
-  tokio::spawn(future)
+  crate::spawn_boxed(Box::pin(future))
 }

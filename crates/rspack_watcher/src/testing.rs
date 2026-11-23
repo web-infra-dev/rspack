@@ -1,18 +1,23 @@
 //! Internal test support for the watcher.
 
 use std::{
+  path::Path,
   sync::{Arc, Mutex},
   time::{Instant, SystemTime},
 };
 
 use notify::{Event, RecursiveMode};
 use rspack_paths::InternedPath;
-use rspack_util::fx_hash::FxHashSet;
+use rspack_util::fx_hash::{FxHashMap, FxHashSet};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
 use crate::{
-  EventBatch, FsEventKind, FsWatcher, ResolvedEvents, analyzer::Analyzer,
-  disk_watcher::handle_event, paths::PathManager, scanner::Scanner, trigger::Trigger,
+  EventBatch, FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherOptions, ResolvedEvents,
+  analyzer::Analyzer,
+  disk_watcher::{WatchBackend, handle_event},
+  paths::PathManager,
+  scanner::Scanner,
+  trigger::Trigger,
 };
 
 /// Recorded under the aggregate-set lock to preserve acceptance and snapshot order.
@@ -39,6 +44,108 @@ pub fn take_executor_events(watcher: &FsWatcher) -> Vec<ExecutorEvent> {
       .lock()
       .expect("executor trace poisoned"),
   )
+}
+
+/// Deterministic test backend that isolates OS events for subscription tests.
+#[derive(Clone, Default)]
+pub struct TestWatchBackend {
+  patterns: Arc<Mutex<FxHashMap<InternedPath, RecursiveMode>>>,
+}
+
+impl TestWatchBackend {
+  pub fn watched_patterns(&self) -> Vec<(InternedPath, RecursiveMode)> {
+    self
+      .patterns
+      .lock()
+      .expect("test backend lock poisoned")
+      .iter()
+      .map(|(p, &m)| (p.clone(), m))
+      .collect()
+  }
+
+  pub fn kernel_watch_count(&self) -> usize {
+    self
+      .patterns
+      .lock()
+      .expect("test backend lock poisoned")
+      .len()
+  }
+}
+
+struct ControlledBackendHandle {
+  patterns: Arc<Mutex<FxHashMap<InternedPath, RecursiveMode>>>,
+  _trigger: Arc<Trigger>,
+}
+
+impl WatchBackend for ControlledBackendHandle {
+  fn watch(&mut self, path: &Path, mode: RecursiveMode) -> notify::Result<()> {
+    self
+      .patterns
+      .lock()
+      .expect("test backend lock poisoned")
+      .insert(InternedPath::from(path), mode);
+    Ok(())
+  }
+
+  fn unwatch(&mut self, path: &Path) -> notify::Result<()> {
+    let removed = self
+      .patterns
+      .lock()
+      .expect("test backend lock poisoned")
+      .remove(&InternedPath::from(path));
+    if removed.is_some() {
+      Ok(())
+    } else {
+      Err(notify::Error::watch_not_found())
+    }
+  }
+}
+
+/// Creates an `FsWatcher` backed by [`TestWatchBackend`] so spontaneous OS notifications are isolated.
+pub fn new_isolated_watcher(
+  options: FsWatcherOptions,
+  ignored: FsWatcherIgnored,
+  backend: &TestWatchBackend,
+) -> FsWatcher {
+  let patterns = Arc::clone(&backend.patterns);
+  FsWatcher::new_with_backend(options, ignored, move |trigger| {
+    Box::new(ControlledBackendHandle {
+      patterns,
+      _trigger: trigger,
+    })
+  })
+}
+
+/// Associates a logical dependency path with a physical disk target path through the production
+/// subscription graph before calling `watcher.watch(...)`.
+pub fn bind_file_target(
+  watcher: &FsWatcher,
+  logical_path: InternedPath,
+  target_path: InternedPath,
+) {
+  watcher
+    .path_manager
+    .bind_custom_target(logical_path, target_path);
+}
+
+/// Sends a synthetic `notify::Event` into `watcher`'s production OS event handler.
+pub fn emit_native_event(watcher: &FsWatcher, event: Event) {
+  let trigger = watcher.trigger.lock().expect("should lock trigger").clone();
+  if let Some(trigger) = trigger {
+    handle_event(event, &trigger);
+  }
+}
+
+/// Runs one active disk check pass (`ActiveScan`) over `watcher`'s current subscriptions and waits
+/// until state comparison and executor queueing have completed.
+pub async fn scan_once(watcher: &FsWatcher) {
+  let rx = {
+    let trigger = watcher.trigger.lock().expect("should lock trigger").clone();
+    trigger.map(|t| t.scan_once())
+  };
+  if let Some(rx) = rx {
+    let _ = rx.await;
+  }
 }
 
 pub struct DirectoryAnalyzer {

@@ -1,8 +1,13 @@
+#[cfg(feature = "testing")]
+use std::ffi::OsString;
 use std::{
   ffi::OsStr,
   fmt::Debug,
+  future::Future,
   ops::Deref,
   path::{Path, PathBuf},
+  pin::Pin,
+  sync::Mutex,
   time::SystemTime,
 };
 
@@ -15,7 +20,15 @@ use rspack_util::{
 };
 
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
-use crate::time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis};
+#[cfg(feature = "testing")]
+use crate::subscription::{ActiveScanPlan, ObservedEntry};
+use crate::{
+  subscription::{
+    LogicalKind, MatchedContext, MatchedTarget, PendingAdvance, ReportedBaseline, SubId,
+    SubscriptionGraph, WaitingStepResult,
+  },
+  time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
+};
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
@@ -49,7 +62,7 @@ impl<'a> Iterator for All<'a> {
   }
 }
 
-/// `PathAccessor` provides access to the sets of files, directories, and missing paths.
+/// `PathAccessor` provides access to the physical watch target sets for files, directories, and missing paths.
 pub(crate) struct PathAccessor<'a> {
   files: &'a PathTracker,
   directories: &'a PathTracker,
@@ -57,12 +70,12 @@ pub(crate) struct PathAccessor<'a> {
 }
 
 impl<'a> PathAccessor<'a> {
-  /// Creates a new `PathAccessor` with references to the sets of files, directories, and missing paths.
+  /// Creates a new `PathAccessor` with references to the physical watch target sets.
   fn new(path_manager: &'a PathManager) -> Self {
     Self {
-      files: &path_manager.files,
-      directories: &path_manager.directories,
-      missing: &path_manager.missing,
+      files: &path_manager.watch_files,
+      directories: &path_manager.watch_directories,
+      missing: &path_manager.watch_missing,
     }
   }
 
@@ -124,17 +137,24 @@ struct PathUpdater {
   base_dir: PathBuf,
 }
 
+impl PathUpdater {
+  fn new((added, removed): (Vec<InternedPath>, Vec<InternedPath>)) -> Self {
+    Self {
+      added,
+      removed,
+      base_dir: std::env::current_dir().unwrap_or_default(),
+    }
+  }
+}
+
+#[cfg(test)]
 impl<Added, Removed> From<(Added, Removed)> for PathUpdater
 where
   Added: Iterator<Item = InternedPath>,
   Removed: Iterator<Item = InternedPath>,
 {
   fn from((added, removed): (Added, Removed)) -> Self {
-    Self {
-      added: added.collect(),
-      removed: removed.collect(),
-      base_dir: std::env::current_dir().unwrap_or_default(),
-    }
+    Self::new((added.collect::<Vec<_>>(), removed.collect::<Vec<_>>()))
   }
 }
 
@@ -275,25 +295,23 @@ impl FileTime {
   }
 }
 
-/// `PathManager` is responsible for managing the set of files, directories, and missing paths.
+/// `PathManager` coordinates logical compiler dependencies, the per-directory
+/// [`SubscriptionGraph`], and the lock-free time-info tables read from JS.
 #[derive(Default)]
 pub(crate) struct PathManager {
   files: PathTracker,
   directories: PathTracker,
   missing: PathTracker,
+  watch_files: PathTracker,
+  watch_directories: PathTracker,
+  watch_missing: PathTracker,
   ignored: IgnoredMatcher,
   /// watchpack's `files` map: the last observation of each registered file,
   /// each registered-missing path found on disk, and each file found below a
   /// context. It feeds `collect_time_info_entries` without a syscall; stale
-  /// FSEvents are filtered by `baselines` instead.
+  /// FSEvents are filtered by `SubscriptionGraph::baselines` instead.
   /// See: https://gist.github.com/stormslowly/ed758500de6f23211fd63b39eba5ed07
   file_times: InternedPathDashMap<FileTime>,
-  /// The mtime the build already knows for each registered file or missing
-  /// path — through a delivered event, or because it was on disk when it was
-  /// registered. `None` records a reported removal, distinct from a path not
-  /// observed yet. Only this deduplicates a later event carrying the same mtime;
-  /// `file_times` is time info only and anything may write it.
-  baselines: InternedPathDashMap<Option<SystemTime>>,
   /// watchpack's per-`DirectoryWatcher` `lastWatchEvent`: when an event last
   /// reached each registered or discovered context (its own or a
   /// descendant's), in epoch millis. Like watchpack it starts at 0 (absent)
@@ -307,11 +325,6 @@ pub(crate) struct PathManager {
   /// watchpack's nested `DirectoryWatcher.directories`: every subdirectory
   /// found below a registered context.
   context_directories: InternedPathDashSet,
-  /// Every directory above a registered path: a removal of one of them may
-  /// have taken registered records, or a registered context, with it. Each
-  /// counts the registrations directly in it plus its subdirectories here,
-  /// and goes once that count is back to zero.
-  registered_ancestors: InternedPathDashMap<usize>,
   /// Every path holding a record (in `file_times`, the context sets or
   /// `last_watch_events`) under its parent directory, ancestors included up
   /// to the first one already indexed: a removed directory's records are
@@ -321,11 +334,13 @@ pub(crate) struct PathManager {
   /// Serializes changes to `recorded_children`'s links: a walk taking a
   /// directory out on one thread must not interleave with a walk linking it
   /// in on another, or a linked subtree is left cut off from its parent.
-  index_lock: std::sync::Mutex<()>,
+  index_lock: Mutex<()>,
   /// Registered contexts known to be absent from disk: absent when registered,
   /// or removed since. The only directories `collect_time_info_entries`
   /// stats, to see one that came back without an event of its own.
   absent_directories: InternedPathDashSet,
+  /// Per-directory forward subscription graph and per-dependency reported baselines.
+  graph: Mutex<SubscriptionGraph>,
   /// The `followSymlinks` watch option: the context scan descends into
   /// symlinked directories, as watchpack does.
   follow_symlinks: bool,
@@ -335,20 +350,8 @@ impl PathManager {
   /// Create a new `PathManager` with an optional ignored paths filter.
   pub fn new(ignored: FsWatcherIgnored) -> Self {
     Self {
-      files: PathTracker::default(),
-      directories: PathTracker::default(),
-      missing: PathTracker::default(),
       ignored: IgnoredMatcher::new(ignored),
-      file_times: InternedPathDashMap::default(),
-      baselines: InternedPathDashMap::default(),
-      last_watch_events: InternedPathDashMap::default(),
-      context_files: InternedPathDashSet::default(),
-      context_directories: InternedPathDashSet::default(),
-      registered_ancestors: InternedPathDashMap::default(),
-      absent_directories: InternedPathDashSet::default(),
-      recorded_children: InternedPathDashMap::default(),
-      index_lock: std::sync::Mutex::default(),
-      follow_symlinks: false,
+      ..Default::default()
     }
   }
 
@@ -357,41 +360,140 @@ impl PathManager {
     self
   }
 
+  #[cfg(feature = "testing")]
+  pub fn bind_custom_target(&self, logical_path: InternedPath, target_path: InternedPath) {
+    let base_dir = std::env::current_dir().unwrap_or_default();
+    let logical = if logical_path.is_absolute() {
+      logical_path
+    } else {
+      InternedPath::from(base_dir.join(logical_path.as_ref()))
+    };
+    let target = if target_path.is_absolute() {
+      target_path
+    } else {
+      InternedPath::from(base_dir.join(target_path.as_ref()))
+    };
+    self.lock_graph().set_custom_target(logical, target);
+  }
+
+  fn watch_tracker(&self, kind: LogicalKind) -> &PathTracker {
+    match kind {
+      LogicalKind::File => &self.watch_files,
+      LogicalKind::Directory => &self.watch_directories,
+      LogicalKind::Missing => &self.watch_missing,
+    }
+  }
+
+  fn retain_watch_target(
+    &self,
+    graph: &mut SubscriptionGraph,
+    kind: LogicalKind,
+    path: InternedPath,
+  ) {
+    if graph.retain_watch_ref(kind, path.clone()) {
+      let tracker = self.watch_tracker(kind);
+      tracker.removed.remove(&path);
+      tracker.added.insert(path.clone());
+      tracker.all.insert(path);
+    }
+  }
+
+  fn release_watch_target(
+    &self,
+    graph: &mut SubscriptionGraph,
+    kind: LogicalKind,
+    path: &InternedPath,
+  ) {
+    if graph.release_watch_ref(kind, path) {
+      let tracker = self.watch_tracker(kind);
+      tracker.added.remove(path);
+      tracker.all.remove(path);
+      tracker.removed.insert(path.clone());
+    }
+  }
+
   /// Reset the per-`watch()`-call diff state (added / removed sets) without
   /// touching the long-lived mtime baselines.
   ///
-  /// `file_mtimes` is intentionally NOT cleared here: the mtime baselines
-  /// are tied to the lifetime of the registered files, not to the lifetime
-  /// of a single `FsWatcher::watch()` invocation. Each call to `watch()`
-  /// from rspack's rebuild cycle (aggregate → pause → rebuild → rewatch)
-  /// must NOT re-snapshot the baseline, otherwise the snapshot can capture
-  /// a post-user-write mtime and then `has_mtime_changed` silently
-  /// suppresses the very FSEvent that the user is waiting for. Stale
-  /// entries for files that have actually been unregistered are pruned by
-  /// `update()` via `remove_file_mtime`.
+  /// `file_times` and `SubscriptionGraph::baselines` are intentionally NOT
+  /// cleared here: the mtime baselines are tied to the lifetime of the
+  /// registered files, not to the lifetime of a single `FsWatcher::watch()`
+  /// invocation. Each call to `watch()` from rspack's rebuild cycle
+  /// (aggregate → pause → rebuild → rewatch) must NOT re-snapshot the baseline,
+  /// otherwise the snapshot can capture a post-user-write mtime and then
+  /// `check_and_advance_target_baseline` silently suppresses the very FSEvent
+  /// that the user is waiting for. Stale entries for files that have actually
+  /// been unregistered are pruned by `update_vecs()`.
   pub fn reset(&self) {
     self.files.reset();
     self.directories.reset();
     self.missing.reset();
+    self.watch_files.reset();
+    self.watch_directories.reset();
+    self.watch_missing.reset();
+  }
+
+  pub fn target_path_of(&self, kind: LogicalKind, logical_path: &InternedPath) -> InternedPath {
+    let graph = self.lock_graph();
+    graph
+      .target_of(kind, logical_path)
+      .unwrap_or_else(|| graph.resolve_target(logical_path))
+  }
+
+  pub fn added_files(&self) -> Vec<InternedPath> {
+    self.files.added.iter().map(|p| p.clone()).collect()
+  }
+
+  pub fn take_added_contexts(&self) -> Vec<InternedPath> {
+    self.directories.added.iter().map(|p| p.clone()).collect()
+  }
+
+  pub fn added_for_scan(
+    &self,
+  ) -> Option<(Vec<InternedPath>, Vec<InternedPath>, Vec<InternedPath>)> {
+    if self.files.added.is_empty()
+      && self.directories.added.is_empty()
+      && self.missing.added.is_empty()
+    {
+      return None;
+    }
+    Some((
+      self.files.added.iter().map(|p| p.clone()).collect(),
+      self.directories.added.iter().map(|p| p.clone()).collect(),
+      self.missing.added.iter().map(|p| p.clone()).collect(),
+    ))
+  }
+
+  pub fn is_registered_missing(&self, path: &InternedPath) -> bool {
+    self.missing.all.contains(path)
   }
 
   /// Record an initial baseline mtime for `path`, but only if no present
-  /// baseline already exists. A reported absence (`None`) counts as no
-  /// baseline because the file is back. This is the "incremental" form used by
+  /// baseline already exists. A reported absence counts as no baseline because
+  /// the file is back. This is the "incremental" form used by
   /// `FsWatcher::wait_for_event`: on the first `watch()` call we record
   /// mtimes for all newly-registered files; on subsequent `watch()` calls
   /// we MUST skip files that already have a baseline, otherwise we risk
   /// snapshotting a mtime that the user has just bumped via `writeFile`.
   ///
-  /// Use `has_mtime_changed` (which atomically reads-and-updates the
-  /// baseline) to advance the recorded mtime in response to real events.
+  /// Use `check_and_advance_target_baseline` (which atomically reads-and-updates
+  /// the baseline) to advance the recorded mtime in response to real events.
   pub fn set_file_time_if_absent(&self, path: InternedPath, mtime: SystemTime) {
-    self.record(&path, || {
-      self
+    #[cfg(feature = "testing")]
+    let target_path = self.target_path_of(LogicalKind::File, &path);
+    {
+      let mut graph = self.lock_graph();
+      #[cfg(feature = "testing")]
+      graph.record_observed_entry(&target_path, ObservedEntry::File { mtime });
+      let entry = graph
         .baselines
         .entry(path.clone())
-        .or_default()
-        .get_or_insert(mtime);
+        .or_insert(ReportedBaseline::Unreported);
+      if *entry == ReportedBaseline::Unreported || entry.is_absent() {
+        *entry = ReportedBaseline::Present(mtime);
+      }
+    }
+    self.record(&path, || {
       self
         .file_times
         .entry(path.clone())
@@ -402,24 +504,121 @@ impl PathManager {
   /// The scanner reported `path` as changed: the build will know this mtime,
   /// so it becomes the deduplication baseline as well as the time info.
   pub fn set_reported_file_time(&self, path: &InternedPath, mtime: SystemTime) {
-    self.baselines.insert(path.clone(), Some(mtime));
+    {
+      let mut graph = self.lock_graph();
+      #[cfg(feature = "testing")]
+      {
+        let target = graph
+          .target_of(LogicalKind::File, path)
+          .or_else(|| graph.target_of(LogicalKind::Missing, path))
+          .unwrap_or_else(|| path.clone());
+        graph.record_observed_entry(&target, ObservedEntry::File { mtime });
+      }
+      graph
+        .baselines
+        .insert(path.clone(), ReportedBaseline::Present(mtime));
+    }
+    self.set_file_time(path, mtime, true, true);
+  }
+
+  pub fn commit_recovered_entry(
+    &self,
+    owner_path: &InternedPath,
+    #[cfg_attr(not(feature = "testing"), allow(unused_variables))] target_path: &InternedPath,
+    mtime: Option<SystemTime>,
+  ) {
+    if let Some(m) = mtime {
+      {
+        let mut graph = self.lock_graph();
+        #[cfg(feature = "testing")]
+        graph.record_observed_entry(target_path, ObservedEntry::File { mtime: m });
+        graph
+          .baselines
+          .insert(owner_path.clone(), ReportedBaseline::Present(m));
+      }
+      self.set_file_time(owner_path, m, false, false);
+    } else {
+      let mut graph = self.lock_graph();
+      if matches!(graph.baselines.get(owner_path), Some(b) if b.is_absent()) {
+        graph
+          .baselines
+          .insert(owner_path.clone(), ReportedBaseline::Unreported);
+      }
+    }
+  }
+
+  pub fn mark_initial_missing_absent(&self, path: &InternedPath) {
+    let mut graph = self.lock_graph();
+    let entry = graph
+      .baselines
+      .entry(path.clone())
+      .or_insert(ReportedBaseline::InitialMissingAbsent);
+    if *entry == ReportedBaseline::Unreported {
+      *entry = ReportedBaseline::InitialMissingAbsent;
+    }
+  }
+
+  pub fn record_initial_missing_present(
+    &self,
+    path: &InternedPath,
+    #[cfg_attr(not(feature = "testing"), allow(unused_variables))] target: &InternedPath,
+    mtime: SystemTime,
+  ) {
+    {
+      let mut graph = self.lock_graph();
+      #[cfg(feature = "testing")]
+      graph.record_observed_entry(target, ObservedEntry::File { mtime });
+      if graph.baselines.get(path) == Some(&ReportedBaseline::ReportedRemoved) {
+        graph
+          .baselines
+          .insert(path.clone(), ReportedBaseline::Unreported);
+      }
+    }
     self.set_file_time(path, mtime, true, true);
   }
 
   /// Whether a removal was already reported for this path. The scanner must
   /// still report an absence with no prior record.
   pub fn is_known_absent(&self, path: &InternedPath) -> bool {
-    self.baselines.get(path).is_some_and(|time| time.is_none())
+    self.lock_graph().baselines.get(path) == Some(&ReportedBaseline::ReportedRemoved)
   }
 
   /// Record a removal the caller is about to deliver. The scanner relies on
   /// this marker to mean the build was told about the absence.
   pub fn set_reported_file_removal(&self, path: &InternedPath) {
-    self.baselines.insert(path.clone(), None);
-    if (!self.files.all.contains(path) && !self.missing.all.contains(path))
-      || std::fs::symlink_metadata(path).is_ok()
-    {
-      self.baselines.remove_if(path, |_, time| time.is_none());
+    let registered = self.files.all.contains(path) || self.missing.all.contains(path);
+    let mut graph = self.lock_graph();
+    let target = graph
+      .target_of(LogicalKind::File, path)
+      .or_else(|| graph.target_of(LogicalKind::Missing, path))
+      .unwrap_or_else(|| path.clone());
+    #[cfg(feature = "testing")]
+    graph.remove_observed_entry(&target);
+    if registered && std::fs::symlink_metadata(&target).is_err() {
+      graph
+        .baselines
+        .insert(path.clone(), ReportedBaseline::ReportedRemoved);
+    } else if !registered {
+      graph.baselines.remove(path);
+    } else if matches!(graph.baselines.get(path), Some(b) if b.is_absent()) {
+      graph
+        .baselines
+        .insert(path.clone(), ReportedBaseline::Unreported);
+    }
+  }
+
+  fn clear_present_baseline_in_graph(&self, graph: &mut SubscriptionGraph, path: &InternedPath) {
+    if matches!(
+      graph.baselines.get(path),
+      Some(ReportedBaseline::Present(_))
+    ) {
+      if self.files.all.contains(path) || self.missing.all.contains(path) {
+        graph
+          .baselines
+          .insert(path.clone(), ReportedBaseline::Unreported);
+      } else {
+        graph.baselines.remove(path);
+      }
     }
   }
 
@@ -427,36 +626,74 @@ impl PathManager {
   /// survives later removals until the path reappears or is unregistered.
   pub fn remove_file_time(&self, path: &InternedPath) {
     self.file_times.remove(path);
-    self.baselines.remove_if(path, |_, time| time.is_some());
     self.context_files.remove(path);
-    if self.context_directories.remove(path).is_some() {
+    let released_ctx_dir = self.context_directories.remove(path).is_some();
+    if released_ctx_dir {
       self.last_watch_events.remove(path);
     }
     self.unindex_record(path);
+    {
+      let mut graph = self.lock_graph();
+      self.clear_present_baseline_in_graph(&mut graph, path);
+      if released_ctx_dir {
+        self.release_watch_target(&mut graph, LogicalKind::Directory, path);
+      }
+    }
   }
 
   /// Drop the records of every path inside the directory `dir` (watchpack's
   /// `onDirectoryRemoved` marks them all missing), walking only its subtree.
+  #[inline(never)]
   pub fn remove_file_times_under(&self, dir: &InternedPath) {
-    let _index = self.lock_index();
-    let mut pending = vec![dir.clone()];
-    while let Some(path) = pending.pop() {
-      if let Some((_, children)) = self.recorded_children.remove(&path) {
-        pending.extend(children);
+    let mut cleared_paths = Vec::new();
+    let mut released_dirs = Vec::new();
+    {
+      let _index = self.lock_index();
+      let mut pending = vec![dir.clone()];
+      while let Some(path) = pending.pop() {
+        if let Some((_, children)) = self.recorded_children.remove(&path) {
+          pending.extend(children);
+        }
+        self.file_times.remove(&path);
+        self.context_files.remove(&path);
+        if self.context_directories.remove(&path).is_some() {
+          released_dirs.push(path.clone());
+        }
+        if !self.directories.all.contains(&path) {
+          self.last_watch_events.remove(&path);
+        }
+        cleared_paths.push(path);
       }
-      self.file_times.remove(&path);
-      self.baselines.remove_if(&path, |_, time| time.is_some());
-      self.context_files.remove(&path);
-      self.context_directories.remove(&path);
-      if !self.directories.all.contains(&path) {
-        self.last_watch_events.remove(&path);
+      self.unlink_unrecorded(dir);
+    }
+    {
+      let mut graph = self.lock_graph();
+      for path in &cleared_paths {
+        self.clear_present_baseline_in_graph(&mut graph, path);
+      }
+      for d in &released_dirs {
+        self.release_watch_target(&mut graph, LogicalKind::Directory, d);
       }
     }
-    self.unlink_unrecorded(dir);
     for context in self.directories.all.iter() {
       if context.starts_with(dir.as_ref() as &Path) {
         self.absent_directories.insert(context.clone());
       }
+    }
+  }
+
+  pub fn handle_disk_directory_removed(&self, disk_dir: &InternedPath) {
+    let (affected_files, affected_contexts) = self.lock_graph().handle_directory_removed(disk_dir);
+    for file in affected_files {
+      self.remove_file_time(&file);
+    }
+    for ctx in affected_contexts {
+      self.absent_directories.insert(ctx.clone());
+      self.remove_file_time(&ctx);
+      self.remove_file_times_under(&ctx);
+    }
+    if self.may_contain_records(disk_dir) {
+      self.remove_file_times_under(disk_dir);
     }
   }
 
@@ -515,11 +752,15 @@ impl PathManager {
       .iter()
       .map(|children| 1 + children.len())
       .sum();
-    (recorded, self.registered_ancestors.len())
+    (recorded, self.lock_graph().directory_count())
   }
 
   fn lock_index(&self) -> std::sync::MutexGuard<'_, ()> {
     self.index_lock.lock().expect("record index lock poisoned")
+  }
+
+  fn lock_graph(&self) -> std::sync::MutexGuard<'_, SubscriptionGraph> {
+    self.graph.lock().expect("subscription graph lock poisoned")
   }
 
   fn holds_record(&self, path: &InternedPath) -> bool {
@@ -529,40 +770,61 @@ impl PathManager {
       || self.last_watch_events.contains_key(path)
   }
 
-  /// `path` was registered: count it in its directory, and each directory
-  /// above that is new here in its own parent.
-  fn retain_registered_ancestors(&self, path: &InternedPath) {
-    let mut child = path.clone();
-    while let Some(parent) = child.parent().map(InternedPath::from) {
-      let mut count = self.registered_ancestors.entry(parent.clone()).or_default();
-      *count += 1;
-      if *count > 1 {
-        return;
-      }
-      drop(count);
-      child = parent;
-    }
+  pub fn lookup_disk_event(
+    &self,
+    disk_path: &InternedPath,
+  ) -> (Vec<MatchedTarget>, Vec<MatchedContext>, Vec<PendingAdvance>) {
+    self.lock_graph().lookup_disk_event(disk_path)
   }
 
-  /// `path` was unregistered: the reverse of [`Self::retain_registered_ancestors`].
-  fn release_registered_ancestors(&self, path: &InternedPath) {
-    let mut child = path.clone();
-    while let Some(parent) = child.parent().map(InternedPath::from) {
-      let released = self
-        .registered_ancestors
-        .get_mut(&parent)
-        .is_some_and(|mut count| {
-          *count -= 1;
-          *count == 0
-        });
-      if !released {
-        return;
-      }
-      self
-        .registered_ancestors
-        .remove_if(&parent, |_, count| *count == 0);
-      child = parent;
-    }
+  pub fn collect_subtree_targets(&self, root_dir: &InternedPath) -> Vec<MatchedTarget> {
+    self.lock_graph().collect_subtree_targets(root_dir)
+  }
+
+  pub fn commit_waiting_advance(
+    &self,
+    sub_id: SubId,
+    expected_epoch: u64,
+    new_dir: InternedPath,
+    step: WaitingStepResult,
+  ) -> bool {
+    let mut graph = self.lock_graph();
+    graph.commit_waiting_advance(sub_id, expected_epoch, new_dir, step)
+  }
+
+  #[cfg(feature = "testing")]
+  pub fn plan_active_scan(&self) -> ActiveScanPlan {
+    self.lock_graph().plan_active_scan()
+  }
+
+  pub fn is_registration_current(
+    &self,
+    kind: LogicalKind,
+    path: &InternedPath,
+    epoch: u64,
+  ) -> bool {
+    self.lock_graph().is_registration_current(kind, path, epoch)
+  }
+
+  pub fn registration_epoch(&self, kind: LogicalKind, path: &InternedPath) -> Option<u64> {
+    self.lock_graph().registration_epoch(kind, path)
+  }
+
+  pub fn is_registered_file_or_missing(&self, path: &InternedPath) -> bool {
+    self.files.all.contains(path) || self.missing.all.contains(path)
+  }
+
+  #[cfg(feature = "testing")]
+  pub fn is_absent_directory(&self, path: &InternedPath) -> bool {
+    self.absent_directories.contains(path)
+  }
+
+  pub fn mark_directory_absent(&self, path: &InternedPath) {
+    self.absent_directories.insert(path.clone());
+  }
+
+  pub fn clear_directory_absent(&self, path: &InternedPath) -> bool {
+    self.absent_directories.remove(path).is_some()
   }
 
   /// watchpack's initial scan of a `DirectoryWatcher`, for this cycle's newly
@@ -573,11 +835,33 @@ impl PathManager {
   /// Returns the files that changed since `start_time` (watchpack's
   /// `checkStartTime`): they changed before the watch was active, so no event
   /// will come for them.
-  pub async fn scan_contexts(&self, start_time: SystemTime) -> Vec<InternedPath> {
-    let contexts: Vec<InternedPath> = self.directories.added.iter().map(|p| p.clone()).collect();
+  pub async fn scan_contexts(
+    &self,
+    contexts: Vec<InternedPath>,
+    start_time: SystemTime,
+  ) -> Vec<InternedPath> {
+    let mut roots = Vec::with_capacity(contexts.len());
+    for logical_ctx in contexts {
+      if let Some(epoch) = self.registration_epoch(LogicalKind::Directory, &logical_ctx) {
+        let target_ctx = self.target_path_of(LogicalKind::Directory, &logical_ctx);
+        roots.push((target_ctx, logical_ctx.clone(), logical_ctx, epoch));
+      }
+    }
     self
-      .scan_below(contexts, false, Some(system_time_to_millis(start_time)))
+      .scan_below(roots, false, Some(system_time_to_millis(start_time)))
       .await
+  }
+
+  pub async fn recover_context(&self, disk_dir: InternedPath, root_ctx: InternedPath) {
+    if let Some(epoch) = self.registration_epoch(LogicalKind::Directory, &root_ctx) {
+      self
+        .scan_below(
+          vec![(disk_dir, root_ctx.clone(), root_ctx, epoch)],
+          true,
+          None,
+        )
+        .await;
+    }
   }
 
   /// Index every file and subdirectory below `roots`, minus what `ignored`
@@ -586,88 +870,188 @@ impl PathManager {
   /// `doScan(false)`: the files directly in them are stamped with the
   /// observation time, since one changed while away may have kept its mtime.
   /// Returns the files whose safe time is at or after `changed_since`.
-  async fn scan_below(
+  fn scan_below(
     &self,
-    roots: Vec<InternedPath>,
+    roots: Vec<(InternedPath, InternedPath, InternedPath, u64)>,
     recovered: bool,
     changed_since: Option<u64>,
-  ) -> Vec<InternedPath> {
-    let mut changed = Vec::new();
-    // Each directory carries the real paths of the directories above it: with
-    // `followSymlinks`, a link back into its own ancestry is a loop, while two
-    // links to one directory are two aliases, each scanned.
-    let mut pending: Vec<(InternedPath, Vec<PathBuf>, bool)> = roots
-      .into_iter()
-      .map(|root| (root, Vec::new(), recovered))
-      .collect();
-    while let Some((dir, mut ancestry, observed)) = pending.pop() {
-      if self.follow_symlinks {
-        let Ok(real) = std::fs::canonicalize(&dir) else {
+  ) -> Pin<Box<dyn Future<Output = Vec<InternedPath>> + Send + '_>> {
+    Box::pin(async move {
+      let mut changed = Vec::new();
+      // Each directory carries the real paths of the directories above it: with
+      // `followSymlinks`, a link back into its own ancestry is a loop, while two
+      // links to one directory are two aliases, each scanned.
+      let mut pending: Vec<(
+        InternedPath,
+        InternedPath,
+        InternedPath,
+        u64,
+        Vec<PathBuf>,
+        bool,
+      )> = roots
+        .into_iter()
+        .map(|(disk_dir, logical_dir, root_ctx, epoch)| {
+          (
+            disk_dir,
+            logical_dir,
+            root_ctx,
+            epoch,
+            Vec::new(),
+            recovered,
+          )
+        })
+        .collect();
+
+      while let Some((disk_dir, logical_dir, root_ctx, epoch, mut ancestry, observed)) =
+        pending.pop()
+      {
+        if !self.is_registration_current(LogicalKind::Directory, &root_ctx, epoch) {
+          continue;
+        }
+        if self.follow_symlinks {
+          let Ok(real) = std::fs::canonicalize(&disk_dir) else {
+            continue;
+          };
+          if ancestry.contains(&real) {
+            continue;
+          }
+          ancestry.push(real);
+        }
+        let Ok(entries) = std::fs::read_dir(&disk_dir) else {
           continue;
         };
-        if ancestry.contains(&real) {
-          continue;
-        }
-        ancestry.push(real);
-      }
-      let Ok(entries) = std::fs::read_dir(&dir) else {
-        continue;
-      };
-      for entry in entries.flatten() {
-        let path = InternedPath::from(entry.path());
-        if self.is_ignored_path(path.as_ref()).await {
-          continue;
-        }
-        let Ok(metadata) = Self::scan_metadata(ancestry.last(), &path) else {
-          continue;
-        };
-        if metadata.is_dir() {
-          self.record(&path, || self.context_directories.insert(path.clone()));
-          if self.forget_if_orphaned(&path) {
+
+        #[cfg(feature = "testing")]
+        let mut snapshot_entries: FxHashMap<OsString, ObservedEntry> = FxHashMap::default();
+        #[cfg(feature = "testing")]
+        let mut all_ok = true;
+        #[cfg(feature = "testing")]
+        let mut aborted = false;
+
+        for entry_res in entries {
+          let Ok(entry) = entry_res else {
+            #[cfg(feature = "testing")]
+            {
+              all_ok = false;
+            }
+            continue;
+          };
+          let entry_name = entry.file_name();
+          let disk_entry_path = InternedPath::from(entry.path());
+          let logical_entry_path = InternedPath::from(logical_dir.as_path().join(&entry_name));
+          if self.is_ignored_path(logical_entry_path.as_ref()).await {
+            continue;
+          }
+          if !self.is_registration_current(LogicalKind::Directory, &root_ctx, epoch) {
+            #[cfg(feature = "testing")]
+            {
+              aborted = true;
+            }
             break;
           }
-          if let Ok(mtime) = metadata.modified() {
-            mtime_accuracy(mtime);
+          let Ok(metadata) = Self::scan_metadata(ancestry.last(), &disk_entry_path) else {
+            continue;
+          };
+          if metadata.is_dir() {
+            #[cfg(feature = "testing")]
+            snapshot_entries.insert(entry_name, ObservedEntry::Directory);
+            let newly_added = self.record(&logical_entry_path, || {
+              self.context_directories.insert(logical_entry_path.clone())
+            });
+            if newly_added {
+              let mut graph = self.lock_graph();
+              self.retain_watch_target(&mut graph, LogicalKind::Directory, disk_entry_path.clone());
+            }
+            if self.forget_if_orphaned(&logical_entry_path) {
+              #[cfg(feature = "testing")]
+              {
+                aborted = true;
+              }
+              break;
+            }
+            if !self.follow_symlinks {
+              self.lock_graph().attach_child_context(
+                &root_ctx,
+                epoch,
+                disk_entry_path.clone(),
+                logical_entry_path.clone(),
+              );
+            }
+            if let Ok(mtime) = metadata.modified() {
+              mtime_accuracy(mtime);
+            }
+            // watchpack's initial `setDirectory` checks the birthtime.
+            if changed_since.is_some_and(|since| {
+              metadata
+                .created()
+                .or_else(|_| metadata.modified())
+                .is_ok_and(|birthtime| mtime_safe_time(birthtime) >= since)
+            }) {
+              changed.push(logical_entry_path.clone());
+            }
+            pending.push((
+              disk_entry_path,
+              logical_entry_path,
+              root_ctx.clone(),
+              epoch,
+              ancestry.clone(),
+              false,
+            ));
+          } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
+            #[cfg(feature = "testing")]
+            snapshot_entries.insert(entry_name, ObservedEntry::File { mtime });
+            {
+              let mut graph = self.lock_graph();
+              if graph.baselines.get(&logical_entry_path)
+                == Some(&ReportedBaseline::ReportedRemoved)
+              {
+                graph
+                  .baselines
+                  .insert(logical_entry_path.clone(), ReportedBaseline::Unreported);
+              }
+            }
+            self.record(&logical_entry_path, || {
+              self.context_files.insert(logical_entry_path.clone());
+              self.write_file_time(&logical_entry_path, mtime, !observed, true)
+            });
+            let registered = self.files.all.contains(&logical_entry_path)
+              || self.missing.all.contains(&logical_entry_path);
+            if self.forget_if_orphaned(&logical_entry_path) {
+              #[cfg(feature = "testing")]
+              {
+                aborted = true;
+              }
+              break;
+            }
+            if !registered && changed_since.is_some_and(|since| mtime_safe_time(mtime) >= since) {
+              changed.push(logical_entry_path);
+            }
           }
-          // watchpack's initial `setDirectory` checks the birthtime.
-          if changed_since.is_some_and(|since| {
-            metadata
-              .created()
-              .or_else(|_| metadata.modified())
-              .is_ok_and(|birthtime| mtime_safe_time(birthtime) >= since)
-          }) {
-            changed.push(path.clone());
-          }
-          pending.push((path, ancestry.clone(), false));
-        } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
-          self.record(&path, || {
-            self.context_files.insert(path.clone());
-            self.write_file_time(&path, mtime, !observed, true)
-          });
-          let registered = self.files.all.contains(&path) || self.missing.all.contains(&path);
-          if self.forget_if_orphaned(&path) {
-            break;
-          }
-          if !registered && changed_since.is_some_and(|since| mtime_safe_time(mtime) >= since) {
-            changed.push(path);
+        }
+
+        #[cfg(feature = "testing")]
+        if !aborted && !self.follow_symlinks {
+          let mut graph = self.lock_graph();
+          if graph.is_registration_current(LogicalKind::Directory, &root_ctx, epoch) {
+            graph.set_dir_snapshot(&disk_dir, snapshot_entries, all_ok);
           }
         }
       }
-    }
-    changed
+      changed
+    })
   }
 
   /// The scan awaits the `ignored` predicate, so it can outlive the context it
   /// indexes: the next watch cycle may unregister it meanwhile, like watchpack
   /// closing a `DirectoryWatcher`. A record is written first and checked
   /// after, so it either sees the context gone here or is swept by the
-  /// unregistering `update()`.
+  /// unregistering `update_vecs()`.
   fn forget_if_orphaned(&self, path: &InternedPath) -> bool {
     if self.is_below_context(path) {
       return false;
     }
     self.context_files.remove(path);
-    self.context_directories.remove(path);
+    let released_dir = self.context_directories.remove(path).is_some();
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       self.file_times.remove(path);
     }
@@ -675,10 +1059,14 @@ impl PathManager {
       self.last_watch_events.remove(path);
     }
     self.unindex_record(path);
+    if released_dir {
+      let mut graph = self.lock_graph();
+      self.release_watch_target(&mut graph, LogicalKind::Directory, path);
+    }
     true
   }
 
-  /// An event named `path` below a registered context: index it the way the
+  /// An event named `disk_path` below a registered context: index it the way the
   /// scan would have (watchpack's `DirectoryWatcher.setFileTime` /
   /// `setDirectory` on a watch event). A file's record becomes the live
   /// observation; returns false, so the event is dropped, when its mtime is
@@ -686,31 +1074,43 @@ impl PathManager {
   /// its attributes changed (an xattr, a `chmod`). A directory is scanned,
   /// since one moved in arrives as a single event with no events for what it
   /// already contains. Registered contexts absent until now that came back at
-  /// or below `path` are rescanned, even when only an ancestor had the event.
+  /// or below `disk_path` are rescanned, even when only an ancestor had the event.
   /// An event already `judged` a change — a file the scan found changed since
   /// the start time, or a registered path past its baseline check — skips the
   /// attribute-only check and keeps the record already written for it.
-  pub async fn set_context_entry(&self, path: &InternedPath, judged: bool) -> bool {
+  pub async fn set_context_entry_for_binding(
+    &self,
+    disk_path: &InternedPath,
+    ctx: &MatchedContext,
+    judged: bool,
+  ) -> bool {
     let recovered: Vec<InternedPath> = self
       .absent_directories
       .iter()
-      .filter(|context| context.starts_with(path.as_ref() as &Path) && context.is_dir())
+      .filter(|context| {
+        context.starts_with(ctx.logical_entry_path.as_ref() as &Path) && context.is_dir()
+      })
       .map(|context| context.clone())
       .collect();
     if !recovered.is_empty() {
       for context in &recovered {
         self.absent_directories.remove(context);
+        let target = self.target_path_of(LogicalKind::Directory, context);
+        {
+          let mut graph = self.lock_graph();
+          if graph.directories.contains_key(context)
+            || graph.registrations[LogicalKind::Directory as usize].contains_key(context)
+          {
+            graph.register(LogicalKind::Directory, context.clone());
+          }
+        }
+        self.recover_context(target, context.clone()).await;
       }
-      self.scan_below(recovered, true, None).await;
     }
 
-    let registered_directory = self.directories.all.contains(path);
-    if !registered_directory && !self.is_below_context(path) {
-      return true;
-    }
     // Like watchpack's live events, `lstat`: a link is a file entry here even
     // with `followSymlinks`; only the scan descends into links.
-    let Ok(metadata) = std::fs::symlink_metadata(path) else {
+    let Ok(metadata) = std::fs::symlink_metadata(disk_path) else {
       return true;
     };
     if metadata.is_dir()
@@ -718,21 +1118,58 @@ impl PathManager {
     {
       mtime_accuracy(mtime);
     }
-    if registered_directory {
+    if ctx.is_root_self || self.directories.all.contains(&ctx.logical_entry_path) {
       return true;
     }
     if metadata.is_dir() {
+      {
+        let mut graph = self.lock_graph();
+        #[cfg(feature = "testing")]
+        graph.record_observed_entry(disk_path, ObservedEntry::Directory);
+        graph.attach_child_context(
+          &ctx.root_context,
+          ctx.epoch,
+          disk_path.clone(),
+          ctx.logical_entry_path.clone(),
+        );
+      }
       // Like watchpack's `setDirectory`, only a directory not known before is
       // scanned: an event on a known one, e.g. a `chmod`, changes nothing below.
-      if self.record(path, || self.context_directories.insert(path.clone())) {
-        self.scan_below(vec![path.clone()], false, None).await;
+      if self.record(&ctx.logical_entry_path, || {
+        self
+          .context_directories
+          .insert(ctx.logical_entry_path.clone())
+      }) {
+        {
+          let mut graph = self.lock_graph();
+          self.retain_watch_target(&mut graph, LogicalKind::Directory, disk_path.clone());
+        }
+        self
+          .scan_below(
+            vec![(
+              disk_path.clone(),
+              ctx.logical_entry_path.clone(),
+              ctx.root_context.clone(),
+              ctx.epoch,
+            )],
+            false,
+            None,
+          )
+          .await;
       }
       return true;
     }
-    self.record(path, || self.context_files.insert(path.clone()));
+
+    self.record(&ctx.logical_entry_path, || {
+      self.context_files.insert(ctx.logical_entry_path.clone())
+    });
     let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
       return true;
     };
+    #[cfg(feature = "testing")]
+    self
+      .lock_graph()
+      .record_observed_entry(disk_path, ObservedEntry::File { mtime });
     if judged {
       return true;
     }
@@ -740,15 +1177,179 @@ impl PathManager {
     let accuracy = mtime_accuracy(mtime);
     let untouched = self
       .file_times
-      .get(path)
+      .get(&ctx.logical_entry_path)
       .is_some_and(|old| old.mtime == mtime && mtime_ms + accuracy < current_time());
     if untouched {
       return false;
     }
-    self.set_file_time(path, mtime, false, false);
+    self.set_file_time(&ctx.logical_entry_path, mtime, false, false);
     true
   }
+}
 
+#[cfg(feature = "testing")]
+#[derive(Debug, Clone, Copy)]
+pub(crate) struct DiskEntryState {
+  pub present: bool,
+  pub mtime: Option<SystemTime>,
+}
+
+#[cfg(feature = "testing")]
+impl PathManager {
+  /// Active-scan comparison and commit for one target entry (`File` or `Missing`).
+  pub fn commit_active_entry_observation(
+    &self,
+    dir: &InternedPath,
+    name: &OsStr,
+    owner_kind: LogicalKind,
+    owner_path: &InternedPath,
+    epoch: u64,
+    disk: DiskEntryState,
+  ) -> Option<crate::FsEventKind> {
+    let mut graph = self.lock_graph();
+    if !graph.is_registration_current(owner_kind, owner_path, epoch) {
+      return None;
+    }
+
+    if disk.present {
+      let prev_observed_mtime = graph
+        .directories
+        .get(dir)
+        .and_then(|n| n.children.get(name))
+        .and_then(|s| s.observed)
+        .and_then(|e| match e {
+          ObservedEntry::File { mtime } => Some(mtime),
+          ObservedEntry::Directory => None,
+        });
+      if let Some(m) = disk.mtime
+        && let Some(node) = graph.directories.get_mut(dir)
+      {
+        if !node.context_subs.is_empty() {
+          node
+            .children
+            .entry(name.to_os_string())
+            .or_default()
+            .observed = Some(ObservedEntry::File { mtime: m });
+        } else if let Some(slot) = node.children.get_mut(name) {
+          slot.observed = Some(ObservedEntry::File { mtime: m });
+        }
+      }
+      let current_baseline = graph
+        .baselines
+        .get(owner_path)
+        .copied()
+        .unwrap_or(ReportedBaseline::Unreported);
+      match current_baseline {
+        ReportedBaseline::InitialMissingAbsent | ReportedBaseline::ReportedRemoved => {
+          if let Some(m) = disk.mtime {
+            graph
+              .baselines
+              .insert(owner_path.clone(), ReportedBaseline::Present(m));
+            drop(graph);
+            self.set_file_time(owner_path, m, false, false);
+          } else {
+            graph
+              .baselines
+              .insert(owner_path.clone(), ReportedBaseline::Unreported);
+            drop(graph);
+          }
+          Some(crate::FsEventKind::Create)
+        }
+        ReportedBaseline::Present(prev_mtime) => {
+          if let Some(m) = disk.mtime
+            && m != prev_mtime
+          {
+            graph
+              .baselines
+              .insert(owner_path.clone(), ReportedBaseline::Present(m));
+            drop(graph);
+            self.set_file_time(owner_path, m, false, false);
+            Some(crate::FsEventKind::Change)
+          } else {
+            None
+          }
+        }
+        ReportedBaseline::Unreported => {
+          if let Some(m) = disk.mtime {
+            if prev_observed_mtime.is_some_and(|obs| obs != m) {
+              graph
+                .baselines
+                .insert(owner_path.clone(), ReportedBaseline::Present(m));
+              drop(graph);
+              self.set_file_time(owner_path, m, false, false);
+              return Some(crate::FsEventKind::Change);
+            }
+            graph
+              .baselines
+              .insert(owner_path.clone(), ReportedBaseline::Present(m));
+          }
+          None
+        }
+      }
+    } else {
+      if let Some(node) = graph.directories.get_mut(dir) {
+        let drop_slot = if let Some(slot) = node.children.get_mut(name) {
+          slot.observed = None;
+          node.context_subs.is_empty() && slot.is_unreferenced()
+        } else {
+          false
+        };
+        if drop_slot {
+          node.children.remove(name);
+        }
+      }
+      let current_baseline = graph
+        .baselines
+        .get(owner_path)
+        .copied()
+        .unwrap_or(ReportedBaseline::Unreported);
+      match current_baseline {
+        ReportedBaseline::Present(_) => {
+          graph
+            .baselines
+            .insert(owner_path.clone(), ReportedBaseline::ReportedRemoved);
+          drop(graph);
+          self.remove_file_time(owner_path);
+          self
+            .lock_graph()
+            .baselines
+            .insert(owner_path.clone(), ReportedBaseline::ReportedRemoved);
+          Some(crate::FsEventKind::Remove)
+        }
+        ReportedBaseline::Unreported if owner_kind == LogicalKind::File => {
+          graph
+            .baselines
+            .insert(owner_path.clone(), ReportedBaseline::ReportedRemoved);
+          drop(graph);
+          self.remove_file_time(owner_path);
+          self
+            .lock_graph()
+            .baselines
+            .insert(owner_path.clone(), ReportedBaseline::ReportedRemoved);
+          Some(crate::FsEventKind::Remove)
+        }
+        ReportedBaseline::Unreported => {
+          graph
+            .baselines
+            .insert(owner_path.clone(), ReportedBaseline::InitialMissingAbsent);
+          None
+        }
+        ReportedBaseline::InitialMissingAbsent | ReportedBaseline::ReportedRemoved => None,
+      }
+    }
+  }
+
+  pub fn store_context_listing_snapshot(
+    &self,
+    dir: &InternedPath,
+    entries: FxHashMap<OsString, ObservedEntry>,
+    complete: bool,
+  ) {
+    self.lock_graph().set_dir_snapshot(dir, entries, complete);
+  }
+}
+
+impl PathManager {
   /// A scanned entry's metadata. `real_dir`, the real path of the directory
   /// being scanned, is known only with `followSymlinks`; a link is then
   /// followed like watchpack's scan does, except a dangling link, one into its
@@ -781,12 +1382,11 @@ impl PathManager {
   }
 
   /// Whether removing `path` can take recorded paths below it along: it is a
-  /// registered or discovered context, or a directory above a registered
-  /// path.
+  /// registered or discovered context, or a directory indexing recorded descendants.
   pub fn may_contain_records(&self, path: &InternedPath) -> bool {
     self.directories.all.contains(path)
       || self.context_directories.contains(path)
-      || self.registered_ancestors.contains_key(path)
+      || self.recorded_children.contains_key(path)
   }
 
   fn is_below_context(&self, path: &InternedPath) -> bool {
@@ -808,6 +1408,16 @@ impl PathManager {
     initial: bool,
     ignore_when_equal: bool,
   ) -> bool {
+    // Seeing the file again clears a reported absence. A time-info-only write
+    // must not seed a present baseline and suppress the file's own event.
+    {
+      let mut graph = self.lock_graph();
+      if graph.baselines.get(path) == Some(&ReportedBaseline::ReportedRemoved) {
+        graph
+          .baselines
+          .insert(path.clone(), ReportedBaseline::Unreported);
+      }
+    }
     self.record(path, || {
       self.write_file_time(path, mtime, initial, ignore_when_equal)
     })
@@ -822,9 +1432,6 @@ impl PathManager {
     initial: bool,
     ignore_when_equal: bool,
   ) -> bool {
-    // Seeing the file again clears a reported absence. A time-info-only write
-    // must not seed a present baseline and suppress the file's own event.
-    self.baselines.remove_if(path, |_, time| time.is_none());
     if ignore_when_equal
       && self
         .file_times
@@ -855,31 +1462,61 @@ impl PathManager {
     }
   }
 
+  #[cfg(test)]
+  pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
+    let target = {
+      let graph = self.lock_graph();
+      graph
+        .target_of(LogicalKind::File, path)
+        .or_else(|| graph.target_of(LogicalKind::Missing, path))
+        .unwrap_or_else(|| path.clone())
+    };
+    self.check_and_advance_target_baseline(path, &target)
+  }
+
   /// Check whether a watched path's mtime can represent a change,
   /// advancing the baseline when it does. Covers registered files and
   /// registered-missing paths (on disk by the time an event names them);
   /// other paths, files found below a context included, pass through
   /// unfiltered.
   /// Equal mtimes are only stale once they are past the filesystem accuracy window.
-  pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
-    if !self.files.all.contains(path) && !self.missing.all.contains(path) {
+  pub fn check_and_advance_target_baseline(
+    &self,
+    logical_path: &InternedPath,
+    target_path: &InternedPath,
+  ) -> bool {
+    if !self.files.all.contains(logical_path) && !self.missing.all.contains(logical_path) {
       return true;
     }
 
-    let Some(current_mtime) = disk_mtime(path) else {
+    let Some(current_mtime) = disk_mtime(target_path) else {
       return true;
     };
     let mtime_ms = mtime_to_millis(current_mtime);
-    if self.baselines.insert(path.clone(), Some(current_mtime)) == Some(Some(current_mtime))
+    let previous = {
+      let mut graph = self.lock_graph();
+      #[cfg(feature = "testing")]
+      graph.record_observed_entry(
+        target_path,
+        ObservedEntry::File {
+          mtime: current_mtime,
+        },
+      );
+      graph.baselines.insert(
+        logical_path.clone(),
+        ReportedBaseline::Present(current_mtime),
+      )
+    };
+    if previous == Some(ReportedBaseline::Present(current_mtime))
       && mtime_ms.saturating_add(mtime_accuracy(current_mtime)) < current_time()
     {
       return false;
     }
-    self.set_file_time(path, current_mtime, false, false);
+    self.set_file_time(logical_path, current_mtime, false, false);
     true
   }
 
-  /// Update the paths, directories, and missing paths in the `PathManager`.
+  #[cfg(any(test, feature = "testing"))]
   pub async fn update(
     &self,
     files: (
@@ -895,31 +1532,66 @@ impl PathManager {
       impl Iterator<Item = InternedPath>,
     ),
   ) -> Result<()> {
-    let mut registered = Vec::new();
-    let mut unregistered = Vec::new();
-    for (paths, tracker) in [
-      (PathUpdater::from(files), &self.files),
-      (PathUpdater::from(directories), &self.directories),
-      (PathUpdater::from(missing), &self.missing),
+    self
+      .update_vecs(
+        (files.0.collect(), files.1.collect()),
+        (directories.0.collect(), directories.1.collect()),
+        (missing.0.collect(), missing.1.collect()),
+      )
+      .await
+  }
+
+  /// Update the paths, directories, and missing paths in the `PathManager`.
+  #[inline(never)]
+  pub async fn update_vecs(
+    &self,
+    files: (Vec<InternedPath>, Vec<InternedPath>),
+    directories: (Vec<InternedPath>, Vec<InternedPath>),
+    missing: (Vec<InternedPath>, Vec<InternedPath>),
+  ) -> Result<()> {
+    let mut diffs: [(Vec<InternedPath>, Vec<InternedPath>); 3] = Default::default();
+    for (kind, input, tracker) in [
+      (LogicalKind::File, files, &self.files),
+      (LogicalKind::Directory, directories, &self.directories),
+      (LogicalKind::Missing, missing, &self.missing),
     ] {
-      let (added, removed) = paths.update(tracker, &self.ignored).await?;
-      registered.extend(added);
-      unregistered.extend(removed);
-    }
-    for path in &registered {
-      self.retain_registered_ancestors(path);
-    }
-    for path in &unregistered {
-      self.release_registered_ancestors(path);
+      diffs[kind as usize] = PathUpdater::new(input)
+        .update(tracker, &self.ignored)
+        .await?;
     }
 
-    for dir in self.directories.added.iter() {
-      if dir.exists() {
-        self.absent_directories.remove(&*dir);
-      } else {
-        self.absent_directories.insert(dir.clone());
+    {
+      let mut graph = self.lock_graph();
+      for kind in [
+        LogicalKind::File,
+        LogicalKind::Directory,
+        LogicalKind::Missing,
+      ] {
+        for path in &diffs[kind as usize].1 {
+          if let Some(target) = graph.unregister(kind, path) {
+            self.release_watch_target(&mut graph, kind, &target);
+          }
+        }
+      }
+      for kind in [
+        LogicalKind::File,
+        LogicalKind::Directory,
+        LogicalKind::Missing,
+      ] {
+        for path in &diffs[kind as usize].0 {
+          let target = graph.register(kind, path.clone());
+          if kind == LogicalKind::Directory {
+            if target.exists() {
+              self.absent_directories.remove(path);
+            } else {
+              self.absent_directories.insert(path.clone());
+            }
+          }
+          self.retain_watch_target(&mut graph, kind, target);
+        }
       }
     }
+
     // Prune per-path state for paths no longer being watched so the maps do
     // not grow unboundedly across `watch()` cycles. `reset()` has already
     // cleared the `removed` sets at the start of this `watch()` call, so what
@@ -928,12 +1600,8 @@ impl PathManager {
     // fresh stat would reopen the rewatch-gap race `set_file_time_if_absent`
     // guards against. A path still below a registered context keeps its
     // record: the context reports it.
-    let removed_files: Vec<InternedPath> = self.files.removed.iter().map(|p| p.clone()).collect();
-    for path in &removed_files {
+    for path in &diffs[LogicalKind::File as usize].1 {
       let still_missing = self.missing.all.contains(path);
-      if !still_missing {
-        self.baselines.remove(path);
-      }
       if !self.is_below_context(path) {
         self.file_times.remove(path);
         if !still_missing {
@@ -941,27 +1609,25 @@ impl PathManager {
         }
       }
     }
-    let removed_missing: Vec<InternedPath> =
-      self.missing.removed.iter().map(|p| p.clone()).collect();
-    for path in &removed_missing {
+    for path in &diffs[LogicalKind::Missing as usize].1 {
       if self.files.all.contains(path) {
         continue;
       }
-      self.baselines.remove(path);
       if !self.is_below_context(path) {
         self.file_times.remove(path);
         self.unindex_record(path);
       }
     }
-    let removed_dirs: Vec<InternedPath> =
-      self.directories.removed.iter().map(|p| p.clone()).collect();
-    for dir in &removed_dirs {
+    for dir in &diffs[LogicalKind::Directory as usize].1 {
       // Still below a registered context and on disk: it stays reported, as a
       // directory found there, and keeps its event clock. Absent, it is
       // forgotten, so it is scanned as a new directory when it comes back.
       let absent = self.absent_directories.remove(dir).is_some();
       if !absent && self.is_below_context(dir) {
-        self.record(dir, || self.context_directories.insert(dir.clone()));
+        if self.record(dir, || self.context_directories.insert(dir.clone())) {
+          let mut graph = self.lock_graph();
+          self.retain_watch_target(&mut graph, LogicalKind::Directory, dir.clone());
+        }
       } else {
         self.last_watch_events.remove(dir);
       }
@@ -973,35 +1639,46 @@ impl PathManager {
 
   /// A context was unregistered: forget what its scan found below it, except
   /// what another still-registered context also covers.
+  #[inline(never)]
   fn forget_context_entries_under(&self, dir: &InternedPath) {
-    let _index = self.lock_index();
-    let mut subtree = Vec::new();
-    let mut pending = vec![dir.clone()];
-    while let Some(path) = pending.pop() {
-      if let Some(children) = self.recorded_children.get(&path) {
-        pending.extend(children.iter().cloned());
+    let mut released_dirs = Vec::new();
+    {
+      let _index = self.lock_index();
+      let mut subtree = Vec::new();
+      let mut pending = vec![dir.clone()];
+      while let Some(path) = pending.pop() {
+        if let Some(children) = self.recorded_children.get(&path) {
+          pending.extend(children.iter().cloned());
+        }
+        subtree.push(path);
       }
-      subtree.push(path);
+      for path in &subtree {
+        if self.is_below_context(path) || self.directories.all.contains(path) {
+          continue;
+        }
+        if self.context_files.remove(path).is_some()
+          && !self.files.all.contains(path)
+          && !self.missing.all.contains(path)
+        {
+          self.file_times.remove(path);
+          self.unlink_unrecorded(path);
+        }
+        if self.context_directories.remove(path).is_some() {
+          released_dirs.push(path.clone());
+          self.last_watch_events.remove(path);
+          self.unlink_unrecorded(path);
+        }
+      }
     }
-    for path in &subtree {
-      if self.is_below_context(path) || self.directories.all.contains(path) {
-        continue;
-      }
-      if self.context_files.remove(path).is_some()
-        && !self.files.all.contains(path)
-        && !self.missing.all.contains(path)
-      {
-        self.file_times.remove(path);
-        self.unlink_unrecorded(path);
-      }
-      if self.context_directories.remove(path).is_some() {
-        self.last_watch_events.remove(path);
-        self.unlink_unrecorded(path);
+    if !released_dirs.is_empty() {
+      let mut graph = self.lock_graph();
+      for d in &released_dirs {
+        self.release_watch_target(&mut graph, LogicalKind::Directory, d);
       }
     }
   }
 
-  /// Create a new `PathAccessor` to access the current state of paths, directories, and missing paths.
+  /// Create a new `PathAccessor` to access the current state of physical watch paths, directories, and missing paths.
   pub fn access(&self) -> PathAccessor<'_> {
     PathAccessor::new(self)
   }
@@ -1024,7 +1701,8 @@ impl PathManager {
     if let Some(time) = self.file_times.get(path) {
       return Some(*time);
     }
-    disk_mtime(path).map(FileTime::initial)
+    let target = self.target_path_of(LogicalKind::File, path);
+    disk_mtime(&target).map(FileTime::initial)
   }
 
   fn entry(time: FileTime) -> TimeInfoEntry {
@@ -1053,14 +1731,13 @@ impl PathManager {
   /// Absent on disk reads as `null` in both. Only a context known to be
   /// absent is stat'ed, to see whether it came back.
   pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
-    let accessor = self.access();
     let path_to_string = |path: &Path| {
       path
         .to_str()
         .map_or_else(|| path.to_string_lossy().into_owned(), str::to_owned)
     };
 
-    let file_paths: Vec<InternedPath> = accessor.files().0.iter().map(|p| p.clone()).collect();
+    let file_paths: Vec<InternedPath> = self.files.all.iter().map(|p| p.clone()).collect();
     let mut file_timestamps = TimeInfoEntries::with_capacity(file_paths.len());
     let mut file_safe_times: Vec<(InternedPath, u64)> = Vec::with_capacity(file_paths.len());
     for path in &file_paths {
@@ -1074,7 +1751,7 @@ impl PathManager {
     }
     // webpack registers `files` and `missing` as disjoint sets, so a null
     // missing entry never clobbers a real file entry sharing the same key.
-    for path in accessor.missing().0.iter() {
+    for path in self.missing.all.iter() {
       let entry = self
         .file_times
         .get(&path)
@@ -1086,7 +1763,7 @@ impl PathManager {
     }
     // Files found below contexts, like watchpack's `DirectoryWatcher.files`.
     for path in self.context_files.iter() {
-      if accessor.files().0.contains(&path) {
+      if self.files.all.contains(&path) {
         continue;
       }
       let Some(time) = self.file_times.get(&path).map(|time| *time) else {
@@ -1096,13 +1773,12 @@ impl PathManager {
       file_timestamps.push((path_to_string(path.as_path()), Self::entry(time)));
     }
 
-    let mut dir_paths: Vec<InternedPath> =
-      accessor.directories().0.iter().map(|p| p.clone()).collect();
+    let mut dir_paths: Vec<InternedPath> = self.directories.all.iter().map(|p| p.clone()).collect();
     dir_paths.extend(
       self
         .context_directories
         .iter()
-        .filter(|dir| !accessor.directories().0.contains(dir))
+        .filter(|dir| !self.directories.all.contains(dir))
         .map(|dir| dir.clone()),
     );
     let mut dir_safe_times: FxHashMap<InternedPath, Option<u64>> =
@@ -1113,7 +1789,8 @@ impl PathManager {
       // or `{ safeTime: 0 }`: webpack then sees it as missing and rebuilds
       // once it appears, instead of trusting a time for a directory not there.
       let safe_time = if self.absent_directories.contains(dir) {
-        disk_mtime(dir)
+        let target = self.target_path_of(LogicalKind::Directory, dir);
+        disk_mtime(&target)
           .map(mtime_safe_time)
           .map(|own| last_watch_event.map_or(own, |event| own.max(event)))
       } else {
@@ -1173,6 +1850,12 @@ impl PathManager {
 pub(crate) fn disk_mtime(path: &InternedPath) -> Option<SystemTime> {
   path
     .metadata()
+    .and_then(|m| m.modified().or_else(|_| m.created()))
+    .ok()
+}
+
+pub(crate) fn symlink_mtime(path: &InternedPath) -> Option<SystemTime> {
+  std::fs::symlink_metadata(path)
     .and_then(|m| m.modified().or_else(|_| m.created()))
     .ok()
 }
