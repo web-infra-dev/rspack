@@ -30,12 +30,12 @@ impl Cutout {
     compilation: &Compilation,
     artifact: &mut BuildModuleGraphArtifact,
     params: Vec<UpdateParam>,
+    force_build_modules: &mut IdentifierSet,
   ) -> HashSet<BuildDependency> {
     // the entry dependencies after update module graph
     let mut next_entry_dependencies = HashSet::default();
     // whether to clean up useless entry dependencies
     let mut clean_entry_dependencies = false;
-    let mut force_build_modules = IdentifierSet::default();
     let mut force_build_deps = HashSet::default();
 
     let module_graph = artifact.get_module_graph();
@@ -83,13 +83,13 @@ impl Cutout {
     // analyze force_build_module and force_build_deps
     self
       .fix_issuers
-      .analyze_force_build_modules(artifact, &force_build_modules);
+      .analyze_force_build_modules(artifact, force_build_modules);
     self
       .fix_issuers
       .analyze_force_build_dependencies(artifact, &force_build_deps);
     self
       .fix_build_meta
-      .analyze_force_build_modules(artifact, &force_build_modules);
+      .analyze_force_build_modules(artifact, force_build_modules);
 
     // Entry deps have no parent — their connection is the only edge back to
     // the target. Snapshot those targets before revoke deletes the edge, so
@@ -118,8 +118,8 @@ impl Cutout {
     }
 
     // do revoke module and collect deps
-    for id in force_build_modules {
-      build_deps.extend(artifact.revoke_module(&id));
+    for id in force_build_modules.iter() {
+      build_deps.extend(artifact.revoke_module(id));
     }
 
     let mut entry_dependencies = std::mem::take(&mut artifact.entry_dependencies);

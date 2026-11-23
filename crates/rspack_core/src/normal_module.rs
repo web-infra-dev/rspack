@@ -144,7 +144,6 @@ pub struct NormalModule {
   build_info: FreezeLock<BuildInfo>,
   build_meta: FreezeLock<BuildMeta>,
   parsed: bool,
-  force_build: bool,
   source_map_kind: SourceMapKind,
   /// A seal-stage override, excluded from reusable build state.
   #[cacheable(with=rspack_cacheable::with::Skip)]
@@ -239,9 +238,6 @@ impl NormalModule {
       build_info: build_info.into(),
       build_meta: Default::default(),
       parsed: false,
-      // Mirrors webpack's `_forceBuild`: a new module has no reusable build
-      // until its first build starts.
-      force_build: true,
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -430,7 +426,7 @@ impl Module for NormalModule {
   }
 
   async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
-    if self.force_build || self.error.is_some() {
+    if context.force_build || self.error.is_some() {
       return Ok(true);
     }
 
@@ -488,7 +484,6 @@ impl Module for NormalModule {
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
     self.dependencies_block = Default::default();
-    self.force_build = false;
     self.error = None;
     self.diagnostics.clear();
     self.build_info.get_mut().snapshot = None;

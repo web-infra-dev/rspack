@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use rspack_collections::IdentifierSet;
 use rspack_fs::{IntermediateFileSystem, WritableFileSystem};
 use rspack_tasks::CURRENT_COMPILER_CONTEXT;
 use rustc_hash::FxHashMap as HashMap;
@@ -24,6 +25,7 @@ pub struct TaskContext {
   pub dependency_templates: HashMap<DependencyTemplateType, Arc<dyn DependencyTemplate>>,
   pub(crate) cache: CompilerCache,
   pub(crate) module_build_cache: Option<ModuleBuildCache>,
+  pub(crate) force_build_modules: IdentifierSet,
 
   pub artifact: BuildModuleGraphArtifact,
   pub exports_info_artifact: ExportsInfoArtifact,
@@ -58,6 +60,7 @@ impl TaskContext {
       intermediate_fs: compilation.intermediate_filesystem.clone(),
       output_fs: compilation.output_filesystem.clone(),
       module_build_cache: artifact.module_build_cache.clone(),
+      force_build_modules: Default::default(),
       cache: compilation.cache.clone(),
       artifact,
       exports_info_artifact,
