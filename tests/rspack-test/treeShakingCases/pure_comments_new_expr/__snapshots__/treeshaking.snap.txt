@@ -6,7 +6,7 @@ __webpack_require__.d(__webpack_exports__, {
   marker: () => (marker)
 });
 function createSet() {
-	return new Set(globalThis.__items__);
+	return new Set();
 }
 
 const marker = 1;

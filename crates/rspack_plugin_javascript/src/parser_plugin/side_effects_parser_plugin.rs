@@ -21,9 +21,7 @@ use swc_next_ecma_ast::{
 };
 use swc_next_ecma_semantic::Semantic;
 
-use super::side_effects_analysis::{
-  SideEffectsContext, is_pure_global_callee, is_pure_global_new, may_have_side_effects,
-};
+use super::side_effects_analysis::{SideEffectsContext, may_have_side_effects};
 use crate::{
   Atom, JavascriptParserPlugin,
   dependency::ESMImportSideEffectDependency,
@@ -70,12 +68,7 @@ fn expr_ctx<'a, 'parser>(
   parser: &'a JavascriptParser<'parser>,
   is_unresolved_ref_safe: bool,
 ) -> SideEffectsContext<'a, 'parser> {
-  SideEffectsContext::new(
-    parser.ast.ast,
-    parser.ast.semantic,
-    is_unresolved_ref_safe,
-    parser.active_synthetic_ast.is_some(),
-  )
+  SideEffectsContext::new(parser.ast.ast, parser.ast.semantic, is_unresolved_ref_safe)
 }
 
 fn has_pure_comment(comments: &RspackComments<'_>, pos: u32) -> bool {
@@ -471,7 +464,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
           ast.export_default_declaration_kind_data(export.declaration(ast))
         {
           let mut callees = Vec::new();
-          if !is_pure_expression(
+          if !is_module_eval_pure_expression(
             parser,
             self.analyze_side_effects_free,
             expression,
@@ -487,13 +480,23 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
       StmtData::ExportNamedDeclaration(export) => {
         if let Some(declaration) = export.declaration(ast) {
           let mut callees = Vec::new();
-          if !is_pure_decl(
-            parser,
-            self.analyze_side_effects_free,
-            declaration,
-            parser.ast.comments,
-            Some(&mut callees),
-          ) {
+          let pure = match ast.decl_data(declaration) {
+            DeclData::VariableDeclaration(variable) => is_module_eval_pure_var_decl(
+              parser,
+              self.analyze_side_effects_free,
+              variable,
+              parser.ast.comments,
+              Some(&mut callees),
+            ),
+            _ => is_pure_decl(
+              parser,
+              self.analyze_side_effects_free,
+              declaration,
+              parser.ast.comments,
+              Some(&mut callees),
+            ),
+          };
+          if !pure {
             set_side_effects_bailout(parser, declaration.span(ast), "Decl");
           }
           if parser.side_effects_item.is_none() {
@@ -727,16 +730,6 @@ fn is_pure_call_expression(
     );
   }
 
-  if is_pure_global_callee(callee, expr_ctx(parser, false)) {
-    return arguments_are_pure(
-      parser,
-      analyze_side_effects_free,
-      call.arguments(ast),
-      comments,
-      callees,
-    );
-  }
-
   if analyze_side_effects_free && let Some(identifier) = callee.as_identifier_reference(ast) {
     let name = ast.get_utf8(identifier.name(ast));
     match resolve_explicit_side_effects_free_callee(
@@ -852,9 +845,7 @@ pub fn is_pure_expression(
       callees,
     ),
     ExprData::NewExpression(new_expression) => {
-      if has_pure_comment(comments, expression.span(ast).start)
-        || is_pure_global_new(new_expression, expr_ctx(parser, false))
-      {
+      if has_pure_comment(comments, expression.span(ast).start) {
         arguments_are_pure(
           parser,
           analyze_side_effects_free,
@@ -1185,27 +1176,231 @@ fn is_common_js_export_assignment(
       .is_none_or(|info| info.is_free())
 }
 
-/// Keep the CommonJS export-write exception out of `is_pure_expression`,
-/// because innerGraph also consumes that shared function.
+/// Keep module-evaluation-only rules, the CommonJS export-write exception and
+/// calls to known pure globals, out of `is_pure_expression`, because
+/// innerGraph also consumes that shared function.
 fn is_module_eval_pure_expression(
   parser: &mut JavascriptParser,
   analyze_side_effects_free: bool,
   mut expression: Expr,
   comments: &RspackComments<'_>,
-  callees: Option<&mut Vec<(Atom, Span)>>,
+  mut callees: Option<&mut Vec<(Atom, Span)>>,
 ) -> bool {
-  while let ExprData::AssignmentExpression(assignment) = parser.ast.ast.expr_data(expression) {
+  let ast = parser.ast.ast;
+  while let ExprData::AssignmentExpression(assignment) = ast.expr_data(expression) {
     if !is_common_js_export_assignment(parser, assignment) {
       break;
     }
-    expression = assignment.right(parser.ast.ast);
+    expression = assignment.right(ast);
   }
-  is_pure_expression(
-    parser,
-    analyze_side_effects_free,
-    expression,
-    comments,
-    callees,
+  let Some(arguments) = pure_global_call_arguments(parser, expression) else {
+    return is_pure_expression(
+      parser,
+      analyze_side_effects_free,
+      expression,
+      comments,
+      callees,
+    );
+  };
+  ast
+    .nodes(arguments)
+    .all(|argument| match ast.argument_data(argument) {
+      ArgumentData::Expr(argument) => is_module_eval_pure_expression(
+        parser,
+        analyze_side_effects_free,
+        argument,
+        comments,
+        callees.as_deref_mut(),
+      ),
+      ArgumentData::SpreadElement(_) => false,
+    })
+}
+
+fn pure_global_call_arguments(
+  parser: &JavascriptParser,
+  expression: Expr,
+) -> Option<swc_next_ecma_ast::SubRange<swc_next_ecma_ast::Argument>> {
+  let ast = parser.ast.ast;
+  let call = match ast.expr_data(expression) {
+    ExprData::NewExpression(new_expression) => {
+      return is_pure_global_new(parser, new_expression).then(|| new_expression.arguments(ast));
+    }
+    ExprData::CallExpression(call) => call,
+    ExprData::ChainExpression(chain) => match ast.expr_data(chain.expression(ast)) {
+      ExprData::CallExpression(call) => call,
+      _ => return None,
+    },
+    _ => return None,
+  };
+  is_pure_global_callee(parser, call.callee(ast)).then(|| call.arguments(ast))
+}
+
+fn is_pure_global_callee(parser: &JavascriptParser, callee: Expr) -> bool {
+  if let Some(name) = global_name(parser, callee) {
+    return is_pure_global_function(name);
+  }
+  let ast = parser.ast.ast;
+  let ExprData::MemberExpression(member) = ast.expr_data(callee) else {
+    return false;
+  };
+  if member.computed(ast) {
+    return false;
+  }
+  let PropertyKeyData::IdentifierName(property) = ast.property_key_data(member.property(ast))
+  else {
+    return false;
+  };
+  global_name(parser, member.object(ast))
+    .is_some_and(|object| is_pure_global_method(object, ast.get_utf8(property.name(ast))))
+}
+
+fn is_pure_global_new(
+  parser: &JavascriptParser,
+  new_expression: swc_next_ecma_ast::NewExpression,
+) -> bool {
+  let ast = parser.ast.ast;
+  let Some(name) = global_name(parser, new_expression.callee(ast)) else {
+    return false;
+  };
+  if is_pure_global_constructor(name) {
+    return true;
+  }
+
+  let first = match ast.nodes(new_expression.arguments(ast)).next() {
+    None => None,
+    Some(argument) => match ast.argument_data(argument) {
+      ArgumentData::SpreadElement(_) => return false,
+      ArgumentData::Expr(expression) => Some(ast.expr_data(expression)),
+    },
+  };
+  match name {
+    "Set" | "WeakSet" => first.is_none_or(|first| matches!(first, ExprData::ArrayExpression(_))),
+    "Map" | "WeakMap" => first.is_none_or(|first| match first {
+      ExprData::ArrayExpression(array) => ast.optional_nodes(array.elements(ast)).all(|element| {
+        element.is_some_and(|element| match ast.argument_data(element) {
+          ArgumentData::Expr(entry) => {
+            matches!(ast.expr_data(entry), ExprData::ArrayExpression(_))
+          }
+          ArgumentData::SpreadElement(_) => false,
+        })
+      }),
+      _ => false,
+    }),
+    "URLSearchParams" => first.is_none_or(|first| matches!(first, ExprData::StringLiteral(_))),
+    _ if is_typed_array_constructor(name) => first.is_none_or(|first| {
+      matches!(
+        first,
+        ExprData::NumericLiteral(_) | ExprData::ArrayExpression(_)
+      )
+    }),
+    _ => false,
+  }
+}
+
+fn global_name<'a>(parser: &'a JavascriptParser, expression: Expr) -> Option<&'a str> {
+  if parser.active_synthetic_ast.is_some() {
+    return None;
+  }
+  let ast = parser.ast.ast;
+  let identifier = expression.as_identifier_reference(ast)?;
+  let semantic = parser.ast.semantic;
+  let reference = semantic.reference_of(identifier.node_id())?;
+  semantic
+    .reference(reference)
+    .symbol
+    .is_none()
+    .then(|| ast.get_utf8(identifier.name(ast)))
+}
+
+// Calls and `new` expressions of these globals count as side-effect-free even
+// when they can throw on invalid input, such as `new WeakSet([1])` or
+// `decodeURIComponent("%")`
+fn is_pure_global_function(name: &str) -> bool {
+  matches!(
+    name,
+    "Boolean"
+      | "Date"
+      | "Number"
+      | "Object"
+      | "String"
+      | "Symbol"
+      | "decodeURI"
+      | "decodeURIComponent"
+      | "encodeURI"
+      | "encodeURIComponent"
+      | "isFinite"
+      | "isNaN"
+      | "parseFloat"
+      | "parseInt"
+  )
+}
+
+fn is_pure_global_method(object: &str, method: &str) -> bool {
+  match object {
+    "Array" => matches!(method, "isArray" | "of"),
+    "Math" => true,
+    "Number" => matches!(
+      method,
+      "isFinite" | "isInteger" | "isNaN" | "isSafeInteger" | "parseFloat" | "parseInt"
+    ),
+    "Object" => matches!(
+      method,
+      "entries"
+        | "getOwnPropertyDescriptor"
+        | "getOwnPropertyDescriptors"
+        | "getOwnPropertyNames"
+        | "getOwnPropertySymbols"
+        | "getPrototypeOf"
+        | "hasOwn"
+        | "is"
+        | "isExtensible"
+        | "isFrozen"
+        | "isSealed"
+        | "keys"
+        | "values"
+    ),
+    "String" => matches!(method, "fromCharCode" | "fromCodePoint"),
+    "Symbol" => matches!(method, "for" | "keyFor"),
+    _ => false,
+  }
+}
+
+fn is_pure_global_constructor(name: &str) -> bool {
+  matches!(
+    name,
+    "Array"
+      | "ArrayBuffer"
+      | "Boolean"
+      | "DataView"
+      | "Date"
+      | "Error"
+      | "EvalError"
+      | "Number"
+      | "Object"
+      | "RangeError"
+      | "ReferenceError"
+      | "RegExp"
+      | "String"
+      | "SyntaxError"
+      | "TypeError"
+      | "URIError"
+  )
+}
+
+fn is_typed_array_constructor(name: &str) -> bool {
+  matches!(
+    name,
+    "BigInt64Array"
+      | "BigUint64Array"
+      | "Float32Array"
+      | "Float64Array"
+      | "Int8Array"
+      | "Int16Array"
+      | "Int32Array"
+      | "Uint8Array"
+      | "Uint8ClampedArray"
+      | "Uint16Array"
+      | "Uint32Array"
   )
 }
 
