@@ -190,7 +190,6 @@ pub(crate) struct BlockItemCandidates {
   retain_current_atom: bool,
   preserve_next_ident: bool,
   pub(crate) flat_probe_start: Option<Pos>,
-  pub(crate) collect_dashed: bool,
 }
 
 impl BlockItemCandidates {
@@ -209,7 +208,6 @@ impl BlockItemCandidates {
       retain_current_atom: true,
       preserve_next_ident: false,
       flat_probe_start: None,
-      collect_dashed: false,
     }
   }
 
@@ -348,10 +346,7 @@ impl BlockItemCandidates {
 
 /// Once the declaration fails, finish the rule candidate on the same stream.
 /// No semantic effects are applied to this rejected declaration suffix.
-pub(crate) fn resolve_block_item<V: crate::LexerVisitor>(
-  stream: &mut TokenStream<'_, '_, V>,
-  keep_comments: bool,
-) {
+pub(crate) fn resolve_block_item(stream: &mut TokenStream<'_, '_>, keep_comments: bool) {
   while stream.block_item_progress() == BlockItemProgress::ResolveRule {
     stream.next(keep_comments);
   }

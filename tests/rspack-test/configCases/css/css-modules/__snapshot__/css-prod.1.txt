@@ -1331,7 +1331,7 @@ ul {
 	list-style: _tEP1J;
 }
 
-@counter-style _XsAoSR {
+@counter-style _2sAoSR {
 	fallback: thumbs;
 	system: extends thumbs;
 	speak-as: thumbs;
@@ -1380,8 +1380,8 @@ div {
 
 	list-style-type: "★";
 
-	list-style-type: _XsAoSR;
-	list-style: _XsAoSR;
+	list-style-type: _2sAoSR;
+	list-style: _2sAoSR;
 }
 
 @container (width > 400px) and style(--responsive: true) {
@@ -1861,7 +1861,7 @@ div {
 	color: red;
 }
 
-.DYXsTP {
+.DY4sTP {
 }
 
 .KU-WbM {
@@ -2393,7 +2393,7 @@ p:not(#Gonxc7) {
 }
 
 ._5pC6hg {
-	grid-area: X some-grid-area / 2 another-grid-area;
+	grid-area: 4 some-grid-area / 2 another-grid-area;
 }
 
 .QbPsKS {
@@ -2426,7 +2426,7 @@ p:not(#Gonxc7) {
 	grid-row-start: span some-grid-area;
 }
 .KBrCBj {
-	grid-row-start: X some-grid-area span;
+	grid-row-start: 5 some-grid-area span;
 }
 
 /* Global values */

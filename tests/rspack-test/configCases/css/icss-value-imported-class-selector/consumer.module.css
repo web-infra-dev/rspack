@@ -1,0 +1,140 @@
+@value shared-class from "./reexport.module.css";
+@value (shared-class as shared-class-alias, composed-class) from "./shared.module.css";
+@value u-1\/2 as half-alias from "./shared.module.css";
+@value shared-id from "./shared.module.css";
+@value plain-token, unused-plain, plain-utility from "./shared.module.css";
+@value accent from "./shared.module.css";
+@value local-chain: shared-class;
+@value global-target: real-global-btn;
+
+:import("./shared.module.css") {
+	icss-alias: shared-class;
+	icss-half: u-1/2;
+}
+
+.shared-class {
+	color: green;
+}
+
+article .shared-class-alias {
+	background: yellow;
+}
+
+.local-chain {
+	padding: 4px;
+}
+
+.composed-class {
+	margin: 8px;
+}
+
+.half-alias {
+	width: 25%;
+}
+
+.icss-alias {
+	opacity: 0.9;
+}
+
+.icss-half {
+	height: 50%;
+}
+
+#shared-id {
+	min-height: 20px;
+}
+
+.plain-token {
+	gap: plain-token;
+}
+
+.unused-plain {
+	gap: unused-plain;
+}
+
+.plain-utility {
+	line-height: 1.5;
+}
+
+.backward-plain-compose {
+	composes: plain-utility;
+}
+
+.forward-plain-compose {
+	composes: forward-plain-utility;
+}
+
+.accent {
+	outline-color: red;
+}
+
+:global(.global-target) {
+	z-index: 2;
+}
+
+:global(.shared-class-alias) {
+	z-index: 3;
+}
+
+:global(.composed-class) {
+	z-index: 4;
+}
+
+:global(.half-alias) {
+	z-index: 5;
+}
+
+.forward-compose {
+	composes: forward-shared;
+}
+
+.forward-value-only {
+	composes: value-only-shared;
+}
+
+.local-extra {
+	cursor: pointer;
+}
+
+@value shared-class as forward-shared from "./shared.module.css";
+@value shared-class as value-only-shared from "./shared.module.css";
+
+.forward-shared {
+	composes: local-extra;
+	letter-spacing: 1px;
+}
+
+.backward-compose {
+	composes: forward-shared;
+}
+
+@value plain-utility as forward-plain-utility from "./shared.module.css";
+
+.forward-plain-utility {
+	line-height: 1.6;
+}
+
+.self-cycle {
+	composes: self-cycle;
+	font-style: italic;
+}
+
+:import("./shared.module.css") {
+	self-cycle: shared-class;
+}
+
+.self-cycle {
+	color: brown;
+}
+
+@value shared-class as rebound-plain from "./shared.module.css";
+
+.rebound-plain {
+	padding-top: 7px;
+}
+
+@value rebound-plain: 14px;
+
+.rebound-plain {
+	margin-top: rebound-plain;
+}

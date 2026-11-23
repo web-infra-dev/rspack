@@ -56,6 +56,8 @@ impl From<JsEntryOptions> for EntryOptions {
     Self {
       name: value.name,
       runtime: value.runtime.map(|r| JsEntryRuntimeWrapper(r).into()),
+      worker: None,
+      worklet: None,
       chunk_loading: value.chunk_loading.map(Into::into),
       wasm_loading: value.wasm_loading.map(Into::into),
       async_chunks: value.async_chunks,

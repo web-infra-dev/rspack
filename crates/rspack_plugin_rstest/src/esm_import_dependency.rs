@@ -1,8 +1,9 @@
 use rspack_cacheable::cacheable;
 use rspack_core::{
-  Dependency, DependencyCodeGeneration, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ImportAttributes, InitFragment, InitFragmentExt, InitFragmentKey, InitFragmentStage,
-  ModuleDependency, RuntimeCondition, TemplateContext, TemplateReplaceSource,
+  DefaultInteropInitFragment, Dependency, DependencyCodeGeneration, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ImportAttributes, InitFragment, InitFragmentExt,
+  InitFragmentKey, InitFragmentStage, ModuleDependency, RuntimeCondition, TemplateContext,
+  TemplateReplaceSource,
 };
 use rspack_plugin_javascript::dependency::{
   ESMImportSideEffectDependency, ESMImportSideEffectDependencyTemplate,
@@ -94,6 +95,21 @@ fn hoist_new_esm_import_fragments(
       continue;
     }
     let key = fragment.key().clone();
+    if let InitFragmentKey::ESMDefaultInterop(_) = &key {
+      let cloned: Box<dyn InitFragment> = fragment.clone();
+      if let Ok(default_interop) = cloned.into_any().downcast::<DefaultInteropInitFragment>() {
+        overrides.push(
+          DefaultInteropInitFragment::new(
+            default_interop.import_var().to_string(),
+            InitFragmentStage::StageESMImports,
+            -1,
+            RuntimeCondition::Boolean(true),
+          )
+          .boxed(),
+        );
+      }
+      continue;
+    }
     let InitFragmentKey::ESMImport(_) = &key else {
       continue;
     };

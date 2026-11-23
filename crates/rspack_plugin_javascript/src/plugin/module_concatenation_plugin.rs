@@ -1936,7 +1936,7 @@ async fn create_concatenated_module(
       })
       .map(|id| id.to_string()),
     layer: root_module.get_layer().cloned(),
-    resolve_options: root_module.get_resolve_options(),
+    resolve_options: root_module.get_resolve_options(&compilation.options.module),
     code_generation_dependencies: root_module
       .get_code_generation_dependencies()
       .map(|deps| deps.to_vec()),

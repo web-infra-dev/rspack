@@ -54,15 +54,15 @@
     );
     switch (start) {
       case "^":
-        if (remainder.length > 1 && remainder[1] === 0) {
-          if (remainder.length > 2 && remainder[2] === 0) {
+        if (remainder.length > 2 && remainder[1] === 0) {
+          if (remainder.length > 3 && remainder[2] === 0) {
             return [3].concat(remainder.slice(1));
           }
           return [2].concat(remainder.slice(1));
         }
-        return [1].concat(remainder.slice(1));
+        return [Math.min(1, remainder.length - 1)].concat(remainder.slice(1));
       case "~":
-        return [2].concat(remainder.slice(1));
+        return [Math.min(2, remainder.length - 1)].concat(remainder.slice(1));
       case ">=":
         return remainder;
       case "=":

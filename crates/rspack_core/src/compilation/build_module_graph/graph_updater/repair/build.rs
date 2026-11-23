@@ -21,6 +21,7 @@ pub struct BuildTask {
   pub module: BoxModule,
   pub forwarded_ids: ForwardedIdSet,
   pub module_build_cache: Option<ModuleBuildCache>,
+  pub force_build: bool,
 }
 
 #[async_trait::async_trait]
@@ -34,6 +35,7 @@ impl Task<TaskContext> for BuildTask {
       mut module,
       forwarded_ids,
       module_build_cache,
+      force_build,
     } = *self;
     let plugin_driver = build_context.plugin_driver.clone();
 
@@ -43,6 +45,7 @@ impl Task<TaskContext> for BuildTask {
           &module,
           &build_context.file_system_info,
           &build_context.value_cache_versions,
+          force_build,
         )
         .await?
     {

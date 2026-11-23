@@ -7,11 +7,15 @@ use rspack_core::{
   AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
   DependencyId, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
-  RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsedName,
-  property_access_with_optional,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource,
+  UsedName, property_access_with_optional,
 };
+use rspack_hash::RspackHasher;
 
-use super::ExportsBase;
+use super::{
+  ExportsBase,
+  common_js_dependency_helpers::{is_worker_entry_this, update_worker_entry_this_hash},
+};
 use crate::Atom;
 
 #[cacheable]
@@ -118,6 +122,18 @@ impl DependencyCodeGeneration for CommonJsSelfReferenceDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CommonJsSelfReferenceDependencyTemplate::template_type())
   }
+
+  fn update_hash(
+    &self,
+    hasher: &mut RspackHasher,
+    compilation: &rspack_core::Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) {
+    if !self.base.is_this() {
+      return;
+    }
+    update_worker_entry_this_hash(&self.id, hasher, compilation, runtime);
+  }
 }
 
 #[cacheable]
@@ -150,15 +166,18 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       ..
     } = code_generatable_context;
 
-    let used = if !dep.names.is_empty() {
+    let is_worker_entry =
+      dep.base.is_this() && is_worker_entry_this(compilation, module.identifier(), *runtime);
+
+    let used = if is_worker_entry || dep.names.is_empty() {
+      UsedName::Normal(dep.names.clone())
+    } else {
       let exports_info = compilation
         .exports_info_artifact
         .get_exports_info_data(&module.identifier());
       exports_info
         .get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names)
         .unwrap_or_else(|| UsedName::Normal(dep.names.clone()))
-    } else {
-      UsedName::Normal(dep.names.clone())
     };
 
     let exports_argument = module.get_exports_argument();
@@ -171,6 +190,8 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
         "{}.exports",
         runtime_template.render_module_argument(module_argument)
       )
+    } else if is_worker_entry {
+      runtime_template.render_runtime_globals(&RuntimeGlobals::GLOBAL)
     } else if dep.base.is_this() {
       runtime_template.render_this_exports()
     } else {

@@ -163,7 +163,7 @@ impl ExternalsPlugin {
       css_import_conditions: dependency
         .as_any()
         .downcast_ref::<CssImportDependency>()
-        .map(|dependency| dependency.render_condition().clone()),
+        .and_then(CssImportDependency::merged_render_condition),
     };
 
     let external_module_type = r#type.unwrap_or(external_module_type);

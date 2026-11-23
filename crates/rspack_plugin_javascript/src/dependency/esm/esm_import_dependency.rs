@@ -1,9 +1,10 @@
+use itertools::Itertools;
 use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
-  ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
+  ConditionalInitFragment, ConnectionState, DefaultInteropInitFragment, Dependency,
+  DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
   DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided, ExportsInfoArtifact,
   ExportsType, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
@@ -180,7 +181,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     phase,
     *runtime,
   );
-  let content: (String, String) = runtime_template.import_statement(
+  let (import_content, default_interop) = runtime_template.import_statement(
     *module,
     compilation,
     module_dependency.id(),
@@ -238,34 +239,49 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   }
 
   let is_async_module = matches!(target_module, Some(target_module) if ModuleGraph::is_async(&compilation.async_modules_artifact, &target_module.identifier()));
+  init_fragments.push(Box::new(ConditionalInitFragment::new(
+    import_content,
+    InitFragmentStage::StageESMImports,
+    source_order,
+    InitFragmentKey::ESMImport(key),
+    None,
+    runtime_condition.clone(),
+  )));
   if is_async_module {
-    init_fragments.push(Box::new(ConditionalInitFragment::new(
-      content.0,
-      InitFragmentStage::StageESMImports,
-      source_order,
-      InitFragmentKey::ESMImport(key.clone()),
-      None,
-      runtime_condition.clone(),
-    )));
-    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var).boxed());
-    init_fragments.push(Box::new(ConditionalInitFragment::new(
-      content.1,
-      InitFragmentStage::StageAsyncESMImports,
-      source_order,
-      InitFragmentKey::ESMImport(format!("{key} compat")),
-      None,
-      runtime_condition,
-    )));
-  } else {
-    init_fragments.push(Box::new(ConditionalInitFragment::new(
-      format!("{}{}", content.0, content.1),
-      InitFragmentStage::StageESMImports,
-      source_order,
-      InitFragmentKey::ESMImport(key),
-      None,
-      runtime_condition,
-    )));
+    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var.clone()).boxed());
   }
+  if default_interop {
+    init_fragments.push(
+      DefaultInteropInitFragment::new(
+        import_var,
+        if is_async_module {
+          InitFragmentStage::StageAsyncESMImports
+        } else {
+          InitFragmentStage::StageESMImports
+        },
+        source_order,
+        runtime_condition,
+      )
+      .boxed(),
+    );
+  }
+}
+
+/// Lists up to ten exports in full. For longer lists, shows four names around the
+/// missing name's insertion point in alphabetical order and counts the rest.
+fn format_possible_exports(exports: &[Atom], missing: &Atom) -> String {
+  const FULL_LIST_LIMIT: usize = 10;
+  const WINDOW_SIZE: usize = 4;
+
+  if exports.len() <= FULL_LIST_LIMIT {
+    return exports.iter().join(", ");
+  }
+
+  let pos = exports.partition_point(|name| name < missing);
+  let omitted = exports.len() - WINDOW_SIZE;
+  let start = pos.saturating_sub(WINDOW_SIZE / 2).min(omitted);
+  let nearby = &exports[start..start + WINDOW_SIZE];
+  format!("{}, and {omitted} more", nearby.iter().format(", "))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -349,12 +365,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       //   1. export { T } from "./types";
       //   2. import { T } from "./types"; export { T };
       // Check if the export is really a type export, if it is, then skip the error.
-      let type_reexports_presence = parent_module
-        .as_normal_module()
-        .and_then(|m| m.get_parser_options())
-        .and_then(|o| o.get_javascript())
-        .and_then(|o| o.type_reexports_presence)
-        .unwrap_or_default();
+      let type_reexports_presence = parent_module.build_info().type_reexports_presence;
       // ref: https://github.com/evanw/esbuild/blob/f4159a7b823cd5fe2217da2c30e8873d2f319667/internal/linker/linker.go#L3129-L3131
       if !matches!(
         type_reexports_presence,
@@ -414,11 +425,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
             } else {
               format!(
                 " (possible exports: {})",
-                exports
-                  .iter()
-                  .map(|e| e.as_str())
-                  .collect::<Vec<_>>()
-                  .join(", ")
+                format_possible_exports(exports, id)
               )
             }
           } else {

@@ -52,8 +52,6 @@ pub struct EntryState {
   /// Root CSS import paths reached through a parent chain without `use server-entry`.
   /// These are attached directly to the matching client compiler entry.
   pub root_css_imports: RootCssImports,
-  /// Dependency path -> action id/name pairs.
-  pub client_actions: FxHashMap<String, Vec<ActionIdNamePair>>,
   pub server_actions: ServerReferenceManifest,
   pub bootstrap_scripts: FxIndexSet<String>,
   pub changed_server_components: IdentifierSet,

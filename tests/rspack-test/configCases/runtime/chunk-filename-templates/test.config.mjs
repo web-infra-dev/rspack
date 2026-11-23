@@ -9,7 +9,7 @@ export default {
 			.replace(/"[a-f0-9]+"/g, '"HASH"');
 		for (const extension of ["js", "css"]) {
 			expect(source).toContain(
-				`return chunkId + "." + "HASH" + ".${extension}"`
+				`(chunkId) => (chunkId + "." + "HASH" + ".${extension}")`
 			);
 		}
 	}

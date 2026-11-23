@@ -32,6 +32,7 @@ pub struct InitFragmentContents {
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum InitFragmentKey {
   ESMImport(String),
+  ESMDefaultInterop(String),
   ESMExports,
   ESMEmptyReexport(String),
   ESMUnusedReexport(String),
@@ -53,6 +54,10 @@ impl RspackHash for InitFragmentKey {
     match self {
       Self::ESMImport(value) => {
         "esm-import".hash(state);
+        value.hash(state);
+      }
+      Self::ESMDefaultInterop(value) => {
+        "esm-default-interop".hash(state);
         value.hash(state);
       }
       Self::ESMExports => "esm-exports".hash(state),
@@ -159,6 +164,19 @@ impl InitFragmentKey {
         }
         ESMExportInitFragment::new(export_argument, export_map, is_circular_module).boxed()
       }
+      InitFragmentKey::ESMDefaultInterop(_) => fragments
+        .into_iter()
+        .map(|fragment| {
+          *fragment
+            .into_any()
+            .downcast::<DefaultInteropInitFragment>()
+            .expect(
+              "fragment of InitFragmentKey::ESMDefaultInterop should be a DefaultInteropInitFragment",
+            )
+        })
+        .reduce(DefaultInteropInitFragment::merge)
+        .expect("keyed_fragments should at least have one value")
+        .boxed(),
       InitFragmentKey::AwaitDependencies => {
         let promises = fragments.into_iter().map(|f| f.into_any().downcast::<AwaitDependenciesInitFragment>().expect("fragment of InitFragmentKey::AwaitDependencies should be a AwaitDependenciesInitFragment")).flat_map(|f| f.promises).collect();
         AwaitDependenciesInitFragment::new(promises).boxed()
@@ -716,6 +734,83 @@ impl InitFragment for ConditionalInitFragment {
 
   fn key(&self) -> &InitFragmentKey {
     &self.key
+  }
+}
+
+#[cacheable]
+#[derive(Debug, Clone, rspack_hash::RspackHash)]
+pub struct DefaultInteropInitFragment {
+  import_var: String,
+  fragment: ConditionalInitFragment,
+}
+
+impl DefaultInteropInitFragment {
+  pub fn new(
+    import_var: String,
+    stage: InitFragmentStage,
+    position: i32,
+    runtime_condition: RuntimeCondition,
+  ) -> Self {
+    let key = InitFragmentKey::ESMDefaultInterop(import_var.clone());
+    Self {
+      import_var,
+      fragment: ConditionalInitFragment::new(
+        String::new(),
+        stage,
+        position,
+        key,
+        None,
+        runtime_condition,
+      ),
+    }
+  }
+
+  pub fn import_var(&self) -> &str {
+    &self.import_var
+  }
+
+  pub fn merge(one: Self, other: Self) -> Self {
+    let fragment = ConditionalInitFragment::merge(Box::new(one.fragment), Box::new(other.fragment));
+    Self {
+      import_var: one.import_var,
+      fragment: *fragment,
+    }
+  }
+}
+
+#[cacheable_dyn]
+impl InitFragment for DefaultInteropInitFragment {
+  fn contents(
+    self: Box<Self>,
+    context: &mut dyn InitFragmentRenderContext,
+  ) -> Result<InitFragmentContents> {
+    let Self {
+      import_var,
+      mut fragment,
+    } = *self;
+    let runtime_template = context.runtime_template();
+    if matches!(fragment.runtime_condition, RuntimeCondition::Boolean(false))
+      || !runtime_template.uses_default_interop(&import_var)
+    {
+      return Ok(InitFragmentContents {
+        start: String::new(),
+        end: None,
+      });
+    }
+    fragment.content = runtime_template.default_interop_statement(&import_var, false);
+    Box::new(fragment).contents(context)
+  }
+
+  fn stage(&self) -> InitFragmentStage {
+    self.fragment.stage
+  }
+
+  fn position(&self) -> i32 {
+    self.fragment.position
+  }
+
+  fn key(&self) -> &InitFragmentKey {
+    &self.fragment.key
   }
 }
 

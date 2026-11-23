@@ -6,13 +6,10 @@ use rspack_core::parse_resource;
 use rspack_error::{Diagnostic, Severity};
 use rspack_util::{json_stringify_str, quote_meta};
 
-use super::create_traceable_error;
+use super::{JavascriptParser, create_traceable_error};
 use crate::utils::eval::{BasicEvaluatedExpression, TemplateStringKind};
 
-fn walk_evaluated_expression(
-  evaluated: &BasicEvaluatedExpression,
-  parser: &mut crate::visitors::JavascriptParser,
-) {
+fn walk_evaluated_expression(evaluated: &BasicEvaluatedExpression, parser: &mut JavascriptParser) {
   let Some(expression) = evaluated.expression() else {
     return;
   };
@@ -23,9 +20,29 @@ fn walk_evaluated_expression(
 // Next expression handles carry their owning flat AST through `BasicEvaluatedExpression`.
 pub fn create_context_dependency(
   param: &BasicEvaluatedExpression,
-  parser: &mut crate::visitors::JavascriptParser,
+  parser: &mut JavascriptParser,
 ) -> ContextModuleScanResult {
-  let mut critical = None;
+  let create_warning = |parser: &JavascriptParser, message: &str, help: &str| {
+    let mut diagnostic = Diagnostic::from(create_traceable_error(
+      "Dynamic module path".into(),
+      message.into(),
+      parser.source.to_string(),
+      param.range().into(),
+    ));
+    diagnostic.severity = Severity::Warning;
+    diagnostic.help = Some(help.into());
+    diagnostic.module_identifier = Some(*parser.module_identifier);
+    diagnostic
+  };
+  let wrapped_warning = |parser: &JavascriptParser| {
+    (parser.javascript_options.wrapped_context_critical == Some(true)).then(|| {
+      create_warning(
+        parser,
+        "Rspack may bundle multiple modules that match this path pattern.",
+        "If you only need a few modules, specify each one with a literal path.",
+      )
+    })
+  };
   let wrapped_context_reg_exp = parser
     .javascript_options
     .wrapped_context_reg_exp
@@ -101,17 +118,7 @@ pub fn create_context_dependency(
       }
     }
 
-    if let Some(true) = parser.javascript_options.wrapped_context_critical {
-      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
-        "Critical dependency".into(),
-        "a part of the request of a dependency is an expression".to_string(),
-        parser.source.to_string(),
-        param.range().into(),
-      ));
-      warn.severity = Severity::Warning;
-      warn.module_identifier = Some(*parser.module_identifier);
-      critical = Some(warn);
-    }
+    let critical = wrapped_warning(parser);
 
     ContextModuleScanResult {
       context,
@@ -173,17 +180,7 @@ pub fn create_context_dependency(
       ))
     }
 
-    if let Some(true) = parser.javascript_options.wrapped_context_critical {
-      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
-        "Critical dependency".into(),
-        "a part of the request of a dependency is an expression".to_string(),
-        parser.source.to_string(),
-        param.range().into(),
-      ));
-      warn.severity = Severity::Warning;
-      warn.module_identifier = Some(*parser.module_identifier);
-      critical = Some(warn);
-    }
+    let critical = wrapped_warning(parser);
 
     if let Some(inner_expressions) = param.wrapped_inner_expressions() {
       for part in inner_expressions {
@@ -200,17 +197,12 @@ pub fn create_context_dependency(
       critical,
     }
   } else {
-    if let Some(true) = parser.javascript_options.expr_context_critical {
-      let mut warn: Diagnostic = Diagnostic::from(create_traceable_error(
-        "Critical dependency".into(),
-        "the request of a dependency is an expression".to_string(),
-        parser.source.to_string(),
-        param.range().into(),
+    let critical = (parser.javascript_options.expr_context_critical == Some(true))
+      .then(|| create_warning(
+        parser,
+        "Rspack cannot determine which modules to bundle because the path is unknown at build time.",
+        "To bundle local modules, use a literal path or a pattern such as `./locales/${name}.js`.",
       ));
-      warn.severity = Severity::Warning;
-      warn.module_identifier = Some(*parser.module_identifier);
-      critical = Some(warn);
-    }
 
     walk_evaluated_expression(param, parser);
 
