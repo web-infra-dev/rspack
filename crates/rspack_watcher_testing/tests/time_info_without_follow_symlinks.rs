@@ -110,3 +110,87 @@ async fn an_initial_context_scan_records_a_directory_link_as_a_file() {
   assert_eq!(entry(&files, &link.join("child.js")), None);
   assert_eq!(entry(&directories, &link), None);
 }
+
+#[tokio::test]
+async fn removing_a_context_subdirectory_forgets_its_scanned_and_live_members() {
+  use std::time::Duration;
+
+  let temp = tempfile::tempdir().expect("create fixture");
+  let root = temp.path().canonicalize().expect("resolve fixture");
+  let sub = root.join("sub");
+  fs::create_dir(&sub).expect("create subdirectory");
+  // Linux watches each registered file's parent non-recursively.
+  let anchor = sub.join("anchor.js");
+  fs::write(&anchor, "").expect("create watched file");
+  let scanned = sub.join("scanned.js");
+  let live = sub.join("live.js");
+  let sibling = root.join("keep.js");
+  fs::write(&scanned, "").expect("create initial member");
+  fs::write(&sibling, "").expect("create sibling");
+
+  let watcher = FsWatcher::new(Default::default(), Default::default());
+  watcher
+    .watch(
+      (
+        std::iter::once(InternedPath::from(&anchor)),
+        std::iter::empty(),
+      ),
+      (
+        std::iter::once(InternedPath::from(&root)),
+        std::iter::empty(),
+      ),
+      (std::iter::empty(), std::iter::empty()),
+      SystemTime::now(),
+      Box::new(Handler),
+      Box::new(Handler),
+    )
+    .await;
+  let (files, directories) = watcher.collect_time_info_entries();
+  assert!(matches!(
+    entry(&files, &scanned),
+    Some(TimeInfoEntry::Entry { .. })
+  ));
+  assert!(matches!(
+    entry(&directories, &sub),
+    Some(TimeInfoEntry::OnlySafeTimeEntry { .. })
+  ));
+  let Some(TimeInfoEntry::Entry { timestamp, .. }) = entry(&files, &sibling) else {
+    panic!("expected the sibling's initial timestamp");
+  };
+
+  fs::write(&live, "").expect("create live member");
+  tokio::time::timeout(Duration::from_secs(5), async {
+    while !matches!(
+      entry(&watcher.collect_time_info_entries().0, &live),
+      Some(TimeInfoEntry::Entry { .. })
+    ) {
+      tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+  })
+  .await
+  .expect("new member appears in the snapshot");
+
+  fs::remove_dir_all(&sub).expect("remove subdirectory");
+  tokio::time::timeout(Duration::from_secs(5), async {
+    loop {
+      let (files, directories) = watcher.collect_time_info_entries();
+      let removed = [&sub, &scanned, &live]
+        .into_iter()
+        .all(|path| entry(&files, path).is_none());
+      if removed && entry(&directories, &sub).is_none() {
+        let Some(TimeInfoEntry::Entry {
+          timestamp: after, ..
+        }) = entry(&files, &sibling)
+        else {
+          panic!("expected the sibling to survive removal of the subtree");
+        };
+        assert_eq!(after, timestamp);
+        break;
+      }
+      tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+  })
+  .await
+  .expect("removed subtree disappears from the snapshot");
+  watcher.close().await.expect("close watcher");
+}
