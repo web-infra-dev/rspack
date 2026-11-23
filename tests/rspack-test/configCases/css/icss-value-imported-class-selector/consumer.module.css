@@ -96,3 +96,15 @@ article .shared-class-alias {
 .self-cycle {
 	color: brown;
 }
+
+@value shared-class as rebound-plain from "./shared.module.css";
+
+.rebound-plain {
+	padding-top: 7px;
+}
+
+@value rebound-plain: 14px;
+
+.rebound-plain {
+	margin-top: rebound-plain;
+}

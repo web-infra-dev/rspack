@@ -1163,11 +1163,19 @@ impl<'context> CssModuleParser<'context> {
     declared: bool,
   ) -> DependencyId {
     let existing = match kind {
-      LocalCssIdentKind::Ident => self.local_ident_definitions.get(name),
-      LocalCssIdentKind::DashedIdent => self.local_dashed_ident_definitions.get(name),
+      LocalCssIdentKind::Ident => self
+        .local_ident_definitions
+        .get(name)
+        .copied()
+        .filter(|id| {
+          self
+            .definition(*id)
+            .is_some_and(|dep| dep.kind == CssExportKind::LocalIdent)
+        }),
+      LocalCssIdentKind::DashedIdent => self.local_dashed_ident_definitions.get(name).copied(),
     };
     let id = if let Some(id) = existing {
-      *id
+      id
     } else {
       let ident = self.get_local_ident_options().get_local_ident(name);
       let ident = match kind {

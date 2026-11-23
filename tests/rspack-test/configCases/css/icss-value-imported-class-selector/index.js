@@ -54,8 +54,12 @@ it("should resolve imported @value and :import class/id selectors to the shared 
 	expect(consumer["accent"]).toBe(
 		`--${sharedJsPrefix}accent ${consumerJsPrefix}accent`
 	);
+	expect(consumer["rebound-plain"]).toBe(
+		`14px ${consumerJsPrefix}rebound-plain`
+	);
 
 	const css = readFileSync(join(__dirname, `bundle${__STATS_I__}.css`), "utf-8");
+	const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 	expect(css).toContain(`.${sharedCssPrefix}shared-class`);
 	expect(css).toContain(`article .${sharedCssPrefix}shared-class`);
@@ -69,6 +73,16 @@ it("should resolve imported @value and :import class/id selectors to the shared 
 	expect(css).toContain(`.${consumerCssPrefix}accent`);
 	expect(css).not.toContain(".--");
 	expect(css).toContain(".real-global-btn");
+	expect(css).toMatch(
+		new RegExp(
+			`${escapeRegExp(`.${sharedCssPrefix}shared-class`)}\\s*\\{[^}]*padding-top:\\s*7px`
+		)
+	);
+	expect(css).toMatch(
+		new RegExp(
+			`${escapeRegExp(`.${consumerCssPrefix}rebound-plain`)}\\s*\\{[^}]*margin-top:\\s*14px`
+		)
+	);
 
 	if (!isLocalIdentOnly) {
 		expect(css).not.toContain(".reexport\\.module__shared-class");
@@ -81,6 +95,11 @@ it("should resolve imported @value and :import class/id selectors to the shared 
 		expect(css).not.toContain(".consumer\\.module__icss-half");
 		expect(css).not.toContain("#consumer\\.module__shared-id");
 		expect(css).not.toContain(".consumer\\.module__forward-shared");
+		expect(css).not.toMatch(
+			new RegExp(
+				`${escapeRegExp(`.${sharedCssPrefix}shared-class`)}\\s*\\{[^}]*margin-top:\\s*14px`
+			)
+		);
 		expect(css).toContain(".consumer\\.module__unused-plain");
 	} else {
 		// Unused plain @value fallback selectors are tree-shaken by
