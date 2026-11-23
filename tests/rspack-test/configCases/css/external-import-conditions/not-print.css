@@ -1,0 +1,2 @@
+@import url("https://example.com/not-print-screen.css") screen;
+@import url("https://example.com/not-print-feature.css") (min-width: 600px);
