@@ -26,13 +26,6 @@ impl PassExt for OptimizeChunkModulesPass {
       .map(|_| ())
       .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.optimizeChunkModules"))?;
 
-    compilation
-      .plugin_driver
-      .clone()
-      .compilation_hooks
-      .after_optimize_chunk_modules
-      .call(compilation)
-      .await
-      .map_err(|e| e.wrap_err("caused by plugins in Compilation.hooks.afterOptimizeChunkModules"))
+    Ok(())
   }
 }

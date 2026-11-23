@@ -73,9 +73,7 @@ async fn render_startup(
   source.add(render_source.source.clone());
   // export { local as exported }
   let mut exports: Vec<(String, Option<String>)> = vec![];
-  if (is_async || compilation.async_startup_chunks.contains(chunk_ukey))
-    && !startup_awaits_entries(compilation, chunk_ukey)
-  {
+  if is_async && !startup_awaits_entries(compilation, chunk_ukey) {
     source.add(RawStringSource::from(format!(
       "{exports_name} = await {exports_name};\n"
     )));

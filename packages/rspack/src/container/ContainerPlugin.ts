@@ -10,7 +10,7 @@ import {
 import type { Compiler } from '../Compiler';
 import type { EntryRuntime, FilenameTemplate, LibraryOptions } from '../config';
 import { parseOptions } from '../container/options';
-import { normalizeShareScope, type ShareScope } from '../sharing/SharePlugin';
+import { type ShareScope, validateShareScope } from '../sharing/SharePlugin';
 import { ShareRuntimePlugin } from '../sharing/ShareRuntimePlugin';
 
 export type ContainerPluginOptions = {
@@ -33,6 +33,18 @@ export type ExposesConfig = {
   name?: string;
 };
 
+function normalizeShareScope(
+  shareScope: ShareScope | undefined,
+  enhanced: boolean,
+): ShareScope {
+  if (!shareScope) return 'default';
+  validateShareScope(shareScope, enhanced, 'ContainerPlugin');
+
+  // Non-enhanced container code generation requires a string scope name.
+  // Validation ensures a single entry; enhanced mode preserves scope arrays.
+  return !enhanced && Array.isArray(shareScope) ? shareScope[0] : shareScope;
+}
+
 export class ContainerPlugin extends RspackBuiltinPlugin {
   name = BuiltinPluginName.ContainerPlugin;
   _options;
@@ -45,11 +57,7 @@ export class ContainerPlugin extends RspackBuiltinPlugin {
     }
 
     const enhanced = options.enhanced ?? false;
-    const shareScope = normalizeShareScope(
-      options.shareScope || 'default',
-      enhanced,
-      'ContainerPlugin',
-    );
+    const shareScope = normalizeShareScope(options.shareScope, enhanced);
     this._options = {
       name: options.name,
       shareScope,
