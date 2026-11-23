@@ -466,13 +466,38 @@ async fn create_module(
 async fn additional_tree_runtime_requirements(
   &self,
   compilation: &Compilation,
-  _chunk_ukey: &ChunkUkey,
+  chunk_ukey: &ChunkUkey,
   _runtime_requirements: &mut RuntimeGlobals,
   runtime_modules: &mut Vec<Box<dyn RuntimeModule>>,
 ) -> Result<()> {
+  let enhanced = if self.options.enhanced {
+    if crate::utils::has_federation_runtime(compilation, chunk_ukey) {
+      true
+    } else {
+      let artifact = &compilation.build_chunk_graph_artifact;
+      let chunk = artifact.chunk_by_ukey.expect_get(chunk_ukey);
+      let mg = compilation.get_module_graph();
+      let has_consume_shared = chunk
+        .get_all_referenced_chunks(&artifact.chunk_group_by_ukey)
+        .into_iter()
+        .any(|c| {
+          artifact.chunk_graph.has_chunk_module_by_source_type(
+            &c,
+            rspack_core::SourceType::ConsumeShared,
+            mg,
+          )
+        });
+      if !has_consume_shared {
+        return Ok(());
+      }
+      false
+    }
+  } else {
+    false
+  };
   runtime_modules.push(Box::new(ConsumeSharedRuntimeModule::new(
     &compilation.runtime_template,
-    self.options.enhanced,
+    enhanced,
   )));
   Ok(())
 }

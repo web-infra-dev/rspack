@@ -118,6 +118,9 @@ async fn runtime_requirements_in_tree(
   _runtime_requirements_mut: &mut RuntimeGlobals,
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
+  if self.options.enhanced && !crate::utils::has_federation_runtime(compilation, chunk_ukey) {
+    return Ok(None);
+  }
   if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
     runtime_modules_to_add.push((
       *chunk_ukey,

@@ -51,8 +51,8 @@ pub use container::{
   },
   embed_federation_runtime_module::EmbedFederationRuntimeModule,
   module_federation_runtime_plugin::{
-    ModuleFederationRuntimeExperimentsOptions, ModuleFederationRuntimePlugin,
-    ModuleFederationRuntimePluginOptions,
+    BundlerRuntimeExclusion, ModuleFederationRuntimeExperimentsOptions,
+    ModuleFederationRuntimePlugin, ModuleFederationRuntimePluginOptions,
   },
 };
 pub use manifest::{
@@ -81,10 +81,41 @@ mod utils {
   use std::fmt;
 
   use rspack_core::{
-    Compilation, ModuleCodeTemplate, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
-    RuntimeVariable, runtime_mode::RuntimeMode,
+    ChunkUkey, Compilation, DependencyType, ModuleCodeTemplate, RuntimeCodeTemplate,
+    RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable, runtime_mode::RuntimeMode,
   };
   use serde::Serialize;
+
+  #[inline]
+  pub fn has_federation_runtime(compilation: &Compilation, chunk: &ChunkUkey) -> bool {
+    let mg = compilation.get_module_graph();
+    let artifact = &compilation.build_chunk_graph_artifact;
+    let mut saw_runtime_module = false;
+    let mut chunk_runtime = None;
+
+    for dep in &compilation.global_entry.include_dependencies {
+      if mg.dependency_by_id(dep).dependency_type() != &DependencyType::FederationRuntime {
+        continue;
+      }
+      let Some(module) = mg.module_identifier_by_dependency_id(dep) else {
+        continue;
+      };
+      saw_runtime_module = true;
+      if artifact.chunk_graph.is_module_in_chunk(module, *chunk) {
+        return true;
+      }
+      let target_runtime =
+        chunk_runtime.get_or_insert_with(|| artifact.chunk_by_ukey.expect_get(chunk).runtime());
+      for module_chunk in artifact.chunk_graph.get_module_chunks(*module) {
+        let runtime = artifact.chunk_by_ukey.expect_get(module_chunk).runtime();
+        if target_runtime.iter().any(|r| runtime.contains(r)) {
+          return true;
+        }
+      }
+    }
+
+    !saw_runtime_module
+  }
 
   pub fn json_stringify<T: ?Sized + Serialize + fmt::Debug>(v: &T) -> String {
     simd_json::to_string(v).unwrap_or_else(|e| panic!("{e}: {v:?} should able to json stringify"))
