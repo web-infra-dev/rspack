@@ -5,14 +5,14 @@ use derive_more::Debug;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, ChunkGraph, ChunkGroup, ChunkGroupUkey,
-  ChunkUkey, Compilation, CompilationAfterProcessAssets, CompilationParams, CompilerCompilation,
-  CompilerFailed, CompilerFinishMake, CompilerId, CompilerMake, CrossOriginLoading,
-  DependenciesBlock, DependencyId, DependencyType, EntryDependency, Logger, ModuleGraph, ModuleId,
-  ModuleIdentifier, Plugin,
+  ChunkUkey, Compilation, CompilationAfterProcessAssets, CompilationParams,
+  CompilerAfterFinishMake, CompilerCompilation, CompilerFailed, CompilerId, CompilerMake,
+  CrossOriginLoading, DependenciesBlock, DependencyId, DependencyType, EntryDependency, Logger,
+  ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
-use rspack_util::fx_hash::FxIndexSet;
+use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
@@ -37,10 +37,10 @@ pub struct RscClientPlugin {
   client_entries_by_entry: AtomicRefCell<FxHashMap<Arc<str>, ClientEntryDependencies>>,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct ClientEntryDependencies {
   rsc: Option<DependencyId>,
-  root_css: Vec<DependencyId>,
+  root_css: FxIndexMap<String, DependencyId>,
 }
 
 fn extend_required_chunks(
@@ -623,7 +623,10 @@ impl Plugin for RscClientPlugin {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
 
     ctx.compiler_hooks.make.tap(make::new(self));
-    ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
+    ctx
+      .compiler_hooks
+      .after_finish_make
+      .tap(after_finish_make::new(self));
 
     ctx.compiler_hooks.failed.tap(failed::new(self));
 
@@ -694,14 +697,27 @@ fn replace_client_entry(
     return None;
   };
 
-  if let Some(previous) = previous {
-    entry
-      .include_dependencies
-      .retain(|id| Some(*id) != previous.rsc);
-    entry
-      .dependencies
-      .retain(|id| !previous.root_css.contains(id));
+  let mut previous = previous.unwrap_or_default();
+  if let Some(rsc) = previous.rsc {
+    entry.include_dependencies.retain(|id| *id != rsc);
   }
+
+  previous
+    .root_css
+    .retain(|_, id| entry.dependencies.contains(id));
+  // Keep the original root CSS block ahead of entry dependencies added by later taps.
+  let css_position = if previous.root_css.keys().eq(&entry_state.root_css_imports) {
+    None
+  } else {
+    let is_previous_css = |id: &DependencyId| previous.root_css.values().any(|css_id| css_id == id);
+    let position = entry
+      .dependencies
+      .iter()
+      .position(is_previous_css)
+      .unwrap_or(entry.dependencies.len());
+    entry.dependencies.retain(|id| !is_previous_css(id));
+    Some(position)
+  };
 
   let rsc = has_client_entry.then(|| {
     let dependency = BoxDependency::new(RscEntryDependency::new(
@@ -719,29 +735,43 @@ fn replace_client_entry(
     id
   });
 
-  let mut root_css = Vec::new();
-  for request in &entry_state.root_css_imports {
-    let dependency = BoxDependency::new(EntryDependency::new(
-      request.clone(),
-      compilation.options.context.clone(),
-      None,
-      false,
-    ));
-    root_css.push(*dependency.id());
-    compilation
-      .get_module_graph_mut()
-      .add_dependency(dependency);
+  if css_position.is_some() {
+    previous.root_css = entry_state
+      .root_css_imports
+      .iter()
+      .map(|request| {
+        let id = previous.root_css.get(request).copied().unwrap_or_else(|| {
+          let dependency = BoxDependency::new(EntryDependency::new(
+            request.clone(),
+            compilation.options.context.clone(),
+            None,
+            false,
+          ));
+          let id = *dependency.id();
+          compilation
+            .get_module_graph_mut()
+            .add_dependency(dependency);
+          id
+        });
+        (request.clone(), id)
+      })
+      .collect();
   }
 
   if let Some(entry) = compilation.entries.get_mut(entry_name.as_ref()) {
-    entry.dependencies.extend(root_css.iter().copied());
+    if let Some(position) = css_position {
+      entry
+        .dependencies
+        .splice(position..position, previous.root_css.values().copied());
+    }
     entry.include_dependencies.extend(rsc);
   }
-  Some(ClientEntryDependencies { rsc, root_css })
+  Some(ClientEntryDependencies { rsc, ..previous })
 }
 
-#[plugin_hook(CompilerFinishMake for RscClientPlugin, stage = i32::MAX)]
-async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
+// A finishMake tap can rebuild a client module and add more action imports.
+#[plugin_hook(CompilerAfterFinishMake for RscClientPlugin)]
+async fn after_finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
   loop {
     let actions = self
