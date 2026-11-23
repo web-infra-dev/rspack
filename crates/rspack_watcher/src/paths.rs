@@ -275,8 +275,10 @@ impl FileTime {
   }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Default, PartialEq, Eq)]
 enum ReportedBaseline {
+  #[default]
+  Unknown,
   Present(SystemTime),
   Absent,
 }
@@ -286,7 +288,7 @@ struct FileRecord {
   /// Last observation exported by `collect_time_info_entries`.
   time: Option<FileTime>,
   /// State the build already knows from registration or a reported event.
-  reported: Option<ReportedBaseline>,
+  reported: ReportedBaseline,
 }
 
 impl FileRecord {
@@ -307,14 +309,14 @@ impl FileRecord {
 
   fn clear_present(&mut self) {
     self.time = None;
-    if matches!(self.reported, Some(ReportedBaseline::Present(_))) {
-      self.reported = None;
+    if matches!(self.reported, ReportedBaseline::Present(_)) {
+      self.reported = ReportedBaseline::Unknown;
     }
   }
 
   fn clear_absent(&mut self) {
-    if self.reported == Some(ReportedBaseline::Absent) {
-      self.reported = None;
+    if self.reported == ReportedBaseline::Absent {
+      self.reported = ReportedBaseline::Unknown;
     }
   }
 }
@@ -329,8 +331,11 @@ impl FileTimes {
     self.records.get(path)?.time
   }
 
-  fn reported(&self, path: &InternedPath) -> Option<ReportedBaseline> {
-    self.records.get(path)?.reported
+  fn reported(&self, path: &InternedPath) -> ReportedBaseline {
+    self
+      .records
+      .get(path)
+      .map_or(ReportedBaseline::Unknown, |record| record.reported)
   }
 
   fn record(&self, path: &InternedPath) -> RefMut<'_, InternedPath, FileRecord> {
@@ -340,7 +345,7 @@ impl FileTimes {
   fn clear(&self, path: &InternedPath, clear: impl FnOnce(&mut FileRecord)) {
     self.records.remove_if_mut(path, |_, record| {
       clear(record);
-      record.time.is_none() && record.reported.is_none()
+      record.time.is_none() && record.reported == ReportedBaseline::Unknown
     });
   }
 }
@@ -439,8 +444,8 @@ impl PathManager {
   pub fn set_file_time_if_absent(&self, path: InternedPath, mtime: SystemTime) {
     self.record(&path, || {
       let mut record = self.file_times.record(&path);
-      if !matches!(record.reported, Some(ReportedBaseline::Present(_))) {
-        record.reported = Some(ReportedBaseline::Present(mtime));
+      if !matches!(record.reported, ReportedBaseline::Present(_)) {
+        record.reported = ReportedBaseline::Present(mtime);
       }
       record.time.get_or_insert_with(|| FileTime::initial(mtime));
     });
@@ -451,7 +456,7 @@ impl PathManager {
   pub fn set_reported_file_time(&self, path: &InternedPath, mtime: SystemTime) {
     self.record(path, || {
       let mut record = self.file_times.record(path);
-      record.reported = Some(ReportedBaseline::Present(mtime));
+      record.reported = ReportedBaseline::Present(mtime);
       record.set_time(mtime, true, true);
     });
   }
@@ -459,13 +464,13 @@ impl PathManager {
   /// Whether a removal was already reported for this path. The scanner must
   /// still report an absence with no prior record.
   pub fn is_known_absent(&self, path: &InternedPath) -> bool {
-    self.file_times.reported(path) == Some(ReportedBaseline::Absent)
+    self.file_times.reported(path) == ReportedBaseline::Absent
   }
 
   /// Record a removal the caller is about to deliver. The scanner relies on
   /// this marker to mean the build was told about the absence.
   pub fn set_reported_file_removal(&self, path: &InternedPath) {
-    self.file_times.record(path).reported = Some(ReportedBaseline::Absent);
+    self.file_times.record(path).reported = ReportedBaseline::Absent;
     if (!self.files.all.contains(path) && !self.missing.all.contains(path))
       || std::fs::symlink_metadata(path).is_ok()
     {
@@ -899,14 +904,15 @@ impl PathManager {
     let aged = mtime_ms.saturating_add(mtime_accuracy(current_mtime)) < current_time();
     // A stale event needs no index lock. Recheck under the write lock in
     // case the scanner reported this mtime in the meantime.
-    if aged && self.file_times.reported(path) == Some(present) {
+    if aged && self.file_times.reported(path) == present {
       return false;
     }
     self.record(path, || {
       let mut record = self.file_times.record(path);
-      if record.reported.replace(present) == Some(present) && aged {
+      if aged && record.reported == present {
         return false;
       }
+      record.reported = present;
       record.time = Some(FileTime::observed(current_mtime));
       true
     })
@@ -994,7 +1000,7 @@ impl PathManager {
     let below_context = self.is_below_context(path);
     self.file_times.clear(path, |record| {
       if !keep_reported {
-        record.reported = None;
+        record.reported = ReportedBaseline::Unknown;
       }
       if !below_context {
         record.time = None;
