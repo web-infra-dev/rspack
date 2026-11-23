@@ -11,14 +11,14 @@ enum State {
   ClientEntriesDone,
   ServerActionsCompiling,
   ServerActionsDone,
+  ClientManifestDone,
 }
 
 /// Coordinates the compilation sequence between Server Compiler and Client Compiler.
 ///
-/// Ensures the following compilation order:
-/// 1. Server Entries compilation（in Server Compiler）
-/// 2. Client Entries compilation（in Client Compiler）
-/// 3. Server Actions compilation（in Server Compiler）
+/// The compilers alternate between building client references and the server actions
+/// they import. Once the server has no new client entries, the client emits the
+/// manifest that the server needs to finish.
 ///
 /// The coordinator manages state transitions and synchronization between compilers
 /// to maintain the correct build sequence for React Server Components.
@@ -93,7 +93,7 @@ impl Coordinator {
 
   pub async fn idle(&self) -> Result<()> {
     self
-      .transition(State::ServerActionsDone, State::Idle, "idle")
+      .transition(State::ClientManifestDone, State::Idle, "idle")
       .await
   }
 
@@ -195,6 +195,39 @@ impl Coordinator {
         "complete_server_actions_compilation",
       )
       .await
+  }
+
+  pub async fn publish_updated_client_entries(&self) -> Result<()> {
+    self
+      .transition(
+        State::ServerActionsCompiling,
+        State::ServerEntriesDone,
+        "publish_updated_client_entries",
+      )
+      .await
+  }
+
+  pub async fn start_updated_client_entries_compilation(&self) -> Result<bool> {
+    self
+      .wait_for(|state| matches!(state, State::ServerEntriesDone | State::ServerActionsDone))
+      .await?;
+    self
+      .set_if_current(State::ServerEntriesDone, State::ClientEntriesCompiling)
+      .await
+  }
+
+  pub async fn complete_client_manifest(&self) -> Result<()> {
+    self
+      .transition(
+        State::ServerActionsDone,
+        State::ClientManifestDone,
+        "complete_client_manifest",
+      )
+      .await
+  }
+
+  pub async fn wait_for_client_manifest(&self) -> Result<()> {
+    self.wait_for(|s| s == State::ClientManifestDone).await
   }
 
   pub async fn failed(&self, error: &Error) {

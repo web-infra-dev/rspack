@@ -84,6 +84,7 @@ pub struct PluginState {
   pub module_loading: Option<ModuleLoading>,
   pub css_link_props: RscCssLinkProps,
   pub entries: FxHashMap<Arc<str>, EntryState>,
+  pub updated_client_entries: Vec<Arc<str>>,
 }
 
 impl PluginState {
@@ -91,6 +92,7 @@ impl PluginState {
     self.module_loading = None;
     self.css_link_props.clear();
     self.entries.clear();
+    self.updated_client_entries.clear();
   }
 }
 

@@ -6,8 +6,9 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, ChunkGraph, ChunkGroup, ChunkGroupUkey,
   ChunkUkey, Compilation, CompilationAfterProcessAssets, CompilationParams, CompilerCompilation,
-  CompilerFailed, CompilerId, CompilerMake, CrossOriginLoading, DependenciesBlock, DependencyId,
-  DependencyType, EntryDependency, Logger, ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
+  CompilerFailed, CompilerFinishMake, CompilerMake, CrossOriginLoading, DependenciesBlock,
+  DependencyId, DependencyType, EntryDependency, Logger, ModuleGraph, ModuleId, ModuleIdentifier,
+  Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -33,8 +34,13 @@ pub struct RscClientPluginOptions {
 pub struct RscClientPlugin {
   #[debug(skip)]
   coordinator: Arc<Coordinator>,
-  server_compiler_id: AtomicRefCell<Option<CompilerId>>,
-  client_entries_by_entry: AtomicRefCell<FxHashMap<Arc<str>, FxHashSet<DependencyId>>>,
+  client_entries_by_entry: AtomicRefCell<FxHashMap<Arc<str>, ClientEntryDependencies>>,
+}
+
+#[derive(Debug)]
+struct ClientEntryDependencies {
+  rsc: Option<DependencyId>,
+  root_css: Vec<DependencyId>,
 }
 
 fn extend_required_chunks(
@@ -430,7 +436,7 @@ fn collect_actions(
 
 fn collect_client_actions_from_dependencies(
   compilation: &Compilation,
-  entry_dependencies: &FxHashSet<DependencyId>,
+  entry_dependency: DependencyId,
 ) -> FxHashMap<String, Vec<ActionIdNamePair>> {
   // action file path -> action names
   let mut collected_actions: FxHashMap<String, Vec<ActionIdNamePair>> = Default::default();
@@ -439,18 +445,14 @@ fn collect_client_actions_from_dependencies(
   let mut visited_modules: IdentifierSet = Default::default();
 
   let module_graph = compilation.get_module_graph();
-  for entry_dependency_id in entry_dependencies {
-    let Some(entry_module_identifier) = module_graph.get_resolved_module(entry_dependency_id)
-    else {
-      continue;
-    };
-    for dependency_id in module_graph.get_outgoing_deps_in_order(entry_module_identifier) {
-      let Some(module_identifier) = module_graph.get_resolved_module(dependency_id) else {
-        continue;
-      };
+  if let Some(entry_module) = module_graph.get_resolved_module(&entry_dependency) {
+    for module in module_graph
+      .get_outgoing_deps_in_order(entry_module)
+      .filter_map(|dependency| module_graph.get_resolved_module(dependency))
+    {
       collect_actions(
         module_graph,
-        module_identifier,
+        module,
         &mut collected_actions,
         &mut visited_modules,
       );
@@ -462,7 +464,7 @@ fn collect_client_actions_from_dependencies(
 
 impl RscClientPlugin {
   pub fn new(options: RscClientPluginOptions) -> Self {
-    Self::new_inner(options.coordinator, Default::default(), Default::default())
+    Self::new_inner(options.coordinator, Default::default())
   }
 
   fn traverse_modules(
@@ -597,6 +599,7 @@ impl Plugin for RscClientPlugin {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
 
     ctx.compiler_hooks.make.tap(make::new(self));
+    ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
 
     ctx.compiler_hooks.failed.tap(failed::new(self));
 
@@ -631,85 +634,147 @@ async fn make(&self, compilation: &mut Compilation) -> Result<()> {
   self.coordinator.start_client_entries_compilation().await?;
 
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
-  *self.server_compiler_id.borrow_mut() = Some(server_compiler_id);
-
   let plugin_state = PLUGIN_STATES.get(&server_compiler_id).ok_or_else(|| {
-    rspack_error::error!(
-      "RscClientPlugin: Plugin state not found in make hook for compiler {:#?}.",
-      server_compiler_id
-    )
+    rspack_error::error!("RscServerPlugin state not found while creating RSC client entries")
   })?;
-
+  let mut dependencies = self.client_entries_by_entry.borrow_mut();
+  dependencies.clear();
   for (entry_name, entry_state) in &plugin_state.entries {
-    let client_modules = &entry_state.injected_client_entries;
-    if entry_state.injected_client_entries.is_empty()
-      && !entry_state.has_css_imports_by_server_entry()
-      && entry_state.root_css_imports.is_empty()
+    if let Some(entry_dependencies) =
+      replace_client_entry(compilation, entry_name, entry_state, None)
     {
-      continue;
-    }
-
-    if compilation.entries.get(entry_name.as_ref()).is_none() {
-      compilation.push_diagnostic(Diagnostic::error(
-        "RSC Client Entry Mismatch".to_string(),
-        format!(
-          "Entry '{}' not found in the client compiler. Failed to inject the following client modules: {}",
-          entry_name,
-          client_modules
-            .iter()
-            .map(|m| m.request.as_str())
-            .collect::<Vec<_>>()
-            .join(", ")
-        ),
-      ));
-      continue;
-    }
-
-    let mut include_dependencies = Vec::new();
-    if !client_modules.is_empty() || entry_state.has_css_imports_by_server_entry() {
-      let dependency = BoxDependency::new(RscEntryDependency::new(
-        entry_name.clone(),
-        entry_state.ungrouped_client_entries.clone(),
-        entry_state.root_client_entries.clone(),
-        entry_state.client_entries_by_server_entry.clone(),
-        entry_state.css_imports_by_server_entry(),
-        false,
-      ));
-      self
-        .client_entries_by_entry
-        .borrow_mut()
-        .entry(entry_name.clone())
-        .or_default()
-        .insert(*dependency.id());
-      include_dependencies.push(*dependency.id());
-      compilation
-        .get_module_graph_mut()
-        .add_dependency(dependency);
-    }
-
-    let mut entry_dependencies = Vec::new();
-    for request in &entry_state.root_css_imports {
-      let dependency = BoxDependency::new(EntryDependency::new(
-        request.clone(),
-        compilation.options.context.clone(),
-        None,
-        false,
-      ));
-      entry_dependencies.push(*dependency.id());
-      compilation
-        .get_module_graph_mut()
-        .add_dependency(dependency);
-    }
-
-    if let Some(entry_data) = compilation.entries.get_mut(entry_name.as_ref()) {
-      entry_data.dependencies.append(&mut entry_dependencies);
-      entry_data
-        .include_dependencies
-        .append(&mut include_dependencies);
+      dependencies.insert(entry_name.clone(), entry_dependencies);
     }
   }
-
   Ok(())
+}
+
+fn replace_client_entry(
+  compilation: &mut Compilation,
+  entry_name: &Arc<str>,
+  entry_state: &EntryState,
+  previous: Option<ClientEntryDependencies>,
+) -> Option<ClientEntryDependencies> {
+  let client_modules = &entry_state.injected_client_entries;
+  let has_client_entry =
+    !client_modules.is_empty() || entry_state.has_css_imports_by_server_entry();
+  if !has_client_entry && entry_state.root_css_imports.is_empty() && previous.is_none() {
+    return None;
+  }
+
+  let Some(entry) = compilation.entries.get_mut(entry_name.as_ref()) else {
+    compilation.push_diagnostic(Diagnostic::error(
+      "RSC Client Entry Mismatch".to_string(),
+      format!(
+        "Entry '{}' not found in the client compiler. Failed to inject the following client modules: {}",
+        entry_name,
+        client_modules
+          .iter()
+          .map(|m| m.request.as_str())
+          .collect::<Vec<_>>()
+          .join(", ")
+      ),
+    ));
+    return None;
+  };
+
+  if let Some(previous) = previous {
+    entry
+      .include_dependencies
+      .retain(|id| Some(*id) != previous.rsc);
+    entry
+      .dependencies
+      .retain(|id| !previous.root_css.contains(id));
+  }
+
+  let rsc = has_client_entry.then(|| {
+    let dependency = BoxDependency::new(RscEntryDependency::new(
+      entry_name.clone(),
+      entry_state.ungrouped_client_entries.clone(),
+      entry_state.root_client_entries.clone(),
+      entry_state.client_entries_by_server_entry.clone(),
+      entry_state.css_imports_by_server_entry(),
+      false,
+    ));
+    let id = *dependency.id();
+    compilation
+      .get_module_graph_mut()
+      .add_dependency(dependency);
+    id
+  });
+
+  let mut root_css = Vec::new();
+  for request in &entry_state.root_css_imports {
+    let dependency = BoxDependency::new(EntryDependency::new(
+      request.clone(),
+      compilation.options.context.clone(),
+      None,
+      false,
+    ));
+    root_css.push(*dependency.id());
+    compilation
+      .get_module_graph_mut()
+      .add_dependency(dependency);
+  }
+
+  if let Some(entry) = compilation.entries.get_mut(entry_name.as_ref()) {
+    entry.dependencies.extend(root_css.iter().copied());
+    entry.include_dependencies.extend(rsc);
+  }
+  Some(ClientEntryDependencies { rsc, root_css })
+}
+
+#[plugin_hook(CompilerFinishMake for RscClientPlugin, stage = i32::MAX)]
+async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
+  let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
+  loop {
+    {
+      let mut plugin_state = PLUGIN_STATES.get_mut(&server_compiler_id).ok_or_else(|| {
+        rspack_error::error!("RscServerPlugin state not found while collecting client actions")
+      })?;
+      for (entry_name, dependencies) in self.client_entries_by_entry.borrow().iter() {
+        if let Some(dependency) = dependencies.rsc {
+          let client_actions = collect_client_actions_from_dependencies(compilation, dependency);
+          plugin_state
+            .entries
+            .entry(entry_name.clone())
+            .or_default()
+            .client_actions = client_actions;
+        }
+      }
+    }
+    self
+      .coordinator
+      .complete_client_entries_compilation()
+      .await?;
+    if !self
+      .coordinator
+      .start_updated_client_entries_compilation()
+      .await?
+    {
+      return Ok(());
+    }
+
+    {
+      let plugin_state = PLUGIN_STATES.get(&server_compiler_id).ok_or_else(|| {
+        rspack_error::error!("RscServerPlugin state not found while updating RSC client entries")
+      })?;
+      let mut dependencies = self.client_entries_by_entry.borrow_mut();
+      for entry_name in &plugin_state.updated_client_entries {
+        let previous = dependencies.remove(entry_name);
+        if let Some(entry_dependencies) = replace_client_entry(
+          compilation,
+          entry_name,
+          &plugin_state.entries[entry_name],
+          previous,
+        ) {
+          dependencies.insert(entry_name.clone(), entry_dependencies);
+        }
+      }
+    }
+    // Rebuild the module graph with the replacement entry dependencies before sealing.
+    compilation.add_include::<BoxDependency>(Vec::new()).await?;
+  }
 }
 
 #[plugin_hook(CompilationAfterProcessAssets for RscClientPlugin)]
@@ -739,21 +804,9 @@ async fn after_process_assets(
     let start = logger.time("record bootstrap scripts");
     collect_bootstrap_scripts(compilation, &mut plugin_state)?;
     logger.time_end(start);
-
-    for (entry_name, client_entries) in self.client_entries_by_entry.borrow().iter() {
-      let client_actions = collect_client_actions_from_dependencies(compilation, client_entries);
-      plugin_state
-        .entries
-        .entry(entry_name.clone())
-        .or_default()
-        .client_actions = client_actions;
-    }
   }
 
-  self
-    .coordinator
-    .complete_client_entries_compilation()
-    .await?;
+  self.coordinator.complete_client_manifest().await?;
 
   Ok(())
 }
