@@ -156,8 +156,29 @@ pub fn push_absolute_to_request(context: &str, maybe_absolute_path: &str, out: &
   out.push_str(maybe_absolute_path);
 }
 
-/// Finds the end of a resource path or query, skipping escaped delimiters.
-pub fn find_resource_delimiter(input: &str, allow_query: bool) -> usize {
+/// Splits a resource into borrowed path, query, and fragment slices, preserving escapes.
+/// The query and fragment include their leading delimiters when present.
+pub fn split_resource(input: &str) -> (&str, Option<&str>, Option<&str>) {
+  let (path, suffix) = split_resource_path(input);
+  let (query, suffix) = if let Some(query_body) = suffix.strip_prefix('?') {
+    let (query, suffix) = suffix.split_at(1 + find_resource_delimiter(query_body, false));
+    (Some(query), suffix)
+  } else {
+    (None, suffix)
+  };
+  (path, query, suffix.starts_with('#').then_some(suffix))
+}
+
+fn split_resource_path(input: &str) -> (&str, &str) {
+  #[cfg(windows)]
+  let prefix_len = dos_device_path_prefix_len(input);
+  #[cfg(not(windows))]
+  let prefix_len = 0;
+
+  input.split_at(prefix_len + find_resource_delimiter(&input[prefix_len..], true))
+}
+
+fn find_resource_delimiter(input: &str, allow_query: bool) -> usize {
   const ESCAPE_START: u8 = 0xe2; // The first UTF-8 byte of U+200B.
 
   let mut offset = 0;
@@ -186,14 +207,14 @@ pub fn find_resource_delimiter(input: &str, allow_query: bool) -> usize {
   }
 }
 
-fn push_request_to_absolute(context: &str, relative_path: &str, out: &mut String) {
-  if relative_path.starts_with("./") || relative_path.starts_with("../") {
-    let (path, suffix) = relative_path.split_at(find_resource_delimiter(relative_path, true));
+fn push_request_to_absolute(context: &str, request: &str, out: &mut String) {
+  if request.starts_with("./") || request.starts_with("../") {
+    let (path, suffix) = split_resource_path(request);
     let absolute_path = Utf8Path::new(context).node_join(path).node_normalize();
     out.push_str(absolute_path.as_str());
     out.push_str(suffix);
   } else {
-    out.push_str(relative_path);
+    out.push_str(request);
   }
 }
 

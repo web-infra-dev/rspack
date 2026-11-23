@@ -14,7 +14,7 @@ use rspack_collections::Identifier;
 use rspack_error::Result;
 use rspack_hash::RspackHasher;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
-use rspack_util::identifier::{find_resource_delimiter, strip_zero_width_space_for_fragment};
+use rspack_util::identifier::{split_resource, strip_zero_width_space_for_fragment};
 
 use super::{Content, LoaderContext, LoaderFilter, LoaderRunnerOptions};
 
@@ -395,7 +395,7 @@ pub struct ResourceParsedData {
 }
 
 pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
-  let (path, query, fragment) = path_query_fragment(resource);
+  let (path, query, fragment) = split_resource(resource);
 
   Some(ResourceParsedData {
     path: strip_zero_width_space_for_fragment(path)
@@ -404,23 +404,6 @@ pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
     query: query.map(|q| strip_zero_width_space_for_fragment(q).into_owned()),
     fragment: fragment.map(|f| f.to_owned()),
   })
-}
-
-fn path_query_fragment(input: &str) -> (&str, Option<&str>, Option<&str>) {
-  #[cfg(windows)]
-  let prefix_len = rspack_paths::dos_device_path_prefix_len(input);
-  #[cfg(not(windows))]
-  let prefix_len = 0;
-
-  let path_end = prefix_len + find_resource_delimiter(&input[prefix_len..], true);
-  let (path, rest) = input.split_at(path_end);
-  let (query, rest) = if let Some(query_body) = rest.strip_prefix('?') {
-    let (query, rest) = rest.split_at(1 + find_resource_delimiter(query_body, false));
-    (Some(query), rest)
-  } else {
-    (None, rest)
-  };
-  (path, query, rest.starts_with('#').then_some(rest))
 }
 
 #[cfg(test)]
