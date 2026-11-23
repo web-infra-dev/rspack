@@ -425,8 +425,6 @@ export default {
 | [resource-path]          | 不带任何查询参数，用于解析文件的路径                                                            |
 | [namespace]              | 模块命名空间。在构建成为一个 library 之后，通常也是 library 名称，否则为空                      |
 
-当 Rspack 将相对于编译 `context` 的源码路径还原为绝对路径时，`[absolute-resource-path]` 会解析 `.` 和 `..` 路径段。因此，位于 `context` 外的源码也会使用规范化后的绝对路径。
-
 当使用一个函数，同样的选项要通过 `info` 参数并使用驼峰式：
 
 ```js title="rspack.config.mjs"
