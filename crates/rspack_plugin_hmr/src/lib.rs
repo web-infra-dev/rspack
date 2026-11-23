@@ -9,7 +9,7 @@ use std::{
 };
 
 use atomic_refcell::AtomicRefCell;
-use chunk_versions::{HotModuleReplacementChunkVersionsRuntimeModule, is_versioned};
+use chunk_versions::HotModuleReplacementChunkVersionsRuntimeModule;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -1075,6 +1075,21 @@ async fn additional_tree_runtime_requirements(
   );
 
   Ok(())
+}
+
+fn is_versioned(compilation: &Compilation, chunk: &Chunk) -> bool {
+  let graph = &compilation.build_chunk_graph_artifact;
+  !graph.is_runtime_chunk(chunk)
+    // A shared chunk can be initial in one runtime and async in another.
+    && chunk
+      .groups()
+      .iter()
+      .any(|group| !graph.chunk_group_by_ukey.expect_get(group).is_initial())
+    && graph.chunk_graph.has_chunk_module_by_source_type(
+      &chunk.ukey(),
+      SourceType::JavaScript,
+      compilation.get_module_graph(),
+    )
 }
 
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for HotModuleReplacementPlugin)]

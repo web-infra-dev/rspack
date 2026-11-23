@@ -1,5 +1,5 @@
 ```mjs title=main.mjs
-import { rspackRequire, hasOwnProperty, moduleFactories, definePropertyGetters, compatGetDefaultExport } from "./runtime.mjs";
+import { rspackRequire, hasOwnProperty, moduleFactories, definePropertyGetters } from "./runtime.mjs";
 import * as __rspack_external_fs from "fs";
 export * from "fs";
 export * from "path";
@@ -23,7 +23,6 @@ def(exports)
   \***************************/
 (__unused_rspack_module, exports) {
 /* import */ var _dynamic_exports__rspack_import_0 = rspackRequire(/*! ./dynamic-exports */ "./dynamic-exports.js");
-/* import */ var _dynamic_exports__rspack_import_0_default = /*#__PURE__*/compatGetDefaultExport(_dynamic_exports__rspack_import_0);
 if(hasOwnProperty(_dynamic_exports__rspack_import_0, "readFile")) definePropertyGetters(exports, { readFile: function() { return _dynamic_exports__rspack_import_0.readFile; } });
 /* import */ var fs__rspack_import_1 = rspackRequire(/*! fs */ "fs");
 if(hasOwnProperty(fs__rspack_import_1, "readFile")) definePropertyGetters(exports, { readFile: function() { return fs__rspack_import_1.readFile; } });
@@ -91,17 +90,6 @@ export { rspackRequire };
 var moduleFactories = modules;
 export { moduleFactories };
 
-// rspack/runtime/compat_get_default_export
-// getDefaultExport function for compatibility with non-ESM modules
-var compatGetDefaultExport = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	definePropertyGetters(getter, { a: getter });
-	return getter;
-};
-;
-export { compatGetDefaultExport };
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {

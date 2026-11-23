@@ -53,17 +53,7 @@ impl ImportContextDependency {
     }
   }
 
-  pub fn set_referenced_specifiers(
-    &mut self,
-    referenced_specifiers: Vec<ReferencedSpecifier>,
-    from_magic_comment: bool,
-  ) {
-    if !from_magic_comment && referenced_specifiers.is_empty() {
-      // If the referenced specifiers are empty, keep it as default (None), since this dependency can't eliminate by side effects optimization,
-      // so if we set it to Some(vec![]), and the dependency still executes, it will cause runtime error because the exports are all tree shaken.
-      // see test case `tests/rspack-test/configCases/tree-shaking/side-effects-free-dynamic-import`
-      return;
-    }
+  pub fn set_referenced_specifiers(&mut self, referenced_specifiers: Vec<ReferencedSpecifier>) {
     self.options.referenced_specifiers = Some(referenced_specifiers);
     self.resource_identifier = create_resource_identifier(&self.options);
   }
@@ -104,6 +94,7 @@ impl Dependency for ImportContextDependency {
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
+    _context: &rspack_core::DependencyDiagnosticsContext,
   ) -> Option<Vec<Diagnostic>> {
     if let Some(critical) = self.critical() {
       return Some(vec![critical]);

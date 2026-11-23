@@ -32,6 +32,7 @@ async function getTemplateName({ template }: Argv) {
         { value: 'vanilla', label: 'Vanilla' },
         { value: 'react', label: 'React' },
         { value: 'vue', label: 'Vue' },
+        { value: 'solid', label: 'Solid' },
       ],
     }),
   );
@@ -94,6 +95,8 @@ create({
     'react-ts',
     'vue-js',
     'vue-ts',
+    'solid-js',
+    'solid-ts',
   ],
   skipFiles: ['.npmignore'],
   git: !process.argv.includes('--no-git'),

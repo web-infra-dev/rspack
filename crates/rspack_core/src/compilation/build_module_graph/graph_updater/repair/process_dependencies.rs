@@ -71,16 +71,19 @@ impl Task<TaskContext> for ProcessDependenciesTask {
       }
     }
 
+    if sorted_dependencies.is_empty() {
+      return Ok(Vec::new());
+    }
+
     let module = module_graph
       .module_by_identifier(&original_module_identifier)
       .expect("Module expected");
 
+    let resolve_options =
+      module.get_resolve_options(&context.build_context.compiler_options.module);
     let mut res: Vec<Box<dyn Task<TaskContext>>> = vec![];
     for dependencies in sorted_dependencies.into_values() {
-      let original_module_source = module_graph
-        .module_by_identifier(&original_module_identifier)
-        .and_then(|m| m.as_normal_module())
-        .and_then(|m| m.source().cloned());
+      let original_module_source = module.as_normal_module().and_then(|m| m.source().cloned());
       let dependency = &dependencies[0];
       let dependency_type = dependency.dependency_type();
       // TODO move module_factory calculate to dependency factories
@@ -106,7 +109,7 @@ impl Task<TaskContext> for ProcessDependenciesTask {
           .and_then(|module| module.name_for_condition()),
         issuer_layer: module.get_layer().cloned(),
         dependencies,
-        resolve_options: module.get_resolve_options(),
+        resolve_options: resolve_options.clone(),
         from_unlazy,
       }));
     }

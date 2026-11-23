@@ -12,7 +12,7 @@ use tracing::instrument;
 
 pub use self::{
   graph_updater::{
-    ModuleGraphUpdateResult, UpdateParam, expand_rebuild_modules, update_module_graph,
+    ModuleGraphUpdateResult, UpdateParam, expand_module_executor_results, update_module_graph,
   },
   lazy_barrel_artifact::{
     ForwardId, ForwardedIdSet, HasLazyDependencies, LazyDependencies, LazyUntil, ModuleToLazyMake,

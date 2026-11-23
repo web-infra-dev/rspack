@@ -4,7 +4,6 @@ use std::{
   fs,
   path::{Path, PathBuf},
   process::Command,
-  sync::Arc,
 };
 
 use criterion::{BatchSize, black_box};
@@ -12,8 +11,7 @@ use rspack::builder::{Builder as _, NodeOptionBuilder};
 use rspack_benchmark::Criterion;
 use rspack_core::{
   BuildInfo, BuildMeta, Compiler, CompilerOptions, Mode, ModuleIdentifier, ModuleType,
-  Optimization, ParseMeta, ResolvedModuleOptions, ResolvedModuleOptionsCacheKey, ResourceData,
-  RuntimeTemplate, SideEffectOption,
+  Optimization, ParseMeta, ParserOptions, ResourceData, RuntimeTemplate, SideEffectOption,
 };
 use rspack_plugin_javascript::{
   BoxJavascriptParserPlugin,
@@ -42,12 +40,12 @@ struct ScanDependenciesBenchmarkCaseSpec {
   module_type: ModuleType,
 }
 
-struct PreparedScanDependenciesBenchmarkCase {
+struct PreparedScanDependenciesBenchmarkCase<'a> {
   benchmark_id: &'static str,
   source_text: String,
-  compiler_options: Arc<CompilerOptions>,
+  compiler_options: &'a CompilerOptions,
   initial_semicolons: FxHashSet<u32>,
-  module_options: Arc<ResolvedModuleOptions>,
+  parser_options: &'a ParserOptions,
   parsed_ast: ParsedJavaScriptAst<'static>,
   module_identifier: ModuleIdentifier,
   module_type: ModuleType,
@@ -90,7 +88,7 @@ fn register_scan_dependencies_benchmarks(c: &mut Criterion) {
 
 fn register_scan_dependencies_benchmark_case(
   c: &mut Criterion,
-  benchmark_case: &PreparedScanDependenciesBenchmarkCase,
+  benchmark_case: &PreparedScanDependenciesBenchmarkCase<'_>,
 ) {
   c.bench_function(benchmark_case.benchmark_id, |b| {
     b.iter_batched_ref(
@@ -132,7 +130,7 @@ fn load_scan_dependencies_benchmark_specs() -> Vec<ScanDependenciesBenchmarkCase
 fn prepare_scan_dependencies_benchmark_case(
   compiler: &Compiler,
   case_spec: ScanDependenciesBenchmarkCaseSpec,
-) -> PreparedScanDependenciesBenchmarkCase {
+) -> PreparedScanDependenciesBenchmarkCase<'_> {
   let ScanDependenciesBenchmarkCaseSpec {
     benchmark_id,
     source_text,
@@ -143,30 +141,23 @@ fn prepare_scan_dependencies_benchmark_case(
     parsed_ast,
     semicolons,
   } = parse_benchmark_program(resource_path, &source_text, &module_type);
-  let compiler_options = compiler.options.clone();
   let parser_options = compiler
     .options
     .module
     .parser
     .as_ref()
     .and_then(|parser_map| parser_map.get("javascript"))
-    .cloned()
     .expect("scan_dependencies benchmark compiler should include javascript parser options");
-  let module_options = Arc::new(ResolvedModuleOptions::new(
-    ResolvedModuleOptionsCacheKey::new(&[], module_type),
-    Some(parser_options),
-    None,
-  ));
 
   let runtime_template =
-    RuntimeTemplate::new(compiler_options.clone()).create_module_code_template();
+    RuntimeTemplate::new(compiler.options.clone()).create_module_code_template();
 
   PreparedScanDependenciesBenchmarkCase {
     benchmark_id,
     source_text,
-    compiler_options,
+    compiler_options: &compiler.options,
     initial_semicolons: semicolons,
-    module_options,
+    parser_options,
     parsed_ast,
     module_identifier: resource_path.into(),
     module_type,
@@ -245,7 +236,7 @@ fn parse_benchmark_program(
   }
 }
 
-impl PreparedScanDependenciesBenchmarkCase {
+impl PreparedScanDependenciesBenchmarkCase<'_> {
   fn build_iteration_state(&self) -> ScanDependenciesIterationState {
     ScanDependenciesIterationState {
       semicolons: self.initial_semicolons.clone(),
@@ -261,7 +252,7 @@ impl PreparedScanDependenciesBenchmarkCase {
       &self.source_text,
       &self.parsed_ast,
       &self.resource_data,
-      self.compiler_options.as_ref(),
+      self.compiler_options,
       &Default::default(),
       &self.module_type,
       None,
@@ -269,15 +260,7 @@ impl PreparedScanDependenciesBenchmarkCase {
       &mut iteration_state.build_meta,
       &mut iteration_state.build_info,
       self.module_identifier,
-      self.module_options.parser_options(),
-      self
-        .module_options
-        .parser_options_computed(|options| {
-          options
-            .get_javascript()
-            .map(|javascript_options| javascript_options.import_meta())
-        })
-        .expect("scan_dependencies benchmark compiler should include import_meta parser options"),
+      Some(self.parser_options),
       &mut iteration_state.semicolons,
       &mut iteration_state.parser_plugins,
       std::mem::take(&mut iteration_state.parse_meta),

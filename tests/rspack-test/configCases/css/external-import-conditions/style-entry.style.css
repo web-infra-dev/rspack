@@ -1,0 +1,6 @@
+@import url("https://example.com/style-shared.css");
+@import "./style-print.style.css" print;
+
+.style-entry {
+	color: red;
+}

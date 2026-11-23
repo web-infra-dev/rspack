@@ -40,6 +40,7 @@ impl ModuleBuildCache {
     module: &BoxModule,
     file_system_info: &FileSystemInfo,
     value_cache_versions: &ValueCacheVersions,
+    force_build: bool,
   ) -> Result<Option<ModuleRef>> {
     if !self.restore_enabled {
       return Ok(None);
@@ -54,6 +55,7 @@ impl ModuleBuildCache {
         module.as_ref(),
         file_system_info,
         value_cache_versions,
+        force_build,
       ))
       .await?
     {

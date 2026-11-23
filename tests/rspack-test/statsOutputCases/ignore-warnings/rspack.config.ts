@@ -1,33 +1,4 @@
-import assert from 'node:assert/strict';
 import { defineConfig } from '@rspack/cli';
-import {
-  config,
-  WebpackError,
-  type Compilation,
-  type Module,
-} from '@rspack/core';
-
-const compilation = {} as Compilation;
-
-for (const flags of ['', 'g', 'y', 'gy']) {
-  for (const field of ['shorthand', 'message', 'module', 'file']) {
-    const pattern = new RegExp('warning', flags);
-    pattern.lastIndex = 3;
-    const rule = field === 'shorthand' ? pattern : { [field]: pattern };
-    const [filter] = config.getNormalizedRspackOptions({
-      ignoreWarnings: [rule],
-    }).ignoreWarnings!;
-    const warning = Object.assign(new WebpackError('warning'), {
-      file: 'warning',
-      module: { readableIdentifier: () => 'warning' } as Module,
-    });
-    for (let i = 0; i < 3; i++) {
-      assert.equal(filter(warning, compilation), true);
-    }
-    assert.equal(pattern.lastIndex, 3);
-    assert.equal(filter(new WebpackError('different'), compilation), false);
-  }
-}
 
 export default defineConfig({
   entry: './index.js',

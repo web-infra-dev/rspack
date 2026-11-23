@@ -1447,7 +1447,9 @@ var {} = {{}};
                 let jsx = module
                   .as_ref()
                   .as_normal_module()
-                  .and_then(|normal_module| normal_module.get_parser_options())
+                  .and_then(|normal_module| {
+                    normal_module.get_parser_options(&compilation.options.module)
+                  })
                   .and_then(|options| {
                     options
                       .get_javascript()

@@ -22,7 +22,7 @@ use crate::{
     CREATE_REQUIRE_EVALUATED_TAG, CREATE_REQUIRE_SPECIFIER_TAG, CREATED_REQUIRE_IDENTIFIER_TAG,
     CreatedRequireTagData, JavascriptParserPlugin, is_create_require_namespace_member,
   },
-  utils::eval::{BasicEvaluatedExpression, eval_member_expression_with_info},
+  utils::eval::{BasicEvaluatedExpression, DependencyData, eval_member_expression_with_info},
   visitors::{
     AtomMembers, ExportedVariableInfo, PatternIdentifier, VariableInfo, VariableInfoFlags,
   },
@@ -1839,9 +1839,68 @@ impl JavascriptParser<'_> {
       if keep_right {
         self.walk_expression(expr.right(ast));
       }
-    } else {
-      self.walk_left_right_expression(expr.left(ast), expr.right(ast));
+      return;
     }
+
+    let left_must_be_truthy = match expr.operator(ast) {
+      LogicalOperator::And => true,
+      LogicalOperator::Or => false,
+      LogicalOperator::NullishCoalescing => {
+        self.walk_left_right_expression(expr.left(ast), expr.right(ast));
+        return;
+      }
+    };
+    let left = expr.left(ast);
+    let right = expr.right(ast);
+    let guard = self.collect_dependencies_in_branch_guard(|parser| {
+      parser.walk_expression(left);
+      if parser
+        .dependencies_in_branch_guard
+        .as_ref()
+        .is_some_and(|dependencies| !dependencies.is_empty())
+      {
+        parser.necessary_truthiness_dependency(left, left_must_be_truthy)
+      } else {
+        None
+      }
+    });
+    if let Some(guard) = guard {
+      self.with_branch_guard(DependencyBranchGuard::new(guard), |parser| {
+        parser.walk_expression(right);
+      });
+    } else {
+      self.walk_expression(right);
+    }
+  }
+
+  fn necessary_truthiness_dependency(
+    &mut self,
+    expression: Expr,
+    truthy: bool,
+  ) -> Option<DependencyData> {
+    let ast = self.ast.ast;
+    if let Some(logical) = expression.as_logical_expression(ast)
+      && matches!(
+        (logical.operator(ast), truthy),
+        (LogicalOperator::And, true) | (LogicalOperator::Or, false)
+      )
+    {
+      // Both operands must have the requested truthiness. Either condition can
+      // rule out the branch even when the other operand is unknown.
+      let left = self.necessary_truthiness_dependency(logical.left(ast), truthy);
+      let right = self.necessary_truthiness_dependency(logical.right(ast), truthy);
+      return match (left, right) {
+        (Some(left), Some(right)) => Some(left.and(right)),
+        (left, right) => left.or(right),
+      };
+    }
+
+    let evaluated = self.evaluate_expression(expression);
+    if !evaluated.is_dependency() {
+      return None;
+    }
+    let dependency = evaluated.into_dependency();
+    Some(if truthy { dependency } else { dependency.not() })
   }
 
   fn walk_await_expression(&mut self, expr: AwaitExpression) {

@@ -11,7 +11,6 @@ __rspack_context.d(__rspack_exports, {
   "default": () => (__rspack_default_export)
 });
 /* import */ var node_worker_threads__rspack_import_0 = __rspack_context.r(/*! node:worker_threads */ "node:worker_threads");
-/* import */ var node_worker_threads__rspack_import_0_default = /*#__PURE__*/__rspack_context.n(node_worker_threads__rspack_import_0);
 
 
 const namedWorkerModuleMarker = "worker result";
@@ -37,7 +36,6 @@ export const __rspack_modules = {
 (__unused_rspack_module, __rspack_exports, __rspack_context) {
 __rspack_context.N(__rspack_exports);
 /* import */ var node_worker_threads__rspack_import_0 = __rspack_context.r(/*! node:worker_threads */ "node:worker_threads");
-/* import */ var node_worker_threads__rspack_import_0_default = /*#__PURE__*/__rspack_context.n(node_worker_threads__rspack_import_0);
 
 
 it("should preserve every duplicated worker entry name", async () => {
@@ -123,17 +121,6 @@ __rspack_context.r = __rspack_require;
 __rspack_context.m = __rspack_modules;
 
 var moduleFactories=__rspack_modules, asyncStartup;
-// rspack/runtime/compat_get_default_export
-// getDefaultExport function for compatibility with non-ESM modules
-var compatGetDefaultExport = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	definePropertyGetters(getter, { a: getter });
-	return getter;
-};
-;
-__rspack_context.n = compatGetDefaultExport;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -156,10 +143,7 @@ var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, p
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
+	Object.defineProperties(exports, { [Symbol.toStringTag]: { value: 'Module' }, __esModule: { value: true } });
 };;
 __rspack_context.N = makeNamespaceObject;
 // rspack/runtime/on_chunk_loaded
@@ -178,7 +162,7 @@ var onChunksLoaded = (result, chunkIds, fn, priority) => {
 		var fulfilled = true;
 		for (var j = 0; j < chunkIds.length; j++) {
 			if (
-				(priority & (1 === 0) || notFulfilled >= priority) &&
+				((priority & 1) === 0 || notFulfilled >= priority) &&
 				Object.keys(onChunksLoaded).every((key) => (onChunksLoaded[key](chunkIds[j])))
 			) {
 				chunkIds.splice(j--, 1);
@@ -221,7 +205,7 @@ __rspack_context.O = onChunksLoaded;
         if (hasOwnProperty(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
-        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
+        moduleInstalledChunks[chunkId] = 0;
     }
     onChunksLoaded();
 };
@@ -283,17 +267,6 @@ __rspack_context.r = __rspack_require;
 __rspack_context.m = __rspack_modules;
 
 var moduleFactories=__rspack_modules, asyncStartup;
-// rspack/runtime/compat_get_default_export
-// getDefaultExport function for compatibility with non-ESM modules
-var compatGetDefaultExport = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	definePropertyGetters(getter, { a: getter });
-	return getter;
-};
-;
-__rspack_context.n = compatGetDefaultExport;
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -316,10 +289,7 @@ var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, p
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
+	Object.defineProperties(exports, { [Symbol.toStringTag]: { value: 'Module' }, __esModule: { value: true } });
 };;
 __rspack_context.N = makeNamespaceObject;
 // rspack/runtime/on_chunk_loaded
@@ -338,7 +308,7 @@ var onChunksLoaded = (result, chunkIds, fn, priority) => {
 		var fulfilled = true;
 		for (var j = 0; j < chunkIds.length; j++) {
 			if (
-				(priority & (1 === 0) || notFulfilled >= priority) &&
+				((priority & 1) === 0 || notFulfilled >= priority) &&
 				Object.keys(onChunksLoaded).every((key) => (onChunksLoaded[key](chunkIds[j])))
 			) {
 				chunkIds.splice(j--, 1);
@@ -381,7 +351,7 @@ __rspack_context.O = onChunksLoaded;
         if (hasOwnProperty(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
-        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
+        moduleInstalledChunks[chunkId] = 0;
     }
     onChunksLoaded();
 };

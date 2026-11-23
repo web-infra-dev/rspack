@@ -94,6 +94,9 @@ export function toFeatures(featureOptions: FeatureOptions): Features {
       case 'logicalProperties':
         feature |= Features.LogicalProperties;
         break;
+      case 'lightDark':
+        feature |= Features.LightDark;
+        break;
       case 'selectors':
         feature |= Features.Selectors;
         break;
@@ -130,6 +133,7 @@ export enum Features {
   DoublePositionGradients = /*				*/ 1 << 17,
   VendorPrefixes = /*									*/ 1 << 18,
   LogicalProperties = /*							*/ 1 << 19,
+  LightDark = /*											*/ 1 << 20,
   Selectors = Features.Nesting |
     Features.NotSelectorList |
     Features.DirSelector |
@@ -143,7 +147,8 @@ export enum Features {
     Features.LabColors |
     Features.P3Colors |
     Features.HexAlphaColors |
-    Features.SpaceSeparatedColorNotation,
+    Features.SpaceSeparatedColorNotation |
+    Features.LightDark,
 }
 
 export interface Targets {
@@ -197,6 +202,7 @@ export type FeatureOptions = {
   doublePositionGradients?: boolean;
   vendorPrefixes?: boolean;
   logicalProperties?: boolean;
+  lightDark?: boolean;
   selectors?: boolean;
   mediaQueries?: boolean;
   color?: boolean;

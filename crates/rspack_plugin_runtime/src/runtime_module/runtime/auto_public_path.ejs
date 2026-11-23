@@ -11,19 +11,12 @@ if (!scriptUrl && document) {
   if (document.currentScript && document.currentScript.tagName.toUpperCase() === 'SCRIPT') scriptUrl = document.currentScript.src;
   if (!scriptUrl) {
     var scripts = document.getElementsByTagName("script");
-    if (scripts.length) {
-      var i = scripts.length - 1;
-      while (i > -1 && (!scriptUrl || !/^http(s?):/.test(scriptUrl))) scriptUrl = scripts[i--].src;
-    }
+    var i = scripts.length;
+    while (i && (!scriptUrl || !/^https?:/.test(scriptUrl))) scriptUrl = scripts[--i].src;
   }
 }
 <% } %>
 // When supporting browsers where an automatic publicPath is not supported you must specify an output.publicPath manually via configuration",
 // or pass an empty string ("") and set the __webpack_public_path__ variable from your code to use your own logic.',
 if (!scriptUrl) throw new Error("Automatic publicPath is not supported in this browser");
-scriptUrl = scriptUrl.replace(/^blob:/, "").replace(/#.*$/, "").replace(/\?.*$/, "").replace(/\/[^\/]+$/, "/");
-<% if (_undo_path == "") { %>
-<%- define(PUBLIC_PATH) %> = scriptUrl;
-<% } else { %>
-<%- define(PUBLIC_PATH) %> = scriptUrl + '<%- _undo_path %>';
-<% } %>
+<%- define(PUBLIC_PATH) %> = scriptUrl.replace(/^blob:|[?#].*$/g, "").replace(/\/[^/]+$/, "/")<% if (_undo_path) { %> + <%- _undo_path %><% } %>;

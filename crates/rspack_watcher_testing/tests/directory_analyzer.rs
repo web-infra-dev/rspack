@@ -258,6 +258,55 @@ async fn test_background_scan_refreshes_the_context() {
 }
 
 #[tokio::test]
+async fn test_scanner_remembers_a_removal_until_the_file_is_unregistered() {
+  let temp = TempDir::new().expect("create fixture");
+  let base = temp.path().canonicalize().expect("resolve fixture");
+  let gone = InternedPath::from(base.join("gone.js"));
+  let present = InternedPath::from(base.join("present.js"));
+  fs::write(&present, "").expect("create present file");
+  let mut analyzer = DirectoryAnalyzer::default();
+  analyzer
+    .update(added(&gone), empty(), empty())
+    .await
+    .expect("register absent file");
+  analyzer.scan(std::time::SystemTime::UNIX_EPOCH);
+  assert_eq!(
+    next_events(&mut analyzer).await,
+    vec![(gone.clone(), FsEventKind::Remove)]
+  );
+
+  analyzer
+    .update(
+      (vec![gone.clone(), present.clone()], vec![]),
+      empty(),
+      empty(),
+    )
+    .await
+    .expect("rewatch both files");
+  // The file scan sends removals before changes. A duplicate removal would
+  // arrive before this present file's change.
+  analyzer.scan(std::time::SystemTime::UNIX_EPOCH);
+  assert_eq!(
+    next_events(&mut analyzer).await,
+    vec![(present, FsEventKind::Change)]
+  );
+
+  analyzer
+    .update(removed(&gone), empty(), empty())
+    .await
+    .expect("unregister absent file");
+  analyzer
+    .update(added(&gone), empty(), empty())
+    .await
+    .expect("register absent file again");
+  analyzer.scan(std::time::SystemTime::UNIX_EPOCH);
+  assert_eq!(
+    next_events(&mut analyzer).await,
+    vec![(gone, FsEventKind::Remove)]
+  );
+}
+
+#[tokio::test]
 async fn test_rescan_invalidates_before_empty_paths_and_unsupported_kind_returns() {
   for include_path in [false, true] {
     let temp = TempDir::new().expect("create fixture");

@@ -6,7 +6,7 @@ it('should handle mixed: single-module chunk + multi-module chunk', async () => 
 	expect(solo).toHaveProperty('default', 'solo')
 	expect(solo).toHaveProperty('value', 100)
 
-	// m1 and mX share a chunk via magic comment - need namespace objects
+	// m1 and m2 share a chunk via magic comment - need namespace objects
 	const m1 = await import("./shared.mjs").then(m => m.m1_namespaceObject)
 	const m2 = await import("./shared.mjs").then(m => m.m2_namespaceObject)
 
@@ -43,10 +43,7 @@ var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, p
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
+	Object.defineProperties(exports, { [Symbol.toStringTag]: { value: 'Module' }, __esModule: { value: true } });
 };;
 export { makeNamespaceObject };
 

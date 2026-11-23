@@ -5,7 +5,6 @@ export const __rspack_modules = {
 353(__unused_rspack_module, __unused_rspack___rspack_exports, __rspack_context) {
 /* import */ var _style_css__rspack_import_0 = __rspack_context.r(711);
 /* import */ var _dependency_js__rspack_import_1 = __rspack_context.r(784);
-/* import */ var _dependency_js__rspack_import_1_default = /*#__PURE__*/__rspack_context.n(_dependency_js__rspack_import_1);
 
 
 

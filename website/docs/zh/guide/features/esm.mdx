@@ -1,90 +1,76 @@
 ---
-description: '为应用和库生成 ESM 格式产物，配置 output.module、chunk 格式及相关选项。'
+description: '为浏览器应用生成 ESM 脚本，或构建可通过包名导入的 ESM 库。'
 ---
-
-import { Stability } from '@components/ApiMeta';
 
 # ESM 产物
 
-Rspack 支持使用 ESM 格式输出进行打包。构建应用时，Rspack 默认会生成基于 IIFE 格式代码的打包输出，而不是标准的 CommonJS 或 ESM 格式，你可以通过配置 [output.module](/config/output#outputmodule) 来生成 ESM 格式的产物。下面的章节介绍了如何 [构建应用的 ESM 格式产物](#构建应用的-esm-格式产物) 及 [构建库的 ESM 格式产物](#构建库的-esm-格式产物) 并在最后列出了与 ESM 产物相关的 [配置清单](#配置清单)。
+Rspack 可以将应用和库打包为 ES 模块（ESM）。[构建浏览器应用](#build-a-browser-application)时，页面可以通过 `<script type="module">` 加载应用入口。[构建 ESM 库](#build-an-esm-library)时，其他项目可以通过包名导入库提供的函数或组件。
 
-## 构建应用的 ESM 格式产物
+## 构建浏览器应用 \{#build-a-browser-application}
 
-在构建应用时，Rspack 默认会生成依赖 Rspack 运行时 的产物。如果你需要生成 ESM 格式的产物，可以在 `rspack.config.mjs` 中进行如下配置：
+默认情况下，Rspack 会将浏览器应用打包为普通脚本，通常用立即执行函数（IIFE）包裹代码。要生成 CommonJS 或 ESM 产物，需要在 `output` 中指定相应的格式。
+
+如果你的应用面向支持 ES 模块和动态 `import()` 的浏览器，可以启用 [`output.module`](/config/output#outputmodule)。配合 [`HtmlRspackPlugin`](/plugins/html-rspack-plugin) 使用时，插件会在生成的 HTML 中引用实际的入口文件，并为脚本添加 `type="module"`。
 
 ```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
 export default {
+  target: ['web', 'es2020'],
   output: {
     module: true,
-    chunkFormat: 'module',
-    chunkLoading: 'import',
-    workerChunkLoading: 'import',
   },
+  plugins: [new rspack.HtmlRspackPlugin()],
 };
 ```
 
-你可以在 rspack-examples 中查看 [React 应用构建到 ESM 产物](https://github.com/rstackjs/rstack-examples/tree/main/rspack/react-refresh-esm) 及 [React ESM SSR](https://github.com/rstackjs/rstack-examples/tree/main/rspack/react-ssr-esm) 的示例。
+使用这份配置时，Rspack 会将异步 chunk 打包为 ES 模块。浏览器在需要时通过原生 `import()` 加载这些模块。
 
-## 构建库的 ESM 格式产物
+你可以在 [React 热更新示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/react-refresh-esm) 和 [React 服务端渲染示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/react-ssr-esm) 中查看完整配置。
 
-推荐使用 [Rslib](https://rslib.rs) 来构建库产物，Rslib 底层基于 Rspack 实现，能够构建 ES Module、CommonJS 和 UMD 等多种格式的产物。Rslib 提供了更高层次的 API，简化了库的构建过程。相比直接使用 Rspack，使用 Rslib 进行库的构建会更加方便和高效。
+## 构建 ESM 库 \{#build-an-esm-library}
 
-如果你需要直接使用 Rspack 构建库（npm library）的 ESM 格式产物，推荐优先使用 `modern-module`：
+开发 JavaScript 库或 UI 组件库时，推荐使用 [Rslib](https://rslib.rs/zh/guide/start/quick-start)。它基于 Rsbuild，为库的构建、调试和测试提供开箱即用的支持。相比直接配置 Rspack，用 Rslib 可以更方便地生成多种格式的产物和 TypeScript 类型声明。
 
-```js title="rspack.config.mjs"
+如果你需要直接使用 Rspack 构建 ESM 库，可以将 [`output.library.type`](/config/output#outputlibrarytype) 设为 `'modern-module'`。构建后的文件会保留入口的 ESM 导出，便于下游打包器通过 [tree shaking](/guide/optimization/tree-shaking) 移除未使用的代码。
+
+例如，要让使用者能通过 `import { formatDate } from 'my-lib'` 导入日期格式化函数，先在 `my-lib` 的入口文件中导出这个函数。
+
+```js title="src/index.js"
+export function formatDate(date) {
+  return date.toISOString().slice(0, 10);
+}
+```
+
+将入口命名为 `index`，并将 `output.filename` 设为 `'[name].js'`。Rspack 会以 ESM 格式生成 `dist/index.js`。
+
+```js title="rspack.config.js"
 export default {
+  entry: { index: './src/index.js' },
   output: {
-    library: {
-      type: 'modern-module',
-    },
-  },
-  optimization: {
-    avoidEntryIife: true,
-    minimize: false,
+    filename: '[name].js',
+    library: { type: 'modern-module' },
   },
 };
 ```
 
-与应用场景的 `output.module: true` 不同，`modern-module` 会切换到一条专门面向库的 ESM 渲染路径。它会自动启用 `output.module`，并切换到基于 `import` 的 chunk loading，因此通常不需要再手动指定 `chunkFormat: 'module'` 或 `chunkLoading: 'import'`。如果你的库还需要在 Worker 中以 ESM 方式加载 chunk，再额外配置 `workerChunkLoading: 'import'`。同时，也不要开启 `optimization.concatenateModules`，因为 `modern-module` 使用的是自己专门的链接与 scope hoist 逻辑。
+在 `package.json` 中设置 `"type": "module"`，让 Node.js 将包内的 `.js` 文件作为 ES 模块加载。再将 `exports` 指向构建产物，这样使用者就可以从 `my-lib` 导入 `formatDate`。
 
-你可以查看 [rspack-examples](https://github.com/rstackjs/rstack-examples/tree/main/rspack/library-esm) 中这个使用 ESM 库的例子。
+```json title="package.json"
+{
+  "name": "my-lib",
+  "type": "module",
+  "exports": "./dist/index.js"
+}
+```
 
-进行 ESM 产物的打包还需要处理各种细节问题，这里不逐一列举。你可以参考 [Rslib 中对 ESM 格式的相关配置](https://github.com/web-infra-dev/rslib/blob/f727b18805767b99fb85ae67ebff959aa644536e/packages/core/src/config.ts)，或者直接使用 Rslib 开箱即用地进行库的构建。
+如果组件库的每个组件都有独立的源文件，希望在构建产物中保留这样的目录结构，可以配置 [`output.library.preserveModules`](/config/output#outputlibrarypreservemodules)。你也可以参考[使用 Rspack 构建 ESM 库的完整示例](https://github.com/rstackjs/rstack-examples/tree/main/rspack/library-esm)。
 
-## ESM 产物未来规划
+## 可选配置 \{#optional-configuration}
 
-相比早期版本，`modern-module` 现在已经覆盖了库场景中更关键的能力，包括 code splitting、自定义 splitChunks、[`output.library.preserveModules`](/config/output#outputlibrarypreservemodules)，以及外部模块的 `export *` / `export * as` 等重新导出能力。
-
-当前仍在持续完善的部分，更多集中在规范一致性和少量边界场景：
-
-1. 更好的 ESM 应用产物与开发体验支持，包括 HMR 和 lazy compilation
-2. namespace object 仍有少数行为与原生 ESM 不完全一致，例如 `null` prototype、冻结 / 不可扩展性，以及可枚举键顺序
-3. 个别字符串导出名场景仍在补齐，例如以引号开头的字符串导出名会影响临时标识符生成
-4. `preserveModules` 目前仅支持 `modern-module`，也不建议让同一个模块同时作为多个 entry 的输出根；这类配置当前会报错
-5. `modern-module` 不能与其他 `library.type` 混用，因为它会接管 chunk 渲染、chunk loading 和 splitChunks 行为
-
-换句话说，Rspack 的 ESM 工作重点已经从“能否输出 ESM”逐步转向“让库场景的 ESM 更接近原生语义，并覆盖更多边界情况”。
-
-## 配置清单
-
-下面列出了与 ESM 相关的主要配置选项及其说明，这些配置在构建应用和库时都会用到。
-
-1. [output.module](/config/output#outputmodule): 设置为 `true`，表示生成 ESM 格式的产物。开启此选项后，会对以下配置产生影响：
-   1. 影响 [externalsType](/config/externals#externalstype) 默认值：当 `output.module` 为 `true` 时，`externalsType` 默认为 `'module-import'`。出于兼容性考虑，`output.library.type: 'modern-module'` 当前仍保持这个默认值，除非显式配置 `externalsType: 'modern-module'`；下一个 major 版本中，`modern-module` externals 会成为 `modern-module` library 的默认值。
-   2. 影响 [output.filename](/config/output#outputfilename) 默认值：当 `output.module` 为 `true` 时，默认文件名为 `'[name].mjs'` 而不是 `'[name].js'`
-   3. 间接影响 [output.chunkFilename](/config/output#outputchunkfilename) 默认值：该值由 `output.filename` 推断，因此 ESM 输出下默认为 `'[name].mjs'`。自定义 `output.filename` 会影响此默认值；当其为函数时，`output.chunkFilename` 默认为 `'[id].js'`。
-   4. 影响 [output.hotUpdateChunkFilename](/config/output#outputhotupdatechunkfilename) 默认值：当 `output.module` 为 `true` 时，默认为 `'[id].[fullhash].hot-update.mjs'`
-   5. 影响 [output.hotUpdateMainFilename](/config/output#outputhotupdatemainfilename) 默认值：当 `output.module` 为 `true` 时，默认为 `'[runtime].[fullhash].hot-update.json.mjs'`
-   6. 影响 [output.iife](/config/output#outputiife) 默认值：当 `output.module` 为 `true` 时，`output.iife` 默认为 `false`
-   7. 如果同时配置了 [`output.library`](/config/output#outputlibrary) 且没有显式指定 [`output.library.type`](/config/output#outputlibrarytype)，当 `output.module` 为 `true` 时，默认值为 `'modern-module'` 而不是 `'var'`
-   8. 影响 [output.scriptType](/config/output#outputscripttype) 默认值：当 `output.module` 为 `true` 时，默认为 `'module'`
-   9. 影响 [output.environment.dynamicImport](/config/output#outputenvironment) 默认值：当 `output.module` 为 `true` 时会被启用
-   10. 影响 [output.environment.dynamicImportInWorker](/config/output#outputenvironment) 默认值：当 `output.module` 为 `true` 时会被启用
-   11. 影响 [output.environment.module](/config/output#outputenvironment) 默认值：当 `output.module` 为 `true` 时会被启用
-   12. 影响 Node.js 相关配置的默认值：在 Node.js 环境下，当 `output.module` 为 `true` 时，`__filename` 和 `__dirname` 默认为 `'node-module'`
-2. [output.chunkFormat](/config/output#outputchunkformat): 在构建应用的 ESM 产物时，通常设置为 `'module'`，表示使用 ESM 格式的 chunk。
-3. [output.library.type](/config/output#outputlibrarytype): 在构建库的 ESM 产物时，通常设置为 `'modern-module'`，表示使用 Rspack 专门的 ESM library 渲染路径。
-4. [output.chunkLoading](/config/output#outputchunkloading): 在构建应用的 ESM 产物时，通常设置为 `'import'`；对于 `modern-module`，Rspack 会自动切换到基于 `import` 的 chunk loading。
-5. [output.workerChunkLoading](/config/output#outputworkerchunkloading): 当你的应用或库还需要在 Worker 中以 ESM 方式加载 chunk 时，通常设置为 `'import'`。
-6. [optimization.avoidEntryIife](/config/optimization#optimizationavoidentryiife): 在某些情况下，Rspack 会将 ESM 产物的输出包裹在一个 IIFE 中，这会破坏 ESM 的模块化特性
-7. [HtmlRspackPlugin.scriptLoading](/plugins/html-rspack-plugin#scriptloading): 设置为 `'module'`，表示使用 ESM 的 `<script type="module">` 来加载 `.mjs` 模块。
+- ESM 入口文件默认使用 `.mjs` 扩展名。如果需要调整文件名，可以通过 [`output.filename`](/config/output#outputfilename) 配置入口文件名，通过 [`output.chunkFilename`](/config/output#outputchunkfilename) 配置异步 chunk 的文件名。
+- 为了避免同一 chunk 中的变量名冲突，Rspack 有时会用 IIFE 包裹入口模块。启用 [`optimization.avoidEntryIife`](/config/optimization#optimizationavoidentryiife) 后，Rspack 会尝试通过重命名变量省去这层包装。
+- 如果应用需要在 Web Worker 中加载异步 chunk，可以通过 [`output.workerChunkLoading`](/config/output#outputworkerchunkloading) 单独配置 Worker 内的加载方式。
+- 部署时，请确保服务器以 JavaScript MIME 类型（如 `text/javascript`）返回模块文件。如果页面从 CDN 跨域加载脚本，还需要在 CDN 上配置 CORS 响应头，允许页面所在的源访问这些文件。
+- 构建 React 组件库时，如果希望复用应用已安装的 React，可以通过 [`externals`](/config/externals#externals) 将 `react` 排除在打包范围之外。生成的代码如何引用它，由 [`externalsType`](/config/externals#externalstype) 决定。
+- 如果希望保留未压缩的库代码，方便阅读或调试，可以将 [`optimization.minimize`](/config/optimization#optimizationminimize) 设为 `false`。

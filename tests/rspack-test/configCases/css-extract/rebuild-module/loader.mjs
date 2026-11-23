@@ -1,7 +1,7 @@
-let time = 0;
 export default function (source) {
   this.cacheable(false);
-  time++;
+  this._compilation.times ??= 0;
+  const time = ++this._compilation.times;
   if (time === 2) {
     return source.replaceAll('blue', 'red');
   }

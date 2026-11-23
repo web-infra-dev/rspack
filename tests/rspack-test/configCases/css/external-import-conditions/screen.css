@@ -1,0 +1,8 @@
+@import url("https://example.com/screen-same.css") screen;
+@import url("https://example.com/screen-or.css") (min-width: 600px) or (orientation: landscape);
+@import url("https://example.com/escaped-screen.css") \73 creen;
+@import url("https://example.com/escaped-and.css") scr\65 en \61 nd (max-width: 1200px);
+
+.screen {
+	color: green;
+}
