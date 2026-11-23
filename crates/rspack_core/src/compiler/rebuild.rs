@@ -40,7 +40,7 @@ impl Compiler {
           .plugin_driver
           .compiler_hooks
           .failed
-          .call(&self.compilation)
+          .call(&self.compilation, &e)
           .await;
         failed.and(Err(e))
       }

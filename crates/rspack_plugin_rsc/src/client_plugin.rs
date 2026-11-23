@@ -759,7 +759,7 @@ async fn after_process_assets(
 }
 
 #[plugin_hook(CompilerFailed for RscClientPlugin)]
-async fn failed(&self, _compilation: &Compilation) -> Result<()> {
-  self.coordinator.failed().await?;
+async fn failed(&self, _compilation: &Compilation, error: &rspack_error::Error) -> Result<()> {
+  self.coordinator.failed(error).await;
   Ok(())
 }
