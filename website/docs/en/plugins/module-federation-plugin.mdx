@@ -58,11 +58,11 @@ By default, `ModuleFederationPlugin` injects the Module Federation runtime into 
 
 Each Web Worker is evaluated independently from its parent entry. For example, if a parent entry imports a remote module but its Worker only runs local code, the Worker still has the runtime removed.
 
-**When set to a `RegExp`**, you can explicitly limit which entries are eligible for removal by matching **entry names** (including named Workers via constructor `name` or `webpackChunkName`, with the comment taking precedence). This is useful when automatic detection is not sufficient—for example, when some entries rely on dynamic runtime APIs (such as `loadRemote`), `runtimePlugins` side effects, or `shared` with `import: false`:
+**When set to a `RegExp`**, Rspack removes the runtime directly based on matching **entry names** (including named Workers via constructor `name` or `webpackChunkName`, with the comment taking precedence), without running automatic detection. This is useful when automatic detection does not match your needs—for example, when some entries rely on dynamic runtime APIs (such as `loadRemote`), `runtimePlugins` side effects, or `shared` with `import: false`:
 
-- Only matching entries and named Workers have unused runtime removed; unmatched entries and unnamed Workers keep the runtime.
-- If multiple entries share a runtime and any of them does not match the `RegExp`, the shared runtime is kept.
-- Entries that actually use `exposes` or `remotes` still keep the runtime even if their name matches.
+- Matching entries and named Workers have the runtime removed directly; unmatched entries and unnamed Workers keep the runtime.
+- If multiple entries share a runtime (via `runtimeChunk` or `dependOn`), the shared runtime is only removed when every member matches the `RegExp`.
+- Make sure the `RegExp` does not match entries that need to expose modules via `exposes` or load modules from `remotes`.
 
 ```js
 // Automatically remove unused federation runtime from all entries and Workers
@@ -71,7 +71,7 @@ new rspack.container.ModuleFederationPlugin({
   removeUnusedRuntime: true,
 });
 
-// Only remove unused federation runtime from entries and Workers named "local-*"
+// Explicitly remove federation runtime from entries and Workers named "local-*"
 new rspack.container.ModuleFederationPlugin({
   name: 'app',
   removeUnusedRuntime: /^local-/,

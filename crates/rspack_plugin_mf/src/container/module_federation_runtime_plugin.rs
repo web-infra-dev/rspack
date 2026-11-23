@@ -45,14 +45,6 @@ impl BundlerRuntimeExclusion {
   pub fn is_enabled(&self) -> bool {
     !matches!(self, Self::Disabled)
   }
-
-  pub fn matches(&self, name: Option<&str>) -> bool {
-    match self {
-      Self::Disabled => false,
-      Self::All => true,
-      Self::EntryName(regex) => name.is_some_and(|name| regex.test(name)),
-    }
-  }
 }
 
 #[derive(Debug, Default, Deserialize, Clone)]
@@ -188,54 +180,58 @@ async fn optimize_chunks(&self, compilation: &mut Compilation) -> Result<Option<
 
   let artifact = &compilation.build_chunk_graph_artifact;
   let mut required_runtimes = RuntimeSpec::default();
-  let mut seen_chunks = FxHashSet::default();
 
-  // Retain federation runtime for any runtime that reaches an Expose (container) or Remote module.
-  for (mid, module) in mg.modules() {
-    if module.as_normal_module().is_some() {
-      continue;
-    }
-    if !module
-      .source_types(mg)
-      .iter()
-      .any(|st| matches!(st, SourceType::Expose | SourceType::Remote))
-    {
-      continue;
-    }
-    for chunk in artifact.chunk_graph.get_module_chunks(*mid) {
-      if seen_chunks.insert(*chunk) {
-        required_runtimes.extend(artifact.chunk_by_ukey.expect_get(chunk).runtime());
+  match self.options.remove_unused_runtime.as_ref() {
+    BundlerRuntimeExclusion::Disabled => return Ok(None),
+    BundlerRuntimeExclusion::All => {
+      // Automatic mode: retain federation runtime for any runtime that reaches
+      // an Expose (container) or Remote module.
+      let mut seen_chunks = FxHashSet::default();
+      for (mid, module) in mg.modules() {
+        if module.as_normal_module().is_some() {
+          continue;
+        }
+        if !module
+          .source_types(mg)
+          .iter()
+          .any(|st| matches!(st, SourceType::Expose | SourceType::Remote))
+        {
+          continue;
+        }
+        for chunk in artifact.chunk_graph.get_module_chunks(*mid) {
+          if seen_chunks.insert(*chunk) {
+            required_runtimes.extend(artifact.chunk_by_ukey.expect_get(chunk).runtime());
+          }
+        }
       }
     }
-  }
-
-  // Retain runtimes outside the RegExp filtering scope.
-  if !matches!(
-    *self.options.remove_unused_runtime,
-    BundlerRuntimeExclusion::All
-  ) {
-    for (name, group_ukey) in artifact
-      .entrypoints
-      .iter()
-      .map(|(name, group)| (Some(name.as_str()), group))
-      .chain(artifact.async_entrypoints.iter().map(|group| {
-        (
-          artifact
+    BundlerRuntimeExclusion::EntryName(regex) => {
+      // Explicit RegExp mode: honor the user's pattern directly without scanning
+      // Expose/Remote modules. Entries and named Workers that do not match
+      // (as well as unnamed Workers) retain their runtime.
+      for (name, group_ukey) in artifact
+        .entrypoints
+        .iter()
+        .map(|(name, group)| (Some(name.as_str()), group))
+        .chain(artifact.async_entrypoints.iter().map(|group| {
+          (
+            artifact
+              .chunk_group_by_ukey
+              .expect_get(group)
+              .kind
+              .get_entry_options()
+              .and_then(|options| options.name.as_deref()),
+            group,
+          )
+        }))
+      {
+        if !name.is_some_and(|name| regex.test(name)) {
+          let entry_chunk = artifact
             .chunk_group_by_ukey
-            .expect_get(group)
-            .kind
-            .get_entry_options()
-            .and_then(|options| options.name.as_deref()),
-          group,
-        )
-      }))
-    {
-      if !self.options.remove_unused_runtime.matches(name) {
-        let entry_chunk = artifact
-          .chunk_group_by_ukey
-          .expect_get(group_ukey)
-          .get_entrypoint_chunk();
-        required_runtimes.extend(artifact.chunk_by_ukey.expect_get(&entry_chunk).runtime());
+            .expect_get(group_ukey)
+            .get_entrypoint_chunk();
+          required_runtimes.extend(artifact.chunk_by_ukey.expect_get(&entry_chunk).runtime());
+        }
       }
     }
   }

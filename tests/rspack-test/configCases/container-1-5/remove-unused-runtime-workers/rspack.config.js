@@ -7,7 +7,7 @@ module.exports = [
   undefined,
   false,
   true,
-  /^(plain-worker|remote-worker|shared-worker|comment-worker|remote-entry-local-worker)$/gi,
+  /^(plain-worker|shared-worker|comment-worker|remote-entry-local-worker)$/gi,
 ].map((removeUnusedRuntime, index) => ({
   name: `worker-option-${index}`,
   target: 'async-node',
