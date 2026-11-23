@@ -1,11 +1,11 @@
 use std::num::NonZeroU32;
 
-use swc_next_ecma_ast::{BindingIdentifier, IdentifierReference, ScopeId, SymbolId};
+use swc_next_ecma_ast::{Ast, BindingIdentifier, IdentifierReference, ScopeId, SymbolId};
 use swc_next_ecma_semantic::{ReferenceSpace, Semantic, SymbolFlags};
 
 use super::{
   Atom, AtomRef, BindingState, ParsedJavaScriptAst, ScopeInfoDB, ScopeInfoId, SemanticScopeId,
-  SymbolBinding,
+  SymbolBinding, TagInfoDB,
 };
 
 /// Maps a module symbol to its override slot and semantic declaration scope.
@@ -22,7 +22,7 @@ fn symbol_binding(semantic: &Semantic<'_>, symbol: SymbolId) -> SymbolBinding {
 
 #[inline(never)]
 pub(super) fn symbol_for_name(
-  semantic: Option<&Semantic<'_>>,
+  semantic: &Semantic<'_>,
   scope: ScopeId,
   name: &str,
 ) -> Option<SymbolBinding> {
@@ -30,7 +30,6 @@ pub(super) fn symbol_for_name(
   if matches!(name, "this" | "import.meta" | "new.target" | "*default*") {
     return None;
   }
-  let semantic = semantic?;
   let symbol = semantic.lookup(scope, name.as_bytes(), ReferenceSpace::Value)?;
   Some(symbol_binding(semantic, symbol))
 }
@@ -65,12 +64,8 @@ impl ParsedJavaScriptAst<'_> {
 
 impl<'ast> ScopeInfoDB<'ast> {
   /// Creates the module scope and initializes bindings from the module's semantic data.
-  pub fn with_semantic(parsed: &ParsedJavaScriptAst<'ast>) -> Self {
-    let ast = parsed.ast;
-    let semantic = parsed.semantic.expect("module AST has semantic data");
-    let mut db = Self::new();
-    db.module_semantic = Some((ast, semantic));
-    db.semantic_scope = semantic
+  pub fn new(ast: &'ast Ast<'ast>, semantic: &'ast Semantic<'ast>) -> Self {
+    let semantic_scope = semantic
       .scope_of(ast.root_program().node_id())
       .expect("program has a semantic scope");
     let scope_count = semantic.iter_scopes().count();
@@ -78,7 +73,6 @@ impl<'ast> ScopeInfoDB<'ast> {
       scope_count < (u32::MAX - 1) as usize,
       "too many semantic scopes"
     );
-    db.semantic_scope_owners.resize(scope_count, None);
     let symbol_count = semantic
       .iter_symbols()
       .map(|entry| entry.id.index() + 1)
@@ -88,8 +82,21 @@ impl<'ast> ScopeInfoDB<'ast> {
       u32::try_from(symbol_count).is_ok(),
       "too many semantic bindings"
     );
-    db.symbols.resize(symbol_count, None);
-    db.create();
+    let mut db = Self {
+      map: Vec::new(),
+      bindings: Default::default(),
+      current: None,
+      variable_metadata: Vec::new(),
+      tag_info_db: TagInfoDB::new(),
+      module_ast: ast,
+      module_semantic: semantic,
+      semantic_scope,
+      symbols: vec![None; symbol_count],
+      semantic_scope_owners: vec![None; scope_count],
+      scope_activations: Vec::new(),
+      overrides: Vec::new(),
+    };
+    db.create_scope(None);
     db.initialize_scope_bindings();
     db
   }
@@ -166,11 +173,7 @@ impl<'ast> ScopeInfoDB<'ast> {
     name: impl Into<AtomRef<'key>>,
   ) -> (Option<BindingState>, Option<SymbolBinding>) {
     let name = name.into();
-    let symbol = symbol_for_name(
-      self.module_semantic.map(|(_, semantic)| semantic),
-      self.semantic_scope,
-      name.as_str(),
-    );
+    let symbol = symbol_for_name(self.module_semantic, self.semantic_scope, name.as_str());
     if let Some(symbol) = symbol {
       if let Some(state) = self.symbol_state(symbol) {
         return (state.defined(), Some(symbol));
@@ -199,7 +202,7 @@ impl<'ast> ScopeInfoDB<'ast> {
         if let Some(state) = self.symbols[symbol.index()] {
           return state.defined();
         }
-        let semantic = parsed.semantic.expect("resolved symbol has semantic data");
+        let semantic = self.module_semantic;
         let scope = semantic.scope_of_symbol(symbol).raw() as usize - 1;
         if let Some(owner) = self.semantic_scope_owners[scope] {
           return Some(BindingState::Normal(owner));
@@ -273,7 +276,7 @@ impl<'ast> ScopeInfoDB<'ast> {
 
   /// Hides callback parameter bindings to preserve require.ensure's free-name handling.
   pub fn suppress_scope_parameters(&mut self) {
-    let (_, semantic) = self.module_semantic.expect("module AST has semantic data");
+    let semantic = self.module_semantic;
     let scope = self.current_scope();
     for symbol in semantic.bindings(self.semantic_scope) {
       if semantic
@@ -297,9 +300,7 @@ impl<'ast> ScopeInfoDB<'ast> {
       .scope_variable_bindings(scope)
       .filter_map(|(name, _, visible)| visible.defined().map(|state| (name.clone(), state)))
       .collect::<Vec<_>>();
-    let Some((ast, semantic)) = self.module_semantic else {
-      return variables;
-    };
+    let semantic = self.module_semantic;
     for symbol in semantic.bindings(self.semantic_scope) {
       if !semantic
         .symbol(symbol)
@@ -318,7 +319,7 @@ impl<'ast> ScopeInfoDB<'ast> {
         continue;
       }
       let name = semantic.symbol(symbol).name;
-      let name = ast.get_wtf8(name).to_string_lossy();
+      let name = self.module_ast.get_wtf8(name).to_string_lossy();
       // The overlay has already supplied visible metadata for names it owns,
       // including tombstones and persistent ancestor writes.
       if self.get_raw(scope, name.as_ref()).is_none() {

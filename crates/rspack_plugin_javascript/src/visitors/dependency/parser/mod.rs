@@ -698,7 +698,8 @@ impl<'parser> JavascriptParser<'parser> {
     let blocks = Vec::with_capacity(4);
     let presentational_dependencies = Vec::with_capacity(8);
     let parser_exports_state: Option<bool> = None;
-    let definitions_db = ScopeInfoDB::with_semantic(ast);
+    let definitions_db =
+      ScopeInfoDB::new(ast.ast, ast.semantic.expect("module AST has semantic data"));
     let top_level_definitions = definitions_db.current_scope();
 
     Self {
