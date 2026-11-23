@@ -6,7 +6,7 @@ use std::{
   time::SystemTime,
 };
 
-use dashmap::setref::multiple::RefMulti;
+use dashmap::{mapref::one::RefMut, setref::multiple::RefMulti};
 use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
 use rspack_util::{
@@ -281,6 +281,70 @@ enum ReportedBaseline {
   Absent,
 }
 
+#[derive(Default)]
+struct FileRecord {
+  /// Last observation exported by `collect_time_info_entries`.
+  time: Option<FileTime>,
+  /// State the build already knows from registration or a reported event.
+  reported: Option<ReportedBaseline>,
+}
+
+impl FileRecord {
+  fn set_time(&mut self, mtime: SystemTime, initial: bool, ignore_when_equal: bool) -> bool {
+    // Seeing the file again clears a reported absence. A scan that only
+    // records its time must still let the file's first event through.
+    self.clear_absent();
+    if ignore_when_equal && self.time.is_some_and(|time| time.mtime == mtime) {
+      return false;
+    }
+    self.time = Some(if initial {
+      FileTime::initial(mtime)
+    } else {
+      FileTime::observed(mtime)
+    });
+    true
+  }
+
+  fn clear_present(&mut self) {
+    self.time = None;
+    if matches!(self.reported, Some(ReportedBaseline::Present(_))) {
+      self.reported = None;
+    }
+  }
+
+  fn clear_absent(&mut self) {
+    if self.reported == Some(ReportedBaseline::Absent) {
+      self.reported = None;
+    }
+  }
+}
+
+#[derive(Default)]
+struct FileTimes {
+  records: InternedPathDashMap<FileRecord>,
+}
+
+impl FileTimes {
+  fn get(&self, path: &InternedPath) -> Option<FileTime> {
+    self.records.get(path)?.time
+  }
+
+  fn reported(&self, path: &InternedPath) -> Option<ReportedBaseline> {
+    self.records.get(path)?.reported
+  }
+
+  fn record(&self, path: &InternedPath) -> RefMut<'_, InternedPath, FileRecord> {
+    self.records.entry(path.clone()).or_default()
+  }
+
+  fn clear(&self, path: &InternedPath, clear: impl FnOnce(&mut FileRecord)) {
+    self.records.remove_if_mut(path, |_, record| {
+      clear(record);
+      record.time.is_none() && record.reported.is_none()
+    });
+  }
+}
+
 /// `PathManager` is responsible for managing the set of files, directories, and missing paths.
 #[derive(Default)]
 pub(crate) struct PathManager {
@@ -288,17 +352,10 @@ pub(crate) struct PathManager {
   directories: PathTracker,
   missing: PathTracker,
   ignored: IgnoredMatcher,
-  /// watchpack's `files` map: the last observation of each registered file,
-  /// each registered-missing path found on disk, and each file found below a
-  /// context. It feeds `collect_time_info_entries` without a syscall; stale
-  /// FSEvents are filtered by `baselines` instead.
+  /// Observations of registered files, missing dependencies and context
+  /// members. Only explicit dependencies also need an event baseline.
   /// See: https://gist.github.com/stormslowly/ed758500de6f23211fd63b39eba5ed07
-  file_times: InternedPathDashMap<FileTime>,
-  /// The mtime the build already knows for each registered file or missing
-  /// path — through a delivered event, or because it was on disk when it was
-  /// registered. A path without a baseline can still have a `file_times`
-  /// entry when a scan found it without reporting a change.
-  baselines: InternedPathDashMap<ReportedBaseline>,
+  file_times: FileTimes,
   /// watchpack's per-`DirectoryWatcher` `lastWatchEvent`: when an event last
   /// reached each registered or discovered context (its own or a
   /// descendant's), in epoch millis. Like watchpack it starts at 0 (absent)
@@ -317,7 +374,7 @@ pub(crate) struct PathManager {
   /// counts the registrations directly in it plus its subdirectories here,
   /// and goes once that count is back to zero.
   registered_ancestors: InternedPathDashMap<usize>,
-  /// Every path holding a record (in `file_times`, the context sets or
+  /// Every path holding time info (in `file_times`, the context sets or
   /// `last_watch_events`) under its parent directory, ancestors included up
   /// to the first one already indexed: a removed directory's records are
   /// found by walking its subtree, not by scanning every map. A directory
@@ -344,8 +401,7 @@ impl PathManager {
       directories: PathTracker::default(),
       missing: PathTracker::default(),
       ignored: IgnoredMatcher::new(ignored),
-      file_times: InternedPathDashMap::default(),
-      baselines: InternedPathDashMap::default(),
+      file_times: FileTimes::default(),
       last_watch_events: InternedPathDashMap::default(),
       context_files: InternedPathDashSet::default(),
       context_directories: InternedPathDashSet::default(),
@@ -362,18 +418,8 @@ impl PathManager {
     self
   }
 
-  /// Reset the per-`watch()`-call diff state (added / removed sets) without
-  /// touching the long-lived mtime baselines.
-  ///
-  /// `file_mtimes` is intentionally NOT cleared here: the mtime baselines
-  /// are tied to the lifetime of the registered files, not to the lifetime
-  /// of a single `FsWatcher::watch()` invocation. Each call to `watch()`
-  /// from rspack's rebuild cycle (aggregate → pause → rebuild → rewatch)
-  /// must NOT re-snapshot the baseline, otherwise the snapshot can capture
-  /// a post-user-write mtime and then `has_mtime_changed` silently
-  /// suppresses the very FSEvent that the user is waiting for. Stale
-  /// entries for files that have actually been unregistered are pruned by
-  /// `update()` via `remove_file_mtime`.
+  /// Reset the per-`watch()` diff. File records live with their subscriptions
+  /// so a delayed event can still report a write made between watch cycles.
   pub fn reset(&self) {
     self.files.reset();
     self.directories.reset();
@@ -392,71 +438,45 @@ impl PathManager {
   /// baseline) to advance the recorded mtime in response to real events.
   pub fn set_file_time_if_absent(&self, path: InternedPath, mtime: SystemTime) {
     self.record(&path, || {
-      let present = ReportedBaseline::Present(mtime);
-      self
-        .baselines
-        .entry(path.clone())
-        .and_modify(|baseline| {
-          if *baseline == ReportedBaseline::Absent {
-            *baseline = present;
-          }
-        })
-        .or_insert(present);
-      self
-        .file_times
-        .entry(path.clone())
-        .or_insert_with(|| FileTime::initial(mtime));
+      let mut record = self.file_times.record(&path);
+      if !matches!(record.reported, Some(ReportedBaseline::Present(_))) {
+        record.reported = Some(ReportedBaseline::Present(mtime));
+      }
+      record.time.get_or_insert_with(|| FileTime::initial(mtime));
     });
   }
 
   /// The scanner reported `path` as changed: the build will know this mtime,
   /// so it becomes the deduplication baseline as well as the time info.
   pub fn set_reported_file_time(&self, path: &InternedPath, mtime: SystemTime) {
-    self
-      .baselines
-      .insert(path.clone(), ReportedBaseline::Present(mtime));
-    self.set_file_time(path, mtime, true, true);
+    self.record(path, || {
+      let mut record = self.file_times.record(path);
+      record.reported = Some(ReportedBaseline::Present(mtime));
+      record.set_time(mtime, true, true);
+    });
   }
 
   /// Whether a removal was already reported for this path. The scanner must
   /// still report an absence with no prior record.
   pub fn is_known_absent(&self, path: &InternedPath) -> bool {
-    self
-      .baselines
-      .get(path)
-      .is_some_and(|baseline| *baseline == ReportedBaseline::Absent)
+    self.file_times.reported(path) == Some(ReportedBaseline::Absent)
   }
 
   /// Record a removal the caller is about to deliver. The scanner relies on
   /// this marker to mean the build was told about the absence.
   pub fn set_reported_file_removal(&self, path: &InternedPath) {
-    self
-      .baselines
-      .insert(path.clone(), ReportedBaseline::Absent);
+    self.file_times.record(path).reported = Some(ReportedBaseline::Absent);
     if (!self.files.all.contains(path) && !self.missing.all.contains(path))
       || std::fs::symlink_metadata(path).is_ok()
     {
-      self.clear_absent_baseline(path);
+      self.file_times.clear(path, FileRecord::clear_absent);
     }
-  }
-
-  fn clear_absent_baseline(&self, path: &InternedPath) {
-    self
-      .baselines
-      .remove_if(path, |_, baseline| *baseline == ReportedBaseline::Absent);
-  }
-
-  fn clear_present_baseline(&self, path: &InternedPath) {
-    self.baselines.remove_if(path, |_, baseline| {
-      matches!(baseline, ReportedBaseline::Present(_))
-    });
   }
 
   /// Drop a removed path's time info and present baseline. A reported absence
   /// survives later removals until the path reappears or is unregistered.
   pub fn remove_file_time(&self, path: &InternedPath) {
-    self.file_times.remove(path);
-    self.clear_present_baseline(path);
+    self.file_times.clear(path, FileRecord::clear_present);
     self.context_files.remove(path);
     if self.context_directories.remove(path).is_some() {
       self.last_watch_events.remove(path);
@@ -473,8 +493,7 @@ impl PathManager {
       if let Some((_, children)) = self.recorded_children.remove(&path) {
         pending.extend(children);
       }
-      self.file_times.remove(&path);
-      self.clear_present_baseline(&path);
+      self.file_times.clear(&path, FileRecord::clear_present);
       self.context_files.remove(&path);
       self.context_directories.remove(&path);
       if !self.directories.all.contains(&path) {
@@ -552,7 +571,7 @@ impl PathManager {
   }
 
   fn holds_record(&self, path: &InternedPath) -> bool {
-    self.file_times.contains_key(path)
+    self.file_times.get(path).is_some()
       || self.context_files.contains(path)
       || self.context_directories.contains(path)
       || self.last_watch_events.contains_key(path)
@@ -671,7 +690,10 @@ impl PathManager {
         } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
           self.record(&path, || {
             self.context_files.insert(path.clone());
-            self.write_file_time(&path, mtime, !observed, true)
+            self
+              .file_times
+              .record(&path)
+              .set_time(mtime, !observed, true)
           });
           let registered = self.files.all.contains(&path) || self.missing.all.contains(&path);
           if self.forget_if_orphaned(&path) {
@@ -698,7 +720,7 @@ impl PathManager {
     self.context_files.remove(path);
     self.context_directories.remove(path);
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
-      self.file_times.remove(path);
+      self.file_times.clear(path, |record| record.time = None);
     }
     if !self.directories.all.contains(path) {
       self.last_watch_events.remove(path);
@@ -838,37 +860,11 @@ impl PathManager {
     ignore_when_equal: bool,
   ) -> bool {
     self.record(path, || {
-      self.write_file_time(path, mtime, initial, ignore_when_equal)
-    })
-  }
-
-  /// [`Self::set_file_time`]'s write, for a caller already inside
-  /// [`Self::record`].
-  fn write_file_time(
-    &self,
-    path: &InternedPath,
-    mtime: SystemTime,
-    initial: bool,
-    ignore_when_equal: bool,
-  ) -> bool {
-    // Seeing the file again clears a reported absence. A time-info-only write
-    // must not seed a present baseline and suppress the file's own event.
-    self.clear_absent_baseline(path);
-    if ignore_when_equal
-      && self
+      self
         .file_times
-        .get(path)
-        .is_some_and(|current| current.mtime == mtime)
-    {
-      return false;
-    }
-    let time = if initial {
-      FileTime::initial(mtime)
-    } else {
-      FileTime::observed(mtime)
-    };
-    self.file_times.insert(path.clone(), time);
-    true
+        .record(path)
+        .set_time(mtime, initial, ignore_when_equal)
+    })
   }
 
   /// An event reached `path` or something below it: advance the
@@ -900,13 +896,20 @@ impl PathManager {
     };
     let mtime_ms = mtime_to_millis(current_mtime);
     let present = ReportedBaseline::Present(current_mtime);
-    if self.baselines.insert(path.clone(), present) == Some(present)
-      && mtime_ms.saturating_add(mtime_accuracy(current_mtime)) < current_time()
-    {
+    let aged = mtime_ms.saturating_add(mtime_accuracy(current_mtime)) < current_time();
+    // A stale event needs no index lock. Recheck under the write lock in
+    // case the scanner reported this mtime in the meantime.
+    if aged && self.file_times.reported(path) == Some(present) {
       return false;
     }
-    self.set_file_time(path, current_mtime, false, false);
-    true
+    self.record(path, || {
+      let mut record = self.file_times.record(path);
+      if record.reported.replace(present) == Some(present) && aged {
+        return false;
+      }
+      record.time = Some(FileTime::observed(current_mtime));
+      true
+    })
   }
 
   /// Update the paths, directories, and missing paths in the `PathManager`.
@@ -960,27 +963,13 @@ impl PathManager {
     // record: the context reports it.
     let removed_files: Vec<InternedPath> = self.files.removed.iter().map(|p| p.clone()).collect();
     for path in &removed_files {
-      let still_missing = self.missing.all.contains(path);
-      if !still_missing {
-        self.baselines.remove(path);
-      }
-      if !self.is_below_context(path) {
-        self.file_times.remove(path);
-        if !still_missing {
-          self.unindex_record(path);
-        }
-      }
+      self.prune_file_record(path, self.missing.all.contains(path));
     }
     let removed_missing: Vec<InternedPath> =
       self.missing.removed.iter().map(|p| p.clone()).collect();
     for path in &removed_missing {
-      if self.files.all.contains(path) {
-        continue;
-      }
-      self.baselines.remove(path);
-      if !self.is_below_context(path) {
-        self.file_times.remove(path);
-        self.unindex_record(path);
+      if !self.files.all.contains(path) {
+        self.prune_file_record(path, false);
       }
     }
     let removed_dirs: Vec<InternedPath> =
@@ -999,6 +988,21 @@ impl PathManager {
     }
 
     Ok(())
+  }
+
+  fn prune_file_record(&self, path: &InternedPath, keep_reported: bool) {
+    let below_context = self.is_below_context(path);
+    self.file_times.clear(path, |record| {
+      if !keep_reported {
+        record.reported = None;
+      }
+      if !below_context {
+        record.time = None;
+      }
+    });
+    if !below_context && !keep_reported {
+      self.unindex_record(path);
+    }
   }
 
   /// A context was unregistered: forget what its scan found below it, except
@@ -1021,7 +1025,7 @@ impl PathManager {
         && !self.files.all.contains(path)
         && !self.missing.all.contains(path)
       {
-        self.file_times.remove(path);
+        self.file_times.clear(path, |record| record.time = None);
         self.unlink_unrecorded(path);
       }
       if self.context_directories.remove(path).is_some() {
@@ -1051,10 +1055,10 @@ impl PathManager {
   /// for a registered file with no record yet (e.g. one whose record was
   /// dropped when it was removed).
   fn file_time(&self, path: &InternedPath) -> Option<FileTime> {
-    if let Some(time) = self.file_times.get(path) {
-      return Some(*time);
-    }
-    disk_mtime(path).map(FileTime::initial)
+    self
+      .file_times
+      .get(path)
+      .or_else(|| disk_mtime(path).map(FileTime::initial))
   }
 
   fn entry(time: FileTime) -> TimeInfoEntry {
@@ -1108,7 +1112,7 @@ impl PathManager {
       let entry = self
         .file_times
         .get(&path)
-        .map_or(TimeInfoEntry::Null, |time| Self::entry(*time));
+        .map_or(TimeInfoEntry::Null, Self::entry);
       if let TimeInfoEntry::Entry { safe_time, .. } = entry {
         file_safe_times.push((path.clone(), safe_time));
       }
@@ -1119,7 +1123,7 @@ impl PathManager {
       if accessor.files().0.contains(&path) {
         continue;
       }
-      let Some(time) = self.file_times.get(&path).map(|time| *time) else {
+      let Some(time) = self.file_times.get(&path) else {
         continue;
       };
       file_safe_times.push((path.clone(), time.narrowed().safe_time));
