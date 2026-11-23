@@ -38,6 +38,7 @@ use swc_next_ecma_ast::{
   MemberExpression, MetaProperty, NodeId, ObjectPattern, Program, PropertyKey, PropertyKeyData,
   SourceType, Span, ThisExpression,
 };
+use swc_next_ecma_semantic::Semantic;
 
 use crate::{
   Atom, BoxJavascriptParserPlugin,
@@ -53,8 +54,8 @@ use crate::{
     ParsedJavaScriptAst, PatternIdentifier, ScanDependenciesResult,
     dependency::parser::location_advancer::DependencyLocationAdvancer,
     scope_info::{
-      BindingState, ScopeInfoDB, ScopeInfoId, SymbolBinding, TagInfo, TagInfoId, VariableInfo,
-      VariableInfoFlags,
+      BindingState, IdentifierResolution, ScopeInfoDB, ScopeInfoId, SymbolBinding, TagInfo,
+      TagInfoId, VariableInfo, VariableInfoFlags,
     },
   },
 };
@@ -483,7 +484,7 @@ pub struct JavascriptParser<'parser> {
   // ===== inputs =======
   pub(crate) source: &'parser str,
   pub ast: &'parser ParsedJavaScriptAst<'parser>,
-  synthetic_asts: Vec<(&'parser ParsedJavaScriptAst<'parser>, usize)>,
+  synthetic_asts: Vec<&'parser ParsedJavaScriptAst<'parser>>,
   /// Active replacement AST index; `None` means the original module AST.
   pub(crate) active_synthetic_ast: Option<usize>,
   pub parse_meta: ParseMeta,
@@ -672,6 +673,7 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn new(
     source: &'parser str,
     ast: &'parser ParsedJavaScriptAst<'parser>,
+    semantic: &'parser Semantic<'parser>,
     compiler_options: &'parser CompilerOptions,
     value_cache_versions: &'parser ValueCacheVersions,
     javascript_options: &'parser JavascriptParserOptions,
@@ -698,7 +700,7 @@ impl<'parser> JavascriptParser<'parser> {
     let blocks = Vec::with_capacity(4);
     let presentational_dependencies = Vec::with_capacity(8);
     let parser_exports_state: Option<bool> = None;
-    let definitions_db = ScopeInfoDB::with_semantic(ast);
+    let definitions_db = ScopeInfoDB::new(ast.ast, semantic);
     let top_level_definitions = definitions_db.current_scope();
 
     Self {
@@ -1166,14 +1168,7 @@ impl<'parser> JavascriptParser<'parser> {
     let ExprData::IdentifierReference(identifier) = self.ast.ast.expr_data(root) else {
       return self.get_name_info_from_variable(root.get_root_name(self.ast.ast)?);
     };
-    let resolution = self
-      .definitions_db
-      .semantic_context
-      .identifier_resolution(self.ast, identifier);
-    let Some(state) = self
-      .definitions_db
-      .resolve_identifier(self.ast, identifier, resolution)
-    else {
+    let Some(state) = self.resolve_identifier(identifier) else {
       let ast = self.ast.ast;
       return Some(NameInfo {
         name: ast.get_utf8(identifier.name(ast)),
@@ -1716,12 +1711,12 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn detect_mode(&mut self, program: Program) {
     // Semantic can rule out strict directives; module classification still follows Rspack.
     if self.is_strict()
-      || !self
-        .ast
-        .semantic
-        .scope(self.definitions_db.semantic_context.scope)
-        .flags
-        .strict
+      || self.active_semantic().is_some_and(|semantic| {
+        !semantic
+          .scope(self.definitions_db.semantic_scope)
+          .flags
+          .strict
+      })
     {
       return;
     }
@@ -1747,6 +1742,62 @@ impl<'parser> JavascriptParser<'parser> {
     };
     !info.is_free()
   }
+
+  /// Only the module AST has semantic data. Fragment node IDs must not index it.
+  #[inline]
+  pub(crate) fn active_semantic(&self) -> Option<&'parser Semantic<'parser>> {
+    if self.active_synthetic_ast.is_some() {
+      return None;
+    }
+    Some(self.definitions_db.module_semantic())
+  }
+
+  /// Fragment identifiers fall back to name lookup in the caller's scope.
+  #[inline]
+  fn identifier_resolution(&self, identifier: IdentifierReference) -> IdentifierResolution {
+    let Some(semantic) = self.active_semantic() else {
+      return IdentifierResolution::Name;
+    };
+    let Some(reference) = semantic.reference_of(identifier.node_id()) else {
+      return IdentifierResolution::Name;
+    };
+    match semantic.reference(reference).symbol {
+      Some(symbol) => IdentifierResolution::Symbol(symbol),
+      None => IdentifierResolution::Unresolved,
+    }
+  }
+
+  #[inline]
+  pub(crate) fn resolve_identifier(
+    &mut self,
+    identifier: IdentifierReference,
+  ) -> Option<BindingState> {
+    let resolution = self.identifier_resolution(identifier);
+    self.resolve_identifier_with_resolution(identifier, resolution)
+  }
+
+  #[inline]
+  fn resolve_identifier_with_resolution(
+    &mut self,
+    identifier: IdentifierReference,
+    resolution: IdentifierResolution,
+  ) -> Option<BindingState> {
+    self
+      .definitions_db
+      .resolve_identifier(self.ast.ast, identifier, resolution)
+  }
+
+  pub(crate) fn resolve_binding(
+    &mut self,
+    identifier: BindingIdentifier,
+  ) -> (Option<BindingState>, Option<SymbolBinding>) {
+    let symbol = self
+      .active_semantic()
+      .and_then(|semantic| semantic.symbol_of(identifier.node_id()));
+    self
+      .definitions_db
+      .resolve_binding(self.ast.ast, identifier, symbol)
+  }
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -1759,28 +1810,14 @@ impl<'parser> JavascriptParser<'parser> {
     }
   }
 
-  fn add_synthetic_ast(&mut self, ast: &'parser ParsedJavaScriptAst<'parser>) -> usize {
-    let index = self.synthetic_asts.len();
-    let semantic = self.definitions_db.register_ast(ast);
-    self.synthetic_asts.push((ast, semantic));
-    index
-  }
-
   pub(crate) fn evaluate_expression_in_ast(
     &mut self,
     expression: Expr,
     ast: &'parser ParsedJavaScriptAst<'parser>,
   ) -> BasicEvaluatedExpression<'parser> {
-    let ast = self.add_synthetic_ast(ast);
-    let (synthetic_ast, semantic) = self.synthetic_asts[ast];
-    let previous_ast = std::mem::replace(&mut self.ast, synthetic_ast);
-    let previous_synthetic_ast = self.active_synthetic_ast.replace(ast);
-    self.definitions_db.enter_ast(semantic);
-    let evaluated = self.evaluate_expression(expression);
-    self.definitions_db.leave_ast();
-    self.active_synthetic_ast = previous_synthetic_ast;
-    self.ast = previous_ast;
-    evaluated
+    let index = self.synthetic_asts.len();
+    self.synthetic_asts.push(ast);
+    self.with_synthetic_ast(index, |parser| parser.evaluate_expression(expression))
   }
 
   pub(crate) fn walk_expression_in_ast(&mut self, expression: Expr, ast: Option<usize>) {
@@ -1788,14 +1825,16 @@ impl<'parser> JavascriptParser<'parser> {
       self.walk_expression(expression);
       return;
     };
-    let (synthetic_ast, semantic) = self.synthetic_asts[ast];
-    let previous_ast = std::mem::replace(&mut self.ast, synthetic_ast);
-    let previous_synthetic_ast = self.active_synthetic_ast.replace(ast);
-    self.definitions_db.enter_ast(semantic);
-    self.walk_expression(expression);
-    self.definitions_db.leave_ast();
+    self.with_synthetic_ast(ast, |parser| parser.walk_expression(expression));
+  }
+
+  fn with_synthetic_ast<T>(&mut self, index: usize, f: impl FnOnce(&mut Self) -> T) -> T {
+    let previous_ast = std::mem::replace(&mut self.ast, self.synthetic_asts[index]);
+    let previous_synthetic_ast = self.active_synthetic_ast.replace(index);
+    let result = f(self);
     self.active_synthetic_ast = previous_synthetic_ast;
     self.ast = previous_ast;
+    result
   }
 
   pub fn evaluate<T: Display>(
@@ -1841,17 +1880,12 @@ impl<'parser> JavascriptParser<'parser> {
         let span = ident.span(ast);
         let name = ast.get_utf8(ident.name(ast));
         let drive = self.plugin_drive();
-        let resolution = self
-          .definitions_db
-          .semantic_context
-          .identifier_resolution(self.ast, ident);
+        let resolution = self.identifier_resolution(ident);
         let evaluate = |parser: &mut Self, name: &str| {
           drive.evaluate_identifier(parser, name, None, span.real_lo(), span.real_hi())
         };
-        let result = if let Some(state) = self
-          .definitions_db
-          .resolve_identifier(self.ast, ident, resolution)
-        {
+        let state = self.resolve_identifier_with_resolution(ident, resolution);
+        let result = if let Some(state) = state {
           call_hooks_name::call_hooks_info(state, self, evaluate)
         } else if name == "undefined" {
           Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()))
@@ -1860,9 +1894,7 @@ impl<'parser> JavascriptParser<'parser> {
         };
         result.or_else(|| {
           // Hooks can change binding state, but not this AST's resolution.
-          let state = self
-            .definitions_db
-            .resolve_identifier(self.ast, ident, resolution);
+          let state = self.resolve_identifier_with_resolution(ident, resolution);
           if matches!(state, Some(BindingState::Normal(_))) {
             return None;
           }

@@ -416,9 +416,7 @@ impl InnerGraphParserPlugin {
   ) -> TopLevelSymbol {
     let name = name.into();
     let resolution = if let Some(identifier) = identifier {
-      parser
-        .definitions_db
-        .resolve_binding(parser.ast, identifier)
+      parser.resolve_binding(identifier)
     } else {
       parser.definitions_db.resolve_with_symbol(name)
     };

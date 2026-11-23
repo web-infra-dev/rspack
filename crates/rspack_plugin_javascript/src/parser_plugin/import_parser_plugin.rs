@@ -56,7 +56,7 @@ fn tag_dynamic_import_binding(
 ) {
   let import_span = import_call.span(parser.ast.ast);
   parser.dynamic_import_references.add_import(import_span);
-  let resolution = parser.definitions_db.resolve_binding(parser.ast, binding);
+  let resolution = parser.resolve_binding(binding);
   // A binding already renamed by CompatibilityPlugin must keep using its
   // identifier hooks. Claiming its reads/calls here would skip those rewrites.
   let needs_compatibility = resolution.0.is_some_and(|state| {

@@ -26,7 +26,7 @@ use rustc_hash::FxHashSet;
 use swc_next_allocator::Allocator;
 use swc_next_ecma_ast::{Lang, SourceType as SwcSourceType};
 use swc_next_ecma_parser::{CommentMode, Options, Parser, TokenParserConfig};
-use swc_next_ecma_semantic::{AnalyzeOptions, SyntaxChecks, analyze};
+use swc_next_ecma_semantic::{AnalyzeOptions, Semantic, SyntaxChecks, analyze};
 
 const THREE_MODULE_BENCHMARK_ID: &str = "rust@scan_dependencies@three_module";
 const THREE_MODULE_RESOURCE_PATH: &str = "/node_modules/three/build/three.module.js";
@@ -47,6 +47,7 @@ struct PreparedScanDependenciesBenchmarkCase<'a> {
   initial_semicolons: FxHashSet<u32>,
   parser_options: &'a ParserOptions,
   parsed_ast: ParsedJavaScriptAst<'static>,
+  semantic: Semantic<'static>,
   module_identifier: ModuleIdentifier,
   module_type: ModuleType,
   resource_data: ResourceData,
@@ -55,6 +56,7 @@ struct PreparedScanDependenciesBenchmarkCase<'a> {
 
 struct PreparedScanDependenciesProgram {
   parsed_ast: ParsedJavaScriptAst<'static>,
+  semantic: Semantic<'static>,
   semicolons: FxHashSet<u32>,
 }
 
@@ -139,6 +141,7 @@ fn prepare_scan_dependencies_benchmark_case(
   } = case_spec;
   let PreparedScanDependenciesProgram {
     parsed_ast,
+    semantic,
     semicolons,
   } = parse_benchmark_program(resource_path, &source_text, &module_type);
   let parser_options = compiler
@@ -159,6 +162,7 @@ fn prepare_scan_dependencies_benchmark_case(
     initial_semicolons: semicolons,
     parser_options,
     parsed_ast,
+    semantic,
     module_identifier: resource_path.into(),
     module_type,
     resource_data: ResourceData::new_with_resource(resource_path.to_string()),
@@ -215,8 +219,6 @@ fn parse_benchmark_program(
   // SAFETY: Benchmark iterations only read handles from this retained AST and never mutate it.
   let ast = unsafe { ast.ast() };
   let comments = Box::leak(Box::new(RspackComments::from_ast(ast)));
-  let semantic = Box::leak(Box::new(semantic));
-  let program = ast.root_program();
 
   let mut semicolons = FxHashSet::default();
   let scan_diagnostics = AstScanner::new(&mut semicolons, &tokens).scan(ast);
@@ -226,12 +228,8 @@ fn parse_benchmark_program(
   );
 
   PreparedScanDependenciesProgram {
-    parsed_ast: ParsedJavaScriptAst {
-      ast,
-      comments,
-      semantic,
-      program,
-    },
+    parsed_ast: ParsedJavaScriptAst { ast, comments },
+    semantic,
     semicolons,
   }
 }
@@ -251,6 +249,7 @@ impl PreparedScanDependenciesBenchmarkCase<'_> {
     run_scan_dependencies(
       &self.source_text,
       &self.parsed_ast,
+      &self.semantic,
       &self.resource_data,
       self.compiler_options,
       &Default::default(),

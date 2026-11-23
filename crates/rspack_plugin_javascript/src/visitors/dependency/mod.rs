@@ -10,7 +10,7 @@ use rspack_core::{
 use rspack_error::Diagnostic;
 use rspack_util::swc::RspackComments;
 use rustc_hash::FxHashSet;
-use swc_next_ecma_ast::{Ast, Program};
+use swc_next_ecma_ast::Ast;
 use swc_next_ecma_semantic::Semantic;
 
 pub(crate) use self::parser::{StatementPath, member_property_key_to_atom};
@@ -37,14 +37,13 @@ pub struct ScanDependenciesResult {
 pub struct ParsedJavaScriptAst<'ast> {
   pub ast: &'ast Ast<'ast>,
   pub comments: &'ast RspackComments<'ast>,
-  pub semantic: &'ast Semantic<'ast>,
-  pub program: Program,
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn scan_dependencies(
+pub fn scan_dependencies<'ast>(
   source: &str,
-  ast: &ParsedJavaScriptAst<'_>,
+  ast: &ParsedJavaScriptAst<'ast>,
+  semantic: &'ast Semantic<'ast>,
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,
   value_cache_versions: &ValueCacheVersions,
@@ -76,6 +75,7 @@ pub fn scan_dependencies(
   let mut parser = JavascriptParser::new(
     source,
     ast,
+    semantic,
     compiler_options,
     value_cache_versions,
     javascript_options,
@@ -92,6 +92,6 @@ pub fn scan_dependencies(
     parser_runtime_requirements,
   );
 
-  parser.walk_program(ast.program);
+  parser.walk_program(ast.ast.root_program());
   parser.into_results()
 }

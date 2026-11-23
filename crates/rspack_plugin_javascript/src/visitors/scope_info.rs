@@ -3,12 +3,14 @@ use std::num::NonZeroU32;
 use bitflags::bitflags;
 use rspack_intern::{AtomMap, AtomRef};
 use smallvec::SmallVec;
+use swc_next_ecma_ast::{Ast, ScopeId};
+use swc_next_ecma_semantic::Semantic;
 
-use crate::{Atom, visitors::ParsedJavaScriptAst};
+use crate::Atom;
 
 mod semantic;
 
-use semantic::{SemanticContext, SemanticStore};
+pub(super) use semantic::IdentifierResolution;
 
 macro_rules! dense_id {
   ($name:ident) => {
@@ -89,7 +91,7 @@ enum BindingTarget {
   Local(BindingState),
 }
 
-/// A symbol's override slot and default owner scope, both mapped across retained ASTs.
+/// A module symbol's override slot and default owner scope.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub(crate) struct SymbolBinding {
   index: NonZeroU32,
@@ -125,44 +127,24 @@ pub struct ScopeInfoDB<'ast> {
   variable_metadata: Vec<VariableMetadata>,
   /// Plugin tag payloads and linked tag chains indexed by `TagInfoId`.
   tag_info_db: TagInfoDB,
-  /// Registered ASTs and their immutable semantic lookup data.
-  pub(crate) semantic: SemanticStore<'ast>,
-  /// Active semantic environment and the context stack for replacement ASTs.
-  pub(crate) semantic_context: SemanticContext<'ast>,
-  /// Binding overrides in disjoint per-AST ranges; `None` uses the active semantic scope's default.
+  /// The original module AST, used to read names from its semantic data.
+  module_ast: &'ast Ast<'ast>,
+  /// The original module's semantic data, also used for name lookup from eval fragments.
+  module_semantic: &'ast Semantic<'ast>,
+  /// Current semantic scope in the module, independent of the current Rspack scope.
+  pub(crate) semantic_scope: ScopeId,
+  /// Binding overrides indexed by module symbol; `None` uses the semantic scope's default.
   symbols: Vec<Option<BindingState>>,
   /// Active Rspack owner of each semantic scope, shared by all its ordinary bindings.
   semantic_scope_owners: Vec<Option<ScopeInfoId>>,
   /// Semantic scopes activated during the walk, cleared when their Rspack owner exits.
   scope_activations: Vec<SemanticScopeId>,
-  /// Scope-exit undo log of (global symbol index, previous state, owning Rspack scope).
+  /// Scope-exit undo log of (symbol, previous state, owning Rspack scope).
   overrides: Vec<(SymbolBinding, Option<BindingState>, ScopeInfoId)>,
 }
 
-impl Default for ScopeInfoDB<'_> {
-  fn default() -> Self {
-    Self::new()
-  }
-}
-
 impl<'ast> ScopeInfoDB<'ast> {
-  pub fn new() -> Self {
-    Self {
-      map: Vec::new(),
-      bindings: AtomMap::default(),
-      current: None,
-      variable_metadata: Vec::new(),
-      tag_info_db: TagInfoDB::new(),
-      semantic: SemanticStore::default(),
-      semantic_context: SemanticContext::default(),
-      symbols: Vec::new(),
-      semantic_scope_owners: Vec::new(),
-      scope_activations: Vec::new(),
-      overrides: Vec::new(),
-    }
-  }
-
-  fn _create(&mut self, parent: Option<ScopeInfoId>) -> ScopeInfoId {
+  fn create_scope(&mut self, parent: Option<ScopeInfoId>) -> ScopeInfoId {
     let is_strict = match parent {
       Some(parent) => self.expect_get_scope(parent).is_strict,
       None => false,
@@ -178,10 +160,6 @@ impl<'ast> ScopeInfoDB<'ast> {
     self.map.push(info);
     self.current = Some(id);
     id
-  }
-
-  pub fn create(&mut self) -> ScopeInfoId {
-    self._create(None)
   }
 
   /// Returns the innermost active Rspack scope.
@@ -206,7 +184,7 @@ impl<'ast> ScopeInfoDB<'ast> {
       Some(parent),
       "scope must be entered from the innermost active scope"
     );
-    self._create(Some(parent))
+    self.create_scope(Some(parent))
   }
 
   /// Exit `id`, dropping all bindings introduced in it. `id` must be the
@@ -368,8 +346,10 @@ impl<'ast> ScopeInfoDB<'ast> {
     state: BindingState,
     symbol: Option<Option<SymbolBinding>>,
   ) {
+    let semantic = self.module_semantic;
+    let scope = self.semantic_scope;
     let resolve_symbol =
-      || symbol.unwrap_or_else(|| self.semantic.symbol_for_name(&self.semantic_context, &key));
+      || symbol.unwrap_or_else(|| semantic::symbol_for_name(semantic, scope, &key));
     let stack = self.bindings.entry(key.clone()).or_default();
     let symbol = if let Some(top) = stack.last_mut()
       && top.scope == id
@@ -608,8 +588,22 @@ pub struct ScopeInfo {
 
 #[cfg(test)]
 mod tests {
+  use swc_next_allocator::Allocator;
+  use swc_next_ecma_parser::{NoTokenParserConfig, Options, Parser};
+  use swc_next_ecma_semantic::{AnalyzeOptions, analyze};
+
   use super::{BindingState, ScopeInfoDB, VariableInfo, VariableInfoFlags};
   use crate::Atom;
+
+  fn with_empty_module_db(test: impl FnOnce(ScopeInfoDB<'_>)) {
+    let allocator = Allocator::new();
+    let parsed = Parser::init(&allocator, "", Options::default(), NoTokenParserConfig).parse();
+    let (ast, semantic) = analyze(parsed.ast, AnalyzeOptions::default())
+      .semantic
+      .into_parts();
+    // SAFETY: The database reads the AST without mutating its storage.
+    test(ScopeInfoDB::new(unsafe { ast.ast() }, &semantic));
+  }
 
   fn new_variable(db: &mut ScopeInfoDB, scope: super::ScopeInfoId) -> BindingState {
     VariableInfo::create(db, scope, None, VariableInfoFlags::NORMAL, None)
@@ -617,56 +611,59 @@ mod tests {
 
   #[test]
   fn inner_scope_shadows_and_unwinds() {
-    let mut db = ScopeInfoDB::new();
-    let root = db.create();
-    let a = Atom::from("a");
-    let outer = new_variable(&mut db, root);
-    db.set(root, "a".into(), outer);
-    assert_eq!(db.get(root, &a), Some(outer));
+    with_empty_module_db(|mut db| {
+      let root = db.current_scope();
+      let a = Atom::from("a");
+      let outer = new_variable(&mut db, root);
+      db.set(root, "a".into(), outer);
+      assert_eq!(db.get(root, &a), Some(outer));
 
-    let child = db.create_child(root);
-    assert_eq!(db.get(child, &a), Some(outer));
+      let child = db.create_child(root);
+      assert_eq!(db.get(child, &a), Some(outer));
 
-    let inner = new_variable(&mut db, child);
-    db.set(child, "a".into(), inner);
-    assert_eq!(db.get(child, &a), Some(inner));
+      let inner = new_variable(&mut db, child);
+      db.set(child, "a".into(), inner);
+      assert_eq!(db.get(child, &a), Some(inner));
 
-    db.exit_scope(child);
-    assert_eq!(db.get(root, &a), Some(outer));
+      db.exit_scope(child);
+      assert_eq!(db.get(root, &a), Some(outer));
+    });
   }
 
   #[test]
   fn delete_masks_outer_binding_until_exit() {
-    let mut db = ScopeInfoDB::new();
-    let root = db.create();
-    let a = Atom::from("a");
+    with_empty_module_db(|mut db| {
+      let root = db.current_scope();
+      let a = Atom::from("a");
 
-    let outer = new_variable(&mut db, root);
-    db.set(root, "a".into(), outer);
+      let outer = new_variable(&mut db, root);
+      db.set(root, "a".into(), outer);
 
-    let child = db.create_child(root);
-    db.delete(child, &a);
-    assert_eq!(db.get(child, &a), None);
+      let child = db.create_child(root);
+      db.delete(child, &a);
+      assert_eq!(db.get(child, &a), None);
 
-    db.exit_scope(child);
-    assert_eq!(db.get(root, &a), Some(outer));
+      db.exit_scope(child);
+      assert_eq!(db.get(root, &a), Some(outer));
+    });
   }
 
   #[test]
   fn scope_variables_skip_tombstones() {
-    let mut db = ScopeInfoDB::new();
-    let root = db.create();
+    with_empty_module_db(|mut db| {
+      let root = db.current_scope();
 
-    let a = new_variable(&mut db, root);
-    db.set(root, "a".into(), a);
-    let b = new_variable(&mut db, root);
-    db.set(root, "b".into(), b);
-    db.delete(root, &"b".into());
+      let a = new_variable(&mut db, root);
+      db.set(root, "a".into(), a);
+      let b = new_variable(&mut db, root);
+      db.set(root, "b".into(), b);
+      db.delete(root, &"b".into());
 
-    let variables: Vec<_> = db
-      .scope_variables(root)
-      .map(|(name, id)| (name.as_str(), id))
-      .collect();
-    assert_eq!(variables, vec![("a", a)]);
+      let variables: Vec<_> = db
+        .scope_variables(root)
+        .map(|(name, id)| (name.as_str(), id))
+        .collect();
+      assert_eq!(variables, vec![("a", a)]);
+    });
   }
 }

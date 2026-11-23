@@ -20,7 +20,7 @@ use crate::visitors::formal_parameters_are_simple_identifiers;
 #[derive(Clone, Copy)]
 pub(super) struct SideEffectsContext<'a, 'ast> {
   ast: &'a Ast<'ast>,
-  semantic: &'a Semantic<'ast>,
+  semantic: Option<&'a Semantic<'ast>>,
   is_unresolved_ref_safe: bool,
   in_strict: bool,
   remaining_depth: u8,
@@ -29,7 +29,7 @@ pub(super) struct SideEffectsContext<'a, 'ast> {
 impl<'a, 'ast> SideEffectsContext<'a, 'ast> {
   pub(super) fn new(
     ast: &'a Ast<'ast>,
-    semantic: &'a Semantic<'ast>,
+    semantic: Option<&'a Semantic<'ast>>,
     is_unresolved_ref_safe: bool,
   ) -> Self {
     Self {
@@ -67,6 +67,10 @@ pub(super) fn may_have_side_effects(expression: Expr, ctx: SideEffectsContext<'_
     ExprData::IdentifierReference(identifier) => {
       if ctx.is_unresolved_ref_safe {
         return false;
+      }
+
+      if ctx.semantic.is_none() {
+        return true;
       }
 
       if is_unresolved_reference(identifier, ctx) {
@@ -259,11 +263,11 @@ fn is_unresolved_reference(
   identifier: swc_next_ecma_ast::IdentifierReference,
   ctx: SideEffectsContext<'_, '_>,
 ) -> bool {
-  ctx
-    .semantic
-    .reference_of(identifier.node_id())
-    .map(|reference| ctx.semantic.reference(reference))
-    .is_some_and(|reference| reference.symbol.is_none())
+  ctx.semantic.is_some_and(|semantic| {
+    semantic
+      .reference_of(identifier.node_id())
+      .is_some_and(|reference| semantic.reference(reference).symbol.is_none())
+  })
 }
 
 fn is_global_ref_to(expression: Expr, ctx: SideEffectsContext<'_, '_>, id: &str) -> bool {

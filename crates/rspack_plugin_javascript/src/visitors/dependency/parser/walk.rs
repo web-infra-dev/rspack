@@ -37,14 +37,22 @@ fn is_create_require_tag(tag: &str, include_create_require_fn: bool) -> bool {
 impl JavascriptParser<'_> {
   /// Runs a walker operation in a node's semantic scope, then restores the previous scope.
   pub(crate) fn in_semantic_scope<T>(&mut self, node: NodeId, f: impl FnOnce(&mut Self) -> T) -> T {
-    let db = &mut self.definitions_db;
-    let previous = db.semantic_context.scope;
-    if let Some(scope) = self.ast.semantic.scope_of(node) {
-      db.semantic_context.scope = scope;
-    }
+    let Some(scope) = self
+      .active_semantic()
+      .and_then(|semantic| semantic.scope_of(node))
+    else {
+      return f(self);
+    };
+    let previous = std::mem::replace(&mut self.definitions_db.semantic_scope, scope);
     let result = f(self);
-    self.definitions_db.semantic_context.scope = previous;
+    self.definitions_db.semantic_scope = previous;
     result
+  }
+
+  fn initialize_scope_bindings(&mut self) {
+    if self.active_semantic().is_some() {
+      self.definitions_db.initialize_scope_bindings();
+    }
   }
 
   fn in_block_scope<F>(&mut self, in_executed_path: bool, f: F)
@@ -92,7 +100,7 @@ impl JavascriptParser<'_> {
       .definitions_db
       .create_child(self.definitions_db.current_scope());
 
-    self.definitions_db.initialize_scope_bindings();
+    self.initialize_scope_bindings();
     if has_this {
       self.undefined_variable(&"this".into());
     }
@@ -120,7 +128,7 @@ impl JavascriptParser<'_> {
     let definitions = self
       .definitions_db
       .create_child(self.definitions_db.current_scope());
-    self.definitions_db.initialize_scope_bindings();
+    self.initialize_scope_bindings();
     self.in_tagged_template_tag = false;
     self.terminated = None;
     if has_this {
@@ -321,7 +329,7 @@ impl JavascriptParser<'_> {
 
   fn walk_catch_clause(&mut self, catch_clause: CatchClause) {
     self.in_block_scope(true, |this| {
-      this.definitions_db.initialize_scope_bindings();
+      this.initialize_scope_bindings();
       let ast = this.ast.ast;
       if let Some(param) = catch_clause.param(ast) {
         this.enter_pattern(PatRef::Borrowed(param), |_, _, _| {});
@@ -342,7 +350,7 @@ impl JavascriptParser<'_> {
 
   fn walk_switch_cases(&mut self, cases: SubRange<SwitchCase>) {
     self.in_block_scope(false, |this| {
-      this.definitions_db.initialize_scope_bindings();
+      this.initialize_scope_bindings();
       let ast = this.ast.ast;
       for case in ast.nodes(cases) {
         let consequent = case.consequent(ast);
@@ -443,7 +451,7 @@ impl JavascriptParser<'_> {
 
   fn walk_for_statement(&mut self, stmt: ForStatement) {
     self.in_block_scope(false, |this| {
-      this.definitions_db.initialize_scope_bindings();
+      this.initialize_scope_bindings();
       let ast = this.ast.ast;
       if let Some(init) = stmt.init(ast) {
         match ast.for_statement_init_data(init) {
@@ -467,7 +475,7 @@ impl JavascriptParser<'_> {
 
   fn walk_for_of_statement(&mut self, stmt: ForOfStatement) {
     self.in_block_scope(false, |this| {
-      this.definitions_db.initialize_scope_bindings();
+      this.initialize_scope_bindings();
       let ast = this.ast.ast;
       let left = stmt.left(ast);
       this.walk_for_head(left);
@@ -481,7 +489,7 @@ impl JavascriptParser<'_> {
 
   fn walk_for_in_statement(&mut self, stmt: ForInStatement) {
     self.in_block_scope(false, |this| {
-      this.definitions_db.initialize_scope_bindings();
+      this.initialize_scope_bindings();
       let ast = this.ast.ast;
       let left = stmt.left(ast);
       this.walk_for_head(left);
@@ -500,7 +508,7 @@ impl JavascriptParser<'_> {
     if let Some(body) = body.as_block_statement(ast) {
       let statements = body.body(ast);
       self.in_semantic_scope(body.node_id(), |this| {
-        this.definitions_db.initialize_scope_bindings();
+        this.initialize_scope_bindings();
         let prev = this.prev_statement;
         this.block_pre_walk_statements(statements);
         this.prev_statement = prev;
@@ -1470,19 +1478,21 @@ impl JavascriptParser<'_> {
   pub(crate) fn walk_function_body(&mut self, body: FunctionBody) {
     self.in_semantic_scope(body.node_id(), |this| {
       // Only parameter expressions create a separate function-body environment.
-      let db = &mut this.definitions_db;
-      if this.ast.semantic.scope_of(body.node_id()).is_some() {
-        db.initialize_scope_bindings();
+      if this
+        .active_semantic()
+        .is_some_and(|semantic| semantic.scope_of(body.node_id()).is_some())
+      {
+        this.initialize_scope_bindings();
       }
       let ast = this.ast.ast;
       // Only scan explicit directives when inherited strictness may differ from Semantic.
       if !this.is_strict()
-        && this
-          .ast
-          .semantic
-          .scope(this.definitions_db.semantic_context.scope)
-          .flags
-          .strict
+        && this.active_semantic().is_none_or(|semantic| {
+          semantic
+            .scope(this.definitions_db.semantic_scope)
+            .flags
+            .strict
+        })
       {
         for directive in ast.nodes(body.directives(ast)) {
           if ast.get_utf8(directive.value(ast)) == "use strict" {
@@ -2137,7 +2147,7 @@ impl JavascriptParser<'_> {
     let ast = self.ast.ast;
     let statements = stmt.body(ast);
     self.in_block_scope(true, |this| {
-      this.definitions_db.initialize_scope_bindings();
+      this.initialize_scope_bindings();
       let prev = this.prev_statement;
       this.block_pre_walk_statements(statements);
       this.prev_statement = prev;
@@ -2364,7 +2374,7 @@ impl JavascriptParser<'_> {
               let statements = block.body(ast);
               this.in_semantic_scope(block.node_id(), |this| {
                 this.in_block_scope(true, |this| {
-                  this.definitions_db.initialize_scope_bindings();
+                  this.initialize_scope_bindings();
                   let prev = this.prev_statement;
                   this.block_pre_walk_statements(statements);
                   this.prev_statement = prev;
