@@ -592,96 +592,25 @@ Note that there will be an `import()` statement in the output bundle.
 
 ### externalsType['module-import']
 
-Specify the default type of externals as `'module-import'`. This combines [`'module'`](#externalstypemodule) and [`'import'`](#externalstypeimport). Rspack will automatically detect the type of import syntax, setting it to `'module'` for static imports and `'import'` for dynamic imports.
-
-**Example**
-
-```js
-import { attempt } from 'lodash';
-
-async function foo() {
-  const jq = await import('jquery');
-  attempt(() => jq('.my-element').animate(/* ... */));
-}
-```
+With `'module-import'`, Rspack uses ESM to load external dependencies. For example, the following configuration marks `zod` as external and emits ESM. Here, `externalsType` defaults to `'module-import'`, so you can omit it.
 
 ```js title="rspack.config.mjs"
 export default {
-  externalsType: 'module-import',
-  externals: {
-    lodash: 'lodash',
-    jquery: 'jquery',
+  output: {
+    module: true,
   },
-};
-```
-
-Will generate into something like
-
-```js
-import * as __rspack_external_lodash from 'lodash';
-const lodash = __rspack_external_jquery;
-
-var __webpack_modules__ = {
-  jquery: (module) => {
-    module.exports = import('jquery');
-  },
-};
-
-// Rspack runtime...
-
-async function foo() {
-  const jq = await Promise.resolve(/* import() */).then(
-    __webpack_require__.bind(__webpack_require__, 'jquery'),
-  );
-  (0, lodash.attempt)(() => jq('.my-element').animate(/* ... */));
-}
-```
-
-Note that there will be an `import` or `import()` statement in the output bundle.
-
-When a module is not imported via `import` or `import()`, Rspack will use `"module"` externals type as fallback. If you want to use a different type of externals as fallback, you can specify it with a function in the `externals` option. For example:
-
-```js title="rspack.config.mjs"
-export default {
   externalsType: 'module-import',
-  externals: [
-    function ({ request, dependencyType }, callback) {
-      if (dependencyType === 'commonjs') {
-        return callback(null, `node-commonjs ${request}`);
-      }
-      callback();
-    },
-  ],
+  externals: ['zod'],
 };
 ```
+
+You can write `import { z } from 'zod'` as usual. The generated module imports `z` from `zod` at runtime. If your source uses `import()`, the output loads the dependency on demand.
+
+If you write `require('zod')`, `'module-import'` also loads Zod with a top-level `import`. To keep CommonJS loading behavior, use [`'modern-module'`](#externalstypemodern-module).
 
 ### externalsType['modern-module']
 
-Specify the default type of externals as `'modern-module'`.
-
-For compatibility, Rspack does not enable this automatically when [`output.library.type`](/config/output#outputlibrarytype) is `'modern-module'` yet. Configure `externalsType: 'modern-module'` explicitly to opt in. This will become the default for `modern-module` libraries in the next major version.
-
-For static ESM imports, Rspack renders the external like [`'module'`](#externalstypemodule), using a static `import` statement. For dynamic `import()`, Rspack renders the external like [`'module-import'`](#externalstypemodule-import), using `import()`.
-
-For CommonJS `require()`, Rspack chooses the CommonJS external variant from the target. Node-like targets render the external like [`'node-commonjs'`](#externalstypenode-commonjs) and create a `require` function with `createRequire` in the generated ESM output. Other targets render it like [`'commonjs'`](#externalstypecommonjs), preserving a bare `require()` call.
-
-**Example**
-
-```js title="src/index.js"
-import { readFile } from 'node:fs/promises';
-
-const path = require('node:path');
-
-export async function loadConfig(file) {
-  const os = await import('node:os');
-  const content = await readFile(file, 'utf-8');
-  return {
-    content,
-    dirname: path.dirname(file),
-    platform: os.platform(),
-  };
-}
-```
+Use `'modern-module'` when building an ESM library that needs to load an external dependency with `require()`. For example, the following configuration builds a library for Node.js and marks `zod` as external.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -692,26 +621,13 @@ export default {
     },
   },
   externalsType: 'modern-module',
-  externals: ['node:fs/promises', 'node:path', 'node:os'],
+  externals: ['zod'],
 };
 ```
 
-Because this example targets Node.js, the generated ESM output keeps the static import as an `import` statement, keeps the dynamic import as `import()`, and renders the `require()` external through `createRequire`:
+With `'modern-module'`, the output preserves the way your source imports external dependencies through ESM. If your source calls `require('zod')`, the generated module creates a `require` function with `createRequire(import.meta.url)` and uses it to load Zod.
 
-```js
-import { createRequire as __rspack_createRequire } from 'node:module';
-import { readFile } from 'node:fs/promises';
-
-const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-const path = __rspack_createRequire_require('node:path');
-
-async function loadConfig(file) {
-  const os = await import('node:os');
-  // ...
-}
-
-export { loadConfig };
-```
+If you omit `externalsType` in this example, Rspack uses the default [`'module-import'`](#externalstypemodule-import) and turns `require('zod')` into a top-level `import`.
 
 ### externalsType['commonjs-import']
 
