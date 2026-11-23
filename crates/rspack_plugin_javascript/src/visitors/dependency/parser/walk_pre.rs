@@ -101,7 +101,7 @@ impl JavascriptParser<'_> {
     let Some(identifier) = function.id(ast) else {
       return false;
     };
-    let Some(semantic) = self.ast.semantic else {
+    let Some(semantic) = self.active_semantic() else {
       return false;
     };
     let Some(symbol) = semantic.symbol_of(identifier.node_id()) else {

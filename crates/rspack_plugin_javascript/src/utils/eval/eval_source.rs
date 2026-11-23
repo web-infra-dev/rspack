@@ -48,11 +48,7 @@ pub fn eval_source<'parser>(
       // SAFETY: Fragment handles stay with their owning AST, which is never mutated.
       let ast = unsafe { ast.ast() };
       let comments = allocator.alloc(RspackComments::from_ast(ast));
-      let fragment = allocator.alloc(ParsedJavaScriptAst {
-        ast,
-        comments,
-        semantic: None,
-      });
+      let fragment = allocator.alloc(ParsedJavaScriptAst { ast, comments });
       Some(parser.evaluate_expression_in_ast(expression, fragment))
     }
   }

@@ -30,7 +30,7 @@ fn walk_require_ensure_callback(parser: &mut JavascriptParser, callback: Functio
     parser.in_function_scope(has_this, std::iter::empty(), |parser| {
       // require.ensure supplies its runtime require to the callback. Keep the
       // legacy free-name handling explicitly, after initializing all bindings.
-      if parser.ast.semantic.is_some() {
+      if parser.active_semantic().is_some() {
         parser.definitions_db.suppress_scope_parameters();
       }
       parser.walk_function_expression_body(

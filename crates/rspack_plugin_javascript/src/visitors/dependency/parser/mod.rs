@@ -38,6 +38,7 @@ use swc_next_ecma_ast::{
   MemberExpression, MetaProperty, NodeId, ObjectPattern, Program, PropertyKey, PropertyKeyData,
   SourceType, Span, ThisExpression,
 };
+use swc_next_ecma_semantic::Semantic;
 
 use crate::{
   Atom, BoxJavascriptParserPlugin,
@@ -53,8 +54,8 @@ use crate::{
     ParsedJavaScriptAst, PatternIdentifier, ScanDependenciesResult,
     dependency::parser::location_advancer::DependencyLocationAdvancer,
     scope_info::{
-      BindingState, ScopeInfoDB, ScopeInfoId, SymbolBinding, TagInfo, TagInfoId, VariableInfo,
-      VariableInfoFlags,
+      BindingState, IdentifierResolution, ScopeInfoDB, ScopeInfoId, SymbolBinding, TagInfo,
+      TagInfoId, VariableInfo, VariableInfoFlags,
     },
   },
 };
@@ -672,6 +673,7 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn new(
     source: &'parser str,
     ast: &'parser ParsedJavaScriptAst<'parser>,
+    semantic: &'parser Semantic<'parser>,
     compiler_options: &'parser CompilerOptions,
     value_cache_versions: &'parser ValueCacheVersions,
     javascript_options: &'parser JavascriptParserOptions,
@@ -698,8 +700,7 @@ impl<'parser> JavascriptParser<'parser> {
     let blocks = Vec::with_capacity(4);
     let presentational_dependencies = Vec::with_capacity(8);
     let parser_exports_state: Option<bool> = None;
-    let definitions_db =
-      ScopeInfoDB::new(ast.ast, ast.semantic.expect("module AST has semantic data"));
+    let definitions_db = ScopeInfoDB::new(ast.ast, semantic);
     let top_level_definitions = definitions_db.current_scope();
 
     Self {
@@ -1167,11 +1168,7 @@ impl<'parser> JavascriptParser<'parser> {
     let ExprData::IdentifierReference(identifier) = self.ast.ast.expr_data(root) else {
       return self.get_name_info_from_variable(root.get_root_name(self.ast.ast)?);
     };
-    let resolution = self.ast.identifier_resolution(identifier);
-    let Some(state) = self
-      .definitions_db
-      .resolve_identifier(self.ast, identifier, resolution)
-    else {
+    let Some(state) = self.resolve_identifier(identifier) else {
       let ast = self.ast.ast;
       return Some(NameInfo {
         name: ast.get_utf8(identifier.name(ast)),
@@ -1714,7 +1711,7 @@ impl<'parser> JavascriptParser<'parser> {
   pub fn detect_mode(&mut self, program: Program) {
     // Semantic can rule out strict directives; module classification still follows Rspack.
     if self.is_strict()
-      || self.ast.semantic.is_some_and(|semantic| {
+      || self.active_semantic().is_some_and(|semantic| {
         !semantic
           .scope(self.definitions_db.semantic_scope)
           .flags
@@ -1744,6 +1741,62 @@ impl<'parser> JavascriptParser<'parser> {
       return false;
     };
     !info.is_free()
+  }
+
+  /// Only the module AST has semantic data. Fragment node IDs must not index it.
+  #[inline]
+  pub(crate) fn active_semantic(&self) -> Option<&'parser Semantic<'parser>> {
+    if self.active_synthetic_ast.is_some() {
+      return None;
+    }
+    Some(self.definitions_db.module_semantic())
+  }
+
+  /// Fragment identifiers fall back to name lookup in the caller's scope.
+  #[inline]
+  fn identifier_resolution(&self, identifier: IdentifierReference) -> IdentifierResolution {
+    let Some(semantic) = self.active_semantic() else {
+      return IdentifierResolution::Name;
+    };
+    let Some(reference) = semantic.reference_of(identifier.node_id()) else {
+      return IdentifierResolution::Name;
+    };
+    match semantic.reference(reference).symbol {
+      Some(symbol) => IdentifierResolution::Symbol(symbol),
+      None => IdentifierResolution::Unresolved,
+    }
+  }
+
+  #[inline]
+  pub(crate) fn resolve_identifier(
+    &mut self,
+    identifier: IdentifierReference,
+  ) -> Option<BindingState> {
+    let resolution = self.identifier_resolution(identifier);
+    self.resolve_identifier_with_resolution(identifier, resolution)
+  }
+
+  #[inline]
+  fn resolve_identifier_with_resolution(
+    &mut self,
+    identifier: IdentifierReference,
+    resolution: IdentifierResolution,
+  ) -> Option<BindingState> {
+    self
+      .definitions_db
+      .resolve_identifier(self.ast.ast, identifier, resolution)
+  }
+
+  pub(crate) fn resolve_binding(
+    &mut self,
+    identifier: BindingIdentifier,
+  ) -> (Option<BindingState>, Option<SymbolBinding>) {
+    let symbol = self
+      .active_semantic()
+      .and_then(|semantic| semantic.symbol_of(identifier.node_id()));
+    self
+      .definitions_db
+      .resolve_binding(self.ast.ast, identifier, symbol)
   }
 }
 
@@ -1827,14 +1880,12 @@ impl<'parser> JavascriptParser<'parser> {
         let span = ident.span(ast);
         let name = ast.get_utf8(ident.name(ast));
         let drive = self.plugin_drive();
-        let resolution = self.ast.identifier_resolution(ident);
+        let resolution = self.identifier_resolution(ident);
         let evaluate = |parser: &mut Self, name: &str| {
           drive.evaluate_identifier(parser, name, None, span.real_lo(), span.real_hi())
         };
-        let result = if let Some(state) = self
-          .definitions_db
-          .resolve_identifier(self.ast, ident, resolution)
-        {
+        let state = self.resolve_identifier_with_resolution(ident, resolution);
+        let result = if let Some(state) = state {
           call_hooks_name::call_hooks_info(state, self, evaluate)
         } else if name == "undefined" {
           Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()))
@@ -1843,9 +1894,7 @@ impl<'parser> JavascriptParser<'parser> {
         };
         result.or_else(|| {
           // Hooks can change binding state, but not this AST's resolution.
-          let state = self
-            .definitions_db
-            .resolve_identifier(self.ast, ident, resolution);
+          let state = self.resolve_identifier_with_resolution(ident, resolution);
           if matches!(state, Some(BindingState::Normal(_))) {
             return None;
           }

@@ -27,11 +27,7 @@ impl CallHooksName for IdentifierReference {
   where
     F: Fn(&mut JavascriptParser<'parser>, &str) -> Option<T>,
   {
-    let resolution = parser.ast.identifier_resolution(*self);
-    if let Some(state) = parser
-      .definitions_db
-      .resolve_identifier(parser.ast, *self, resolution)
-    {
+    if let Some(state) = parser.resolve_identifier(*self) {
       call_hooks_info(state, parser, hook_call)
     } else {
       let ast = parser.ast.ast;

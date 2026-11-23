@@ -6,9 +6,11 @@ use smallvec::SmallVec;
 use swc_next_ecma_ast::{Ast, ScopeId};
 use swc_next_ecma_semantic::Semantic;
 
-use crate::{Atom, visitors::ParsedJavaScriptAst};
+use crate::Atom;
 
 mod semantic;
+
+pub(super) use semantic::IdentifierResolution;
 
 macro_rules! dense_id {
   ($name:ident) => {

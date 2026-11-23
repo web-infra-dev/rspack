@@ -37,14 +37,13 @@ pub struct ScanDependenciesResult {
 pub struct ParsedJavaScriptAst<'ast> {
   pub ast: &'ast Ast<'ast>,
   pub comments: &'ast RspackComments<'ast>,
-  /// Evaluated fragment ast does not have semantic information
-  pub semantic: Option<&'ast Semantic<'ast>>,
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn scan_dependencies(
+pub fn scan_dependencies<'ast>(
   source: &str,
-  ast: &ParsedJavaScriptAst<'_>,
+  ast: &ParsedJavaScriptAst<'ast>,
+  semantic: &'ast Semantic<'ast>,
   resource_data: &ResourceData,
   compiler_options: &CompilerOptions,
   value_cache_versions: &ValueCacheVersions,
@@ -76,6 +75,7 @@ pub fn scan_dependencies(
   let mut parser = JavascriptParser::new(
     source,
     ast,
+    semantic,
     compiler_options,
     value_cache_versions,
     javascript_options,

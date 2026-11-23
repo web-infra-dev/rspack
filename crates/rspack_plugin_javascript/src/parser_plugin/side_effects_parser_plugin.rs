@@ -68,7 +68,11 @@ fn expr_ctx<'a, 'parser>(
   parser: &'a JavascriptParser<'parser>,
   is_unresolved_ref_safe: bool,
 ) -> SideEffectsContext<'a, 'parser> {
-  SideEffectsContext::new(parser.ast.ast, parser.ast.semantic, is_unresolved_ref_safe)
+  SideEffectsContext::new(
+    parser.ast.ast,
+    parser.active_semantic(),
+    is_unresolved_ref_safe,
+  )
 }
 
 fn has_pure_comment(comments: &RspackComments<'_>, pos: u32) -> bool {
@@ -270,7 +274,7 @@ fn already_marked_or_duplicate(
   name: &str,
   identifier: swc_next_ecma_ast::BindingIdentifier,
 ) -> bool {
-  parser.ast.semantic.is_some_and(|semantic| {
+  parser.active_semantic().is_some_and(|semantic| {
     semantic
       .symbol_of(identifier.node_id())
       .is_some_and(|symbol| semantic.declarations(symbol).len() > 1)
@@ -420,7 +424,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
       }
 
       if let Some(configured) = &parser.javascript_options.side_effects_free
-        && let Some(semantic) = parser.ast.semantic
+        && let Some(semantic) = parser.active_semantic()
       {
         let defined =
           collect_defined_configured_side_effects_free(ast, program, configured, semantic);
@@ -599,7 +603,7 @@ fn resolve_explicit_side_effects_free_callee(
     }
   }
 
-  if let Some(semantic) = parser.ast.semantic {
+  if let Some(semantic) = parser.active_semantic() {
     let reference = semantic
       .reference_of(identifier.node_id())
       .map(|reference| semantic.reference(reference));

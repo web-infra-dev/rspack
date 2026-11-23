@@ -139,9 +139,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       Some((node, resource_identifier)) if node == statement.node_id() => resource_identifier,
       _ => create_resource_identifier_for_esm_dependency(source, phase, attributes.as_ref()),
     };
-    let resolution = parser
-      .definitions_db
-      .resolve_binding(parser.ast, identifier);
+    let resolution = parser.resolve_binding(identifier);
     parser.tag_variable_resolved(
       name.clone(),
       ESM_SPECIFIER_TAG,

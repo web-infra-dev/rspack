@@ -38,8 +38,7 @@ impl JavascriptParser<'_> {
   /// Runs a walker operation in a node's semantic scope, then restores the previous scope.
   pub(crate) fn in_semantic_scope<T>(&mut self, node: NodeId, f: impl FnOnce(&mut Self) -> T) -> T {
     let Some(scope) = self
-      .ast
-      .semantic
+      .active_semantic()
       .and_then(|semantic| semantic.scope_of(node))
     else {
       return f(self);
@@ -51,7 +50,7 @@ impl JavascriptParser<'_> {
   }
 
   fn initialize_scope_bindings(&mut self) {
-    if self.ast.semantic.is_some() {
+    if self.active_semantic().is_some() {
       self.definitions_db.initialize_scope_bindings();
     }
   }
@@ -1480,8 +1479,7 @@ impl JavascriptParser<'_> {
     self.in_semantic_scope(body.node_id(), |this| {
       // Only parameter expressions create a separate function-body environment.
       if this
-        .ast
-        .semantic
+        .active_semantic()
         .is_some_and(|semantic| semantic.scope_of(body.node_id()).is_some())
       {
         this.initialize_scope_bindings();
@@ -1489,7 +1487,7 @@ impl JavascriptParser<'_> {
       let ast = this.ast.ast;
       // Only scan explicit directives when inherited strictness may differ from Semantic.
       if !this.is_strict()
-        && this.ast.semantic.is_none_or(|semantic| {
+        && this.active_semantic().is_none_or(|semantic| {
           semantic
             .scope(this.definitions_db.semantic_scope)
             .flags

@@ -4,8 +4,7 @@ use swc_next_ecma_ast::{Ast, BindingIdentifier, IdentifierReference, ScopeId, Sy
 use swc_next_ecma_semantic::{ReferenceSpace, Semantic, SymbolFlags};
 
 use super::{
-  Atom, AtomRef, BindingState, ParsedJavaScriptAst, ScopeInfoDB, ScopeInfoId, SemanticScopeId,
-  SymbolBinding, TagInfoDB,
+  Atom, AtomRef, BindingState, ScopeInfoDB, ScopeInfoId, SemanticScopeId, SymbolBinding, TagInfoDB,
 };
 
 /// Maps a module symbol to its override slot and semantic declaration scope.
@@ -40,26 +39,6 @@ pub(crate) enum IdentifierResolution {
   Symbol(SymbolId),
   Name,
   Unresolved,
-}
-
-impl ParsedJavaScriptAst<'_> {
-  /// Eval fragments have no semantic data and resolve names in the caller's scope.
-  #[inline]
-  pub(crate) fn identifier_resolution(
-    &self,
-    identifier: IdentifierReference,
-  ) -> IdentifierResolution {
-    let Some(semantic) = self.semantic else {
-      return IdentifierResolution::Name;
-    };
-    let Some(reference) = semantic.reference_of(identifier.node_id()) else {
-      return IdentifierResolution::Name;
-    };
-    match semantic.reference(reference).symbol {
-      Some(symbol) => IdentifierResolution::Symbol(symbol),
-      None => IdentifierResolution::Unresolved,
-    }
-  }
 }
 
 impl<'ast> ScopeInfoDB<'ast> {
@@ -99,6 +78,10 @@ impl<'ast> ScopeInfoDB<'ast> {
     db.create_scope(None);
     db.initialize_scope_bindings();
     db
+  }
+
+  pub(in crate::visitors) fn module_semantic(&self) -> &'ast Semantic<'ast> {
+    self.module_semantic
   }
 
   /// Reads an override or derives the default state from the symbol's active semantic scope.
@@ -189,11 +172,10 @@ impl<'ast> ScopeInfoDB<'ast> {
   #[inline(always)]
   pub(crate) fn resolve_identifier(
     &mut self,
-    parsed: &ParsedJavaScriptAst<'_>,
+    ast: &Ast<'_>,
     identifier: IdentifierReference,
     resolution: IdentifierResolution,
   ) -> Option<BindingState> {
-    let ast = parsed.ast;
     match resolution {
       IdentifierResolution::Name => {
         self.resolve_identifier_name(ast.get_utf8(identifier.name(ast)))
@@ -237,19 +219,18 @@ impl<'ast> ScopeInfoDB<'ast> {
   /// Reuses a declaration's semantic symbol while still observing mutable tags and aliases.
   pub(crate) fn resolve_binding(
     &mut self,
-    parsed: &ParsedJavaScriptAst<'_>,
+    ast: &Ast<'_>,
     identifier: BindingIdentifier,
+    symbol: Option<SymbolId>,
   ) -> (Option<BindingState>, Option<SymbolBinding>) {
-    if let Some(semantic) = parsed.semantic
-      && let Some(symbol) = semantic.symbol_of(identifier.node_id())
-    {
-      let symbol = symbol_binding(semantic, symbol);
+    if let Some(symbol) = symbol {
+      let symbol = symbol_binding(self.module_semantic, symbol);
       if let Some(state) = self.symbol_state(symbol) {
         return (state.defined(), Some(symbol));
       }
     }
     // Pre-walked block declarations may not have an active semantic owner yet.
-    self.resolve_with_symbol(parsed.ast.get_utf8(identifier.name(parsed.ast)))
+    self.resolve_with_symbol(ast.get_utf8(identifier.name(ast)))
   }
 
   /// Defines a normal binding in the current scope without replacing its existing plugin tags.

@@ -365,7 +365,6 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     let parsed_ast = ParsedJavaScriptAst {
       ast,
       comments: &comments,
-      semantic: Some(&semantic),
     };
     let parser_runtime_requirements = ParserRuntimeRequirementsData::new(runtime_template);
 
@@ -378,6 +377,7 @@ impl ParserAndGenerator for JavaScriptParserAndGenerator {
     } = match scan_dependencies(
       &source_string,
       &parsed_ast,
+      &semantic,
       resource_data,
       compiler_options,
       value_cache_versions,
