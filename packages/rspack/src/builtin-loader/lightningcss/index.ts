@@ -166,6 +166,8 @@ export interface Targets {
 export interface Drafts {
   /** Whether to enable @custom-media rules. */
   customMedia?: boolean;
+  /** Whether to enable scroll navigation pseudo-classes. */
+  scrollNavigationControls?: boolean;
 }
 
 export interface NonStandard {

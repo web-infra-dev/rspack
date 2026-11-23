@@ -119,6 +119,10 @@ impl LightningCssLoader {
       matches!(&self.config.drafts, Some(drafts) if drafts.custom_media),
     );
     parser_flags.set(
+      ParserFlags::SCROLL_NAVIGATION_CONTROLS,
+      matches!(&self.config.drafts, Some(drafts) if drafts.scroll_navigation_controls),
+    );
+    parser_flags.set(
       ParserFlags::DEEP_SELECTOR_COMBINATOR,
       matches!(&self.config.non_standard, Some(non_standard) if non_standard.deep_selector_combinator),
     );
