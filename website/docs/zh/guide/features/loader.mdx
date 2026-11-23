@@ -196,9 +196,9 @@ export default {
 
 更多细节请参考 [rules[].use.parallel](/config/module-rules#rulesuseparallel)。
 
-## 缓存 \{#loader-cache}
+## Loader 缓存 \{#loader-cache}
 
-在 `module.rules[].use` 中为 loader 设置 `cache: true`，即可缓存其转换结果。使用 loader 缓存需要开启顶层 [`cache`](/zh/config/cache) 和 [`experiments.newCache`](/zh/config/experiments#experimentsnewcache) 的 `loader` 阶段。设置 `experiments.newCache: true` 时会默认开启该阶段。
+在 `module.rules[].use` 中为 loader 设置 `cache: true`，即可缓存其转换结果。使用 loader 缓存需要开启顶层 [`cache`](/config/cache) 和 [`experiments.newCache`](/config/experiments#experimentsnewcache) 的 `loader` 阶段（设置 `experiments.newCache: true` 时默认开启）。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -216,25 +216,23 @@ export default {
 };
 ```
 
-使用内存缓存时，同一进程内的编译器可以共享 loader 转换结果。使用持久化缓存时，如果 [`cache.storage.directory`](/zh/config/cache#storagedirectory) 和 [`cache.version`](/zh/config/cache#version) 一致，后续构建可以跨进程复用这些结果。
+使用内存缓存时，同一进程内的多个 compiler 可以共享 loader 转换结果。使用持久化缓存时，只要 [`cache.storage.directory`](/config/cache#storagedirectory) 和 [`cache.version`](/config/cache#version) 一致，同一进程内的多个 compiler 可以共享，后续构建也可以跨进程复用这些结果。
 
 :::tip
 
-- 将影响转换结果的构建设置传入 `use.options`。例如，loader 的输出取决于 `this.mode` 时，应将构建模式作为选项传入。
-- 确保 loader 选项经过 JSON 序列化和解析后保持原值。例如，选项包含函数时，Rspack 会跳过该 loader 的缓存，因为 JSON 无法保留函数值。
-- 更改 source map 设置可能导致缓存失效。例如，loader 缓存会检查 Rspack 是否要求 loader 生成 source map。`builtin:swc-loader` 等 loader 还会区分 source map 类型。
+- Loader 缓存不会自动追踪 `mode`、`target` 等 compiler 配置。如果 loader 的输出依赖这类设置，应通过 `use.options` 显式传入，或不要为该 loader 开启 `cache: true`。
+- 确保 loader 选项可无损 JSON 序列化，否则 Rspack 不会缓存该 loader 的结果（例如选项包含函数、`Date` 或 `RegExp` 时）。
 
 :::
 
-如果你在编写 loader，请参见 [让 loader 支持缓存](/zh/api/loader-api/writing-loaders#loader-cache-compatibility)。
+如果你在编写 loader，请参见 [让 loader 支持缓存](/api/loader-api/writing-loaders#loader-cache-compatibility)。
 
 ### 何时使用 loader 缓存 \{#when-to-use-loader-caching}
 
-持久化模块缓存命中时，Rspack 可以直接复用模块的完整构建结果，跳过 loader 转换和模块解析。Rspack CLI 会将配置文件加入 [`cache.buildDependencies`](/zh/config/cache#builddependencies)，因此即使只修改其中的 `output.filename`，也会使模块缓存失效。
+Compiler 的持久化缓存命中时，Rspack 会直接复用模块的完整构建结果，同时跳过 loader 转换和模块解析。但在以下场景中，compiler 的持久化缓存会失效或无法共享，此时 loader 缓存仍可复用转换结果：
 
-模块因配置变更而重建时，Rspack 仍可复用已缓存的 loader 转换结果。
-
-例如，SSR 项目先完成客户端构建后，服务端构建可以复用共享源文件的转换结果。
+- **配置变更导致模块重建**：Rspack CLI 会将配置文件加入 [`cache.buildDependencies`](/config/cache#builddependencies)，因此即使只修改 `output.filename` 这类无关选项，也会使 compiler 的持久化缓存失效。由于 loader 缓存不受 `cache.buildDependencies` 影响，模块重建时 Rspack 仍可复用已缓存的 loader 转换结果。
+- **多 compiler 构建（如 SSR）**：SSR 场景下不同 compiler 实例的配置不同（例如 `target` 不同），即使使用同一个缓存存储目录，也无法互相复用持久化缓存。但 loader 缓存不受此影响：客户端构建完成后，只要输入、选项和依赖一致，服务端构建仍可复用共享源文件的 loader 转换结果。
 
 ```js title="rspack.config.mjs"
 const shared = {
@@ -269,9 +267,7 @@ export default [
     name: 'server',
     target: 'node',
     entry: { server: './src/server.js' },
-    // 两端入口都导入 './render.js'，并使用相同的 Babel 选项。
-    // 输入一致且依赖未变化时，服务端可复用客户端为 render.js 缓存的
-    // babel-loader 输出，跳过自定义插件对该文件的转换。
+    // 在 `client` 构建完成后运行，使 `server` 可以复用共享文件的 loader 缓存结果
     dependencies: ['client'],
   },
 ];

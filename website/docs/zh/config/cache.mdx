@@ -11,7 +11,7 @@ import PropertyType from '@components/PropertyType';
 
 `cache` 选项用于控制 Rspack 的缓存策略，让 Rspack 可以在构建之间复用缓存数据以提升构建性能。
 
-Rspack 也支持缓存 loader 的转换结果，请参见 [loader 缓存](/zh/guide/features/loader#loader-cache)。
+Rspack 也支持缓存 loader 的转换结果，请参见 [loader 缓存](/guide/features/loader#loader-cache)。
 
 Rspack 支持两种启用状态的 Cache 存储模式：进程内的 Memory Cache，以及基于文件系统的 Persistent Cache。两者都用于存储细粒度计算结果，并且与 [`incremental`](/config/incremental) 相互独立。
 
@@ -124,7 +124,7 @@ export default {
 - **类型：** `string[]`
 - **默认值：** `[]`
 
-`cache.buildDependencies` 是构建依赖的文件或目录路径数组。Rspack 会追踪这些路径，并在任意被追踪的构建依赖发生变化或被删除时使 compiler 的持久化缓存失效。
+`cache.buildDependencies` 是构建依赖的文件或目录路径数组。Rspack 会追踪这些路径，并在任意被追踪的构建依赖发生变化或被删除时使 compiler 的持久化缓存失效。它不会使 [loader 缓存](/guide/features/loader#loader-cache)失效。
 
 ```js title="rspack.config.mjs"
 import { join } from 'node:path';
@@ -392,7 +392,7 @@ export default {
 - **类型：** `string`
 - **默认值：** `<storage.directory>/<cache.name>`
 
-`cache.storage.location` 是编译器持久化缓存的存储路径，语义与 webpack 的 `cache.cacheLocation` 一致。未设置时，Rspack 会根据 `cache.storage.directory` 和 `cache.name` 推导该路径。相对路径会基于 [`config.context`](/config/context) 解析。
+`cache.storage.location` 是 compiler 持久化缓存的存储路径，语义与 webpack 的 `cache.cacheLocation` 一致。未设置时，Rspack 会根据 `cache.storage.directory` 和 `cache.name` 推导该路径。相对路径会基于 [`config.context`](/config/context) 解析。[Loader 缓存](/guide/features/loader#loader-cache)不使用该路径，而是存放在 `cache.storage.directory` 下。
 
 ```js title="rspack.config.mjs"
 export default {

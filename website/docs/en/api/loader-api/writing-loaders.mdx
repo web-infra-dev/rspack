@@ -360,26 +360,26 @@ export default class MetadataPlugin {
 
 Choose a distinct string property name, such as `metadataPlugin` in this example, to avoid overwriting data from other loaders or plugins. Properties with Symbol keys are not saved to the persistent cache.
 
-When the persistent module cache is enabled, Rspack saves this data as JSON. Use values that JSON supports, such as strings, numbers, arrays, and plain objects. Function properties are omitted, and functions in arrays become `null`, so the plugin cannot call them after a later build restores the module from the disk cache.
+When persistent caching is enabled, Rspack saves this data as JSON. Use values that JSON supports, such as strings, numbers, arrays, and plain objects. Function properties are omitted, and functions in arrays become `null`, so the plugin cannot call them after a later build restores the module from the disk cache.
 
 ## Loader cache compatibility
 
-[Loader caching](/guide/features/loader#loader-cache) stores the output of the normal phase. Consecutive loaders that opt in can share a single entry for their combined output. Rspack looks up cached results after the pitch phase and skips the corresponding normal execution on a hit.
+[Loader caching](/guide/features/loader#loader-cache) only caches the normal phase; the pitch phase is not cached and always runs. On a cache hit, Rspack skips the normal phase and reuses its output.
 
-Rspack checks the loader's input, options, and registered file dependencies before reusing a result. For JavaScript loaders, it also fingerprints the contents of the resolved entry file.
+Before reusing a cached result, Rspack checks the loader's input, options, and file dependencies. For JavaScript loaders, Rspack automatically detects changes to the loader's entry file, but not other files that the loader imports.
 
-The top-level `cache.buildDependencies` tracks files for the compiler's persistent cache. For loader caching, register files that affect the output, including imports, with [`this.addDependency()`](/api/loader-api/context#thisadddependency) or [`this.addBuildDependency()`](/api/loader-api/context#thisaddbuilddependency) in the normal phase, even if the pitch function already registered them. For example, `babel-loader` calls `this.addDependency()` for the Babel configuration files it reads.
+Top-level `cache.buildDependencies` does not invalidate loader caching. Register external files that affect the output—including helper files imported by the loader—with [`this.addDependency()`](/api/loader-api/context#thisadddependency) or [`this.addBuildDependency()`](/api/loader-api/context#thisaddbuilddependency) during the normal phase. Even if the pitch function already added a dependency, add it again in the normal phase, as only dependencies added in the normal phase invalidate loader caching when their contents change.
 
-Expose settings that affect the output, such as the build mode available through `this.mode`, as loader options. Use options that retain their values after JSON serialization and parsing. JSON serialization loses function values and converts `Date` objects to strings.
+Because loader caching does not automatically track compiler settings such as `this.mode`, expose settings that affect the output as loader options. Ensure options can be losslessly serialized as JSON; otherwise, Rspack does not cache that loader's result (for example, when options contain functions, `Date`, or `RegExp` values).
 
-These actions can prevent Rspack from caching a loader or group's output. Some also prevent later loaders in the chain from using the cache.
+The following actions prevent Rspack from caching a loader's output. Except for emitting warnings or errors, they also prevent subsequent loaders in the execution chain from using the cache:
 
-- Calling `this.cacheable(false)`.
-- Adding a directory or missing file dependency with `this.addContextDependency()` or `this.addMissingDependency()`.
-- Calling `this.emitWarning()` or `this.emitError()` during the normal phase.
-- Emitting an asset with `this.emitFile()` or writing a custom field to `this._module.buildInfo`, as in the example above.
+- Calling [`this.cacheable(false)`](/api/loader-api/context#thiscacheable).
+- Calling [`this.addContextDependency()`](/api/loader-api/context#thisaddcontextdependency) or [`this.addMissingDependency()`](/api/loader-api/context#thisaddmissingdependency).
+- Calling [`this.emitFile()`](/api/loader-api/context#thisemitfile) or writing custom fields to `this._module.buildInfo`.
+- Calling [`this.emitWarning()`](/api/loader-api/context#thisemitwarning) or [`this.emitError()`](/api/loader-api/context#thisemiterror) during the normal phase (only affects the current loader).
 
-Rspack skips the cache lookup if the input to the loader or group being cached contains `additionalData`. It skips storing the result if the output contains it. A loader passes `additionalData` to the next loader as the fourth argument to [`this.callback()`](/api/loader-api/context#thiscallback). `this.data` is shared between the pitch and normal phases of the same loader.
+Rspack also does not cache a loader's result when it receives or outputs [`additionalData`](/api/loader-api/context#thiscallback).
 
 ## Publishing loaders
 

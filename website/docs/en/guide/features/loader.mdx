@@ -194,9 +194,9 @@ When multiple loaders within the same rule have `parallel` enabled, Rspack execu
 
 For more details, see [rules[].use.parallel](/config/module-rules#rulesuseparallel).
 
-## Cache \{#loader-cache}
+## Loader cache
 
-Set `cache: true` on a loader in `module.rules[].use` to cache its transform results. Loader caching requires the top-level [`cache`](/config/cache) and the `loader` stage of [`experiments.newCache`](/config/experiments#experimentsnewcache). Setting `experiments.newCache: true` enables that stage by default.
+Set `cache: true` on a loader in `module.rules[].use` to cache its transform results. Loader caching requires the top-level [`cache`](/config/cache) and the `loader` stage of [`experiments.newCache`](/config/experiments#experimentsnewcache) (enabled by default when `experiments.newCache: true`).
 
 ```js title="rspack.config.mjs"
 export default {
@@ -214,13 +214,12 @@ export default {
 };
 ```
 
-Compilers using the memory cache can share loader results within the same process. With persistent caching, later builds can reuse results across processes when [`cache.storage.directory`](/config/cache#storagedirectory) and [`cache.version`](/config/cache#version) match.
+With memory caching, compilers in the same process can share loader results. With persistent caching, compilers in the same process can share results and later builds can reuse them across processes when [`cache.storage.directory`](/config/cache#storagedirectory) and [`cache.version`](/config/cache#version) match.
 
 :::tip
 
-- Include build settings that affect the transform in `use.options`. For example, if a loader's output depends on `this.mode`, pass the build mode as a loader option.
-- Use loader options that retain their values after JSON serialization and parsing. For example, Rspack skips caching when the options contain a function because JSON cannot preserve function values.
-- Changing source map settings can invalidate cached loader results. For example, the loader cache checks whether Rspack asks the loader to generate source maps. Some loaders, such as `builtin:swc-loader`, also distinguish between source map types.
+- Loader caching does not automatically track compiler settings such as `mode` or `target`. If a loader's output depends on them, pass them explicitly in `use.options`, or avoid enabling `cache: true` on that loader.
+- Ensure loader options can be losslessly serialized as JSON; otherwise, Rspack does not cache that loader's result (for example, when options contain functions, `Date`, or `RegExp` values).
 
 :::
 
@@ -228,11 +227,10 @@ For loader authors, see [loader cache compatibility](/api/loader-api/writing-loa
 
 ### When to use loader caching
 
-On a persistent module cache hit, Rspack reuses the module's full build result and skips loader transforms and module parsing. Rspack CLI adds the configuration file to [`cache.buildDependencies`](/config/cache#builddependencies), so even changing only `output.filename` in that file invalidates the module cache.
+When a compiler's persistent cache hits, Rspack reuses the module's full build result and skips both loader transforms and module parsing. However, when the compiler's persistent cache is invalidated or cannot be shared, loader caching can still reuse cached transforms:
 
-When a configuration change forces a module rebuild, Rspack can still reuse cached loader transforms.
-
-For example, if an SSR setup builds the client first, the server build can reuse cached transforms for shared source files.
+- **Configuration changes**: Rspack CLI adds the configuration file to [`cache.buildDependencies`](/config/cache#builddependencies), so changing even an unrelated option such as `output.filename` invalidates the compiler's persistent cache and forces modules to rebuild. Because loader caching does not depend on `cache.buildDependencies`, Rspack can still reuse cached loader transforms.
+- **Multi-compiler builds (such as SSR)**: Different compiler instances in an SSR setup have different configurations (such as `target`), so they cannot reuse each other's persistent cache even when using the same cache storage directory. Loader caching is not affected by this—once the client build finishes, the server build can reuse cached loader transforms for shared source files as long as the inputs, options, and dependencies match.
 
 ```js title="rspack.config.mjs"
 const shared = {
@@ -267,10 +265,7 @@ export default [
     name: 'server',
     target: 'node',
     entry: { server: './src/server.js' },
-    // Both entries import './render.js' and use the same Babel options.
-    // With matching input and unchanged dependencies, the server can reuse
-    // the client's babel-loader output for render.js, skipping the custom
-    // plugin's transform for that file.
+    // Run after `client` so `server` can reuse cached loader results for shared files
     dependencies: ['client'],
   },
 ];
