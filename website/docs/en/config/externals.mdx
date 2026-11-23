@@ -592,9 +592,10 @@ Note that there will be an `import()` statement in the output bundle.
 
 ### externalsType['module-import']
 
-With `'module-import'`, Rspack chooses the external type based on the import syntax. It uses the [`'module'`](#externalstypemodule) type for static `import` statements and the [`'import'`](#externalstypeimport) type for dynamic `import()` expressions.
+With `'module-import'`, the way you import an external dependency determines when it loads. For example, if `react` is external:
 
-For example, a CLI can mark its dependencies as external with `externals: ['commander', 'prettier']`. Its entry uses `import { program } from 'commander'` to parse arguments and calls `import('prettier')` inside the `format` command. The built CLI loads `commander` at startup and `prettier` only when someone runs `format`.
+- `import { useState } from 'react'` stays a [static import](#externalstypemodule). It loads `react` when the importing module loads.
+- `import('react')` stays a [dynamic import](#externalstypeimport). It loads `react` when the expression runs.
 
 For other requests, including `require()`, `'module-import'` falls back to `'module'`. To choose a type based on how the source references a dependency, check `dependencyType` in an [`externals` function](#function). For example, this Node.js configuration uses [`'node-commonjs'`](#externalstypenode-commonjs) for `require('react')` and keeps `'module-import'` for static and dynamic imports of `react`.
 
