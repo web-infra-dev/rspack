@@ -592,7 +592,7 @@ async function foo() {
 
 ### externalsType['module-import']
 
-使用 `'module-import'` 时，Rspack 会通过 ESM 导入外部依赖。下面的示例将 `zod` 设为外部依赖。当 `output.module` 为 `true` 且未配置 `output.library` 时，`externalsType` 默认为 `'module-import'`，可以省略。
+使用 `'module-import'` 时，Rspack 会在产物中保留对外部依赖的 ESM 导入。在下面的配置下，源码中的 `import { z } from 'zod'` 会在运行时加载 Zod。如果使用 `import()`，则会按需加载 Zod。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -604,13 +604,15 @@ export default {
 };
 ```
 
-源码中可以照常使用 `import { z } from 'zod'`，生成的模块会在运行时从 `zod` 导入 `z`。如果源码使用 `import()`，产物也会按需加载该依赖。
+:::tip
+当 `output.module` 为 `true` 且未配置 `output.library` 时，`externalsType` 默认为 `'module-import'`，可以省略。
+:::
 
 如果源码写的是 `require('zod')`，`'module-import'` 也会通过顶层 `import` 加载 Zod。要保留 CommonJS 的加载方式，可以使用 [`'modern-module'`](#externalstypemodern-module)。
 
 ### externalsType['modern-module']
 
-构建 ESM 库时，如果希望保留源码中通过 `require()` 加载外部依赖的行为，可以使用 `'modern-module'`。例如，下面的配置为 Node.js 构建一个库，并将 `zod` 设为外部依赖。
+如果你的 Node.js 库输出 ESM，并且需要通过 `require()` 加载外部依赖，可以使用 `'modern-module'`。下面以 `zod` 为例。
 
 ```js title="rspack.config.mjs"
 export default {

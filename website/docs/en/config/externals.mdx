@@ -592,7 +592,7 @@ Note that there will be an `import()` statement in the output bundle.
 
 ### externalsType['module-import']
 
-With `'module-import'`, Rspack uses ESM to load external dependencies. The following example marks `zod` as external. When `output.module` is `true` and `output.library` is unset, `externalsType` defaults to `'module-import'`, so you can omit it.
+With `'module-import'`, Rspack preserves ESM imports of external dependencies in the output. In the example below, `import { z } from 'zod'` loads Zod at runtime. If you use `import()`, Zod loads on demand.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -604,13 +604,15 @@ export default {
 };
 ```
 
-You can write `import { z } from 'zod'` as usual. The generated module imports `z` from `zod` at runtime. If your source uses `import()`, the output loads the dependency on demand.
+:::tip
+When `output.module` is `true` and `output.library` is unset, `externalsType` defaults to `'module-import'`, so you can omit it.
+:::
 
 If you write `require('zod')`, `'module-import'` also loads Zod with a top-level `import`. To keep CommonJS loading behavior, use [`'modern-module'`](#externalstypemodern-module).
 
 ### externalsType['modern-module']
 
-Use `'modern-module'` when building an ESM library that needs to load an external dependency with `require()`. For example, the following configuration builds a library for Node.js and marks `zod` as external.
+Use `'modern-module'` if your Node.js library emits ESM and needs to load an external dependency with `require()`. The following example uses `zod`.
 
 ```js title="rspack.config.mjs"
 export default {
