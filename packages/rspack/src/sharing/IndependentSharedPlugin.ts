@@ -117,6 +117,7 @@ type SharedFallbackBuild = {
   shareName: string;
   outputDir: string;
   plugin: SharedContainerPlugin;
+  buildAsset: [string, string, string];
 };
 
 const resolveOutputDir = (outputDir: string, shareName?: string) => {
@@ -315,12 +316,13 @@ export class IndependentSharedPlugin {
           independentShareFileName: shareConfig.treeShaking.filename,
         });
         const [shareFileName, globalName, sharedVersion] = plugin.getData();
-        (buildAssets[shareName] ||= []).push([
+        const buildAsset: [string, string, string] = [
           join(outputDir, shareFileName),
           sharedVersion,
           globalName,
-        ]);
-        builds.push({ shareName, outputDir, plugin });
+        ];
+        (buildAssets[shareName] ||= []).push(buildAsset);
+        builds.push({ shareName, outputDir, plugin, buildAsset });
       }
     }
 
@@ -335,6 +337,7 @@ export class IndependentSharedPlugin {
       shareName,
       outputDir,
       plugin: sharedContainerPlugin,
+      buildAsset,
     }: SharedFallbackBuild,
   ) {
     const {
@@ -447,6 +450,11 @@ export class IndependentSharedPlugin {
       );
       throw error || new Error(message);
     }
+    const [shareFileName, globalName, sharedVersion] =
+      sharedContainerPlugin.getData();
+    buildAsset[0] = join(outputDir, shareFileName);
+    buildAsset[1] = sharedVersion;
+    buildAsset[2] = globalName;
     logger.log(`${shareName} Compile success`);
   }
 }
