@@ -244,3 +244,48 @@ async fn promoting_context_members_during_a_snapshot_keeps_their_timestamps() {
     Some(&TimeInfoEntry::ExistenceOnlyTimeEntry)
   );
 }
+
+#[cfg(any(unix, windows))]
+#[tokio::test]
+async fn an_explicit_directory_link_keeps_its_file_time_after_its_parent_unsubscribes() {
+  let temp = tempfile::tempdir().expect("create fixture");
+  let root = temp.path().canonicalize().expect("resolve fixture");
+  let context = root.join("context");
+  let target = root.join("target");
+  let link = context.join("link");
+  fs::create_dir(&context).expect("create outer context");
+  fs::create_dir(&target).expect("create link target");
+  symlink_dir(&target, &link).expect("create directory link");
+
+  let watcher = FsWatcher::new(Default::default(), Default::default());
+  let outer = InternedPath::from(context);
+  for (added, removed) in [
+    (vec![outer.clone(), InternedPath::from(&link)], vec![]),
+    (vec![], vec![outer]),
+  ] {
+    watcher
+      .watch(
+        (std::iter::empty(), std::iter::empty()),
+        (added.into_iter(), removed.into_iter()),
+        (std::iter::empty(), std::iter::empty()),
+        SystemTime::now(),
+        Box::new(Handler),
+        Box::new(Handler),
+      )
+      .await;
+    let (files, _) = watcher.collect_time_info_entries();
+    let entries: Vec<_> = files
+      .iter()
+      .filter(|(name, _)| name == &link.to_string_lossy())
+      .map(|(_, info)| info)
+      .collect();
+    assert_eq!(entries.len(), 2, "{entries:?}");
+    assert!(
+      entries
+        .iter()
+        .any(|info| matches!(info, TimeInfoEntry::Entry { .. }))
+    );
+    assert!(entries.contains(&&TimeInfoEntry::ExistenceOnlyTimeEntry));
+  }
+  watcher.close().await.expect("close watcher");
+}
