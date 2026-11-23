@@ -1,4 +1,6 @@
-use std::{ops::Deref, sync::Arc, time::SystemTime};
+#[cfg(any(test, feature = "testing"))]
+use std::ops::Deref;
+use std::{sync::Arc, time::SystemTime};
 
 use rspack_paths::{InternedPath, InternedPathDashSet};
 use rspack_util::time::system_time_to_millis;
@@ -6,18 +8,16 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use super::{EventBatch, FsEvent, FsEventKind, PathManager};
 use crate::{
-  paths::disk_mtime,
+  paths::{ScanPlan, disk_mtime, links::DepKind},
   time::{mtime_accuracy, mtime_safe_time},
 };
 
-// Scanner will scann the path whether it is exist or not in disk on initialization
 pub struct Scanner {
   path_manager: Arc<PathManager>,
   tx: Option<UnboundedSender<EventBatch>>,
 }
 
 impl Scanner {
-  /// Creates a new `Scanner` that will send events to the provided sender when paths are scanned.
   pub fn new(tx: UnboundedSender<EventBatch>, path_manager: Arc<PathManager>) -> Self {
     Self {
       path_manager,
@@ -25,49 +25,73 @@ impl Scanner {
     }
   }
 
-  /// Synthesizes the events the live watch could not deliver yet: a `Remove` for
-  /// a registered path gone from disk, a `Change` for a file/directory changed
-  /// since `start_time`, and a `Create` for a registered-missing dependency that
-  /// has appeared. Change is judged from a fresh, accuracy-padded mtime read
-  /// ([`changed_since`]) — the scan runs after the OS watch is active (#14210),
-  /// so a change landing before the watch is on disk and caught here.
-  /// align watchpack action: https://github.com/webpack/watchpack/blob/v2.4.4/lib/DirectoryWatcher.js#L565-L568
+  #[cfg(any(test, feature = "testing"))]
   pub fn scan(&self, start_time: SystemTime) {
     let accessor = self.path_manager.access();
-    let has_added_paths = !accessor.files().1.is_empty()
-      || !accessor.directories().1.is_empty()
-      || !accessor.missing().1.is_empty();
-    if !has_added_paths {
+    let (files, directories, missing_added) = match self.path_manager.take_scan_plan() {
+      Some(plan) => (plan.files, plan.directories, plan.missing),
+      None => (
+        accessor
+          .files()
+          .1
+          .iter()
+          .map(|p| p.deref().clone())
+          .collect(),
+        accessor
+          .directories()
+          .1
+          .iter()
+          .map(|p| p.deref().clone())
+          .collect(),
+        accessor
+          .missing()
+          .1
+          .iter()
+          .map(|p| p.deref().clone())
+          .collect(),
+      ),
+    };
+    self.run_scan(start_time, files, directories, missing_added);
+  }
+
+  pub(crate) fn scan_with_plan(&self, start_time: SystemTime, plan: ScanPlan) {
+    #[cfg(any(test, feature = "testing"))]
+    let _ = self.path_manager.take_scan_plan();
+    self.run_scan(start_time, plan.files, plan.directories, plan.missing);
+  }
+
+  fn run_scan(
+    &self,
+    start_time: SystemTime,
+    files: Vec<InternedPath>,
+    directories: Vec<InternedPath>,
+    missing_added: Vec<InternedPath>,
+  ) {
+    if files.is_empty() && directories.is_empty() && missing_added.is_empty() {
       return;
     }
 
+    let accessor = self.path_manager.access();
     if let Some(tx) = self.tx.clone() {
-      // only apply for added files
-      let files = accessor
-        .files()
-        .1
-        .iter()
-        .map(|file| file.deref().clone())
-        .collect::<Vec<_>>();
       let missing = accessor.missing().0.clone();
       let files_tx = tx.clone();
       let files_path_manager = Arc::clone(&self.path_manager);
       tokio::spawn(async move {
-        // A file is there as `lstat` sees it, so a dangling link counts.
         let mut removed = absent_paths(&files, &missing, |path| {
-          std::fs::symlink_metadata(path).is_ok()
+          files_path_manager.is_dep_present_on_disk(DepKind::File, path)
         });
         removed.retain(|path| !files_path_manager.is_known_absent(path));
         let changed = files
           .iter()
-          .filter(|p| changed_since(p, start_time))
+          .filter(|p| dep_changed_since(&files_path_manager, DepKind::File, p, start_time))
           .cloned()
           .collect::<Vec<_>>();
-        // A `Change` is judged here, not by `Trigger`'s baseline check: the
-        // record is re-read now, in case the mtime moved on since it was
-        // seeded.
         for path in &changed {
-          if let Some(mtime) = disk_mtime(path) {
+          if !files_path_manager.is_registered(DepKind::File, path) {
+            continue;
+          }
+          let mtime = disk_mtime(path).or_else(|| symlink_mtime(path));
+          if let Some(mtime) = mtime {
             files_path_manager.set_reported_file_time(path, mtime);
           }
         }
@@ -75,53 +99,52 @@ impl Scanner {
         _ = send_events(changed, FsEventKind::Change, &files_tx);
       });
 
-      let directories = accessor
-        .directories()
-        .1
-        .iter()
-        .map(|file| file.deref().clone())
-        .collect::<Vec<_>>();
       let missing = accessor.missing().0.clone();
       let dirs_tx = tx.clone();
+      let dirs_path_manager = Arc::clone(&self.path_manager);
       tokio::spawn(async move {
         _ = send_events(
-          // A directory is there only through a link that resolves, like
-          // watchpack's `readdir`.
-          absent_paths(&directories, &missing, |path| path.exists()),
+          absent_paths(&directories, &missing, |path| {
+            dirs_path_manager.is_dep_present_on_disk(DepKind::Directory, path)
+          }),
           FsEventKind::Remove,
           &dirs_tx,
         );
         let changed = directories
           .into_iter()
-          .filter(|p| changed_since(p, start_time))
+          .filter(|p| dep_changed_since(&dirs_path_manager, DepKind::Directory, p, start_time))
           .collect::<Vec<_>>();
         _ = send_events(changed, FsEventKind::Change, &dirs_tx);
       });
 
-      // Backfill registered-missing dependencies created in the gap before this
-      // `watch()` registration: a `Create` once the file appears on disk.
-      let missing_added = accessor
-        .missing()
-        .1
-        .iter()
-        .map(|p| p.deref().clone())
-        .collect::<Vec<_>>();
       let path_manager = Arc::clone(&self.path_manager);
       tokio::spawn(async move {
-        // Record the file time of every one found on disk and, like
-        // watchpack's initial scan, notify only those changed since
-        // `start_time`. A record for one not notified is time info only: it
-        // must not deduplicate that path's own event.
         let mut created = Vec::new();
         for path in missing_added {
-          let Some(mtime) = disk_mtime(&path) else {
+          if !path_manager.is_registered(DepKind::Missing, &path) {
             continue;
-          };
-          if changed_since(&path, start_time) {
-            path_manager.set_reported_file_time(&path, mtime);
+          }
+          let bound = path_manager.bound_dep(DepKind::Missing, &path);
+          let target_active = bound.as_ref().is_none_or(|b| b.target_active);
+          let target_path = bound
+            .as_ref()
+            .map_or_else(|| path.clone(), |b| b.target.clone());
+          let links_changed = bound
+            .as_ref()
+            .is_some_and(|b| b.links.iter().any(|l| symlink_changed_since(l, start_time)));
+
+          if target_active && let Some(mtime) = disk_mtime(&target_path) {
+            if !path_manager.is_registered(DepKind::Missing, &path) {
+              continue;
+            }
+            if changed_since(&target_path, start_time) || links_changed {
+              path_manager.set_reported_file_time(&path, mtime);
+              created.push(path);
+            } else {
+              path_manager.set_registered_file_time(&path, mtime, true, true);
+            }
+          } else if links_changed && path_manager.is_registered(DepKind::Missing, &path) {
             created.push(path);
-          } else {
-            path_manager.set_file_time(&path, mtime, true, true);
           }
         }
         _ = send_events(created, FsEventKind::Create, &tx);
@@ -130,13 +153,10 @@ impl Scanner {
   }
 
   pub fn close(&mut self) {
-    // Close the scanner by dropping the sender
     self.tx.take();
   }
 }
 
-/// The registered `paths` not `present` on disk (a registered-missing path
-/// is expected to be absent and is not one of them).
 fn absent_paths(
   paths: &[InternedPath],
   missing: &InternedPathDashSet,
@@ -164,12 +184,14 @@ fn send_events(
   tx.send(events).is_ok()
 }
 
-/// Whether `path`'s current on-disk mtime is at or after `start_time`, using
-/// watchpack's accuracy padding ([`mtime_safe_time`]) so a change hidden by
-/// coarse mtime granularity is still caught. A failed stat (missing/unreadable)
-/// counts as unchanged.
-fn changed_since(path: &InternedPath, start_time: SystemTime) -> bool {
-  let Ok(metadata) = path.metadata() else {
+fn symlink_mtime(path: &InternedPath) -> Option<SystemTime> {
+  std::fs::symlink_metadata(path)
+    .and_then(|m| m.modified().or_else(|_| m.created()))
+    .ok()
+}
+
+fn meta_changed_since(meta: std::io::Result<std::fs::Metadata>, start_time: SystemTime) -> bool {
+  let Ok(metadata) = meta else {
     return false;
   };
   let mtime = metadata.modified();
@@ -180,6 +202,39 @@ fn changed_since(path: &InternedPath, start_time: SystemTime) -> bool {
     return false;
   };
   mtime_safe_time(mtime) >= system_time_to_millis(start_time)
+}
+
+fn symlink_changed_since(path: &InternedPath, start_time: SystemTime) -> bool {
+  meta_changed_since(std::fs::symlink_metadata(path), start_time)
+}
+
+fn changed_since(path: &InternedPath, start_time: SystemTime) -> bool {
+  meta_changed_since(path.metadata(), start_time)
+}
+
+fn dep_changed_since(
+  path_manager: &PathManager,
+  kind: DepKind,
+  logical_path: &InternedPath,
+  start_time: SystemTime,
+) -> bool {
+  let leaf_changed = |target: &InternedPath| {
+    if kind == DepKind::File && !path_manager.follows_symlinks() && target.is_symlink() {
+      symlink_changed_since(target, start_time)
+    } else {
+      changed_since(target, start_time)
+    }
+  };
+  if let Some(bound) = path_manager.bound_dep(kind, logical_path) {
+    let target_changed = bound.target_active && leaf_changed(&bound.target);
+    let link_changed = bound
+      .links
+      .iter()
+      .any(|l| symlink_changed_since(l, start_time));
+    target_changed || link_changed
+  } else {
+    leaf_changed(logical_path)
+  }
 }
 
 #[cfg(test)]

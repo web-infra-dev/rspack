@@ -25,11 +25,12 @@ impl DiskWatcher {
     poll_interval: Option<u32>,
     trigger: Arc<trigger::Trigger>,
   ) -> Self {
+    let _ = follow_symlinks;
     let config = match poll_interval {
       Some(poll) => notify::Config::default()
-        .with_follow_symlinks(follow_symlinks)
+        .with_follow_symlinks(false)
         .with_poll_interval(Duration::from_millis(u64::from(poll))),
-      None => notify::Config::default().with_follow_symlinks(follow_symlinks),
+      None => notify::Config::default().with_follow_symlinks(false),
     };
 
     let inner = RecommendedWatcher::new(
@@ -109,7 +110,6 @@ impl DiskWatcher {
     Ok(())
   }
 
-  #[allow(dead_code)]
   pub(crate) fn prepare_mode_changes(&mut self, next: &[WatchPattern]) {
     let next_modes: rspack_paths::InternedPathMap<notify::RecursiveMode> =
       next.iter().map(|p| (p.path.clone(), p.mode)).collect();
@@ -147,7 +147,6 @@ impl DiskWatcher {
     }
   }
 
-  #[allow(dead_code)]
   pub(crate) fn rebind_prefix(&mut self, prefix: &std::path::Path) {
     let affected: Vec<WatchPattern> = self
       .watch_patterns
@@ -223,12 +222,14 @@ pub(crate) fn handle_event(event: Event, trigger: &trigger::Trigger) {
         event.kind,
         EventKind::Modify(ModifyKind::Name(RenameMode::Any))
       );
+    let renamed = matches!(event.kind, EventKind::Modify(ModifyKind::Name(_)));
+    let directory_probe = cfg!(windows) && matches!(event.kind, EventKind::Modify(ModifyKind::Any));
     // Content writes cannot change which ancestor directory exists.
     // Invalidate before filtering so suppressed events still refresh watch coverage.
     if !matches!(event.kind, EventKind::Modify(ModifyKind::Data(_))) {
       trigger.analyzer.invalidate_path(&path);
     }
-    trigger.on_disk_event(&path, kind, appeared);
+    trigger.on_disk_event(&path, kind, appeared, renamed, directory_probe);
   }
 }
 
