@@ -1,7 +1,8 @@
 use rspack_util::swc::{AstSubRangeExt, PropertyKeyValue, classify_property_key};
 use swc_next_ecma_ast::{
-  AssignmentExpression, AssignmentOperator, AssignmentTargetData, Ast, Expr, ExprData,
-  MemberExpression, ObjectPropertyKindData, PropertyKind, SimpleAssignmentTargetData,
+  AssignmentExpression, AssignmentOperator, AssignmentTargetData, Ast, CallExpression, Expr,
+  ExprData, MemberExpression, ObjectExpression, ObjectPropertyKindData, PropertyKey, PropertyKind,
+  SimpleAssignmentTargetData,
 };
 
 use super::side_effects_analysis::property_key_is;
@@ -47,6 +48,70 @@ pub(super) fn common_js_export_write(
   .then_some(CommonJsExports::ModuleExportsMember)
 }
 
+pub(super) fn common_js_define_property(
+  ast: &Ast<'_>,
+  call: CallExpression,
+) -> Option<(CommonJsExports, ObjectExpression)> {
+  let callee = call.callee(ast).as_member_expression(ast)?;
+  let object = callee.object(ast).as_identifier_reference(ast)?;
+  if ast.get_utf8(object.name(ast)) != "Object"
+    || static_member_property(ast, callee) != Some("defineProperty")
+  {
+    return None;
+  }
+
+  let arguments = call.arguments(ast);
+  if arguments.len() != 3 {
+    return None;
+  }
+  let exports = define_property_target(ast, ast.first(arguments)?.as_expr(ast)?)?;
+  let ExprData::StringLiteral(name) = ast.expr_data(ast.second(arguments)?.as_expr(ast)?) else {
+    return None;
+  };
+  if ast.get_wtf8(name.value(ast)).as_str()? == "__proto__" {
+    return None;
+  }
+  let descriptor = arguments
+    .get_node(ast, 2)?
+    .as_expr(ast)?
+    .as_object_expression(ast)?;
+  is_data_descriptor(ast, descriptor).then_some((exports, descriptor))
+}
+
+fn define_property_target(ast: &Ast<'_>, target: Expr) -> Option<CommonJsExports> {
+  if let Some(identifier) = target.as_identifier_reference(ast) {
+    return (ast.get_utf8(identifier.name(ast)) == "exports")
+      .then_some(CommonJsExports::ExportsMember);
+  }
+  target
+    .as_member_expression(ast)
+    .is_some_and(|member| is_module_exports(ast, member))
+    .then_some(CommonJsExports::ModuleExportsMember)
+}
+
+fn is_data_descriptor(ast: &Ast<'_>, descriptor: ObjectExpression) -> bool {
+  ast.nodes(descriptor.properties(ast)).all(|property| {
+    property.as_object_property(ast).is_some_and(|property| {
+      property.kind(ast) == PropertyKind::Init
+        && !property.computed(ast)
+        && !property.method(ast)
+        && is_data_descriptor_key(ast, property.key(ast))
+    })
+  })
+}
+
+fn is_data_descriptor_key(ast: &Ast<'_>, key: PropertyKey) -> bool {
+  let name = match classify_property_key(ast, key) {
+    PropertyKeyValue::IdentifierName(identifier) => Some(ast.get_utf8(identifier.name(ast))),
+    PropertyKeyValue::StringLiteral(string) => ast.get_wtf8(string.value(ast)).as_str(),
+    _ => None,
+  };
+  matches!(
+    name,
+    Some("value" | "writable" | "enumerable" | "configurable")
+  )
+}
+
 fn assignment_member_target(
   ast: &Ast<'_>,
   assignment: AssignmentExpression,
@@ -64,7 +129,7 @@ fn assignment_member_target(
   Some(member)
 }
 
-pub(super) fn is_module_exports(ast: &Ast<'_>, member: MemberExpression) -> bool {
+fn is_module_exports(ast: &Ast<'_>, member: MemberExpression) -> bool {
   static_member_property(ast, member) == Some("exports")
     && member
       .object(ast)
@@ -72,10 +137,7 @@ pub(super) fn is_module_exports(ast: &Ast<'_>, member: MemberExpression) -> bool
       .is_some_and(|identifier| ast.get_utf8(identifier.name(ast)) == "module")
 }
 
-pub(super) fn static_member_property<'a>(
-  ast: &Ast<'a>,
-  member: MemberExpression,
-) -> Option<&'a str> {
+fn static_member_property<'a>(ast: &Ast<'a>, member: MemberExpression) -> Option<&'a str> {
   match classify_property_key(ast, member.property(ast)) {
     PropertyKeyValue::IdentifierName(property) if !member.computed(ast) => {
       Some(ast.get_utf8(property.name(ast)))

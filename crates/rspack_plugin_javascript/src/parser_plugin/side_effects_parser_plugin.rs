@@ -12,7 +12,7 @@ use rspack_core::{
 use rspack_intern::{AtomRef, AtomSet};
 use rspack_util::{
   SpanExt,
-  swc::{AstSubRangeExt, PropertyKeyValue, RspackComments, classify_property_key},
+  swc::{AstSubRangeExt, RspackComments},
 };
 use rustc_hash::FxHashSet;
 use swc_next_ecma_ast::{
@@ -21,15 +21,14 @@ use swc_next_ecma_ast::{
   CommentKind, Decl, DeclData, ExportDefaultDeclarationKindData, Expr, ExprData,
   ForStatementInitData, FormalParameterItemData, FormalParameterPatternData, Function, GetSpan,
   MethodDefinitionKind, ModuleExportName, ModuleExportNameData, NodeKindData, ObjectExpression,
-  Program, PropertyKey, PropertyKeyData, PropertyKind, ScopeId, SourceType, Span, Stmt, StmtData,
+  Program, PropertyKey, PropertyKeyData, ScopeId, SourceType, Span, Stmt, StmtData,
   VariableDeclaration as AstVariableDeclaration, VariableKind,
 };
 use swc_next_ecma_semantic::Semantic;
 
 use super::{
   common_js_side_effects_analysis::{
-    CommonJsExports, common_js_export_write, is_module_exports, is_plain_object_literal,
-    static_member_property,
+    CommonJsExports, common_js_define_property, common_js_export_write, is_plain_object_literal,
   },
   side_effects_analysis::{SideEffectsContext, may_have_side_effects},
 };
@@ -1147,92 +1146,21 @@ fn is_free_variable(parser: &mut JavascriptParser, name: &str) -> bool {
     .is_none_or(|info| info.is_free())
 }
 
-fn is_plain_module_exports(
-  parser: &mut JavascriptParser,
-  cjs_module_exports_plain_object: &AtomicBool,
-  expression: Expr,
-) -> bool {
-  let ast = parser.ast.ast;
-  cjs_module_exports_plain_object.load(Ordering::Relaxed)
-    && expression
-      .as_member_expression(ast)
-      .is_some_and(|member| is_module_exports(ast, member))
-    && is_free_variable(parser, "module")
-}
-
-fn is_define_property_target(
-  parser: &mut JavascriptParser,
-  cjs_module_exports_plain_object: &AtomicBool,
-  target: Expr,
-) -> bool {
-  let ast = parser.ast.ast;
-  match target.as_identifier_reference(ast) {
-    Some(identifier) => {
-      ast.get_utf8(identifier.name(ast)) == "exports" && is_free_variable(parser, "exports")
-    }
-    None => is_plain_module_exports(parser, cjs_module_exports_plain_object, target),
-  }
-}
-
-fn is_data_descriptor_key(ast: &Ast<'_>, key: PropertyKey) -> bool {
-  let name = match classify_property_key(ast, key) {
-    PropertyKeyValue::IdentifierName(identifier) => Some(ast.get_utf8(identifier.name(ast))),
-    PropertyKeyValue::StringLiteral(string) => ast.get_wtf8(string.value(ast)).as_str(),
-    _ => None,
-  };
-  matches!(
-    name,
-    Some("value" | "writable" | "enumerable" | "configurable")
-  )
-}
-
-fn common_js_define_property_descriptor(
+fn top_level_common_js_define_property(
   parser: &mut JavascriptParser,
   cjs_module_exports_plain_object: &AtomicBool,
   call: CallExpression,
 ) -> Option<ObjectExpression> {
-  let ast = parser.ast.ast;
   if parser.is_esm || !parser.is_top_level_scope() {
     return None;
   }
-  let callee = call.callee(ast).as_member_expression(ast)?;
-  let object = callee.object(ast).as_identifier_reference(ast)?;
-  if ast.get_utf8(object.name(ast)) != "Object"
-    || static_member_property(ast, callee) != Some("defineProperty")
-  {
-    return None;
-  }
-
-  let arguments = call.arguments(ast);
-  if arguments.len() != 3 {
-    return None;
-  }
-  let target = ast.first(arguments)?.as_expr(ast)?;
-  let ExprData::StringLiteral(name) = ast.expr_data(ast.second(arguments)?.as_expr(ast)?) else {
-    return None;
-  };
-  if ast.get_wtf8(name.value(ast)).as_str()? == "__proto__" {
-    return None;
-  }
-  let descriptor = arguments
-    .get_node(ast, 2)?
-    .as_expr(ast)?
-    .as_object_expression(ast)?;
-  let is_data_descriptor = ast.nodes(descriptor.properties(ast)).all(|property| {
-    property.as_object_property(ast).is_some_and(|property| {
-      property.kind(ast) == PropertyKind::Init
-        && !property.computed(ast)
-        && !property.method(ast)
-        && is_data_descriptor_key(ast, property.key(ast))
-    })
-  });
-  if !is_data_descriptor
-    || !is_free_variable(parser, "Object")
-    || !is_define_property_target(parser, cjs_module_exports_plain_object, target)
-  {
-    return None;
-  }
-  Some(descriptor)
+  let (exports, descriptor) = common_js_define_property(parser.ast.ast, call)?;
+  let target_is_plain = !matches!(exports, CommonJsExports::ModuleExportsMember)
+    || cjs_module_exports_plain_object.load(Ordering::Relaxed);
+  (target_is_plain
+    && is_free_variable(parser, "Object")
+    && is_free_variable(parser, exports.root_name()))
+  .then_some(descriptor)
 }
 
 fn is_module_eval_pure_statement_expression(
@@ -1245,7 +1173,7 @@ fn is_module_eval_pure_statement_expression(
 ) -> bool {
   if let ExprData::CallExpression(call) = parser.ast.ast.expr_data(expression)
     && let Some(descriptor) =
-      common_js_define_property_descriptor(parser, cjs_module_exports_plain_object, call)
+      top_level_common_js_define_property(parser, cjs_module_exports_plain_object, call)
   {
     let ast = parser.ast.ast;
     return ast.nodes(descriptor.properties(ast)).all(|property| {
