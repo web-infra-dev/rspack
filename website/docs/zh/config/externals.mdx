@@ -594,28 +594,7 @@ async function foo() {
 
 `'module-import'` 根据源码中的导入语法选择外部依赖的类型。静态 `import` 使用 [`'module'`](#externalstypemodule) 类型，动态 `import()` 使用 [`'import'`](#externalstypeimport) 类型。
 
-例如，一个 React 组件库可以把 `react` 和 `react-dom/client` 都列为外部依赖。
-
-```js title="rspack.config.mjs"
-export default {
-  output: {
-    library: { type: 'modern-module' },
-  },
-  externalsType: 'module-import',
-  externals: ['react', 'react-dom/client'],
-};
-```
-
-```js title="src/index.js"
-import { createElement } from 'react';
-
-export async function renderGreeting(container) {
-  const { createRoot } = await import('react-dom/client');
-  createRoot(container).render(createElement('h1', null, 'Hello'));
-}
-```
-
-构建后，`react` 仍通过顶层的 `import` 语句导入。只有调用 `renderGreeting` 时，函数内的 `import('react-dom/client')` 才会执行。
+例如，一个 CLI 将 `commander` 和 `prettier` 配置为外部依赖（`externals: ['commander', 'prettier']`）。入口通过 `import { program } from 'commander'` 解析命令行参数，在 `format` 子命令中通过 `import('prettier')` 加载格式化工具。构建后，CLI 启动时会加载 `commander`，只有执行 `format` 时才会加载 `prettier`。
 
 对于 `require()` 等其他引用方式，`'module-import'` 默认按 `'module'` 处理。要根据源码的引用方式为同一个依赖选择不同类型，可以在 [`externals` 函数](#function)中读取 `dependencyType`。例如，下面的 Node.js 配置让 `require('react')` 使用 [`'node-commonjs'`](#externalstypenode-commonjs)，而 `import` 和 `import()` 仍按 `'module-import'` 处理。
 
