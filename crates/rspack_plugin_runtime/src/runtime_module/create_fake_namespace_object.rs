@@ -51,17 +51,18 @@ impl RuntimeModule for CreateFakeNamespaceObjectRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let params = Some(
-      if context.compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
-        serde_json::json!({
-          "__this": "(typeof this === \"function\" ? this : this.r)"
-        })
-      } else {
-        serde_json::json!({
-          "__this": "this"
-        })
-      },
-    );
+    let this = if context.compilation.options.experiments.runtime_mode == RuntimeMode::Rspack {
+      "(typeof this === \"function\" ? this : this.r)"
+    } else {
+      "this"
+    };
+    let params = Some(serde_json::json!({
+      "__this": this,
+      "_leaf_prototypes_assignment": context.runtime_template.assign_or(
+        "leafPrototypes",
+        "[null, getProto({}), getProto([]), getProto(getProto)]",
+      ),
+    }));
     let source = context.runtime_template.render(self.id(), params)?;
 
     Ok(source)

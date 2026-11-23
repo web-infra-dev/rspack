@@ -153,10 +153,8 @@ impl ChunkGroup {
     compilation: &'a Compilation,
   ) -> impl DoubleEndedIterator<Item = &'a Chunk> {
     let graph = &compilation.build_chunk_graph_artifact;
-    let runtime_chunks = graph.runtime_chunks.as_ref();
-    self.loading_chunks_with(&graph.chunk_by_ukey, move |chunk| match runtime_chunks {
-      Some(runtime_chunks) => runtime_chunks.contains(&chunk.ukey()),
-      None => chunk.has_runtime(&graph.chunk_group_by_ukey),
+    self.loading_chunks_with(&graph.chunk_by_ukey, move |chunk| {
+      graph.is_runtime_chunk(chunk)
     })
   }
 
@@ -533,6 +531,9 @@ impl Display for EntryRuntime {
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
+  /// Browser worker entry; Node workers retain module-factory top-level `this`.
+  pub worker: Option<bool>,
+  pub worklet: Option<bool>,
   pub chunk_loading: Option<ChunkLoading>,
   pub wasm_loading: Option<WasmLoading>,
   pub async_chunks: Option<bool>,
@@ -559,6 +560,8 @@ impl EntryOptions {
     }
     merge_field!(name);
     merge_field!(runtime);
+    merge_field!(worker);
+    merge_field!(worklet);
     merge_field!(chunk_loading);
     merge_field!(wasm_loading);
     merge_field!(async_chunks);

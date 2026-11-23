@@ -14,6 +14,10 @@ pub enum CssIcssSymbolKind {
   LocalReference,
   /// An ICSS value is substituted into the source without identifier escaping.
   IcssReference,
+  /// An ICSS value substituted into a global class selector identifier position.
+  /// Imported `LocalIdent` targets are rendered via `render_local_ident` (escaped
+  /// and without composed classes); plain `@value` tokens fall back to raw text.
+  IcssSelectorReference,
   /// An implicit grid line uses the generated area name with its original suffix.
   LocalGridStart,
   LocalGridEnd,

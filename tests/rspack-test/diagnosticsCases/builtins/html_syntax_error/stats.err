@@ -1,6 +1,21 @@
-ERROR in × HTML parse error: Stray end tag "something"
+ERROR in src/index.ejs
+  × HTML parse error: Stray end tag "unexpected"
+   ╭────
+ 1 │ <div></unexpected></div>
+   ·      ─────────────
+   ╰────
+
+ERROR in index.html
+  × HTML parse error: Stray end tag "something"
    ╭─[2:2]
  1 │ <head>
  2 │   </something>
    ·   ────────────
+   ╰────
+
+ERROR in inline.html
+  × HTML parse error: Stray end tag "extra"
+   ╭────
+ 1 │ <!DOCTYPE html><html><body></extra></body></html>
+   ·                            ────────
    ╰────

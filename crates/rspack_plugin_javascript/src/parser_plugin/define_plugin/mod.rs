@@ -27,11 +27,25 @@ struct ConflictingValuesError(String, String, String);
 
 impl ConflictingValuesError {
   fn into_diagnostic(self) -> Diagnostic {
-    Error::warning(format!(
-      "DefinePlugin:\nConflicting values for '{}' ({} !== {})",
-      self.0, self.1, self.2
-    ))
-    .into()
+    let Self(key, previous, current) = self;
+    // String definitions are JavaScript expressions serialized as JSON for the cache.
+    // Decode the outer JSON string so "\"production\"" is displayed as "production".
+    let (previous, current) = match (
+      serde_json::from_str::<String>(&previous),
+      serde_json::from_str::<String>(&current),
+    ) {
+      (Ok(decoded_previous), Ok(decoded_current)) => (decoded_previous, decoded_current),
+      _ => (previous, current),
+    };
+    let mut warning = Error::warning(format!(
+      "DefinePlugin: Conflicting values for '{key}': {previous} and {current}."
+    ));
+    if key == "process.env.NODE_ENV" {
+      warning.help = Some(
+        "Check 'optimization.nodeEnv' and any explicit DefinePlugin definitions for 'process.env.NODE_ENV'.".into(),
+      );
+    }
+    warning.into()
   }
 }
 

@@ -78,10 +78,10 @@ class ArrayQueue<T> {
   }
 
   *[Symbol.iterator]() {
-    yield* this._list;
     for (let i = this._listReversed.length - 1; i >= 0; i--) {
       yield this._listReversed[i];
     }
+    yield* this._list;
   }
 }
 

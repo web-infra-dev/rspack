@@ -9,7 +9,7 @@ use std::{
 use derive_more::Debug;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
-  with::{As, AsInner, AsOption, AsPreset},
+  with::{As, AsOption, AsPreset},
 };
 use rspack_collections::{Identifiable, IdentifierMap, IdentifierSet};
 use rspack_error::{Diagnosable, Diagnostic, Result, error};
@@ -33,11 +33,11 @@ use crate::{
   DependenciesBlockData, DependencyCodeGenerationRef, DependencyId, FactoryMeta, FactoryMetaStore,
   FreezeLock, GenerateContext, GeneratorOptions, ImportPhase, LibIdentOptions, Module,
   ModuleCodeGenerationContext, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  ModuleLayer, ModuleType, NeedBuildContext, OptimizationBailoutItem, OutputOptions, ParseContext,
-  ParseResult, ParserAndGenerator, ParserOptions, Resolve, ResolvedModuleOptions,
-  RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact,
-  SnapshotValidationResult, SourceType, ValueCacheVersions, contextify, contextify_source_map,
-  contextify_source_url,
+  ModuleLayer, ModuleOptions, ModuleRuleEffectIndices, ModuleType, NeedBuildContext,
+  OptimizationBailoutItem, OutputOptions, ParseContext, ParseResult, ParserAndGenerator,
+  ParserOptions, Resolve, RspackLoaderRunnerPlugin, RunnerContext, RuntimeGlobals, RuntimeSpec,
+  SideEffectsStateArtifact, SnapshotValidationResult, SourceType, ValueCacheVersions, contextify,
+  contextify_source_map, contextify_source_url,
   diagnostics::ModuleBuildError,
   get_context, module_analyzed_side_effect_free, module_declared_side_effect_free,
   module_update_hash,
@@ -122,11 +122,8 @@ pub struct NormalModule {
   loader_options: Option<Vec<LoaderRunnerOptions>>,
   loader_filters: Option<LoaderFilters>,
 
-  /// Resolve options derived from [Rule.resolve]
-  resolve_options: Option<Arc<Resolve>>,
-  /// Parser and generator options derived from [Rule.parser] and [Rule.generator]
-  #[cacheable(with=AsInner)]
-  parser_and_generator_options: Arc<ResolvedModuleOptions>,
+  /// Matched rule effects used to resolve parser, generator, and resolve options.
+  effect_indices: ModuleRuleEffectIndices,
   /// enable/disable extracting source map
   extract_source_map: Option<bool>,
 
@@ -147,7 +144,6 @@ pub struct NormalModule {
   build_info: FreezeLock<BuildInfo>,
   build_meta: FreezeLock<BuildMeta>,
   parsed: bool,
-  force_build: bool,
   source_map_kind: SourceMapKind,
   /// A seal-stage override, excluded from reusable build state.
   #[cacheable(with=rspack_cacheable::with::Skip)]
@@ -191,10 +187,9 @@ impl NormalModule {
     module_type: impl Into<ModuleType>,
     layer: Option<ModuleLayer>,
     parser_and_generator: Box<dyn ParserAndGenerator>,
-    parser_and_generator_options: Arc<ResolvedModuleOptions>,
+    effect_indices: ModuleRuleEffectIndices,
     match_resource: Option<ResourceData>,
     resource_data: Arc<ResourceData>,
-    resolve_options: Option<Arc<Resolve>>,
     loaders: Vec<BoxLoader>,
     loader_options: Option<Vec<LoaderRunnerOptions>>,
     loader_filters: Option<LoaderFilters>,
@@ -222,10 +217,9 @@ impl NormalModule {
       module_type,
       layer,
       parser_and_generator,
-      parser_and_generator_options,
+      effect_indices,
       match_resource: match_resource.map(Box::new),
       resource_data,
-      resolve_options,
       loaders,
       loader_options,
       loader_filters,
@@ -244,9 +238,6 @@ impl NormalModule {
       build_info: build_info.into(),
       build_meta: Default::default(),
       parsed: false,
-      // Mirrors webpack's `_forceBuild`: a new module has no reusable build
-      // until its first build starts.
-      force_build: true,
       source_map_kind: SourceMapKind::empty(),
     }
   }
@@ -321,12 +312,21 @@ impl NormalModule {
     hasher.digest(&output_options.hash_digest)
   }
 
-  pub fn get_parser_options(&self) -> Option<&ParserOptions> {
-    self.parser_and_generator_options.parser_options()
+  pub fn get_parser_options(&self, module_options: &ModuleOptions) -> Option<Arc<ParserOptions>> {
+    module_options
+      .get_rule_options(&self.effect_indices, self.module_type)
+      .parser
+      .clone()
   }
 
-  pub fn get_generator_options(&self) -> Option<&GeneratorOptions> {
-    self.parser_and_generator_options.generator_options()
+  pub fn get_generator_options(
+    &self,
+    module_options: &ModuleOptions,
+  ) -> Option<Arc<GeneratorOptions>> {
+    module_options
+      .get_rule_options(&self.effect_indices, self.module_type)
+      .generator
+      .clone()
   }
 
   pub fn asset_filename_override(&self) -> Option<crate::Filename> {
@@ -426,7 +426,7 @@ impl Module for NormalModule {
   }
 
   async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
-    if self.force_build || self.error.is_some() {
+    if context.force_build || self.error.is_some() {
       return Ok(true);
     }
 
@@ -484,7 +484,6 @@ impl Module for NormalModule {
     _compilation: Option<&Compilation>,
   ) -> Result<BoxModule> {
     self.dependencies_block = Default::default();
-    self.force_build = false;
     self.error = None;
     self.diagnostics.clear();
     self.build_info.get_mut().snapshot = None;
@@ -568,8 +567,9 @@ impl Module for NormalModule {
       return Ok(BoxModule::new(self));
     };
 
-    let is_binary = self
-      .get_generator_options()
+    let generator_options = self.get_generator_options(&build_context.compiler_options.module);
+    let is_binary = generator_options
+      .as_deref()
       .and_then(|g| match g {
         GeneratorOptions::Asset(g) => g.binary,
         GeneratorOptions::AssetInline(g) => g.binary,
@@ -606,6 +606,7 @@ impl Module for NormalModule {
       return Ok(BoxModule::new(self));
     }
 
+    let parser_options = self.get_parser_options(&build_context.compiler_options.module);
     let factory_meta = self.factory_meta.get();
     let (
       ParseResult {
@@ -623,8 +624,8 @@ impl Module for NormalModule {
         source: source.clone(),
         module_context: &self.context,
         module_identifier: self.id,
-        module_parser_options: self.parser_and_generator_options.parser_options(),
-        module_generator_options: self.parser_and_generator_options.generator_options(),
+        module_parser_options: parser_options.as_deref(),
+        module_generator_options: generator_options.as_deref(),
         module_type: &self.module_type,
         module_layer: self.layer.as_ref(),
         module_user_request: self
@@ -735,6 +736,8 @@ impl Module for NormalModule {
     }
 
     let module_graph = compilation.get_module_graph();
+    let parser_options = self.get_parser_options(&compilation.options.module);
+    let generator_options = self.get_generator_options(&compilation.options.module);
     for source_type in self.source_types(module_graph) {
       let in_concatenation = concatenation_scope.is_some();
       let generation_result = self
@@ -747,8 +750,8 @@ impl Module for NormalModule {
             runtime_template,
             data: code_generation_result.data_mut(),
             requested_source_type: *source_type,
-            module_parser_options: self.parser_and_generator_options.parser_options(),
-            module_generator_options: self.parser_and_generator_options.generator_options(),
+            module_parser_options: parser_options.as_deref(),
+            module_generator_options: generator_options.as_deref(),
             runtime: *runtime,
             concatenation_scope: concatenation_scope.as_mut(),
           },
@@ -806,8 +809,11 @@ impl Module for NormalModule {
     Some(Cow::Owned(ident))
   }
 
-  fn get_resolve_options(&self) -> Option<Arc<Resolve>> {
-    self.resolve_options.clone()
+  fn get_resolve_options(&self, module_options: &ModuleOptions) -> Option<Arc<Resolve>> {
+    module_options
+      .get_rule_options(&self.effect_indices, self.module_type)
+      .resolve
+      .clone()
   }
 
   fn get_code_generation_dependencies(&self) -> Option<&[DependencyId]> {

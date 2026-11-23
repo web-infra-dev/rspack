@@ -9,7 +9,7 @@
  */
 
 export const formatSize = (size: unknown) => {
-  if (typeof size !== 'number' || Number.isNaN(size)) {
+  if (typeof size !== 'number' || !Number.isFinite(size)) {
     return 'unknown size';
   }
 
@@ -18,7 +18,10 @@ export const formatSize = (size: unknown) => {
   }
 
   const abbreviations = ['bytes', 'KiB', 'MiB', 'GiB'];
-  const index = Math.floor(Math.log(size) / Math.log(1024));
+  const index = Math.min(
+    Math.max(Math.floor(Math.log(size) / Math.log(1024)), 0),
+    abbreviations.length - 1,
+  );
 
   return `${+(size / 1024 ** index).toPrecision(3)} ${abbreviations[index]}`;
 };

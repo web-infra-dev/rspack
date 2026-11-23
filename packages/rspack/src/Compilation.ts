@@ -690,10 +690,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     context: CreateStatsOptionsContext = {},
   ): NormalizedStatsOptions {
     let optionsOrPreset = statsValue;
-    if (
-      typeof optionsOrPreset === 'boolean' ||
-      typeof optionsOrPreset === 'string'
-    ) {
+    if (typeof optionsOrPreset === 'boolean') {
+      optionsOrPreset = {
+        preset: optionsOrPreset === false ? 'none' : 'normal',
+      };
+    } else if (typeof optionsOrPreset === 'string') {
       optionsOrPreset = { preset: optionsOrPreset };
     }
     if (typeof optionsOrPreset === 'object' && optionsOrPreset !== null) {

@@ -9,13 +9,14 @@
     ./index.js xx bytes [built] [code generated] [1 warning]
 
   WARNING in ./index.js 2:1-17
-    ⚠ Critical dependency: the request of a dependency is an expression
+    ⚠ Dynamic module path: Rspack cannot determine which modules to bundle because the path is unknown at build time.
      ╭─[2:8]
    1 │ require.ensure(["./a"], function() {});
    2 │ require(["./b"]);
      ·         ───────
    3 │ import(/* webpackChunkName: "c" */ "./c");
      ╰────
+    help: To bundle local modules, use a literal path or a pattern such as `./locales/${name}.js`.
 
   1 chunks (Rspack x.x.x) compiled with 1 warning in X s
 
@@ -33,13 +34,14 @@
     ./c.js xx bytes [built] [code generated]
 
   WARNING in ./index.js 2:1-17
-    ⚠ Critical dependency: the request of a dependency is an expression
+    ⚠ Dynamic module path: Rspack cannot determine which modules to bundle because the path is unknown at build time.
      ╭─[2:8]
    1 │ require.ensure(["./a"], function() {});
    2 │ require(["./b"]);
      ·         ───────
    3 │ import(/* webpackChunkName: "c" */ "./c");
      ╰────
+    help: To bundle local modules, use a literal path or a pattern such as `./locales/${name}.js`.
 
   2 chunks (Rspack x.x.x) compiled with 1 warning in X s
 
@@ -58,13 +60,14 @@
     ./c.js xx bytes [built] [code generated]
 
   WARNING in ./index.js 2:1-17
-    ⚠ Critical dependency: the request of a dependency is an expression
+    ⚠ Dynamic module path: Rspack cannot determine which modules to bundle because the path is unknown at build time.
      ╭─[2:8]
    1 │ require.ensure(["./a"], function() {});
    2 │ require(["./b"]);
      ·         ───────
    3 │ import(/* webpackChunkName: "c" */ "./c");
      ╰────
+    help: To bundle local modules, use a literal path or a pattern such as `./locales/${name}.js`.
 
   3 chunks (Rspack x.x.x) compiled with 1 warning in X s
 
@@ -85,12 +88,13 @@
     ./c.js xx bytes [built] [code generated]
 
   WARNING in ./index.js 2:1-17
-    ⚠ Critical dependency: the request of a dependency is an expression
+    ⚠ Dynamic module path: Rspack cannot determine which modules to bundle because the path is unknown at build time.
      ╭─[2:8]
    1 │ require.ensure(["./a"], function() {});
    2 │ require(["./b"]);
      ·         ───────
    3 │ import(/* webpackChunkName: "c" */ "./c");
      ╰────
+    help: To bundle local modules, use a literal path or a pattern such as `./locales/${name}.js`.
 
   4 chunks (Rspack x.x.x) compiled with 1 warning in X s

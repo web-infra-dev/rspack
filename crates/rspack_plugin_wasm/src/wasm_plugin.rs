@@ -98,7 +98,7 @@ impl Plugin for AsyncWasmPlugin {
 
     ctx.register_parser_and_generator_builder(
       ModuleType::WasmAsync,
-      Box::new(move |_| Box::new(AsyncWasmParserAndGenerator) as Box<dyn ParserAndGenerator>),
+      Box::new(move |_, _| Box::new(AsyncWasmParserAndGenerator) as Box<dyn ParserAndGenerator>),
     );
 
     Ok(())

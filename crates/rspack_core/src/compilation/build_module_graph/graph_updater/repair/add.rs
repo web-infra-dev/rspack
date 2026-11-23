@@ -136,6 +136,7 @@ impl Task<TaskContext> for AddTask {
       module,
       forwarded_ids,
       module_build_cache: context.module_build_cache.clone(),
+      force_build: context.force_build_modules.contains(&module_identifier),
     })])
   }
 }

@@ -1,11 +1,11 @@
-<%- var("hasSymbol") %> = typeof Symbol === "function";
-<%- var("rspackQueues") %> = hasSymbol ? Symbol("rspack queues") : "__rspack_queues";
-<% if (_uses_lexical_runtime_globals) { %><%- define(ASYNC_MODULE_EXPORT_SYMBOL) %> = hasSymbol ? Symbol("rspack exports") : "<%- EXPORTS %>";
-<%- var("rspackExports") %> = <%- ASYNC_MODULE_EXPORT_SYMBOL %>;<% } else { %><%- var("rspackExports") %> = <%- define(ASYNC_MODULE_EXPORT_SYMBOL) %> = hasSymbol ? Symbol("rspack exports") : "<%- EXPORTS %>";<% } %>
-<%- var("rspackError") %> = hasSymbol ? Symbol("rspack error") : "__rspack_error";
-<%- var("rspackDone") %> = hasSymbol ? Symbol("rspack done") : "__rspack_done";
-<% if (_uses_lexical_runtime_globals) { %><%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL) %> = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";
-<%- var("rspackDefer") %> = <%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL %>;<% } else { %><%- var("rspackDefer") %> = <%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL) %> = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";<% } %>
+<% if (!_supports_symbol) { %><%- var("hasSymbol") %> = typeof Symbol === "function";
+<% } %><%- var("rspackQueues") %> = <%- _queues_symbol %>;
+<% if (_uses_lexical_runtime_globals) { %><%- define(ASYNC_MODULE_EXPORT_SYMBOL) %> = <%- _exports_symbol %>;
+<%- var("rspackExports") %> = <%- ASYNC_MODULE_EXPORT_SYMBOL %>;<% } else { %><%- var("rspackExports") %> = <%- define(ASYNC_MODULE_EXPORT_SYMBOL) %> = <%- _exports_symbol %>;<% } %>
+<%- var("rspackError") %> = <%- _error_symbol %>;
+<%- var("rspackDone") %> = <%- _done_symbol %>;
+<% if (_uses_lexical_runtime_globals) { %><%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL) %> = <%- _defer_symbol %>;
+<%- var("rspackDefer") %> = <%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL %>;<% } else { %><%- var("rspackDefer") %> = <%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL) %> = <%- _defer_symbol %>;<% } %>
 <%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES) %> = <%- basicFunction("asyncDeps") %> {
 	var hasUnresolvedAsyncSubgraph = asyncDeps.some((id) => {
 		var cache = <%- MODULE_CACHE %>[id];
