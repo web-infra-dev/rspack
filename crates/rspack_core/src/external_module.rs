@@ -566,7 +566,7 @@ pub struct DependencyMeta {
   pub attributes: Option<ImportAttributes>,
   pub phase: ImportPhase,
   pub source_type: Option<SourceType>,
-  pub css_import_condition: Option<CssModuleRenderCondition>,
+  pub css_import_conditions: Option<CssModuleRenderCondition>,
 }
 
 impl ExternalModule {
@@ -593,7 +593,7 @@ impl ExternalModule {
       format!(" phase={}", dependency_meta.phase.as_str())
     };
     let css_import_str =
-      css_module_render_conditions_identifier(dependency_meta.css_import_condition.iter())
+      css_module_render_conditions_identifier(dependency_meta.css_import_conditions.iter())
         .map_or(String::new(), |conditions| {
           format!(" css-import-conditions={}", json_stringify_str(&conditions))
         });
@@ -663,18 +663,19 @@ impl ExternalModule {
       return None;
     }
     let request = self.try_get_request()?;
-    let mut source = format!("@import url({})", json_stringify_str(request.primary()));
-    if let Some(condition) = &self.dependency_meta.css_import_condition {
-      match &condition.layer {
-        Some(CssLayer::Anonymous) => source.push_str(" layer()"),
-        Some(CssLayer::Named(layer)) => {
-          source.push_str(" layer(");
+    let mut source = format!(
+      "@import url({})",
+      rspack_util::json_stringify_str(request.primary())
+    );
+    if let Some(conditions) = &self.dependency_meta.css_import_conditions {
+      if let Some(layer) = &conditions.layer {
+        source.push_str(" layer(");
+        if let CssLayer::Named(layer) = layer {
           source.push_str(layer);
-          source.push(')');
         }
-        None => {}
+        source.push(')');
       }
-      if let Some(supports) = condition
+      if let Some(supports) = conditions
         .supports
         .as_deref()
         .filter(|value| !value.is_empty())
@@ -683,7 +684,11 @@ impl ExternalModule {
         source.push_str(supports);
         source.push(')');
       }
-      if let Some(media) = condition.media.as_deref().filter(|value| !value.is_empty()) {
+      if let Some(media) = conditions
+        .media
+        .as_deref()
+        .filter(|value| !value.is_empty())
+      {
         source.push(' ');
         source.push_str(media);
       }
