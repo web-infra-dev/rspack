@@ -592,79 +592,43 @@ async function foo() {
 
 ### externalsType['module-import']
 
-将 externals 的默认类型指定为 `'module-import'`。这将结合 [`'module'`](#externalstypemodule) 和 [`'import'`](#externalstypeimport)。Rspack 将自动检测导入语法的类型，对于静态导入设置为 `'module'`，对于动态导入设置为 `'import'`。
+`'module-import'` 根据源码中的导入方式加载外部依赖：静态 `import` 在产物中仍是静态导入，动态 `import()` 则在执行到该表达式时才加载依赖。
 
-**示例**
-
-```js
-import { attempt } from 'lodash';
-
-async function foo() {
-  const jq = await import('jquery');
-  attempt(() => jq('.my-element').animate(/* ... */));
-}
-```
+例如，下面的配置将 `react` 和 `react-dom/client` 都列为外部依赖：
 
 ```js title="rspack.config.mjs"
 export default {
-  externalsType: 'module-import',
-  externals: {
-    jquery: 'jquery',
+  output: {
+    library: { type: 'modern-module' },
   },
+  externalsType: 'module-import',
+  externals: ['react', 'react-dom/client'],
 };
 ```
 
-将会转换为类似下面的代码：
+库入口静态导入了 `react`，只在调用 `renderGreeting` 时才导入 `react-dom/client`：
 
-```js
-import * as __rspack_external_lodash from 'lodash';
-const lodash = __rspack_external_jquery;
+```js title="src/index.js"
+import { createElement } from 'react';
 
-var __webpack_modules__ = {
-  jquery: (module) => {
-    module.exports = import('jquery');
-  },
-};
-
-// Rspack runtime...
-
-async function foo() {
-  const jq = await Promise.resolve(/* import() */).then(
-    __webpack_require__.bind(__webpack_require__, 'jquery'),
-  );
-  (0, lodash.attempt)(() => jq('.my-element').animate(/* ... */));
+export async function renderGreeting(container) {
+  const { createRoot } = await import('react-dom/client');
+  createRoot(container).render(createElement('h1', null, 'Hello'));
 }
 ```
 
-请注意，在输出产物中将有 `import` 或 `import()` 语句。
+在未压缩的产物中，对 `react` 的引用是顶层的 `import { createElement } from 'react'`，对 `react-dom/client` 的引用则是函数内的 `import('react-dom/client')`。
 
-当一个模块没有通过 `import` 或 `import()` 导入时，Rspack 将使用 `"module"` externals type 作为回退。如果你想使用不同类型的 externals 作为回退，你可以在 `externals` 选项中指定一个函数。例如：
-
-```js title="rspack.config.mjs"
-export default {
-  externalsType: 'module-import',
-  externals: [
-    function ({ request, dependencyType }, callback) {
-      if (dependencyType === 'commonjs') {
-        return callback(null, `node-commonjs ${request}`);
-      }
-      callback();
-    },
-  ],
-};
-```
+对于 `require()` 等其他引用方式，`'module-import'` 会按 [`'module'`](#externalstypemodule) 类型处理。要为特定请求选择其他类型，可以使用 [`externals` 函数](#function)。
 
 ### externalsType['modern-module']
 
-将 externals 的默认类型指定为 `'modern-module'`。
+如果 ESM 产物中的外部依赖既有 `import` 导入，也有 CommonJS 的 `require()` 调用，可以使用 `externalsType: 'modern-module'`。它与 [`'module-import'`](#externalstypemodule-import) 一样保留静态和动态导入，还会按目标环境处理 `require()`：
 
-出于兼容性考虑，Rspack 暂时不会在 [`output.library.type`](/config/output#outputlibrarytype) 为 `'modern-module'` 时自动启用它。请显式配置 `externalsType: 'modern-module'` 来开启。下一个 major 版本中，它会成为 `modern-module` library 的默认值。
+- 在 Node.js 等支持 Node.js 内置模块的目标环境中，产物通过 `createRequire(import.meta.url)` 创建 `require` 函数，用它加载外部依赖。
+- 在其他目标环境中，产物保留 `require()` 调用，需要运行环境提供 `require` 函数。
 
-对于静态 ESM import，Rspack 会像 [`'module'`](#externalstypemodule) 一样渲染 external，生成静态 `import` 语句。对于动态 `import()`，Rspack 会像 [`'module-import'`](#externalstypemodule-import) 一样渲染 external，生成 `import()`。
-
-对于 CommonJS `require()`，Rspack 会根据 target 选择 CommonJS external 变体。Node-like target 会像 [`'node-commonjs'`](#externalstypenode-commonjs) 一样渲染 external，在生成的 ESM 产物中通过 `createRequire` 构造 `require` 函数。其他 target 会像 [`'commonjs'`](#externalstypecommonjs) 一样渲染 external，保留裸 `require()` 调用。
-
-**示例**
+使用 [`output.library.type: 'modern-module'`](/config/output#type-modern-module) 构建 ESM 库时，`externalsType` 默认为 `'module-import'`。如果需要上述 `require()` 行为，请显式设置 `externalsType: 'modern-module'`。
 
 ```js title="src/index.js"
 import { readFile } from 'node:fs/promises';
@@ -695,7 +659,7 @@ export default {
 };
 ```
 
-因为这个示例的 target 是 Node.js，生成的 ESM 产物会保留静态 import 为 `import` 语句，保留动态 import 为 `import()`，并通过 `createRequire` 渲染 `require()` external：
+在这个 Node.js 示例中，产物使用 `createRequire` 加载 `node:path`：
 
 ```js
 import { createRequire as __rspack_createRequire } from 'node:module';
