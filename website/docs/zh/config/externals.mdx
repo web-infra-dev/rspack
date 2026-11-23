@@ -592,9 +592,9 @@ async function foo() {
 
 ### externalsType['module-import']
 
-`'module-import'` 根据源码中的导入方式加载外部依赖：静态 `import` 在产物中仍是静态导入，动态 `import()` 则在执行到该表达式时才加载依赖。
+`'module-import'` 根据源码中的导入语法选择外部依赖的类型。静态 `import` 使用 [`'module'`](#externalstypemodule) 类型，动态 `import()` 使用 [`'import'`](#externalstypeimport) 类型。
 
-例如，下面的配置将 `react` 和 `react-dom/client` 都列为外部依赖：
+例如，一个 React 组件库可以把 `react` 和 `react-dom/client` 都列为外部依赖。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -606,8 +606,6 @@ export default {
 };
 ```
 
-库入口静态导入了 `react`，只在调用 `renderGreeting` 时才导入 `react-dom/client`：
-
 ```js title="src/index.js"
 import { createElement } from 'react';
 
@@ -617,18 +615,31 @@ export async function renderGreeting(container) {
 }
 ```
 
-在未压缩的产物中，对 `react` 的引用是顶层的 `import { createElement } from 'react'`，对 `react-dom/client` 的引用则是函数内的 `import('react-dom/client')`。
+构建后，`react` 仍通过顶层的 `import` 语句导入。只有调用 `renderGreeting` 时，函数内的 `import('react-dom/client')` 才会执行。
 
-对于 `require()` 等其他引用方式，`'module-import'` 会按 [`'module'`](#externalstypemodule) 类型处理。要为特定请求选择其他类型，可以使用 [`externals` 函数](#function)。
+对于 `require()` 等其他引用方式，`'module-import'` 默认按 `'module'` 处理。要根据源码的引用方式为同一个依赖选择不同类型，可以在 [`externals` 函数](#function)中读取 `dependencyType`。例如，下面的 Node.js 配置让 `require('react')` 使用 [`'node-commonjs'`](#externalstypenode-commonjs)，而 `import` 和 `import()` 仍按 `'module-import'` 处理。
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  output: { module: true },
+  externalsType: 'module-import',
+  externals: ({ request, dependencyType }) => {
+    if (request === 'react') {
+      return dependencyType === 'commonjs' ? 'node-commonjs react' : 'react';
+    }
+  },
+};
+```
 
 ### externalsType['modern-module']
 
-如果 ESM 产物中的外部依赖既有 `import` 导入，也有 CommonJS 的 `require()` 调用，可以使用 `externalsType: 'modern-module'`。它与 [`'module-import'`](#externalstypemodule-import) 一样保留静态和动态导入，还会按目标环境处理 `require()`：
+如果希望在 ESM 产物中保留对外部依赖的 CommonJS `require()` 调用，可以使用 `'modern-module'`。它与 [`'module-import'`](#externalstypemodule-import) 一样保留静态和动态导入，并根据构建目标决定如何生成 `require()` 调用。
 
-- 在 Node.js 等支持 Node.js 内置模块的目标环境中，产物通过 `createRequire(import.meta.url)` 创建 `require` 函数，用它加载外部依赖。
-- 在其他目标环境中，产物保留 `require()` 调用，需要运行环境提供 `require` 函数。
+- 如果目标环境支持 Node.js 内置模块，Rspack 会使用 [`'node-commonjs'`](#externalstypenode-commonjs)，通过 `createRequire(import.meta.url)` 创建 `require` 函数。
+- 对于其他目标环境，Rspack 会使用 [`'commonjs'`](#externalstypecommonjs)，直接保留 `require()` 调用。运行环境需要提供 `require` 函数。
 
-使用 [`output.library.type: 'modern-module'`](/config/output#type-modern-module) 构建 ESM 库时，`externalsType` 默认为 `'module-import'`。如果需要上述 `require()` 行为，请显式设置 `externalsType: 'modern-module'`。
+下面的 Node.js 库用三种方式引用内置模块。
 
 ```js title="src/index.js"
 import { readFile } from 'node:fs/promises';
@@ -646,6 +657,8 @@ export async function loadConfig(file) {
 }
 ```
 
+将 [`output.library.type`](/config/output#type-modern-module) 设为 `'modern-module'` 时，`externalsType` 默认仍是 `'module-import'`。要让这个示例通过 `createRequire` 加载 `node:path`，需要显式设置 `externalsType: 'modern-module'`。
+
 ```js title="rspack.config.mjs"
 export default {
   target: 'node',
@@ -659,7 +672,7 @@ export default {
 };
 ```
 
-在这个 Node.js 示例中，产物使用 `createRequire` 加载 `node:path`：
+生成的 ESM 代码如下（节选）：
 
 ```js
 import { createRequire as __rspack_createRequire } from 'node:module';

@@ -592,9 +592,9 @@ Note that there will be an `import()` statement in the output bundle.
 
 ### externalsType['module-import']
 
-`'module-import'` loads each external dependency according to how the source imports it. A static `import` stays static in the output. A dynamic `import()` loads the dependency when the expression runs.
+With `'module-import'`, Rspack chooses the external type based on the import syntax. It uses the [`'module'`](#externalstypemodule) type for static `import` statements and the [`'import'`](#externalstypeimport) type for dynamic `import()` expressions.
 
-For example, this configuration marks both `react` and `react-dom/client` as external:
+For example, a React component library can mark both `react` and `react-dom/client` as external.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -606,8 +606,6 @@ export default {
 };
 ```
 
-The library entry imports `react` statically and loads `react-dom/client` only when `renderGreeting` is called:
-
 ```js title="src/index.js"
 import { createElement } from 'react';
 
@@ -617,18 +615,31 @@ export async function renderGreeting(container) {
 }
 ```
 
-With minification disabled, `import { createElement } from 'react'` appears at the top level, and `import('react-dom/client')` stays inside the function.
+In the output, `react` is still imported at the top level. The call to `import('react-dom/client')` runs only when someone calls `renderGreeting`.
 
-For other requests, including `require()`, `'module-import'` falls back to [`'module'`](#externalstypemodule). Use an [`externals` function](#function) to select a different type for specific requests.
+For other requests, including `require()`, `'module-import'` falls back to `'module'`. To choose a type based on how the source references a dependency, check `dependencyType` in an [`externals` function](#function). For example, this Node.js configuration uses [`'node-commonjs'`](#externalstypenode-commonjs) for `require('react')` and keeps `'module-import'` for static and dynamic imports of `react`.
+
+```js title="rspack.config.mjs"
+export default {
+  target: 'node',
+  output: { module: true },
+  externalsType: 'module-import',
+  externals: ({ request, dependencyType }) => {
+    if (request === 'react') {
+      return dependencyType === 'commonjs' ? 'node-commonjs react' : 'react';
+    }
+  },
+};
+```
 
 ### externalsType['modern-module']
 
-Use `externalsType: 'modern-module'` when your ESM output needs to load external dependencies with both ESM imports and CommonJS `require()`. Like [`'module-import'`](#externalstypemodule-import), it preserves static and dynamic imports. It also handles `require()` according to the target:
+Use `'modern-module'` to preserve CommonJS `require()` calls to external dependencies in ESM output. Like [`'module-import'`](#externalstypemodule-import), it preserves static and dynamic imports. How it emits `require()` calls depends on the build target.
 
-- For targets that support Node.js built-in modules, the output uses `createRequire(import.meta.url)` to create a `require` function for external dependencies.
-- For other targets, the output keeps the `require()` call. The runtime environment must provide `require`.
+- For targets that support Node.js built-in modules, Rspack uses [`'node-commonjs'`](#externalstypenode-commonjs) and creates a `require` function with `createRequire(import.meta.url)`.
+- For other targets, Rspack uses [`'commonjs'`](#externalstypecommonjs) and emits a plain `require()` call. The runtime environment must provide `require`.
 
-When you build an ESM library with [`output.library.type: 'modern-module'`](/config/output#type-modern-module), `externalsType` defaults to `'module-import'`. Set `externalsType: 'modern-module'` explicitly if you need this `require()` behavior.
+For example, this Node.js library uses all three forms to load built-in modules.
 
 ```js title="src/index.js"
 import { readFile } from 'node:fs/promises';
@@ -646,6 +657,8 @@ export async function loadConfig(file) {
 }
 ```
 
+When [`output.library.type`](/config/output#type-modern-module) is `'modern-module'`, the default `externalsType` is `'module-import'`. Set `externalsType: 'modern-module'` explicitly to load `node:path` with `createRequire` in this example.
+
 ```js title="rspack.config.mjs"
 export default {
   target: 'node',
@@ -659,7 +672,7 @@ export default {
 };
 ```
 
-In this Node.js example, the output uses `createRequire` to load `node:path`:
+The relevant parts of the ESM output look like this:
 
 ```js
 import { createRequire as __rspack_createRequire } from 'node:module';
