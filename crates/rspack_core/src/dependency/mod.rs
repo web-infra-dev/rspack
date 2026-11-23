@@ -65,6 +65,9 @@ pub struct ExportSpec {
   pub from: Option<ModuleGraphConnection>,
   pub from_export: Option<ModuleGraphConnection>,
   pub inlinable: Option<EvaluatedInlinableValue>,
+  /// The export is a fake namespace object of a non-ESM module, whose `default` property is the
+  /// exports object of that module itself.
+  pub default_points_to_self: Option<bool>,
 }
 
 #[derive(Debug)]
@@ -332,6 +335,34 @@ pub fn should_reference_call_receiver(
       exports_info.is_export_provided(exports_info_artifact, names),
       Some(ExportProvided::Provided)
     )
+}
+
+/// A fulfilled import promise observes a namespace's `then` export, even when
+/// the import result is destructured into an empty pattern. A callable `then`
+/// also receives the namespace as its receiver, so keep it intact unless the
+/// export is known to be absent.
+pub fn create_dynamic_import_referenced_exports(
+  referenced_specifiers: &[ReferencedSpecifier],
+  exports_type: ExportsType,
+  exports_info_artifact: &ExportsInfoArtifact,
+  exports_info: &ExportsInfoData,
+) -> Vec<ReferencedExport> {
+  if referenced_specifiers.is_empty()
+    && !matches!(
+      exports_info
+        .get_read_only_export_info(&Atom::from("then"))
+        .provided(),
+      Some(ExportProvided::NotProvided)
+    )
+  {
+    return create_exports_object_referenced();
+  }
+  create_referenced_exports_by_referenced_specifiers(
+    referenced_specifiers,
+    exports_type,
+    exports_info_artifact,
+    exports_info,
+  )
 }
 
 pub fn create_referenced_exports_by_referenced_specifiers(

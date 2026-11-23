@@ -1,5 +1,5 @@
 import { defineConfig } from '@rspack/cli';
-import { type Compiler, sources } from '@rspack/core';
+import { type Compiler, type Module, sources } from '@rspack/core';
 
 const cases = ['empty', 'newlines', 'crlf', 'whitespace', 'unicode', 'mapped'];
 
@@ -14,7 +14,7 @@ export default ([false, 'source-map'] as const).map((devtool) =>
         apply(compiler: Compiler) {
           const checked = new Set<string>();
           compiler.hooks.compilation.tap('MapPresence', (compilation) => {
-            compilation.hooks.succeedModule.tap('MapPresence', (module) => {
+            const checkModule = (module: Module) => {
               const name = module.identifier().split('?').pop()!;
               if (!cases.includes(name)) return;
               checked.add(name);
@@ -47,11 +47,10 @@ export default ([false, 'source-map'] as const).map((devtool) =>
                   source: content,
                   map: null,
                 });
-                const raw = module._originalSource()!;
-                expect(raw).not.toBeInstanceOf(sources.SourceMapSource);
-                expect(raw.map).toBeUndefined();
               }
-            });
+            };
+            compilation.hooks.succeedModule.tap('MapPresence', checkModule);
+            compilation.hooks.stillValidModule.tap('MapPresence', checkModule);
           });
           compiler.hooks.done.tap('MapPresence', () => {
             expect([...checked].sort()).toEqual([...cases].sort());

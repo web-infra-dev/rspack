@@ -1,8 +1,8 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
 import path from 'node:path';
-// Number large enough to exceed engine's max arguments (e.g. ~65536) when
+// Number large enough to exceed engine's max arguments (e.g. ~125000) when
 // spread in push(...data), which would cause "Maximum call stack size exceeded".
-const HUGE_DEPS_COUNT = 1_000_000;
+const HUGE_DEPS_COUNT = 250_000;
 
 export default defineConfig({
   plugins: [

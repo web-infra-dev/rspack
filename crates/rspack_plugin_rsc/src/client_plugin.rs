@@ -105,7 +105,7 @@ fn record_module(
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .get(chunk_ukey)
-    .map(|chunk| {
+    .map_or_default(|chunk| {
       let prefix = &module_loading.prefix;
       chunk
         .files()
@@ -113,8 +113,7 @@ fn record_module(
         .filter(|file| file.ends_with(".css"))
         .map(|file| prefixed_asset_path(prefix, file))
         .collect()
-    })
-    .unwrap_or_default();
+    });
   entry_state.client_modules.insert(
     resource.to_string(),
     ManifestExport {
@@ -760,7 +759,7 @@ async fn after_process_assets(
 }
 
 #[plugin_hook(CompilerFailed for RscClientPlugin)]
-async fn failed(&self, _compilation: &Compilation) -> Result<()> {
-  self.coordinator.failed().await?;
+async fn failed(&self, _compilation: &Compilation, error: &rspack_error::Error) -> Result<()> {
+  self.coordinator.failed(error).await;
   Ok(())
 }

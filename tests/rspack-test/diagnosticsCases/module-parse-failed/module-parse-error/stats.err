@@ -3,7 +3,7 @@ ERROR in ./non-recoverable.js
   ╰─▶   × JavaScript parse error: Invalid character at start of identifier
          ╭────
        1 │ ##$$
-         · ─
+         ·  ─
          ╰────
       
   help: 

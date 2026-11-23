@@ -2371,7 +2371,7 @@ p:not(#my-app-style_module_css-main-paragraph) {
 }
 
 .grid-area3 {
-	grid-area: X some-grid-area / 2 another-grid-area;
+	grid-area: 4 some-grid-area / 2 another-grid-area;
 }
 
 .grid-area4 {
@@ -2404,7 +2404,7 @@ p:not(#my-app-style_module_css-main-paragraph) {
 	grid-row-start: span some-grid-area;
 }
 .grid-row-start6 {
-	grid-row-start: X some-grid-area span;
+	grid-row-start: 5 some-grid-area span;
 }
 
 /* Global values */

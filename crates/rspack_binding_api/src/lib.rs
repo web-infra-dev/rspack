@@ -79,6 +79,7 @@ mod js_helpers;
 mod location;
 mod logging;
 mod module;
+mod module_bridge;
 mod module_graph;
 mod module_graph_connection;
 mod modules;
@@ -162,6 +163,23 @@ pub const EXPECTED_RSPACK_CORE_VERSION: &str = rspack_workspace::rspack_pkg_vers
 
 thread_local! {
   static COMPILER_REFERENCES: RefCell<FxHashMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
+}
+
+pub(crate) fn upgrade_compiler(
+  env: &Env,
+  compiler_id: CompilerId,
+) -> napi::Result<Reference<JsCompiler>> {
+  let weak = COMPILER_REFERENCES.with(|references| references.borrow().get(&compiler_id).cloned());
+  let owner = weak
+    .map(|reference| reference.upgrade(*env))
+    .transpose()?
+    .flatten()
+    .ok_or_else(|| napi::Error::from_reason(format!(
+      "Unable to access compiler with id = {compiler_id:?}. The Compiler has been garbage collected by JavaScript."
+    )))?;
+  // Pin for the active binding call: N-API allocations may otherwise collect the owner
+  // while a native-backed wrapper, which stores only its id, is still reachable.
+  Ok(owner)
 }
 
 pub(crate) fn with_compilation<R>(

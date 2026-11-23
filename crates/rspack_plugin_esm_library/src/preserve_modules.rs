@@ -180,7 +180,7 @@ pub async fn preserve_modules(
     // emits at the right location AND any JS / CSS references to it pick
     // up the new path during code generation.
     if is_asset {
-      let filename = Filename::from(file_path_str.clone());
+      let filename = Filename::from(file_path_str);
       let module_graph = compilation.get_module_graph();
       if let Some(module) = module_graph.module_by_identifier(&module_id)
         && let Some(normal_module) = module.as_normal_module()

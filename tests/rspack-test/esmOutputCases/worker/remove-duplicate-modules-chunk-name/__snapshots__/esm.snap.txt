@@ -11,7 +11,6 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* import */ var node_worker_threads__rspack_import_0 = __webpack_require__(/*! node:worker_threads */ "node:worker_threads");
-/* import */ var node_worker_threads__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(node_worker_threads__rspack_import_0);
 
 
 const namedWorkerModuleMarker = "worker result";
@@ -37,7 +36,6 @@ export const __webpack_modules__ = {
 (__unused_rspack_module, __webpack_exports__, __webpack_require__) {
 __webpack_require__.r(__webpack_exports__);
 /* import */ var node_worker_threads__rspack_import_0 = __webpack_require__(/*! node:worker_threads */ "node:worker_threads");
-/* import */ var node_worker_threads__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(node_worker_threads__rspack_import_0);
 
 
 it("should preserve every duplicated worker entry name", async () => {
@@ -118,18 +116,6 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// webpack/runtime/compat_get_default_export
-(() => {
-// getDefaultExport function for compatibility with non-ESM modules
-__webpack_require__.n = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	__webpack_require__.d(getter, { a: getter });
-	return getter;
-};
-
-})();
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, getters, values) => {
@@ -155,10 +141,7 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 (() => {
 // define __esModule on exports
 __webpack_require__.r = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
+	Object.defineProperties(exports, { [Symbol.toStringTag]: { value: 'Module' }, __esModule: { value: true } });
 };
 })();
 // webpack/runtime/on_chunk_loaded
@@ -178,7 +161,7 @@ __webpack_require__.O = (result, chunkIds, fn, priority) => {
 		var fulfilled = true;
 		for (var j = 0; j < chunkIds.length; j++) {
 			if (
-				(priority & (1 === 0) || notFulfilled >= priority) &&
+				((priority & 1) === 0 || notFulfilled >= priority) &&
 				Object.keys(__webpack_require__.O).every((key) => (__webpack_require__.O[key](chunkIds[j])))
 			) {
 				chunkIds.splice(j--, 1);
@@ -222,7 +205,7 @@ __webpack_require__.O = (result, chunkIds, fn, priority) => {
         if (__webpack_require__.o(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
-        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
+        moduleInstalledChunks[chunkId] = 0;
     }
     __webpack_require__.O();
 };
@@ -279,18 +262,6 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// webpack/runtime/compat_get_default_export
-(() => {
-// getDefaultExport function for compatibility with non-ESM modules
-__webpack_require__.n = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	__webpack_require__.d(getter, { a: getter });
-	return getter;
-};
-
-})();
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, getters, values) => {
@@ -316,10 +287,7 @@ __webpack_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj
 (() => {
 // define __esModule on exports
 __webpack_require__.r = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
+	Object.defineProperties(exports, { [Symbol.toStringTag]: { value: 'Module' }, __esModule: { value: true } });
 };
 })();
 // webpack/runtime/on_chunk_loaded
@@ -339,7 +307,7 @@ __webpack_require__.O = (result, chunkIds, fn, priority) => {
 		var fulfilled = true;
 		for (var j = 0; j < chunkIds.length; j++) {
 			if (
-				(priority & (1 === 0) || notFulfilled >= priority) &&
+				((priority & 1) === 0 || notFulfilled >= priority) &&
 				Object.keys(__webpack_require__.O).every((key) => (__webpack_require__.O[key](chunkIds[j])))
 			) {
 				chunkIds.splice(j--, 1);
@@ -383,7 +351,7 @@ __webpack_require__.O = (result, chunkIds, fn, priority) => {
         if (__webpack_require__.o(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
-        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
+        moduleInstalledChunks[chunkId] = 0;
     }
     __webpack_require__.O();
 };

@@ -90,8 +90,8 @@ export default defineConfig({
               'stable.js',
             ]);
           } else {
-            // Whole-module persistence skips the JSON module's custom parser callback.
-            expect(builtModules).toEqual(['changed.js', 'data.json']);
+            // The unchanged JSON module is restored even with a custom parser.
+            expect(builtModules).toEqual(['changed.js']);
           }
           loaderOptions.builtModules = [];
           compilerIndex++;

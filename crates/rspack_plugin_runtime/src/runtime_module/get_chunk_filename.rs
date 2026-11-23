@@ -17,6 +17,11 @@ use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
 type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
 type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send>;
 
+fn has_dead_concat_prefix(filename: &str) -> bool {
+  // A trailing quoted literal already ensures string concatenation for a leading placeholder.
+  filename.starts_with("\"\" + ") && filename.ends_with('"')
+}
+
 // Collect chunks reachable through async chunk groups without excluding chunks that are also
 // present in an initial group. CSS loading can receive these shared chunk ids from import().
 fn get_chunks_in_async_groups(
@@ -398,6 +403,14 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
       None
     };
 
+    let dynamic_url =
+      dynamic_url.unwrap_or_else(|| format!("chunkId + \".{}\"", self.content_type));
+    let dynamic_url = if has_dead_concat_prefix(&dynamic_url) {
+      &dynamic_url[5..]
+    } else {
+      &dynamic_url
+    };
+
     let mut static_urls = FxIndexMap::default();
     for (filename_template, chunk_ukey) in
       chunk_filenames
@@ -429,7 +442,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         };
         let chunk_runtime = chunk.runtime().as_str();
 
-        let filename = compiled.render_with_path_data(
+        let mut filename = compiled.render_with_path_data(
           PathData::default()
             .chunk_id_optional(chunk_id.as_deref())
             .chunk_name_optional(chunk_name.as_deref())
@@ -455,6 +468,10 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
             _ => None,
           },
         );
+
+        if has_dead_concat_prefix(&filename) {
+          filename.replace_range(..5, "");
+        }
 
         if let Some(chunk_id) = chunk.id() {
           static_urls
@@ -488,7 +505,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                         .iter()
                         .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
                         .join("\n"),
-      "_dynamic_url": dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
+      "_has_static_urls": !static_urls.is_empty(),
+      "_dynamic_url": dynamic_url
     })))?;
 
     Ok(source)

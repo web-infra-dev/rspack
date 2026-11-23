@@ -322,10 +322,13 @@ pub(crate) async fn split(groups: &[CacheGroup], compilation: &mut Compilation) 
       );
 
       if !created {
-        compilation.push_diagnostic(rspack_error::Diagnostic::warn(
-          String::new(),
-          format!("Merge modules into a existing chunk: {chunk_name}. This can cause runtime errors if there are cyclic dependencies"),
-        ));
+        compilation.push_diagnostic(
+          rspack_error::Diagnostic::warn(
+            String::new(),
+            format!("Merge modules into an existing chunk: {chunk_name}. This can cause runtime errors if there are cyclic dependencies"),
+          )
+          .with_title(EsmLibraryPlugin::DIAGNOSTIC_TITLE),
+        );
         continue;
       }
 

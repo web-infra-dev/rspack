@@ -1,4 +1,5 @@
 import type { JsHelpers } from '@rspack/binding';
+import { createModule } from './createModule';
 
 // Internal synchronous binding protocol: fill or patch a target using source
 // indices. Do not retain arguments or invoke callbacks; indices are call-scoped.
@@ -38,6 +39,7 @@ function swapRemoveArrayElements<T>(
 }
 
 export const bindingHelpers = {
+  createModule,
   applyIndexedArrayUpdates,
   swapRemoveArrayElements,
 } satisfies JsHelpers;

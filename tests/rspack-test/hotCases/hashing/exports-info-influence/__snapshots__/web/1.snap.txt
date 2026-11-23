@@ -6,7 +6,7 @@
 ## Asset Files
 - Bundle: bundle.js
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
-- Update: main.LAST_HASH.hot-update.js, size: 1252
+- Update: main.LAST_HASH.hot-update.js, size: 697
 
 ## Manifest
 
@@ -26,7 +26,6 @@
 - ./referencer.js
 
 #### Changed Runtime Modules
-- webpack/runtime/compat_get_default_export
 - webpack/runtime/get_full_hash
 
 #### Changed Content
@@ -39,9 +38,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* import */ var _module__rspack_import_0 = __webpack_require__("./module.js");
-/* import */ var _module__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_module__rspack_import_0);
 /* import */ var external__rspack_import_1 = __webpack_require__("external");
-/* import */ var external__rspack_import_1_default = /*#__PURE__*/__webpack_require__.n(external__rspack_import_1);
 
 
 /* export default */ const __rspack_default_export = (`${_module__rspack_import_0.test} ${external__rspack_import_1.test}`);
@@ -50,18 +47,6 @@ __webpack_require__.d(__webpack_exports__, {
 },
 
 },function(__webpack_require__) {
-// webpack/runtime/compat_get_default_export
-(() => {
-// getDefaultExport function for compatibility with non-ESM modules
-__webpack_require__.n = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	__webpack_require__.d(getter, { a: getter });
-	return getter;
-};
-
-})();
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")

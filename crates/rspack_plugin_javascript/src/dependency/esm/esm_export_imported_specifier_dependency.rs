@@ -11,19 +11,19 @@ use rspack_core::{
   DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
   DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, DetermineExportAssignmentsKey,
-  ESMExportBinding, ESMExportInitFragment, ExportMode, ExportModeDynamicReexport,
+  ESMExportBinding, ESMExportInitFragment, ExportInfoData, ExportMode, ExportModeDynamicReexport,
   ExportModeEmptyStar, ExportModeFakeNamespaceObject, ExportModeNormalReexport,
   ExportModeReexportDynamicDefault, ExportModeReexportNamedDefault,
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
-  ExportsInfoData, ExportsOfExportsSpec, ExportsSpec, ExportsType, ForwardId, ImportAttributes,
-  ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions,
-  LazyRole, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  NormalInitFragment, NormalReexportItem, ReferencedExport, ResourceIdentifier, RuntimeCondition,
-  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, StarReexportsInfo, TemplateContext,
-  TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
-  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
-  get_runtime_key, get_terminal_binding, property_access, property_name,
+  ExportsOfExportsSpec, ExportsSpec, ExportsType, ForwardId, ImportAttributes, ImportPhase,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions, LazyRole,
+  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment,
+  NormalReexportItem, ReferencedExport, ResourceIdentifier, RuntimeCondition, RuntimeGlobals,
+  RuntimeSpec, SideEffectsStateArtifact, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
+  create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
+  get_terminal_binding, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
@@ -132,7 +132,7 @@ impl ESMExportImportedSpecifierDependency {
 
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
     mg.get_dep_meta_if_existing(&self.id)
-      .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
+      .map_or(self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
   pub fn get_mode(
@@ -164,7 +164,8 @@ impl ESMExportImportedSpecifierDependency {
     let name = self.name.clone();
     let Some(imported_module_identifier) = module_graph.module_identifier_by_dependency_id(id)
     else {
-      return if module_graph.is_dependency_deferred(id) {
+      // if it's not exists in module graph and has the lazy mark, then it's never picked up to make the module
+      return if module_graph.is_lazy_dependency(&self.id) {
         ExportMode::LazyMake
       } else {
         ExportMode::Missing
@@ -270,7 +271,7 @@ impl ESMExportImportedSpecifierDependency {
       module_graph_cache,
       exports_info_artifact,
       runtime,
-      exports_info,
+      parent_module,
       imported_module_identifier,
     );
 
@@ -320,9 +321,10 @@ impl ESMExportImportedSpecifierDependency {
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
     runtime: Option<&RuntimeSpec>,
-    exports_info: &ExportsInfoData,
+    parent_module: &ModuleIdentifier,
     imported_module_identifier: &ModuleIdentifier,
   ) -> StarReexportsInfo {
+    let exports_info = exports_info_artifact.get_exports_info_data(parent_module);
     let imported_exports_info =
       exports_info_artifact.get_exports_info_data(imported_module_identifier);
 
@@ -395,6 +397,15 @@ impl ESMExportImportedSpecifierDependency {
           continue;
         }
 
+        if is_star_reexport_back_to_parent(
+          module_graph,
+          exports_info_artifact,
+          imported_export_info,
+          parent_module,
+        ) {
+          continue;
+        }
+
         exports.insert(export_name.clone());
         if matches!(
           imported_export_info.provided(),
@@ -429,6 +440,15 @@ impl ESMExportImportedSpecifierDependency {
             .is_some_and(|hidden_exports| hidden_exports.contains(imported_export_info_name))
         {
           hidden.insert(imported_export_info_name.clone());
+          continue;
+        }
+
+        if is_star_reexport_back_to_parent(
+          module_graph,
+          exports_info_artifact,
+          imported_export_info,
+          parent_module,
+        ) {
           continue;
         }
 
@@ -472,7 +492,13 @@ impl ESMExportImportedSpecifierDependency {
       let (names, dependency_indices) = module_graph_cache.cached_determine_export_assignments(
         DetermineExportAssignmentsKey::All(module_identifier),
         || {
-          determine_export_assignments(module_graph, exports_info_artifact, &all_star_exports, None)
+          determine_export_assignments(
+            module_graph,
+            exports_info_artifact,
+            &module_identifier,
+            &all_star_exports,
+            None,
+          )
         },
       );
 
@@ -491,6 +517,9 @@ impl ESMExportImportedSpecifierDependency {
           determine_export_assignments(
             module_graph,
             exports_info_artifact,
+            module_graph
+              .get_parent_module(&self.id)
+              .expect("should have parent module"),
             other_star_exports,
             Some(self.id),
           )
@@ -706,7 +735,7 @@ impl ESMExportImportedSpecifierDependency {
 
           if checked {
             let key = InitFragmentKey::ESMImport(format!("reexport (checked) {import_var} {name}"));
-            let runtime_condition = if self.weak() {
+            let runtime_condition = if mg.is_lazy_dependency(&self.id) {
               RuntimeCondition::Boolean(false)
             } else if let Some(connection) = mg.connection_by_dependency_id(self.id()) {
               filter_runtime(ctxt.runtime, |r| {
@@ -1193,6 +1222,7 @@ impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
     // module's exports_info, so hash the inline value here to invalidate stale
     // generated reexport code when the target const changes.
     let module_graph = compilation.get_module_graph();
+    module_graph.is_lazy_dependency(&self.id).hash(hasher);
     let ExportMode::NormalReexport(mode) = self.get_mode(
       module_graph,
       runtime,
@@ -1229,6 +1259,13 @@ impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
 
 #[cacheable_dyn]
 impl Dependency for ESMExportImportedSpecifierDependency {
+  fn may_read_default_export(&self, module_graph: &ModuleGraph) -> bool {
+    self
+      .get_ids(module_graph)
+      .first()
+      .is_none_or(|id| id == "default")
+  }
+
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -1328,13 +1365,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
           exports: ExportsOfExportsSpec::Names(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
             name: mode.name,
             export: Some(rspack_core::Nullable::Null),
-            exports: Some(vec![ExportNameOrSpec::ExportSpec(ExportSpec {
-              name: "default".into(),
-              can_mangle: Some(false),
-              from: from.cloned(),
-              export: Some(rspack_core::Nullable::Null),
-              ..Default::default()
-            })]),
+            default_points_to_self: Some(true),
             from: from.cloned(),
             ..Default::default()
           })]),
@@ -1421,20 +1452,6 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
-  ) -> Option<Vec<Diagnostic>> {
-    self.get_diagnostics_with_context(
-      module_graph,
-      module_graph_cache,
-      exports_info_artifact,
-      &DependencyDiagnosticsContext::default(),
-    )
-  }
-
-  fn get_diagnostics_with_context(
-    &self,
-    module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
-    exports_info_artifact: &ExportsInfoArtifact,
     diagnostics_context: &DependencyDiagnosticsContext,
   ) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
@@ -1517,7 +1534,6 @@ impl Dependency for ESMExportImportedSpecifierDependency {
           &mut referenced_exports,
           vec![],
           Some(partial_namespace_export_info.as_data(exports_info_artifact)),
-          matches!(mode, ExportMode::ReexportFakeNamespaceObject(_)),
           &mut Default::default(),
         );
         referenced_exports
@@ -1537,7 +1553,6 @@ impl Dependency for ESMExportImportedSpecifierDependency {
             &mut referenced_exports,
             item.ids.iter().collect(),
             Some(item.export_info.as_data(exports_info_artifact)),
-            false,
             &mut Default::default(),
           );
         }
@@ -1556,7 +1571,7 @@ impl Dependency for ESMExportImportedSpecifierDependency {
   fn forward_id(&self) -> ForwardId {
     let is_star_export = self.name.is_none();
     if is_star_export {
-      ForwardId::StarReexport
+      ForwardId::All
     } else if let Some(id) = self.ids.first() {
       ForwardId::Id(id.clone())
     } else {
@@ -1607,10 +1622,50 @@ impl From<Option<UsedName>> for ValueKey {
 
 impl AsContextDependency for ESMExportImportedSpecifierDependency {}
 
+/// A star branch that resolves back to the same (module, name) cannot supply that
+/// binding. Leave the name available for a sibling star export.
+fn is_star_reexport_back_to_parent(
+  module_graph: &ModuleGraph,
+  exports_info_artifact: &ExportsInfoArtifact,
+  export_info: &ExportInfoData,
+  parent_module: &ModuleIdentifier,
+) -> bool {
+  let mut current = export_info;
+  let mut visited = HashSet::default();
+  while current.target_is_set() {
+    // Follow one hop at a time, as in webpack's isStarReexportBackToParent.
+    let targets = current.get_max_target();
+    let Some(target) = targets.values().next() else {
+      break;
+    };
+    let Some(module) = target
+      .dependency
+      .as_ref()
+      .and_then(|dep| module_graph.module_identifier_by_dependency_id(dep))
+    else {
+      break;
+    };
+    let Some([name, rest @ ..]) = target.export.as_deref() else {
+      break;
+    };
+    if module == parent_module && rest.is_empty() && Some(name) == export_info.name() {
+      return true;
+    }
+    current = exports_info_artifact
+      .get_exports_info_data(module)
+      .get_read_only_export_info(name);
+    if !current.target_is_set() || !visited.insert(current.id()) {
+      break;
+    }
+  }
+  false
+}
+
 /// return (names, dependency_indices)
 fn determine_export_assignments(
   module_graph: &ModuleGraph,
   exports_info_artifact: &ExportsInfoArtifact,
+  parent_module: &ModuleIdentifier,
   dependencies: &[DependencyId],
   additional_dependency: Option<DependencyId>,
 ) -> (Vec<Atom>, Vec<usize>) {
@@ -1643,6 +1698,13 @@ fn determine_export_assignments(
         let export_info_name = export_info.name().expect("export name is empty");
         if matches!(export_info.provided(), Some(ExportProvided::Provided))
           && export_info_name != "default"
+          && !names.contains(export_info_name)
+          && !is_star_reexport_back_to_parent(
+            module_graph,
+            exports_info_artifact,
+            export_info,
+            parent_module,
+          )
         {
           names.insert(export_info_name.clone());
         }

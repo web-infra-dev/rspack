@@ -20,8 +20,8 @@ use super::is_css_module;
 use crate::{
   css_syntax::{normalize_url, unescape_identifier},
   dependency::{
-    CssIcssExportDependency, CssIcssImportDependency, CssIcssReference, CssIcssSymbolDependency,
-    CssIcssSymbolKind, CssImportDependency, CssUrlDependency,
+    CssExportKind, CssIcssExportDependency, CssIcssImportDependency, CssIcssReference,
+    CssIcssSymbolDependency, CssIcssSymbolKind, CssImportDependency, CssUrlDependency,
   },
   utils::{
     LocalIdentOptions, css_parsing_traceable_error, export_locals_convention,
@@ -59,6 +59,8 @@ pub(super) struct CssModuleParser<'context> {
   pending_local_composes: FxHashMap<SmolStr, DependencyId>,
   // Reuses literal definitions for names composed with `from global`.
   global_composes: FxHashMap<SmolStr, DependencyId>,
+  // Reuses compose wrappers for imported bindings that also have a matching ImportedSelector.
+  imported_selector_composes: FxHashMap<(DependencyId, DependencyId), DependencyId>,
   // Current @value/:import/:export bindings, including whether a name can
   // interpolate individual identifiers or only replace a whole value.
   icss_definitions: FxHashMap<SmolStr, IcssBinding>,
@@ -84,6 +86,7 @@ enum IcssInterpolation {
 struct IcssBinding {
   dependency: DependencyId,
   interpolation: IcssInterpolation,
+  import: Option<DependencyId>,
 }
 
 /// Orders imported CSS modules for the cascade before chunk graph construction.
@@ -167,8 +170,7 @@ impl ComposesOrderState {
     dependencies_in_source_order.sort_by_key(|(_, source_order)| *source_order);
     let base_source_order = dependencies_in_source_order
       .first()
-      .map(|(_, source_order)| *source_order)
-      .unwrap_or_default();
+      .map_or_default(|(_, source_order)| *source_order);
     let dependencies_in_source_order = dependencies_in_source_order
       .into_iter()
       .map(|(dependency_id, _)| dependency_id)
@@ -219,10 +221,6 @@ impl LocalCssIdentDeclarations {
 
   fn has_function(&self, name: &str) -> bool {
     self.functions.contains(&normalize_ident_name(name))
-  }
-
-  fn has_grid(&self, name: &str) -> bool {
-    self.grids.contains(&normalize_ident_name(name))
   }
 }
 
@@ -306,6 +304,7 @@ impl<'context> CssModuleParser<'context> {
       css_local_names: Default::default(),
       pending_local_composes: Default::default(),
       global_composes: Default::default(),
+      imported_selector_composes: Default::default(),
       icss_definitions: Default::default(),
       current_icss_import_from: None,
       composes_order: Default::default(),
@@ -341,6 +340,10 @@ impl<'context> CssModuleParser<'context> {
     }
 
     let css_build_info = self.parse_context.build_info.css.get_or_insert_default();
+    css_build_info.exports_convention = self
+      .generator_options
+      .exports_convention
+      .unwrap_or_default();
     css_build_info.exports = self.css_exports;
     css_build_info.local_names = self.css_local_names;
     css_build_info.has_charset = self.has_charset;
@@ -558,7 +561,7 @@ impl<'context> CssModuleParser<'context> {
       | css_module_lexer::Dependency::LocalId { name, range, .. } => {
         self.reset_current_composes_rule();
         let (_prefix, name) = name.split_at(1);
-        self.handle_local_ident_declaration(name, range.start + 1, range.end)
+        self.handle_local_class_or_id_declaration(name, range.start + 1, range.end)
       }
       css_module_lexer::Dependency::LocalKeyframes { name, range, .. } => self
         .handle_optional_local_ident_usage(
@@ -619,7 +622,11 @@ impl<'context> CssModuleParser<'context> {
         }
       }
       css_module_lexer::Dependency::ICSSSymbol { name, range } => {
-        self.handle_icss_symbol(name, *range);
+        self.add_icss_symbol(name, *range, CssIcssSymbolKind::IcssReference);
+        Ok(())
+      }
+      css_module_lexer::Dependency::ICSSSelectorSymbol { name, range } => {
+        self.add_icss_symbol(name, *range, CssIcssSymbolKind::IcssSelectorReference);
         Ok(())
       }
       css_module_lexer::Dependency::LocalCounterStyle { name, range, .. }
@@ -651,12 +658,9 @@ impl<'context> CssModuleParser<'context> {
       css_module_lexer::Dependency::LocalFunctionDecl { name, range, .. } => {
         self.handle_optional_local_dashed_ident_declaration(self.function(), name, *range)
       }
-      css_module_lexer::Dependency::LocalGrid { name, range, .. } => self
-        .handle_optional_local_ident_usage(
-          self.grid() && local_css_ident_declarations.has_grid(name),
-          name,
-          *range,
-        ),
+      css_module_lexer::Dependency::LocalGrid { name, range, .. } => {
+        self.handle_local_grid_usage(name, *range, &local_css_ident_declarations.grids)
+      }
       css_module_lexer::Dependency::LocalGridDecl { name, range, .. } => {
         self.handle_optional_local_ident_declaration(self.grid(), name, *range)
       }
@@ -806,13 +810,12 @@ impl<'context> CssModuleParser<'context> {
       .build_info
       .css
       .as_deref()
-      .map(|css| {
+      .map_or_default(|css| {
         (
           css.inherited_render_conditions.clone(),
           css.render_condition.clone(),
         )
-      })
-      .unwrap_or_default();
+      });
 
     if render_condition.is_empty() {
       return inherited_render_conditions;
@@ -837,8 +840,7 @@ impl<'context> CssModuleParser<'context> {
           resource_path: self
             .resource_data()
             .path()
-            .map(|p| p.as_str().to_string())
-            .unwrap_or_default(),
+            .map_or_default(|p| p.as_str().to_string()),
           supports: supports.map(|s| s.to_string()),
           layer: layer.map(|s| s.to_string()),
         };
@@ -926,6 +928,38 @@ impl<'context> CssModuleParser<'context> {
     self.add_local_symbol(name.as_ref(), range, LocalCssIdentKind::Ident)
   }
 
+  fn handle_local_grid_usage(
+    &mut self,
+    name: &str,
+    range: css_module_lexer::Range,
+    areas: &FxHashSet<SmolStr>,
+  ) -> Result<()> {
+    if !self.grid() {
+      return Ok(());
+    }
+    let name = unescape_identifier(name);
+    if areas.contains(name.as_ref()) {
+      return self.add_local_symbol(name.as_ref(), range, LocalCssIdentKind::Ident);
+    }
+    let Some((area, suffix)) = name.rsplit_once('-') else {
+      return Ok(());
+    };
+    let kind = match suffix {
+      "start" => CssIcssSymbolKind::LocalGridStart,
+      "end" => CssIcssSymbolKind::LocalGridEnd,
+      _ => return Ok(()),
+    };
+    if areas.contains(area) {
+      let target = self.ensure_local_definition(area, LocalCssIdentKind::Ident, false);
+      self.add_dependency(CssIcssSymbolDependency::new(
+        target,
+        (range.start, range.end).into(),
+        kind,
+      ));
+    }
+    Ok(())
+  }
+
   fn handle_optional_local_ident_usage(
     &mut self,
     enabled: bool,
@@ -940,6 +974,30 @@ impl<'context> CssModuleParser<'context> {
 
   fn handle_local_ident_declaration(&mut self, name: &str, start: u32, end: u32) -> Result<()> {
     let name = unescape_identifier(name);
+    self.add_local_declaration(name.as_ref(), (start, end).into(), LocalCssIdentKind::Ident)
+  }
+
+  fn handle_local_class_or_id_declaration(
+    &mut self,
+    name: &str,
+    start: u32,
+    end: u32,
+  ) -> Result<()> {
+    let name = unescape_identifier(name);
+    if let Some(import) = self
+      .icss_definitions
+      .get(name.as_ref())
+      .filter(|binding| matches!(binding.interpolation, IcssInterpolation::Identifier))
+      .and_then(|binding| binding.import)
+    {
+      let id = self.ensure_imported_selector_definition(name.as_ref(), import);
+      self.add_dependency(CssIcssSymbolDependency::new(
+        id,
+        (start, end).into(),
+        CssIcssSymbolKind::LocalDeclaration,
+      ));
+      return Ok(());
+    }
     self.add_local_declaration(name.as_ref(), (start, end).into(), LocalCssIdentKind::Ident)
   }
 
@@ -1112,11 +1170,19 @@ impl<'context> CssModuleParser<'context> {
     declared: bool,
   ) -> DependencyId {
     let existing = match kind {
-      LocalCssIdentKind::Ident => self.local_ident_definitions.get(name),
-      LocalCssIdentKind::DashedIdent => self.local_dashed_ident_definitions.get(name),
+      LocalCssIdentKind::Ident => self
+        .local_ident_definitions
+        .get(name)
+        .copied()
+        .filter(|id| {
+          self
+            .definition(*id)
+            .is_some_and(|dep| dep.kind == CssExportKind::LocalIdent)
+        }),
+      LocalCssIdentKind::DashedIdent => self.local_dashed_ident_definitions.get(name).copied(),
     };
     let id = if let Some(id) = existing {
-      *id
+      id
     } else {
       let ident = self.get_local_ident_options().get_local_ident(name);
       let ident = match kind {
@@ -1125,11 +1191,15 @@ impl<'context> CssModuleParser<'context> {
           format!("--{}", ident.strip_prefix("_--").unwrap_or(&ident))
         }
       };
+      let export_kind = match kind {
+        LocalCssIdentKind::Ident => CssExportKind::LocalIdent,
+        LocalCssIdentKind::DashedIdent => CssExportKind::LocalDashedIdent,
+      };
       let id = self.add_dependency(CssIcssExportDependency::new(
         name.into(),
         ident.into(),
         vec![],
-        true,
+        export_kind,
         None,
       ));
       match kind {
@@ -1179,7 +1249,7 @@ impl<'context> CssModuleParser<'context> {
               range: (0, 0).into(),
               dependency_id: previous,
             }],
-            false,
+            CssExportKind::Value,
             Some(previous_definition.can_mangle.unwrap_or(true)),
           );
           export.composes.push(id);
@@ -1193,6 +1263,158 @@ impl<'context> CssModuleParser<'context> {
       self.css_exports.insert(alias.into(), export);
     }
     id
+  }
+
+  fn definition_exports_import(&self, root: DependencyId, target_import: DependencyId) -> bool {
+    let mut seen = FxHashSet::default();
+    let mut stack = vec![root];
+    while let Some(id) = stack.pop() {
+      if !seen.insert(id) {
+        continue;
+      }
+      if id == target_import {
+        return true;
+      }
+      let Some(definition) = self.definition(id) else {
+        continue;
+      };
+      if matches!(
+        definition.kind,
+        CssExportKind::ImportedSelector { import }
+          | CssExportKind::ImportedSelectorExport { import }
+          | CssExportKind::ImportedSelectorCompose { import }
+          if import == target_import
+      ) {
+        return true;
+      }
+      stack.extend(definition.composes.iter().copied());
+      if let [reference] = definition.references.as_slice()
+        && reference.range.start == 0
+        && reference.range.end as usize == definition.value.len()
+      {
+        stack.push(reference.dependency_id);
+      }
+    }
+    false
+  }
+
+  fn matching_imported_selector(&self, name: &str, import: DependencyId) -> Option<DependencyId> {
+    let selector_id = self.local_ident_definition(name)?;
+    let dep = self.definition(selector_id)?;
+    matches!(
+      dep.kind,
+      CssExportKind::ImportedSelector {
+        import: existing_import
+      } if existing_import == import
+    )
+    .then_some(selector_id)
+  }
+
+  fn imported_selector_compose_target(
+    &mut self,
+    name: &str,
+    import: DependencyId,
+    binding_dependency: DependencyId,
+    selector_id: DependencyId,
+  ) -> DependencyId {
+    if let Some(&id) = self
+      .imported_selector_composes
+      .get(&(binding_dependency, selector_id))
+    {
+      return id;
+    }
+    let mut compose = CssIcssExportDependency::new(
+      name.into(),
+      "".into(),
+      vec![CssIcssReference {
+        range: (0, 0).into(),
+        dependency_id: binding_dependency,
+      }],
+      CssExportKind::ImportedSelectorCompose { import },
+      None,
+    );
+    compose.composes.push(selector_id);
+    let id = self.add_dependency(compose);
+    self
+      .imported_selector_composes
+      .insert((binding_dependency, selector_id), id);
+    id
+  }
+
+  fn ensure_imported_selector_definition(
+    &mut self,
+    name: &str,
+    import: DependencyId,
+  ) -> DependencyId {
+    let selector_id = if let Some(existing_id) = self.matching_imported_selector(name, import) {
+      existing_id
+    } else {
+      let ident = self.get_local_ident_options().get_local_ident(name);
+      let id = self.add_dependency(CssIcssExportDependency::new(
+        name.into(),
+        ident.into(),
+        vec![],
+        CssExportKind::ImportedSelector { import },
+        Some(true),
+      ));
+      self.local_ident_definitions.insert(name.into(), id);
+      self.css_local_names.entry(name.into()).or_insert(id);
+      id
+    };
+
+    let mut appended = FxHashMap::default();
+    for alias in export_locals_convention(name, self.convention()) {
+      let custom_export = self
+        .css_exports
+        .get(alias.as_str())
+        .and_then(|id| self.definition(*id))
+        .is_some_and(|dep| {
+          dep.value.starts_with("--")
+            || dep
+              .value
+              .strip_prefix("_--")
+              .is_some_and(is_custom_property_name)
+        });
+      if custom_export {
+        continue;
+      }
+      let export = if let Some(previous) = self.css_exports.get(alias.as_str()).copied() {
+        if self.contains_local_definition(previous, selector_id) {
+          continue;
+        }
+        let previous_definition = self
+          .definition(previous)
+          .expect("CSS export definition should exist");
+        let wrapper_kind = if self.definition_exports_import(previous, import) {
+          CssExportKind::ImportedSelectorExport { import }
+        } else {
+          CssExportKind::Value
+        };
+        if let Some(export) = appended.get(&previous) {
+          *export
+        } else {
+          let mut export = CssIcssExportDependency::new(
+            name.into(),
+            "".into(),
+            vec![CssIcssReference {
+              range: (0, 0).into(),
+              dependency_id: previous,
+            }],
+            wrapper_kind,
+            Some(previous_definition.can_mangle.unwrap_or(true)),
+          );
+          export.composes.push(selector_id);
+          let export = self.add_dependency(export);
+          appended.insert(previous, export);
+          export
+        }
+      } else {
+        selector_id
+      };
+      self.css_exports.insert(alias.into(), export);
+    }
+
+    selector_id
   }
 
   fn handle_composes<'source>(
@@ -1239,19 +1461,34 @@ impl<'context> CssModuleParser<'context> {
             name.as_ref().into(),
             name.as_ref().into(),
             vec![],
-            false,
+            CssExportKind::Value,
             None,
           ));
           self.global_composes.insert(name.as_ref().into(), id);
           id
         }
-      } else if let Some(binding) = self.icss_definitions.get(name.as_ref()) {
+      } else if let Some((binding_dependency, binding_import)) = self
+        .icss_definitions
+        .get(name.as_ref())
+        .map(|binding| (binding.dependency, binding.import))
+      {
         // A local @value can name a local class; follow that definition without
         // copying its value or building a synthetic module request.
-        self
-          .literal_definition(binding.dependency)
-          .and_then(|value| self.local_ident_definition(value))
-          .unwrap_or(binding.dependency)
+        if let Some(import) = binding_import
+          && let Some(selector_id) = self.matching_imported_selector(name.as_ref(), import)
+        {
+          self.imported_selector_compose_target(
+            name.as_ref(),
+            import,
+            binding_dependency,
+            selector_id,
+          )
+        } else {
+          self
+            .literal_definition(binding_dependency)
+            .and_then(|value| self.local_ident_definition(value))
+            .unwrap_or(binding_dependency)
+        }
       } else if let Some(id) = self.local_ident_definition(name.as_ref()) {
         id
       } else {
@@ -1280,13 +1517,27 @@ impl<'context> CssModuleParser<'context> {
     let mut local_targets = FxHashMap::default();
     for (name, placeholder) in std::mem::take(&mut self.pending_local_composes) {
       let target = if let Some(id) = self.local_ident_definition(&name) {
-        id
+        if let Some((binding_dependency, Some(import))) = self
+          .icss_definitions
+          .get(&name)
+          .map(|binding| (binding.dependency, binding.import))
+          && self.matching_imported_selector(&name, import) == Some(id)
+        {
+          self.imported_selector_compose_target(&name, import, binding_dependency, id)
+        } else {
+          id
+        }
+      } else if let Some(binding) = self.icss_definitions.get(&name) {
+        self
+          .literal_definition(binding.dependency)
+          .and_then(|value| self.local_ident_definition(value))
+          .unwrap_or(binding.dependency)
       } else {
         self.add_dependency(CssIcssExportDependency::new(
           name.clone(),
           name,
           vec![],
-          false,
+          CssExportKind::Value,
           None,
         ))
       };
@@ -1341,12 +1592,16 @@ impl<'context> CssModuleParser<'context> {
     is_at_value: bool,
     identifiers: &[css_module_lexer::Range],
   ) {
+    let import = self
+      .icss_definitions
+      .get(value)
+      .and_then(|binding| binding.import);
     let references = self.icss_references(value, identifiers);
     let id = self.add_dependency(CssIcssExportDependency::new(
       prop.into(),
       value.into(),
       references,
-      false,
+      CssExportKind::Value,
       Some(false),
     ));
     self.bind_icss(
@@ -1357,16 +1612,24 @@ impl<'context> CssModuleParser<'context> {
       } else {
         IcssInterpolation::WholeValue
       },
+      import,
     );
     self.index_definition(prop, id);
   }
 
-  fn bind_icss(&mut self, name: &str, dependency: DependencyId, interpolation: IcssInterpolation) {
+  fn bind_icss(
+    &mut self,
+    name: &str,
+    dependency: DependencyId,
+    interpolation: IcssInterpolation,
+    import: Option<DependencyId>,
+  ) {
     self
       .icss_definitions
       .entry(name.into())
       .and_modify(|binding| {
         binding.dependency = dependency;
+        binding.import = import;
         // Once introduced by @value or :import, the name remains eligible for
         // interpolation even when a later :export replaces its value.
         if matches!(interpolation, IcssInterpolation::Identifier) {
@@ -1376,6 +1639,7 @@ impl<'context> CssModuleParser<'context> {
       .or_insert(IcssBinding {
         dependency,
         interpolation,
+        import,
       });
   }
 
@@ -1390,9 +1654,9 @@ impl<'context> CssModuleParser<'context> {
     let dep = CssIcssImportDependency::new(request, value.into(), prop.into(), (0, 0).into());
     let id = *dep.id();
     self.add_dependency(dep);
-    self.bind_icss(prop, id, IcssInterpolation::Identifier);
+    self.bind_icss(prop, id, IcssInterpolation::Identifier, Some(id));
     if let Some(name) = prop.strip_prefix("--") {
-      self.bind_icss(name, id, IcssInterpolation::WholeValue);
+      self.bind_icss(name, id, IcssInterpolation::WholeValue, None);
       let export = self.add_dependency(CssIcssExportDependency::new(
         name.into(),
         "".into(),
@@ -1400,21 +1664,26 @@ impl<'context> CssModuleParser<'context> {
           range: (0, 0).into(),
           dependency_id: id,
         }],
-        false,
+        CssExportKind::Value,
         None,
       ));
       self.index_definition(name, export);
     }
   }
 
-  fn handle_icss_symbol(&mut self, name: &str, range: css_module_lexer::Range) {
+  fn add_icss_symbol(
+    &mut self,
+    name: &str,
+    range: css_module_lexer::Range,
+    kind: CssIcssSymbolKind,
+  ) {
     let Some(binding) = self.icss_definitions.get(name) else {
       return;
     };
     self.add_dependency(CssIcssSymbolDependency::new(
       binding.dependency,
       (range.start, range.end).into(),
-      CssIcssSymbolKind::IcssReference,
+      kind,
     ));
   }
 

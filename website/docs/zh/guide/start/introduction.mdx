@@ -1,127 +1,55 @@
 ---
-description: 'Rspack 介绍指南，涵盖为什么要做 Rspack、当前状态及与其他构建工具的对比等核心内容，并提供实践建议。'
+description: '了解 Rspack 的特点以及 Rstack 工具链。'
 ---
-
-import compare from '../../../public/compare.png';
-import rspackAudio from '../../../public/rspack.mp3';
-
-<audio id="rspack-audio">
-  <source src={rspackAudio} type="audio/mpeg"></source>
-</audio>
 
 # 介绍
 
-<div>
-  <span>Rspack（读音为 `/'ɑrespæk/`,</span>
-  <button
-    style={{
-      border: 'none',
-      padding: '3px',
-      verticalAlign: 'middle',
-      display: 'inline',
-    }}
-    id="play-rspack-audio"
-    onClick={() => {
-      document.getElementById('rspack-audio').play();
-    }}
-  >
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="16"
-      height="16"
-      viewBox="0 0 32 32"
-    >
-      <path
-        fill="currentColor"
-        d="m27.16 8.08l-1.53 1.29a10 10 0 0 1-.29 13.23l1.47 1.4a12 12 0 0 0 .35-15.88Z"
-      />
-      <path
-        fill="currentColor"
-        d="M21.58 12a6 6 0 0 1-.18 7.94l1.47 1.36a8 8 0 0 0 .23-10.59zM18 30a1 1 0 0 1-.71-.3L9.67 22H3a1 1 0 0 1-1-1V11a1 1 0 0 1 1-1h6.67l7.62-7.7a1 1 0 0 1 1.41 0a1 1 0 0 1 .3.7v26a1 1 0 0 1-1 1zM4 20h6.08a1 1 0 0 1 .71.3L17 26.57V5.43l-6.21 6.27a1 1 0 0 1-.71.3H4z"
-      />
-    </svg>
-  </button>
-  <p style={{ display: 'inline', lineHeight: '1.75rem' }}>
-    <span>）是一个基于 Rust 编写的高性能 Web 打包工具，</span>
-    <span>它提供现代化的 webpack API，能够无缝替换 webpack，</span>
-    <span>并提供闪电般的构建速度。</span>
-  </p>
-</div>
+Rspack 是一个基于 Rust 编写的高性能 Web 打包工具，它提供现代化的 webpack API，能够无缝替换 webpack，并提供闪电般的构建速度。
 
-## 为什么要做 Rspack
+## 为什么选择 Rspack \{#why-rspack}
 
-我们创建 Rspack 的原因，是为了解决在字节跳动维护构建工具时遇到的各种性能问题。在字节跳动内部存在许多巨石应用，它们都具有复杂的构建配置，生产环境的构建需要耗费十几分钟，甚至超过半小时；开发环境的耗时也超过十几分钟。
+### 更快的开发反馈 \{#faster-development-feedback}
 
-我们在 webpack 上尝试了多种方法来优化这些巨石应用，但是效果甚微。我们意识到在 webpack 上的优化已经难以为继，必须要从底层改造，才能适应我们的需求。
+Rspack 最初是为解决大型 JavaScript 应用的构建性能问题而设计的。它使用 Rust 编写，通过并行架构充分利用多核 CPU，并结合[增量编译](/config/incremental)、[按需编译](/guide/advanced/lazy-compilation)和[持久化缓存](/config/cache)来提升构建效率。
 
-同时在聆听解决业务各种复杂的构建需求中，我们意识到开发人员对构建工具有以下要求：
+这些改进大幅缩短了开发服务器启动、热更新和生产构建的耗时，使 Rspack 相比 webpack 有十倍以上的性能提升。
 
-- **快速的 Dev 启动性能**。`npm run dev` 是开发者每天需要运行很多次的命令，但大型项目每次都需要等待 10 分钟，这对于工程师来说非常痛苦，因此优化开发模式下启动的时间至关重要。
+### 让代码运行更快 \{#make-your-code-run-faster}
 
-- **高效的 Build 性能**。`npm run build` 经常在 CI/CD 环境中运行，它决定了应用生产交付的效率。有些应用在生产环境中需要 20 到 30 分钟的构建时间，如果能缩短这段时间，对开发流程也将非常有帮助。
+Rspack 致力于生成体积更小、运行更快的构建产物。通过 [tree shaking](/guide/optimization/tree-shaking) 和代码压缩等优化能力，它能够帮助你消除产物中的冗余代码，减小资源体积。
 
-- **灵活的配置**。用户工程的配置非常灵活，不够统一。在之前的尝试中，将 webpack 配置迁移到其他构建工具时，我们遇到了许多问题，因为其他构建工具的配置不如 webpack 灵活。
+Rspack 还提供强大的[代码分割](/guide/optimization/code-splitting)能力，这允许你精细控制模块如何拆分和共享，使 JavaScript 应用达到最佳的加载性能。
 
-- **生产环境的优化能力**。在启用 Rspack 之前，我们尝试了社区内的各种方案，但它们都面临着一定程度的生产环境负优化，例如拆分包不够精细等。因此，优化生产环境的产物是我们不可放弃的功能。
+### 从开箱即用到自由定制 \{#from-ready-to-use-to-fully-customizable}
 
-在确定了这四个需求后，我们调查了社区中的所有技术方案，它们通常都能很好的满足其中个别需求，但没有一个方案能同时满足所有条件。因此，我们决定自研 Rspack。
+Rspack 生态包含了面向不同场景的工具，比如用于应用开发的 [Rsbuild](https://rsbuild.rs)、用于库开发的 [Rslib](https://rslib.rs) 和用于文档站点的 [Rspress](https://rspress.rs)，都能为你提供开箱即用的支持，减少搭建和维护工具链的成本。
 
-## Rspack 当前的状态
+当你需要深入定制时，可以通过 Rspack 的配置、插件和 JavaScript API 调整构建流程，或是开发自己的工具。对于微前端、服务端渲染等进阶场景，Rspack 也提供了[模块联邦](/guide/advanced/module-federation)、[多编译器模式](/api/javascript-api/#multicompiler)、[React Server Components](/guide/integrations/rsc) 等能力来支持。
 
-我们在 2024 年 8 月发布了 [Rspack 1.0 版本](/blog/announcing-1-0)，覆盖了 webpack 绝大多数的 API 和功能，并达到生产稳定。
+### 兼容 webpack 生态 \{#compatible-with-the-webpack-ecosystem}
 
-目前，Rspack 已经兼容了社区几乎所有的 webpack loader。在下载量最高的 50 个 [webpack 插件](/plugins/community-plugin-compatibility) 中，85% 以上都可以在 Rspack 中使用，或是找到替代方案。
+Rspack 兼容 webpack 的绝大部分配置和 API，支持复用已有的 loader 和插件。对于已经使用 webpack 的团队，现有的配置经验和自定义插件仍然可以发挥作用。
 
-:::tip 了解更多
+参考 [webpack 迁移指南](/guide/migration/webpack) 和 [插件兼容性列表](/plugins/community-plugin-compatibility) 了解更多。
 
-- 请参考 [Rspack 博客](/blog/) 来了解 Rspack 的最新动态。
-- 请参考 [功能规划](/misc/planning/roadmap) 来了解 Rspack 的未来规划。
+## 认识 Rstack \{#meet-rstack}
 
-:::
+围绕 Rspack，我们打造了 **Rstack**，一套面向开发者和 AI Agent 的高性能 JavaScript 工具链。它为应用开发、库开发和文档站点搭建等场景提供开箱即用的支持，并将测试、代码检查和构建分析整合到开发流程中，减少工具配置与集成的成本。
 
-## 和其他构建工具的对比
+| 工具                                | 用途                                           |
+| ----------------------------------- | ---------------------------------------------- |
+| [Rsbuild](https://rsbuild.rs/zh/)   | 构建工具，提供默认配置、开发服务器和框架集成   |
+| [Rslib](https://rslib.rs/zh/)       | 库开发工具，用于构建 JavaScript 库和 UI 组件库 |
+| [Rspress](https://rspress.rs/zh/)   | 静态站点生成器，用于创建文档站点等内容网站     |
+| [Rstest](https://rstest.rs/)        | 测试框架，提供单元测试和端到端测试能力         |
+| [Rslint](https://rslint.rs/)        | 代码检查工具，支持类型感知规则                 |
+| [Rsdoctor](https://rsdoctor.rs/zh/) | 构建分析工具，用于分析构建耗时和产物体积       |
+| [Rstack CLI](https://rstack.rs/zh/) | 统一命令行工具，内置 Rstack 的各个工具         |
 
-### 和 webpack 的区别
+这些工具既可以独立使用，也可以相互配合。你可以从当前需求出发选择合适的工具，再随着项目发展逐步引入其他工具。
 
-[webpack](https://webpack.js.org/) 是目前最为成熟的构建工具，有着活跃的生态，灵活的配置和丰富的功能，但是其最为人诟病的是其性能问题，尤其在一些大型项目上，构建花费的时间可能会达到几分钟甚至几十分钟，性能问题是目前 webpack 最大的短板。因此 Rspack 解决的问题核心就是 webpack 的性能问题。
-Rspack 比 webpack 快得益于如下几方面：
+## 下一步 \{#next-steps}
 
-- Rust 语言优势: Rspack 使用 Rust 语言编写， 得益于 Rust 的高性能编译器支持， Rust 编译生成的 Native Code 通常比 JavaScript 性能更为高效。
-- 高度并行的架构: webpack 受限于 JavaScript 对多线程的羸弱支持，导致其很难进行高度的并行化计算，而得益于 Rust 语言的并行化的良好支持， Rspack 采用了高度并行化的架构，如模块图生成，代码生成等阶段，都是采用多线程并行执行，这使得其编译性能随着 CPU 核心数的增长而增长，充分挖掘 CPU 的多核优势。
-- 内置大部分的功能: 事实上 webpack 本身的性能足够高效，但是因为 webpack 本身内置了较少的功能，这使得我们在使用 webpack 做现代 Web App 开发时，通常需要配合很多的 plugin 和 loader 进行使用，而这些 loader 和 plugin 往往是性能的瓶颈，而 Rspack 虽然支持 loader 和 plugin，但是保证绝大部分常用功能都内置在 Rspack 内，从而减小 JS plugin | loader 导致的低性能和通信开销问题。
-- 增量编译: 尽管 Rspack 的全量编译足够高效，但是当项目庞大时，全量的编译仍然难以满足 HMR 的性能要求，因此在 HMR 阶段，我们采用的是更为高效的增量编译策略，从而保证，无论你的项目多大，其 HMR 的开销总是控制在合理范围内。
-
-### 和 Vite 的区别
-
-如果你正在寻找类似 Vite 的开箱即用开发体验，推荐使用 [Rsbuild](https://rsbuild.rs/)，一个由 Rspack 驱动的构建工具。关于 Rsbuild 与 Vite 的差异，可以参考 [Rsbuild 文档](https://rsbuild.rs/zh/guide/start/#vite)。
-
-### 和 esbuild 的区别
-
-我们在内部进行过大规模地将 [esbuild](https://esbuild.github.io/) 作为通用的 Web App 构建工具的实践，但是遇到如下一些问题：
-
-- 缺乏对 JavaScript HMR 和增量编译的良好支持，这导致大型项目中的 HMR 性能较差。
-- 拆包策略也非常原始，难以满足业务复杂多变的拆包优化需求。
-
-### 和 Turbopack 的区别
-
-Rspack 和 Turbopack 都是基于 Rust 实现的 bundler，且都发挥了 Rust 语言的优势。
-
-与 Turbopack 不同的是，Rspack 选择了对 webpack 生态兼容的路线，一方面，这些兼容可能会带来一定的性能开销，但在实际的业务落地中，我们发现对于大部分的应用来说，这些性能开销是可以接受的，另一方面，这些兼容也使得 Rspack 可以更好地与上层的框架和生态进行集成，能够实现业务的渐进式迁移。
-
-### 和 Rollup 的区别
-
-Rollup 以 ES Modules 为基础，同时支持多种输出格式。Rspack 则覆盖更广泛的构建场景，包括 ESM、CJS 等库产物以及应用打包产物，并持续优化构建性能和内存使用。
-
-### 和 Parcel 的区别
-
-Rspack 的整体架构与 [Parcel](https://parceljs.org/) 有很多共同之处。例如都内置支持 CSS 资源，都支持基于 filter 的 transformer。然而，Parcel 更加注重开箱即用的体验，而 Rspack 更加注重为上层框架提供灵活的配置。Parcel 开创性地设计了 Unified Graph 和内置对 HTML 的支持。Rspack 也计划在未来支持这些特性。
-
-## 在线示例
-
-通过 [Rsbuild StackBlitz 示例](https://stackblitz.com/~/github.com/rstackjs/rsbuild-stackblitz-example) 在线体验 Rspack。
-
-## 下一步
-
-请阅读 [快速上手](/guide/start/quick-start) 来开始使用 Rspack。
-
-欢迎到 [GitHub Discussions](https://github.com/web-infra-dev/rspack/discussions) 和 [Discord](https://discord.gg/sYK4QjyZ4V) 来与我们交流。
+- 阅读[快速上手](/guide/start/quick-start)，创建新项目或将现有项目迁移到 Rspack。
+- 访问 [Rstack CLI 文档](https://rstack.rs/)，了解如何通过统一的命令行工具管理开发流程。
+- 加入 [Discord](https://discord.gg/sYK4QjyZ4V) 与社区交流，或关注 [Rspack 的 X 账号](https://x.com/rspack_dev)获取最新动态。

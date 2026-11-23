@@ -102,7 +102,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       attributes,
       resource_identifier,
       loc,
-      statement.is_star_export(ast),
     );
     parser.add_dependency(BoxDependency::new(side_effect_dep));
     Some(true)
@@ -118,6 +117,11 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
   ) -> Option<bool> {
     let ast = parser.ast.ast;
     let statement_span = statement.span(ast);
+    if let Some(binding) = parser.definitions_db.resolve_with_symbol(local_id).1 {
+      parser
+        .dynamic_import_references
+        .record_exported_binding(binding);
+    }
     if parser.javascript_options.is_create_require_enabled() {
       parser
         .created_require_references
@@ -248,7 +252,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
     let dep = ESMExportImportedSpecifierDependency::new(
       source.clone(),
       parser.last_esm_import_order,
-      local_id.map(|id| vec![id.clone()]).unwrap_or_default(),
+      local_id.map_or_default(|id| vec![id.clone()]),
       export_name.cloned(),
       star_exports,
       statement_span.into(),
@@ -309,7 +313,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       .comments
       .leading
       .get(&expr_span.start)
-      .map(|c| {
+      .map_or_default(|c| {
         c.iter()
           .dedup()
           .map(|c| match c.kind {
@@ -318,8 +322,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
           })
           .collect_vec()
           .join("")
-      })
-      .unwrap_or_default();
+      });
     let declaration = match expr_data {
       ExportDefaultDeclarationKindData::Function(f) => {
         let start = f.span(ast).real_lo();

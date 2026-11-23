@@ -15,9 +15,9 @@ import Attribution from '@components/Attribution';
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-使用 `optimization.avoidEntryIife` 可以避免在需要时将入口模块包装在 IIFE 中（在 [rspack_plugin_javascript](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_plugin_javascript/src/plugin/mod.rs) 中搜索 `"This entry needs to be wrapped in an IIFE because"`）。这种方法有助于优化 JavaScript 引擎的性能，并在构建 ESM 库时保证 tree shaking 生效。
+启用 `optimization.avoidEntryIife` 后，Rspack 会尝试省去包裹入口代码的立即执行函数（IIFE）。
 
-目前，`optimization.avoidEntryIife` 只能优化单个入口模块及其他模块共存时的 IIFE。
+当 Rspack 将单个入口模块内联到 chunk 的启动代码中，并且这个 chunk 还包含其他模块时，默认会用 IIFE 隔离入口模块的作用域。启用此选项后，Rspack 可以通过重命名入口模块中可能引起冲突的顶层变量来避免这层包装。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -27,8 +27,12 @@ export default {
 };
 ```
 
-:::warning
-`optimization.avoidEntryIife` 选项可能会对构建性能产生负面影响，如果你更注重构建性能而不是这些优化，请考虑不要启用此选项。
+:::tip 注意事项
+
+- 如果入口模块需要在严格模式下运行，而外层代码未启用严格模式，Rspack 仍会保留 IIFE。在未压缩的产物中，入口代码前的注释会说明保留 IIFE 的原因。
+- 要控制整个 bundle 最外层的 IIFE，请使用 [`output.iife`](/config/output#outputiife)。
+- 分析变量名可能会增加构建时间。
+
 :::
 
 ## optimization.chunkIds
@@ -43,7 +47,7 @@ export default {
 
 设置 Rspack 在生成 Chunk id 时使用的算法。
 
-支持以下字符串值：
+支持以下值：
 
 | 选项               | 描述                                                                                     |
 | ------------------ | ---------------------------------------------------------------------------------------- |
@@ -53,13 +57,26 @@ export default {
 | `'compact-hashed'` | 使用稳定小写字母数字 hash 的最短可用前缀。                                               |
 | `'size'`           | 使用让初始下载包大小更小的数字 id。                                                      |
 | `'total-size'`     | 使用让总下载包大小更小的数字 id。                                                        |
-| `false`            | 禁用 Rspack 内置的 Chunk id 算法，允许自定义插件提供 Chunk id。                          |
+| `false`            | 禁用 Rspack 内置的 Chunk id 算法。                                                       |
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
     chunkIds: 'deterministic',
   },
+};
+```
+
+Rspack 目前不支持通过自定义 JavaScript 插件分配 Chunk ID。将 `chunkIds` 设为 `false` 时，应在 `plugins` 中显式添加 `rspack.ids` 提供的 Chunk ID 插件：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  optimization: {
+    chunkIds: false,
+  },
+  plugins: [new rspack.ids.CompactHashedChunkIdsPlugin()],
 };
 ```
 

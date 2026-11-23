@@ -81,6 +81,9 @@ export default defineConfig({
           ];
           for (const module of normalModules) {
             expect(Object.keys(module).slice(0, 16)).toEqual([
+              'type',
+              ...moduleKeys,
+              'buildMeta',
               'resource',
               'request',
               'userRequest',
@@ -89,9 +92,6 @@ export default defineConfig({
               'loaders',
               'matchResource',
               'error',
-              'type',
-              ...moduleKeys,
-              'buildMeta',
             ]);
             for (const key of ['matchResource', 'error', ...moduleKeys]) {
               expect(Object.hasOwn(module, key)).toBe(true);

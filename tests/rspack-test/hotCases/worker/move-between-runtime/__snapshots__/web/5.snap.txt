@@ -13,20 +13,20 @@
 - Bundle: shared.chunk.CURRENT_HASH.js
 - Bundle: workerA_js.chunk.CURRENT_HASH.js
 - Bundle: workerB_js.chunk.CURRENT_HASH.js
-- Manifest: [runtime of workerA_js].LAST_HASH.hot-update.json, size: 43
-- Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 43
+- Manifest: [runtime of workerA_js].LAST_HASH.hot-update.json, size: 109
+- Manifest: [runtime of workerB_js].LAST_HASH.hot-update.json, size: 109
 - Manifest: main.LAST_HASH.hot-update.json, size: 28
 - Update: main.LAST_HASH.hot-update.js, size: 181
-- Update: shared.LAST_HASH.hot-update.js, size: 906
-- Update: workerA_js.LAST_HASH.hot-update.js, size: 739
-- Update: workerB_js.LAST_HASH.hot-update.js, size: 795
+- Update: shared.LAST_HASH.hot-update.js, size: 866
+- Update: workerA_js.LAST_HASH.hot-update.js, size: 719
+- Update: workerB_js.LAST_HASH.hot-update.js, size: 775
 
 ## Manifest
 
 ### [runtime of workerA_js].LAST_HASH.hot-update.json
 
 ```json
-{"c":["shared","workerA_js"],"r":[],"m":[]}
+{"c":["shared","workerA_js"],"r":[],"m":[],"changed":{"./moduleAs.js":["shared"],"./moduleBs.js":["shared"]}}
 ```
 
 
@@ -34,7 +34,7 @@
 ### [runtime of workerB_js].LAST_HASH.hot-update.json
 
 ```json
-{"c":["shared","workerB_js"],"r":[],"m":[]}
+{"c":["shared","workerB_js"],"r":[],"m":[],"changed":{"./moduleAs.js":["shared"],"./moduleBs.js":["shared"]}}
 ```
 
 
@@ -91,7 +91,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (5);
-if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunkS_js").then(__webpack_require__.bind(__webpack_require__, "./chunkS.js"));
+if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunkS_js").then(() => __webpack_require__("./chunkS.js"));
 
 
 },
@@ -101,7 +101,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (5);
-if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunkS_js").then(__webpack_require__.bind(__webpack_require__, "./chunkS.js"));
+if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunkS_js").then(() => __webpack_require__("./chunkS.js"));
 
 
 },
@@ -130,7 +130,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (5);
-if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
+if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunk_js").then(() => __webpack_require__("./chunk.js"));
 
 
 },
@@ -171,7 +171,7 @@ __webpack_require__.d(__webpack_exports__, {
   "default": () => (__rspack_default_export)
 });
 /* export default */ const __rspack_default_export = (5);
-if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunk_js").then(__webpack_require__.bind(__webpack_require__, "./chunk.js"));
+if (Math.random() < 0) __webpack_require__.e(/* import() */ "chunk_js").then(() => __webpack_require__("./chunk.js"));
 
 
 },

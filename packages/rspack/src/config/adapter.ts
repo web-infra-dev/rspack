@@ -215,6 +215,8 @@ function getRawOutputEnvironment(
     module: Boolean(environment.module),
     optionalChaining: Boolean(environment.optionalChaining),
     logicalAssignment: Boolean(environment.logicalAssignment),
+    spread: Boolean(environment.spread),
+    symbol: Boolean(environment.symbol),
     templateLiteral: Boolean(environment.templateLiteral),
     topLevelAwait: Boolean(environment.topLevelAwait),
     importMetaDirnameAndFilename: Boolean(
@@ -380,6 +382,7 @@ const getRawModuleRule = (
   }
 
   const rawModuleRule: RawModuleRule = {
+    as: rule.as,
     test: rule.test ? getRawRuleSetCondition(rule.test) : undefined,
     include: rule.include ? getRawRuleSetCondition(rule.include) : undefined,
     exclude: rule.exclude ? getRawRuleSetCondition(rule.exclude) : undefined,
@@ -472,9 +475,11 @@ const getRawModuleRule = (
     delete rawModuleRule.resourceQuery;
     delete rawModuleRule.resourceFragment;
 
-    rawModuleRule.rspackResource = getRawRuleSetCondition(
-      (resourceQueryFragment) => {
-        const { path, query, fragment } = parseResource(resourceQueryFragment);
+    rawModuleRule.rspackResource = {
+      type: RawRuleSetConditionType.func,
+      func: (resource: string | ReturnType<typeof parseResource>) => {
+        const { path, query, fragment } =
+          typeof resource === 'string' ? parseResource(resource) : resource;
 
         if (rule.test && !tryMatch(path, rule.test)) {
           return false;
@@ -496,7 +501,7 @@ const getRawModuleRule = (
 
         return true;
       },
-    );
+    };
   }
   return rawModuleRule;
 };
@@ -924,6 +929,7 @@ function getRawCssGeneratorOptions(
 ): RawCssGeneratorOptions {
   return {
     exportsOnly: options.exportsOnly,
+    runtimePublicPath: options.runtimePublicPath,
     esModule: options.esModule,
   };
 }
@@ -939,6 +945,7 @@ function getRawCssAutoOrModuleGeneratorOptions(
     localIdentHashSalt: options.localIdentHashSalt,
     exportsConvention: options.exportsConvention,
     exportsOnly: options.exportsOnly,
+    runtimePublicPath: options.runtimePublicPath,
     esModule: options.esModule,
   };
 }

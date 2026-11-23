@@ -3,7 +3,6 @@ import { container } from '@rspack/core';
 
 export default defineConfig({
   externals: {
-    '@rspack/core': 'node-commonjs @rspack/core',
     './federation.js': 'commonjs ./federation.js',
   },
   plugins: [

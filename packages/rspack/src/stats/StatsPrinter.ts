@@ -150,12 +150,15 @@ export class StatsPrinter {
       return cacheEntry;
     }
     const hooks: T[] = [];
-    const typeParts = type.split('.');
-    for (let i = 0; i < typeParts.length; i++) {
-      const hook = hookMap.get(typeParts.slice(i).join('.'));
+    let index = 0;
+    while (true) {
+      const hook = hookMap.get(type.slice(index));
       if (hook) {
         hooks.push(hook);
       }
+      const dot = type.indexOf('.', index);
+      if (dot === -1) break;
+      index = dot + 1;
     }
     cache.set(type, hooks);
     return hooks;

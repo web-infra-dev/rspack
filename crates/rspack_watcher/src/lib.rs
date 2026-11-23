@@ -4,6 +4,7 @@ mod executor;
 mod ignored;
 mod paths;
 mod scanner;
+mod time;
 mod trigger;
 
 #[cfg(feature = "testing")]
@@ -74,6 +75,13 @@ pub type TimeInfoEntries = Vec<(String, TimeInfoEntry)>;
 
 pub(crate) type EventBatch = Vec<FsEvent>;
 
+pub(crate) struct ResolvedEvents {
+  pub dependencies: EventBatch,
+  pub raw: Option<FsEvent>,
+  pub recovered: EventBatch,
+  pub context_removal: Option<InternedPath>,
+}
+
 /// `EventAggregateHandler` is a trait for handling aggregated file system events.
 /// It provides methods to handle changes and deletions of files, as well as errors.
 /// Implementors of this trait can define custom behavior for these events.
@@ -101,6 +109,11 @@ pub trait EventHandler {
   /// Handle a deletion of a file.
   fn on_delete(&self, _deleted_file: String) -> rspack_error::Result<()> {
     Ok(())
+  }
+
+  /// A removed context entry changes its parent directory's contents.
+  fn on_context_remove(&self, removed_file: String) -> rspack_error::Result<()> {
+    self.on_change(removed_file)
   }
 }
 
@@ -144,6 +157,8 @@ pub struct FsWatcher {
   path_manager: Arc<PathManager>,
   /// Shared with the executor for the same reason: `getInfo()` drains it.
   aggregated: Aggregated,
+  #[cfg(feature = "testing")]
+  executor_trace: testing::ExecutorTrace,
 }
 
 struct FsWatcherInner {
@@ -172,6 +187,8 @@ impl FsWatcher {
     let paused = Arc::new(AtomicBool::new(false));
     let executor = Executor::new(rx, options.aggregate_timeout, Arc::clone(&paused));
     let aggregated = executor.aggregated();
+    #[cfg(feature = "testing")]
+    let executor_trace = executor.trace();
     let scanner = Scanner::new(trigger.backfill_sender(), Arc::clone(&path_manager));
     let trigger = Arc::new(Mutex::new(Some(trigger)));
 
@@ -190,6 +207,8 @@ impl FsWatcher {
       op_tx: spawn_owner_thread(inner),
       path_manager,
       aggregated,
+      #[cfg(feature = "testing")]
+      executor_trace,
     }
   }
 

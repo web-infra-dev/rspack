@@ -33,7 +33,7 @@ Object {
   foo/bar: local-Ident-name.module--foo/bar--zl-pGk,
   foo/bar/baz: local-Ident-name.module--foo/bar/baz--RQxHqX,
   foo\bar: local-Ident-name.module--foo\bar--VpGbWC,
-  foo\bar\baz: local-Ident-name.module--foo\bar\baz--flXsxN,
+  foo\bar\baz: local-Ident-name.module--foo\bar\baz--fl0sxN,
   f~o~o: local-Ident-name.module--f~o~o--BB46Kj,
   m_x_@: local-Ident-name.module--m_x_@--jUNG0V,
   someId: local-Ident-name.module--someId--9YWj-o,

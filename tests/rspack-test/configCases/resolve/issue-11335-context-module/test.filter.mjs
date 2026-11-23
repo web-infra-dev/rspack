@@ -1,5 +1,1 @@
-/*
- * Test fails: Magic comments in dynamic import not working
- * webpackIgnore comment not properly handled
- */
-export default () => "TODO: suport await import with magic comments"
+export default () => "TODO: resolve context imports across multiple alias directories (cannot find ./c)";

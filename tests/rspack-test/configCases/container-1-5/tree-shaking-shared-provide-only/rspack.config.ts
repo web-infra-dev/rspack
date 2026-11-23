@@ -32,12 +32,13 @@ export default defineConfig({
         'provided-only': {
           import: './node_modules/provided-only/index.js',
           requiredVersion: '*',
-          version: '1.0.0',
+          version: '2.3.4',
           treeShaking: {
             mode: 'runtime-infer',
           },
         },
         'local-provided': {
+          shareKey: 'provided_only',
           import: './local-provided/index.js',
           requiredVersion: '*',
           version: '2.3.4',

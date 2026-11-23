@@ -19,7 +19,7 @@ use rspack_core::{
   UsageState, UsedName, UsedNameItem, all_runtime_module_variables, analyze_module_scope,
   find_target, get_cached_readable_identifier, get_module_directives, get_module_hashbang,
   property_access, property_name, reserved_names::RESERVED_NAMES_ATOM_SET,
-  rspack_sources::ReplaceSource, to_normal_comment,
+  rspack_sources::ReplaceSource, runtime_variable_name, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_intern::{Atom, AtomMap, IndexAtomSet};
@@ -970,6 +970,15 @@ var {} = {{}};
       return used_names;
     }
 
+    used_names.extend(
+      [
+        RuntimeVariable::Require,
+        RuntimeVariable::Modules,
+        RuntimeVariable::ModuleCache,
+        RuntimeVariable::Context,
+      ]
+      .map(|variable| Atom::from(runtime_variable_name(&variable))),
+    );
     used_names.extend(all_runtime_module_variables().map(Atom::from));
 
     for (_, runtime_global) in RuntimeGlobals::all().iter_names() {
@@ -1203,7 +1212,7 @@ var {} = {{}};
           name_allocator.insert(name.clone());
           concate_info
             .internal_names
-            .insert(namespace_export_symbol.clone(), name.clone());
+            .insert(namespace_export_symbol.clone(), name);
         }
 
         // Handle namespaceObjectName for concatenated type
@@ -1233,7 +1242,7 @@ var {} = {{}};
             )
           }
         };
-        concate_info.namespace_object_name = Some(namespace_object_name.clone());
+        concate_info.namespace_object_name = Some(namespace_object_name);
 
         name_allocator.assign_interop_names(info, concatenation_context);
       }
@@ -1389,8 +1398,7 @@ var {} = {{}};
                 let chunk_init_fragments = codegen_res
                   .data()
                   .get::<CodeGenerationDataChunkInitFragments>()
-                  .map(|fragments| fragments.inner().clone())
-                  .unwrap_or_default();
+                  .map_or_default(|fragments| fragments.inner().clone());
                 Ok((
                   ModuleInfo::External(external_module_info),
                   if chunk_init_fragments.is_empty() {
@@ -1439,7 +1447,9 @@ var {} = {{}};
                 let jsx = module
                   .as_ref()
                   .as_normal_module()
-                  .and_then(|normal_module| normal_module.get_parser_options())
+                  .and_then(|normal_module| {
+                    normal_module.get_parser_options(&compilation.options.module)
+                  })
                   .and_then(|options| {
                     options
                       .get_javascript()
@@ -1457,8 +1467,7 @@ var {} = {{}};
                 concate_info.chunk_init_fragments = codegen_res
                   .data()
                   .get::<CodeGenerationDataChunkInitFragments>()
-                  .map(|fragments| fragments.inner().clone())
-                  .unwrap_or_default();
+                  .map_or_default(|fragments| fragments.inner().clone());
                 concate_info
                   .chunk_init_fragments
                   .extend(chunk_init_fragments);
@@ -1924,7 +1933,7 @@ var {} = {{}};
 
                 let exported = Self::add_chunk_export(
                   entry_chunk,
-                  export_name.clone(),
+                  export_name,
                   name.clone(),
                   exports,
                   !allow_rename,
@@ -1954,7 +1963,7 @@ var {} = {{}};
 
                 let exported = Self::add_chunk_export(
                   ref_chunk,
-                  local_name.clone(),
+                  local_name,
                   name.clone(),
                   exports,
                   !allow_rename
@@ -1979,8 +1988,8 @@ var {} = {{}};
                   Self::add_chunk_re_export(
                     entry_chunk,
                     ref_chunk,
-                    exported.clone(),
-                    name.clone(),
+                    exported,
+                    name,
                     exports,
                     !allow_rename,
                   );
@@ -2028,8 +2037,8 @@ var {} = {{}};
                 Self::add_chunk_re_export(
                   entry_chunk,
                   current_chunk,
-                  exported.clone(),
-                  name.clone(),
+                  exported,
+                  name,
                   exports,
                   !allow_rename,
                 );
@@ -2459,13 +2468,7 @@ var {} = {{}};
           // Just export the namespace object itself.
           needed_namespace.insert(dyn_target);
 
-          Self::add_chunk_export(
-            target_chunk,
-            ns_name.clone(),
-            ns_name.clone(),
-            &mut exports,
-            false,
-          );
+          Self::add_chunk_export(target_chunk, ns_name.clone(), ns_name, &mut exports, false);
         } else {
           // No namespace object — export individual module exports directly on the chunk.
           errors.extend(self.link_entry_module_exports(
@@ -2521,7 +2524,7 @@ var {} = {{}};
           chunk_link.raw_import_stmts.insert(
             RawImportSource::Chunk(runtime_chunk),
             ImportSpec {
-              atoms: std::iter::once((require_symbol.clone(), require_symbol.clone())).collect(),
+              atoms: std::iter::once((require_symbol.clone(), require_symbol)).collect(),
               default_import: None,
               ns_import: None,
             },
@@ -2721,7 +2724,7 @@ var {} = {{}};
           let exported = Self::add_chunk_export(
             ref_chunk,
             orig_symbol.clone(),
-            orig_symbol.clone(),
+            orig_symbol,
             &mut exports,
             false,
           )

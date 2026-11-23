@@ -4,12 +4,14 @@ mod walk_data;
 
 use std::sync::Arc;
 
+use itertools::Itertools;
 use parser::DefineParserPlugin;
 use rspack_core::{
   Compilation, CompilationParams, CompilerCompilation, ModuleType, NormalModuleFactoryParser,
   ParserAndGenerator, ParserOptions, Plugin,
 };
 use rspack_error::{Diagnostic, Error, Result};
+use rspack_hash::RspackHasher;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
 use serde_json::Value;
@@ -18,17 +20,32 @@ use self::walk_data::WalkData;
 use crate::parser_and_generator::JavaScriptParserAndGenerator;
 
 const VALUE_DEP_PREFIX: &str = "rspack/DefinePlugin ";
+const VALUE_DEP_MAIN: &str = "rspack/DefinePlugin_hash";
 
 #[derive(Debug)]
 struct ConflictingValuesError(String, String, String);
 
 impl ConflictingValuesError {
   fn into_diagnostic(self) -> Diagnostic {
-    Error::warning(format!(
-      "DefinePlugin:\nConflicting values for '{}' ({} !== {})",
-      self.0, self.1, self.2
-    ))
-    .into()
+    let Self(key, previous, current) = self;
+    // String definitions are JavaScript expressions serialized as JSON for the cache.
+    // Decode the outer JSON string so "\"production\"" is displayed as "production".
+    let (previous, current) = match (
+      serde_json::from_str::<String>(&previous),
+      serde_json::from_str::<String>(&current),
+    ) {
+      (Ok(decoded_previous), Ok(decoded_current)) => (decoded_previous, decoded_current),
+      _ => (previous, current),
+    };
+    let mut warning = Error::warning(format!(
+      "DefinePlugin: Conflicting values for '{key}': {previous} and {current}."
+    ));
+    if key == "process.env.NODE_ENV" {
+      warning.help = Some(
+        "Check 'optimization.nodeEnv' and any explicit DefinePlugin definitions for 'process.env.NODE_ENV'.".into(),
+      );
+    }
+    warning.into()
   }
 }
 
@@ -53,7 +70,17 @@ async fn compilation(
   _params: &mut CompilationParams,
 ) -> Result<()> {
   compilation.extend_diagnostics(self.walk_data.diagnostics.clone());
-  for (key, value) in self.walk_data.tiling_definitions.iter() {
+  let mut hasher = RspackHasher::new(&compilation.options.output.hash_function);
+  // Include earlier plugin instances, and sort keys for a stable hash across processes.
+  hasher.update(&compilation.value_cache_versions.get(VALUE_DEP_MAIN));
+  for (key, value) in self
+    .walk_data
+    .tiling_definitions
+    .iter()
+    .sorted_unstable_by_key(|(key, _)| *key)
+  {
+    hasher.write(&key.len().to_le_bytes());
+    hasher.update(key);
     let cache_key = format!("{VALUE_DEP_PREFIX}{key}");
     if let Some(prev) = compilation.value_cache_versions.get(&cache_key)
       && prev != value
@@ -67,6 +94,13 @@ async fn compilation(
         .insert(cache_key, value.clone());
     }
   }
+  compilation.value_cache_versions.insert(
+    VALUE_DEP_MAIN.to_string(),
+    hasher
+      .digest(&compilation.options.output.hash_digest)
+      .encoded()
+      .to_string(),
+  );
 
   Ok(())
 }

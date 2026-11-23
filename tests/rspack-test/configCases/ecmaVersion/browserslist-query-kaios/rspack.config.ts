@@ -24,6 +24,8 @@ export default defineConfig({
             module: true,
             nodePrefixForCoreModules: false,
             optionalChaining: true,
+            spread: true,
+            symbol: true,
             templateLiteral: true,
             topLevelAwait: false,
           }

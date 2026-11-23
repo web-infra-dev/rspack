@@ -18,6 +18,7 @@
     "@module-federation/runtime-tools": "catalog:",
     "@prefresh/core": "catalog:",
     "@prefresh/utils": "catalog:",
+    "@rspack/binding": "workspace:*",
     "@rspack/binding-testing": "workspace:*",
     "@rspack/cli": "workspace:*",
     "@rspack/core": "workspace:*",

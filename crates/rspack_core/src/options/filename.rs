@@ -39,6 +39,8 @@ pub enum PlaceholderKind {
   Base,
   Name,
   Path,
+  #[string_enum(rename = "resource-path")]
+  ResourcePath,
   Ext,
   Query,
   Fragment,
@@ -56,9 +58,15 @@ pub enum PlaceholderKind {
   ChunkHash,
   #[string_enum(rename = "contenthash")]
   ContentHash,
+  // Keep this last so the assertion below covers every placeholder kind.
   #[string_enum(fallback)]
   Unknown,
 }
+
+const _: () = assert!(
+  (PlaceholderKind::Unknown as u32) < u32::BITS,
+  "placeholder kinds must fit in a u32 bitset"
+);
 
 #[derive(Debug, Clone, Copy)]
 enum PlaceholderParameters {
@@ -661,9 +669,8 @@ impl FileReplacements {
         .filter(|hash| !hash.contains('X'))
         .unwrap_or("")
         .to_owned();
-      let ext = mime_guess::get_mime_extensions_str(caps)
-        .map(|exts| format!(".{}", exts[0]))
-        .unwrap_or_default();
+      let ext =
+        mime_guess::get_mime_extensions_str(caps).map_or_default(|exts| format!(".{}", exts[0]));
 
       return Self {
         file: Some(String::new()),
@@ -687,16 +694,14 @@ impl FileReplacements {
 
     let ext = file
       .extension()
-      .map(|extension| format!(".{extension}"))
-      .unwrap_or_default();
+      .map_or_default(|extension| format!(".{extension}"));
     let base = file.file_name().map(ToOwned::to_owned);
     let name = file.file_stem().map(ToOwned::to_owned);
     let path = file
       .parent()
       // "" -> "", "folder" -> "folder/"
       .filter(|path| !path.as_str().is_empty())
-      .map(|path| path.as_str().to_owned() + "/")
-      .unwrap_or_default();
+      .map_or_default(|path| path.as_str().to_owned() + "/");
 
     Self {
       file: Some(file.as_str().to_owned()),
@@ -765,7 +770,10 @@ fn render_placeholder(
     ),
     PlaceholderKind::Runtime => try_render_value(Some(options.runtime.unwrap_or("_")), output),
     PlaceholderKind::Url => try_render_value(options.url, output),
-    PlaceholderKind::UniqueName | PlaceholderKind::Local | PlaceholderKind::Folder => false,
+    PlaceholderKind::ResourcePath
+    | PlaceholderKind::UniqueName
+    | PlaceholderKind::Local
+    | PlaceholderKind::Folder => false,
     PlaceholderKind::Hash => try_render_hash(
       options.hash,
       kind,

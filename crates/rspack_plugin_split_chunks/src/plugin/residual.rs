@@ -32,7 +32,7 @@ pub(super) fn placement_preserves_copies(
   after.extend(target_chunk.groups().iter().copied());
   let target_modules = artifact.chunk_graph.get_chunk_modules_identifier(&target);
   for module in target_modules {
-    let mut before = placed.get(module).map(&consumers).unwrap_or_default();
+    let mut before = placed.get(module).map_or_default(consumers);
     before.extend(target_chunk.groups().iter().copied());
     if before != after {
       return false;

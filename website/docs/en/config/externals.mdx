@@ -17,7 +17,15 @@ This capability is commonly used when building libraries, but it is also useful 
 
 ```ts
 type ExternalItem =
-  string | RegExp | Function | { [x: string]: ExternalItemValue };
+  | string
+  | RegExp
+  | Function
+  | { [x: string]: ExternalItemValue }
+  | {
+      byLayer:
+        | Record<string, ExternalItem>
+        | ((layer: string | null) => ExternalItem | undefined);
+    };
 
 type Externals = ExternalItem | ExternalItem[];
 ```
@@ -139,7 +147,7 @@ export default {
 ### object
 
 :::warning
-An object with `{ root, commonjs, commonjs2, amd, ... }` is only allowed for [`library.type: 'umd'`](/config/output#outputlibrarytype) and [`externalsType: 'umd'`](#externalstype). It's not allowed for other library targets.
+An object with `{ root, commonjs, commonjs2, amd, ... }` maps external types to their targets. A [`library.type: 'umd'`](/config/output#outputlibrarytype) library requires `root`, `commonjs`, `commonjs2`, and `amd`. Other external types use the matching entry.
 :::
 
 ```js title="rspack.config.mjs"
@@ -158,6 +166,50 @@ export default {
 
 This syntax is used to describe all the possible ways that an external library can be made available. `lodash` here is available as `lodash` under AMD and CommonJS module systems but available as `_` in a global variable form. `subtract` here is available via the property `subtract` under the global `math` object (e.g. `window['math']['subtract']`).
 
+#### interop
+
+**Type:** `'default' | 'esModule'`
+
+Non-ESM externals such as `commonjs`, `amd`, and `umd` normally determine default-export interop from the importer. Strict ES modules (`.mjs` or a package with `"type": "module"`) receive the whole exports object as the default import; other importers use the runtime `__esModule` check.
+
+The optional `interop` field on an object external overrides this behavior independently of the importer:
+
+- `'esModule'`: treat the external as an ES module namespace; a default import reads `.default`.
+- `'default'`: treat the external as CommonJS; a default import receives the whole exports object, while named imports remain available.
+
+```js title="rspack.config.mjs"
+export default {
+  externalsType: 'commonjs',
+  externals: {
+    dep: { commonjs: 'dep', interop: 'esModule' },
+  },
+};
+```
+
+Omitting `interop` preserves the default behavior. The hint also works on object values returned by an externals function.
+
+`interop` only applies when the configuration references the whole external module. A configuration such as `commonjs: ['dep', 'named']` reads the `require('dep').named` property. In this case, Rspack ignores `interop` and uses the default import rules described above.
+
+For `umd` and `umd2`, `root`, `commonjs`, `commonjs2`, and `amd` describe how the same external is loaded in different environments. They share one `interop` setting. For example:
+
+```js title="rspack.config.mjs"
+export default {
+  output: { library: { type: 'umd' } },
+  externalsType: 'umd',
+  externals: {
+    dep: {
+      root: 'dep',
+      commonjs: 'dep',
+      commonjs2: ['dep', 'nested'], // Reads require('dep').nested
+      amd: 'dep',
+      interop: 'esModule', // Ignored because commonjs2 reads the nested property
+    },
+  },
+};
+```
+
+Although only `commonjs2` reads a property here, the `interop` setting is ignored for the entire `dep` external. The other three branches also use the default import rules. When loaded through CommonJS2, a default import from a strict ES module receives `require('dep').nested`; other importers still use the `__esModule` check to decide whether to read its `.default`.
+
 ### Function
 
 **Type:**
@@ -173,7 +225,7 @@ type ExternalFunction = (
 ) => ExternalItemValue | void | Promise<ExternalItemValue | void>;
 ```
 
-Use a function when the decision to externalize a dependency depends on its request or other module information. The function can return a result directly, return a Promise, or call a callback.
+Use a function when the decision to externalize a dependency depends on its request or other module information. The function can return a result directly, return a Promise, or call a callback. Prefer non-function forms when they meet your needs to reduce [performance overhead](#performance-overhead).
 
 For example, this configuration keeps `react` and its subpaths as ES module imports:
 
@@ -301,6 +353,53 @@ export default {
 :::warning
 [Default type](#externalstype) will be used if you specify `externals` without a type e.g. `externals: { react: 'react' }` instead of `externals: { react: 'commonjs-module react' }`.
 :::
+
+### externals.byLayer
+
+Use `byLayer` in an externals object to choose externals based on the importing module's [layer](/config/module-rules#ruleslayer). The matching branch is merged over the base object. If no branch matches, `byLayer.default` is used instead. An explicit branch, including an empty object, takes precedence over `default`.
+
+```js title="rspack.config.mjs"
+export default {
+  externalsType: 'commonjs',
+  externals: {
+    fs: 'fs',
+    byLayer: {
+      server: { path: 'path' },
+      default: { crypto: 'crypto' },
+    },
+  },
+  module: {
+    rules: [{ test: /server\.js$/, layer: 'server' }],
+  },
+};
+```
+
+Here, imports from the `server` layer treat `fs` and `path` as externals. Other layers, including modules without a layer, treat `fs` and `crypto` as externals. Set a branch's value to `false` to cancel a base external for that layer.
+
+Rspack also accepts a string, `RegExp`, or externals function as a branch. These forms replace the base map and match requests using the same rules as top-level `externals`.
+
+`byLayer` can also be a synchronous function. It receives the issuer layer (`string` or `null` for modules without a layer) and returns an externals object to merge over the base, another external item to replace the base, or `undefined` to keep only the base. Setting `byLayer` itself to `undefined` also keeps only the base:
+
+```js
+externals: {
+  fs: 'commonjs fs',
+  byLayer: (layer) =>
+    layer === 'server' ? { path: 'commonjs path' } : undefined,
+},
+```
+
+:::warning Lazy compilation with library wrappers
+With lazy compilation and `umd`, `umd2`, `amd`, `amd-require`, or `system` library output, Rspack reserves statically enumerable externals in the initial library wrapper. This includes the lazy module's layer and all layers declared by module rules, so synchronous descendants can use externals after switching layers.
+
+These externals can load before the lazy module activates, including externals from rules that never match a reachable module. They must therefore be available when the library loads. External matcher functions and `RegExp` branches cannot be enumerated for reservation; a function-form `byLayer` selector returning an object or string can be enumerated.
+:::
+
+## Performance overhead
+
+Function-based [`externals`](#function) adds cross-language call overhead when checking module requests.
+
+- Prefer non-function forms when they meet your needs, so Rspack can match directly in Rust.
+- When using a function, use available information such as `request` where possible to decide whether to externalize a dependency, avoiding unnecessary [request resolution](#resolving-requests) and file reads.
 
 ## externalsType
 

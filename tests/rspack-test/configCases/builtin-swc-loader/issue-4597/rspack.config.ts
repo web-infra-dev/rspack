@@ -44,9 +44,9 @@ const config = defineConfig({
   plugins: [
     definePlugin({
       apply(compiler) {
-        compiler.hooks.make.tap('child', (base) => {
+        compiler.hooks.make.tapAsync('child', (base, callback) => {
           const child = base.createChildCompiler('child', {}, []);
-          child.runAsChild(() => {});
+          child.runAsChild((error) => callback(error));
         });
       },
     }),

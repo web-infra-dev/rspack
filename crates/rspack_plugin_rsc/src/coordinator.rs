@@ -1,5 +1,5 @@
 use rspack_core::CompilerId;
-use rspack_error::Result;
+use rspack_error::{Error, Result};
 use tokio::sync::{Mutex, Notify};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -11,7 +11,6 @@ enum State {
   ClientEntriesDone,
   ServerActionsCompiling,
   ServerActionsDone,
-  Failed,
 }
 
 /// Coordinates the compilation sequence between Server Compiler and Client Compiler.
@@ -24,7 +23,7 @@ enum State {
 /// The coordinator manages state transitions and synchronization between compilers
 /// to maintain the correct build sequence for React Server Components.
 pub struct Coordinator {
-  state: Mutex<State>,
+  state: Mutex<Result<State>>,
   state_notify: Notify,
   server_compiler_id: Mutex<Option<CompilerId>>,
 }
@@ -38,7 +37,7 @@ impl Default for Coordinator {
 impl Coordinator {
   pub fn new() -> Self {
     Self {
-      state: Mutex::new(State::Idle),
+      state: Mutex::new(Ok(State::Idle)),
       state_notify: Default::default(),
       server_compiler_id: Default::default(),
     }
@@ -53,48 +52,42 @@ impl Coordinator {
     })
   }
 
-  async fn wait_for(&self, mut predicate: impl FnMut(State) -> bool) -> Result<()> {
+  async fn wait_for(&self, predicate: impl Fn(State) -> bool) -> Result<()> {
     loop {
-      {
-        let state = *self.state.lock().await;
-        if predicate(state) {
-          return Ok(());
-        }
-        if state == State::Failed {
-          return Ok(());
-        }
+      // Register before reading the state so a concurrent notification cannot be missed.
+      let notified = self.state_notify.notified();
+      let state = *self.state.lock().await.as_ref().map_err(Clone::clone)?;
+      if predicate(state) {
+        return Ok(());
       }
-      self.state_notify.notified().await;
+      notified.await;
     }
   }
 
   async fn transition(&self, expected: State, next: State, context: &'static str) -> Result<()> {
     let mut state = self.state.lock().await;
-    if *state == State::Failed {
-      return Ok(());
-    }
-
-    if *state != expected {
+    let current = *state.as_ref().map_err(Clone::clone)?;
+    if current != expected {
       return Err(rspack_error::error!(
         "Invalid state transition in {}: expected {:?}, got {:?}",
         context,
         expected,
-        *state
+        current
       ));
     }
-    *state = next;
+    *state = Ok(next);
     self.state_notify.notify_waiters();
     Ok(())
   }
 
-  async fn set_if_current(&self, current: State, next: State) -> bool {
+  async fn set_if_current(&self, current: State, next: State) -> Result<bool> {
     let mut state = self.state.lock().await;
-    if *state == current {
-      *state = next;
+    if *state.as_ref().map_err(Clone::clone)? == current {
+      *state = Ok(next);
       self.state_notify.notify_waiters();
-      true
+      Ok(true)
     } else {
-      false
+      Ok(false)
     }
   }
 
@@ -112,9 +105,9 @@ impl Coordinator {
     loop {
       {
         let mut state = self.state.lock().await;
-        if *state == State::Idle {
+        if *state.as_ref().map_err(Clone::clone)? == State::Idle {
           *self.server_compiler_id.lock().await = Some(compiler_id);
-          *state = State::ServerEntriesCompiling;
+          *state = Ok(State::ServerEntriesCompiling);
           self.state_notify.notify_waiters();
           return Ok(());
         }
@@ -141,7 +134,7 @@ impl Coordinator {
     loop {
       if self
         .set_if_current(State::ServerEntriesDone, State::ClientEntriesCompiling)
-        .await
+        .await?
       {
         return Ok(());
       }
@@ -167,15 +160,15 @@ impl Coordinator {
     loop {
       if self
         .set_if_current(State::ClientEntriesDone, State::ServerActionsCompiling)
-        .await
+        .await?
       {
         return Ok(());
       }
 
       {
-        let state = *self.state.lock().await;
+        let state = *self.state.lock().await.as_ref().map_err(Clone::clone)?;
         match state {
-          State::ServerEntriesDone | State::ClientEntriesCompiling => {
+          State::ServerEntriesDone | State::ClientEntriesCompiling | State::ClientEntriesDone => {
             // fallthrough to wait below
           }
           _ => {
@@ -204,10 +197,12 @@ impl Coordinator {
       .await
   }
 
-  pub async fn failed(&self) -> Result<()> {
+  pub async fn failed(&self, error: &Error) {
     let mut state = self.state.lock().await;
-    *state = State::Failed;
-    self.state_notify.notify_waiters();
-    Ok(())
+    // Keep the original error when the other compiler fails in response.
+    if state.is_ok() {
+      *state = Err(error.clone());
+      self.state_notify.notify_waiters();
+    }
   }
 }

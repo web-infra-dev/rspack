@@ -733,6 +733,8 @@ pub struct RegisterJsTaps {
 }
 
 /* Compiler Hooks */
+// `cache = false, skip = false` makes every `thisCompilation` call wait for the
+// JS thread. `Compiler::compile` relies on that to free the previous assets.
 define_register!(
   RegisterCompilerThisCompilationTaps,
   tap = CompilerThisCompilationTap<JsCompilationWrapper, ()> @ CompilerThisCompilationHook,
@@ -1540,15 +1542,26 @@ impl CompilationRuntimeModule for CompilationRuntimeModuleTap {
     let Some(module) = runtime_modules.get(m) else {
       return Ok(());
     };
-    let runtime_template = compilation
-      .runtime_template
-      .create_runtime_module_code_template();
-    let context = RuntimeModuleGenerateContext {
-      compilation,
-      runtime_template: &runtime_template,
+    let legacy = compilation.runtime_template.render_mode().is_legacy();
+    // Reuse the JS generator's output for bridge detection if the hook leaves it unchanged.
+    let source_string = if !legacy
+      && !module.full_hash()
+      && !module.dependent_hash()
+      && let Some(source) = module.generated_source_for_bridge(compilation)
+      && module.get_custom_source().is_none()
+    {
+      source.await?.source().into_string_lossy().into_owned()
+    } else {
+      let runtime_template = compilation
+        .runtime_template
+        .create_runtime_module_code_template();
+      let context = RuntimeModuleGenerateContext {
+        compilation,
+        runtime_template: &runtime_template,
+      };
+      module.generate(&context).await?
     };
-    let source_string = module.generate(&context).await?;
-    let runtime_module_prefix = if compilation.runtime_template.render_mode().is_legacy() {
+    let runtime_module_prefix = if legacy {
       "webpack/runtime/"
     } else {
       "rspack/runtime/"
@@ -1819,7 +1832,7 @@ impl NormalModuleFactoryCreateModule for NormalModuleFactoryCreateModuleTap {
       .call_with_promise(JsNormalModuleFactoryCreateModuleArgs {
         dependency_type: data.dependencies[0].dependency_type().to_string(),
         raw_request: create_data.raw_request.clone(),
-        resource_resolve_data: create_data.resource_resolve_data.as_ref().into(),
+        resource_resolve_data: create_data.resource_resolve_data().into(),
         context: data.context.to_string(),
         match_resource: create_data.match_resource.clone(),
       })
@@ -2106,7 +2119,7 @@ impl RealContentHashPluginUpdateHash for RealContentHashPluginUpdateHashTap {
   ) -> rspack_error::Result<Option<String>> {
     let assets = assets
       .iter()
-      .map(|asset| Buffer::from(asset.buffer().to_vec()))
+      .map(|asset| Buffer::from(asset.buffer().into_owned()))
       .collect::<Vec<_>>();
     self
       .function

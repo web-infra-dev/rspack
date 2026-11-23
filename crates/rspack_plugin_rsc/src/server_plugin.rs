@@ -287,7 +287,7 @@ async fn chunk_ids(
 ) -> Result<()> {
   let mut plugin_state = PLUGIN_STATES.entry(compilation.compiler_id()).or_default();
   build_server_manifest(compilation, &mut plugin_state)?;
-  for (_entry_name, entry_state) in plugin_state.entries.iter_mut() {
+  for entry_state in plugin_state.entries.values_mut() {
     let map = build_server_consumer_module_map(compilation, &entry_state.client_modules);
     entry_state.server_consumer_module_map = Some(map);
   }
@@ -362,7 +362,7 @@ impl RscServerPlugin {
       {
         client_entries_to_inject.push(ClientEntry {
           entry_name: entry_name.clone(),
-          runtime: runtime.clone(),
+          runtime,
           client_imports: component_info.client_component_imports,
           async_client_component_imports: component_info.async_client_component_imports,
           root_client_imports: component_info.root_client_component_imports,
@@ -399,7 +399,7 @@ impl RscServerPlugin {
 
       if !action_entry_imports.is_empty() {
         server_actions_per_entry
-          .entry(entry_name.clone())
+          .entry(entry_name)
           .or_default()
           .extend(action_entry_imports);
       }
@@ -411,7 +411,7 @@ impl RscServerPlugin {
         compilation,
         ActionEntry {
           actions: action_entry_imports,
-          entry_name: name.clone(),
+          entry_name: name,
           runtime,
           from_client: false,
         },
@@ -501,8 +501,8 @@ impl RscServerPlugin {
       for (dependency, actions) in action_entry_imports {
         let mut remaining_actions: Vec<ActionIdNamePair> = Vec::new();
         for action in actions {
-          if !created_action_ids.contains(&format!("{}@{}", entry_name.as_ref(), &action.0)) {
-            remaining_actions.push(action.clone());
+          if !created_action_ids.contains(&format!("{}@{}", entry_name.as_ref(), action.0)) {
+            remaining_actions.push(action);
           }
         }
         if !remaining_actions.is_empty() {
@@ -516,7 +516,7 @@ impl RscServerPlugin {
           compilation,
           ActionEntry {
             actions: remaining_action_entry_imports,
-            entry_name: entry_name.clone(),
+            entry_name,
             runtime,
             from_client: true,
           },
@@ -777,7 +777,7 @@ async fn done(&self, compilation: &Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilerFailed for RscServerPlugin)]
-async fn failed(&self, _compilation: &Compilation) -> Result<()> {
-  self.coordinator.failed().await?;
+async fn failed(&self, _compilation: &Compilation, error: &rspack_error::Error) -> Result<()> {
+  self.coordinator.failed(error).await;
   Ok(())
 }

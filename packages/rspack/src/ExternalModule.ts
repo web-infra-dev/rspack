@@ -1,47 +1,10 @@
 import binding from '@rspack/binding';
 import * as liteTapable from '@rspack/lite-tapable';
-import type { Source } from 'webpack-sources';
 import type { Chunk } from './Chunk';
 import { type Compilation, getOrCreateCompilationHooks } from './Compilation';
-import { SourceAdapter } from './util/source';
-import {
-  COMPILATION_HOOKS_MAP_SYMBOL,
-  MODULE_IDENTIFIER_SYMBOL,
-} from './util/symbols';
+import { Module } from './Module';
+import { COMPILATION_HOOKS_MAP_SYMBOL } from './util/symbols';
 
-Object.defineProperty(binding.ExternalModule.prototype, 'identifier', {
-  enumerable: true,
-  configurable: true,
-  value(this: binding.ExternalModule): string {
-    // @ts-expect-error
-    return this[MODULE_IDENTIFIER_SYMBOL];
-  },
-});
-Object.defineProperty(binding.ExternalModule.prototype, 'originalSource', {
-  enumerable: true,
-  configurable: true,
-  value(this: binding.ExternalModule) {
-    const originalSource = this._originalSource();
-    if (originalSource) {
-      return SourceAdapter.fromBinding(originalSource);
-    }
-    return null;
-  },
-});
-Object.defineProperty(binding.ExternalModule.prototype, 'emitFile', {
-  enumerable: true,
-  configurable: true,
-  value(
-    this: binding.ExternalModule,
-    filename: string,
-    source: Source,
-    assetInfo?: binding.AssetInfo,
-  ) {
-    return this._emitFile(filename, SourceAdapter.toBinding(source), assetInfo);
-  },
-});
-
-export type ExternalModule = binding.ExternalModule;
 export type ExternalModuleCompilationHooks = {
   chunkCondition: liteTapable.SyncBailHook<
     [Chunk, Compilation],
@@ -49,23 +12,46 @@ export type ExternalModuleCompilationHooks = {
   >;
 };
 
-const ExternalModule =
-  binding.ExternalModule as typeof binding.ExternalModule & {
-    getCompilationHooks(
-      compilation: Compilation,
-    ): ExternalModuleCompilationHooks;
+export class ExternalModule extends Module {
+  #userRequest: string | null = null;
+
+  static readonly #properties: PropertyDescriptorMap = {
+    userRequest: {
+      enumerable: true,
+      configurable: true,
+      get(this: ExternalModule): string {
+        if (this.#userRequest === null) {
+          this.#userRequest = binding.externalModuleGetUserRequest(this);
+        }
+        return this.#userRequest;
+      },
+      set(this: ExternalModule, value: string) {
+        this.#userRequest = value;
+      },
+    },
   };
 
-ExternalModule.getCompilationHooks = (compilation: Compilation) => {
-  if (!(COMPILATION_HOOKS_MAP_SYMBOL in compilation)) {
-    throw new TypeError(
-      "The 'compilation' argument must be an instance of Compilation",
-    );
+  declare readonly userRequest: string;
+
+  constructor() {
+    super();
+    Object.defineProperties(this, ExternalModule.#properties);
   }
 
-  return getOrCreateCompilationHooks(compilation, ExternalModule, () => ({
-    chunkCondition: new liteTapable.SyncBailHook(['chunk', 'compilation']),
-  }));
-};
+  static getCompilationHooks(
+    compilation: Compilation,
+  ): ExternalModuleCompilationHooks {
+    if (!(COMPILATION_HOOKS_MAP_SYMBOL in compilation)) {
+      throw new TypeError(
+        "The 'compilation' argument must be an instance of Compilation",
+      );
+    }
 
-export { ExternalModule };
+    // The binding object is shared when @rspack/core is evaluated more than
+    // once. A JS constructor is local to its core instance, so it is not a
+    // suitable key for hooks that must work across those instances.
+    return getOrCreateCompilationHooks(compilation, binding, () => ({
+      chunkCondition: new liteTapable.SyncBailHook(['chunk', 'compilation']),
+    }));
+  }
+}

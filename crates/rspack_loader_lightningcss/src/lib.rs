@@ -21,7 +21,7 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::Skip};
 use rspack_core::{
   Loader, LoaderContext, RunnerContext,
   rspack_sources::{
-    MapOptions, Mapping, OriginalLocation, SourceExt, SourceMap, SourceMapSource,
+    MapOptions, Mapping, OriginalLocation, Source, SourceMap, SourceMapSource,
     SourceMapSourceOptions, encode_mappings,
   },
 };
@@ -202,13 +202,16 @@ impl LightningCssLoader {
         let mut undefined_names = Vec::new();
         let mut undefined = Some(error);
         while let Some(error) = undefined.take() {
-          loader_context.emit_diagnostic(Diagnostic::warn(
-            LIGHTNINGCSS_LOADER_IDENTIFIER.to_string(),
-            format!(
-              "{}, so custom media in this file is left unchanged",
-              error.kind
-            ),
-          ));
+          loader_context.emit_diagnostic(
+            Diagnostic::warn(
+              LIGHTNINGCSS_LOADER_IDENTIFIER.to_string(),
+              format!(
+                "{} in this file. Skipping custom media expansion.",
+                error.kind
+              ),
+            )
+            .with_title(LIGHTNINGCSS_LOADER_IDENTIFIER),
+          );
           if let MinifyErrorKind::CustomMediaNotDefined { name } = error.kind {
             undefined_names.push(name);
           }
@@ -297,14 +300,14 @@ impl LightningCssLoader {
       let posix_context = posix_context.into_owned();
 
       let rspack_source_map = SourceMap::new(
-        mappings,
+        mappings.into(),
         // Parcel stores sources relative to project_root, while Rspack source maps
         // use absolute module paths for downstream loader/plugin handling.
         parcel_source_map
           .get_sources()
           .iter()
           .map(|source| {
-            Cow::Owned(if source.starts_with('/') || source.contains(':') {
+            (if source.starts_with('/') || source.contains(':') {
               source.clone()
             } else {
               let mut absolute_source = String::with_capacity(posix_context.len() + source.len());
@@ -312,17 +315,18 @@ impl LightningCssLoader {
               absolute_source.push_str(source);
               absolute_source
             })
+            .into()
           })
           .collect::<Vec<_>>(),
         parcel_source_map
           .get_sources_content()
           .iter()
-          .map(|source_content| Some(Cow::Owned(source_content.clone())))
+          .map(|source_content| Some(source_content.clone().into()))
           .collect::<Vec<_>>(),
         parcel_source_map
           .get_names()
           .iter()
-          .map(|name| Cow::Owned(name.clone()))
+          .map(|name| name.clone().into())
           .collect::<Vec<_>>(),
       );
 
@@ -334,9 +338,8 @@ impl LightningCssLoader {
         original_source: None,
         inner_source_map: loader_context.take_source_map(),
         remove_original_source: false,
-      })
-      .boxed();
-      let source_map = source_map_source.map_static(&MapOptions::default());
+      });
+      let source_map = source_map_source.map(&MapOptions::default());
       loader_context.finish_with((content.code, source_map));
     } else {
       loader_context.finish_with(content.code);

@@ -792,6 +792,10 @@ export default {
 
 If you pass the path of `tsconfig.json` via the option, Rspack will try to resolve modules based on the `paths` and `baseUrl` of `tsconfig.json`, functionally equivalent to [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin).
 
+When `extends` is an array, later entries take precedence over earlier entries. The `paths` and `baseUrl` declared in the current tsconfig take precedence over inherited values.
+
+Path mappings are resolved relative to the final merged `baseUrl`. If no `baseUrl` is configured, they are relative to the directory of the tsconfig that declares `paths`.
+
 ### resolve.tsConfig.references
 
 - **Type:** `string[] | "auto" | undefined`

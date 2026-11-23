@@ -1,0 +1,5 @@
+@import url("https://example.com/external.css");
+
+.lazy {
+	color: red;
+}

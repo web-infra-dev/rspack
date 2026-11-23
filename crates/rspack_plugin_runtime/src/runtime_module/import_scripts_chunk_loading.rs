@@ -252,16 +252,16 @@ impl RuntimeModule for ImportScriptsChunkLoadingRuntimeModule {
         "var importScriptsInstalledChunks = {} = {} || {};\n",
         state_expression,
         state_expression,
-        &stringify_chunks(&initial_chunks, 1)
+        stringify_chunks(&initial_chunks, 1)
       ));
     } else {
       source.push_str(&format!(
         "var importScriptsInstalledChunks = {};\n",
-        &stringify_chunks(&initial_chunks, 1)
+        stringify_chunks(&initial_chunks, 1)
       ));
     }
 
-    if with_loading || with_callback {
+    if with_loading || with_callback || with_hmr {
       let global_object = &compilation.options.output.global_object;
       let chunk_loading_global = &compilation.options.output.chunk_loading_global;
       let chunk_loading_global_expr = format!(r#"{global_object}["{chunk_loading_global}"]"#);

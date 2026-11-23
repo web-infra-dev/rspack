@@ -4,11 +4,11 @@ export default defineConfig({
   entry: './index.js',
   ignoreWarnings: [
     {
-      module: /module2\.js\?[34]/,
+      module: /module2\.js\?[34]/g,
     },
     {
-      module: /[13]/,
-      message: /homepage/,
+      module: /[13]/g,
+      message: /homepage/g,
     },
     /The 'mode' option has not been set/,
     (warning) => {

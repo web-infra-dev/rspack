@@ -18,10 +18,10 @@ use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 use tokio::sync::RwLock;
 
 use crate::{
-  IntegrityCallbackData, IntegrityHashLoading, SubresourceIntegrityPlugin,
-  SubresourceIntegrityPluginInner,
+  DIAGNOSTIC_CODE, DIAGNOSTIC_TITLE, IntegrityCallbackData, IntegrityHashLoading,
+  SubresourceIntegrityPlugin, SubresourceIntegrityPluginInner,
   config::IntegrityHtmlPlugin,
-  integrity::{SubresourceIntegrityHashFunction, compute_integrity, compute_source_integrity},
+  integrity::{SubresourceIntegrityHashFunction, compute_source_integrity},
   util::{PLACEHOLDER_PREFIX, make_placeholder, placeholder_len, use_any_hash},
 };
 
@@ -49,14 +49,17 @@ fn process_chunks(
     compilation.options.output.cross_origin_loading,
     CrossOriginLoading::Disable
   ) {
-    compilation.push_diagnostic(Diagnostic::warn(
-      "SubresourceIntegrity".to_string(),
-      r#"SRI requires a cross-origin policy, defaulting to "anonymous". 
+    compilation.push_diagnostic(
+      Diagnostic::warn(
+        DIAGNOSTIC_CODE.into(),
+        r#"SRI requires a cross-origin policy, defaulting to "anonymous".
 Set "output.crossOriginLoading" option to a value other than "false"
 to make this warning go away.
 See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-leakage"#
-        .to_string(),
-    ));
+          .into(),
+      )
+      .with_title(DIAGNOSTIC_TITLE),
+    );
   }
 
   for batch in batches {
@@ -112,10 +115,9 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
     let mut should_warn_content_hash = false;
     for result in results {
       for warning in result.warnings {
-        compilation.push_diagnostic(Diagnostic::warn(
-          "SubresourceIntegrity".to_string(),
-          warning,
-        ));
+        compilation.push_diagnostic(
+          Diagnostic::warn(DIAGNOSTIC_CODE.into(), warning).with_title(DIAGNOSTIC_TITLE),
+        );
       }
 
       let Some(integrity) = result.integrity else {
@@ -142,20 +144,26 @@ See https://w3c.github.io/webappsec-subresource-integrity/#cross-origin-data-lea
           })
           .err()
       {
-        compilation.push_diagnostic(Diagnostic::error(
-          "SubresourceIntegrity".to_string(),
-          format!("Failed to update asset '{}': {}", result.file, error),
-        ));
+        compilation.push_diagnostic(
+          Diagnostic::error(
+            DIAGNOSTIC_CODE.into(),
+            format!("Failed to update asset '{}': {}", result.file, error),
+          )
+          .with_title(DIAGNOSTIC_TITLE),
+        );
       }
     }
     if should_warn_content_hash {
-      compilation.push_diagnostic(Diagnostic::warn(
-        "SubresourceIntegrity".to_string(),
-        r#"Using [hash], [fullhash], [modulehash], or [chunkhash] can be risky
+      compilation.push_diagnostic(
+        Diagnostic::warn(
+          DIAGNOSTIC_CODE.into(),
+          r#"Using [hash], [fullhash], [modulehash], or [chunkhash] can be risky
 with SRI. The same applies to [contenthash] when "optimization.realContentHash" option is disabled. 
 Use [contenthash] and ensure "optimization.realContentHash" option is enabled."#
-          .to_string(),
-      ));
+            .into(),
+        )
+        .with_title(DIAGNOSTIC_TITLE),
+      );
     }
   }
 
@@ -177,7 +185,7 @@ fn process_chunk_source(
   let mut warnings = vec![];
   let source_content = source.source().into_string_lossy();
   if source_content.contains(hot_update_global) {
-    warnings.push("SubresourceIntegrity: SubResourceIntegrityPlugin may interfere with hot reloading. Consider disabling this plugin in development mode.".to_string());
+    warnings.push("This plugin may interfere with hot reloading. Consider disabling this plugin in development mode.".to_string());
   }
 
   // replace placeholders with integrity hash
@@ -191,7 +199,7 @@ fn process_chunk_source(
   }
 
   // compute self integrity and placeholder
-  let integrity = compute_integrity(hash_funcs, new_source.source().into_string_lossy().as_ref());
+  let integrity = compute_source_integrity(hash_funcs, &new_source);
   let placeholder = chunk_id.map(|id| make_placeholder(asset_type, hash_funcs, id.as_str()));
 
   ProcessChunkResult {
@@ -277,8 +285,8 @@ async fn add_minssing_integrities(
 
 #[plugin_hook(CompilationProcessAssets for SubresourceIntegrityPlugin, stage = Compilation::PROCESS_ASSETS_STAGE_OPTIMIZE_INLINE - 1)]
 pub async fn handle_assets(&self, compilation: &mut Compilation) -> Result<()> {
-  // Lazy loading puts placeholders in every chunk with async children, so each chunk
-  // must be digested after all the chunks it holds hashes for.
+  // Lazy loading puts placeholders in every chunk whose import() calls load other
+  // chunks, so each chunk must be digested after all the chunks it holds hashes for.
   let batches = match self.options.hash_loading {
     IntegrityHashLoading::Eager => digest_chunks(compilation),
     IntegrityHashLoading::Lazy => SubresourceIntegrityPlugin::get_compilation_manifest(compilation)
@@ -341,10 +349,13 @@ pub async fn detect_unresolved_integrity(
   }
 
   for file in contain_unresolved_files {
-    diagnostics.push(Diagnostic::error(
-      "SubresourceIntegrity".to_string(),
-      format!("Asset {file} contains unresolved integrity placeholders"),
-    ));
+    diagnostics.push(
+      Diagnostic::error(
+        DIAGNOSTIC_CODE.into(),
+        format!("Asset {file} contains unresolved integrity placeholders"),
+      )
+      .with_title(DIAGNOSTIC_TITLE),
+    );
   }
   Ok(())
 }

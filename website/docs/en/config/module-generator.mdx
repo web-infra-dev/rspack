@@ -2,6 +2,7 @@
 description: 'Configure module.generator to control asset filenames and URLs, CSS Modules exports, and JSON output generation.'
 ---
 
+import { ApiMeta, Stability } from '@components/ApiMeta';
 import Attribution from '@components/Attribution';
 
 # Module generator
@@ -601,6 +602,59 @@ export default {
 };
 ```
 
+### ["css/auto"].runtimePublicPath
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.3.2" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Resolve asset URLs in injected styles against the runtime public path. Only applies when [`parser.exportType`](/config/module-parser#cssautoexporttype) is `'style'`.
+
+By default, Rspack writes each asset URL into the injected CSS at build time, using `output.publicPath`. With `output.publicPath: 'auto'` the URL stays relative, so the browser resolves it against the page URL instead of the script URL.
+
+When enabled, Rspack prefixes each emitted asset URL with the runtime public path when the style is injected. This is the same value JavaScript chunks load from, so it follows `output.publicPath: 'auto'` and any value assigned to [`import.meta.rspackPublicPath`](/api/runtime-api/module-variables#importmetarspackpublicpath).
+
+```css
+/* style.css */
+.logo {
+  background: url('./logo.svg');
+}
+
+/* Injected with runtimePublicPath: false and output.publicPath: 'auto' */
+.logo {
+  background: url('assets/logo.svg');
+}
+
+/* Injected with runtimePublicPath: true and import.meta.rspackPublicPath = 'https://cdn.example.com/' */
+.logo {
+  background: url('https://cdn.example.com/assets/logo.svg');
+}
+```
+
+To set `import.meta.rspackPublicPath` at runtime, assign it in its own module and import that module before any styles. Static imports run before the code in the importing module, so an assignment next to the style import runs too late.
+
+Assets with their own [`generator.publicPath`](#assetpublicpath) keep that value. Inline data URLs and external URLs are unchanged.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        test: /\.css$/,
+        type: 'css/auto',
+        parser: {
+          exportType: 'style',
+        },
+        generator: {
+          runtimePublicPath: true,
+        },
+      },
+    ],
+  },
+};
+```
+
 ### ["css/auto"].localIdentName
 
 - **Type:** `string`
@@ -788,6 +842,10 @@ export default {
 };
 ```
 
+### css.runtimePublicPath
+
+Same as [`module.generator["css/auto"].runtimePublicPath`](#cssautoruntimepublicpath).
+
 ### css.esModule
 
 Same as [`module.generator["css/auto"].esModule`](#cssautoesmodule).
@@ -851,6 +909,10 @@ export default {
   },
 };
 ```
+
+### ["css/global"].runtimePublicPath
+
+Same as [`module.generator["css/auto"].runtimePublicPath`](#cssautoruntimepublicpath).
 
 ### ["css/global"].localIdentName
 
@@ -995,6 +1057,10 @@ export default {
   },
 };
 ```
+
+### ["css/module"].runtimePublicPath
+
+Same as [`module.generator["css/auto"].runtimePublicPath`](#cssautoruntimepublicpath).
 
 ### ["css/module"].localIdentName
 

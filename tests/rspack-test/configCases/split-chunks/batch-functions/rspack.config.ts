@@ -20,8 +20,20 @@ function trackCallback() {
   }
 }
 
+function resetCallbackState() {
+  callbackStats.batches = 0;
+  callbackStats.calls = 0;
+  callbackStats.active = false;
+  nameChunkArrays.clear();
+  nameModuleOrder.length = 0;
+}
+
 class AssertBatchCallbacksPlugin {
   apply(compiler: Compiler) {
+    compiler.hooks.compilation.tap(
+      'AssertBatchCallbacksPlugin',
+      resetCallbackState,
+    );
     compiler.hooks.done.tap('AssertBatchCallbacksPlugin', () => {
       expect(callbackStats.calls).toBe(6);
       expect(callbackStats.batches).toBeLessThan(callbackStats.calls);

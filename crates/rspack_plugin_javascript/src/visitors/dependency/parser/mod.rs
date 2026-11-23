@@ -21,12 +21,12 @@ use rspack_cacheable::{
   with::{AsCacheable, AsOption, AsPreset, AsVec},
 };
 use rspack_core::{
-  ArcComputed, AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions,
+  AsyncDependenciesBlock, BoxDependency, BuildInfo, BuildMeta, CompilerOptions, ConstDependency,
   DependenciesBlock, Dependency, DependencyCodeGeneration, DependencyCodeGenerationRef,
-  DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMeta,
-  ImportMetaKnownProperties, JavascriptParserCommonjsExportsOption, JavascriptParserOptions,
-  ModuleIdentifier, ModuleLayer, ModuleType, ParseMeta, ResolvedModuleOptions, ResourceData,
-  ResourceIdentifier, SideEffectsBailoutItemWithSpan,
+  DependencyId, DependencyLocation, DependencyRange, FactoryMeta, ImportMetaKnownProperties,
+  JavascriptParserCommonjsExportsOption, JavascriptParserOptions, ModuleIdentifier, ModuleLayer,
+  ModuleType, ParseMeta, ResourceData, ResourceIdentifier, SideEffectsBailoutItemWithSpan,
+  ValueCacheVersions,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_util::fx_hash::FxIndexSet;
@@ -490,6 +490,7 @@ pub struct JavascriptParser<'parser> {
   pub factory_meta: Option<&'parser FactoryMeta>,
   pub build_meta: &'parser mut BuildMeta,
   pub build_info: &'parser mut BuildInfo,
+  pub value_cache_versions: &'parser ValueCacheVersions,
   pub resource_data: &'parser ResourceData,
   pub(crate) compiler_options: &'parser CompilerOptions,
   pub(crate) javascript_options: &'parser JavascriptParserOptions,
@@ -554,7 +555,6 @@ impl<'parser> JavascriptParser<'parser> {
     compiler_options: &CompilerOptions,
     javascript_options: &JavascriptParserOptions,
     module_type: &ModuleType,
-    import_meta: ArcComputed<ResolvedModuleOptions, ImportMeta>,
     build_info: &mut BuildInfo,
     parser_plugins: &mut Vec<BoxJavascriptParserPlugin>,
   ) -> JavaScriptParserPluginDrive {
@@ -578,6 +578,7 @@ impl<'parser> JavascriptParser<'parser> {
     plugins.push(Box::new(parser_plugin::CompatibilityPlugin));
 
     if module_type.is_js_auto() || module_type.is_js_esm() {
+      let import_meta = javascript_options.import_meta();
       plugins.push(Box::new(parser_plugin::ESMTopLevelThisParserPlugin));
       plugins.push(Box::<parser_plugin::ESMDetectionParserPlugin>::default());
       plugins.push(Box::new(
@@ -588,7 +589,7 @@ impl<'parser> JavascriptParser<'parser> {
         },
       ));
       if import_meta.is_enabled() {
-        plugins.push(Box::new(parser_plugin::ImportMetaPlugin(import_meta)));
+        plugins.push(Box::new(parser_plugin::ImportMetaPlugin));
       } else {
         plugins.push(Box::new(parser_plugin::ImportMetaDisabledPlugin));
       }
@@ -672,6 +673,7 @@ impl<'parser> JavascriptParser<'parser> {
     source: &'parser str,
     ast: &'parser ParsedJavaScriptAst<'parser>,
     compiler_options: &'parser CompilerOptions,
+    value_cache_versions: &'parser ValueCacheVersions,
     javascript_options: &'parser JavascriptParserOptions,
     plugin_drive: &'parser JavaScriptParserPluginDrive,
     module_identifier: &'parser ModuleIdentifier,
@@ -726,6 +728,7 @@ impl<'parser> JavascriptParser<'parser> {
       factory_meta,
       build_meta,
       build_info,
+      value_cache_versions,
       compiler_options,
       module_type,
       module_layer,
@@ -760,6 +763,7 @@ impl<'parser> JavascriptParser<'parser> {
       InnerGraphParserPlugin::finalize_dependency_usage(
         &mut self.inner_graph,
         &mut self.dependencies,
+        &mut self.blocks,
       );
       // Keep flat indices stable for dependency analysis, then assemble the tree
       // from children to parents while preserving each block's insertion order.
@@ -773,6 +777,8 @@ impl<'parser> JavascriptParser<'parser> {
         .rev()
       {
         let mut block = block.expect("reserved parser block should be initialized");
+        // Drain the indexed adjacency list without moving it out of its parent.
+        #[allow(clippy::iter_with_drain)]
         for child in nested_blocks[index].drain(..).rev() {
           block.add_block(child);
         }
@@ -875,6 +881,19 @@ impl<'parser> JavascriptParser<'parser> {
     deps: impl IntoIterator<Item = DependencyCodeGenerationRef>,
   ) {
     self.presentational_dependencies.extend(deps);
+  }
+
+  pub(crate) fn preserve_shorthand_key(&mut self, ident_span: Span) {
+    if !self.in_short_hand {
+      return;
+    }
+    let ast = self.ast.ast;
+    let key = ast.get_utf8(ast.source_slice(ident_span.start, ident_span.end));
+    let start = ident_span.real_lo();
+    self.add_presentational_dependency(Arc::new(ConstDependency::new(
+      (start, start).into(),
+      format!("{key}: ").into(),
+    )));
   }
 
   pub fn next_presentational_dependency_idx(&self) -> usize {
@@ -1496,7 +1515,7 @@ impl<'parser> JavascriptParser<'parser> {
     F: FnOnce(&mut Self, BindingIdentifier, &str) + Copy,
   {
     let ast = self.ast.ast;
-    for element in ast.nodes(array_pat.elements(ast)).flatten() {
+    for element in ast.optional_nodes(array_pat.elements(ast)).flatten() {
       self.enter_pattern(PatRef::Borrowed(element), on_ident);
     }
     if let Some(rest) = array_pat.rest(ast) {
@@ -1821,11 +1840,6 @@ impl<'parser> JavascriptParser<'parser> {
       ExprData::IdentifierReference(ident) => {
         let span = ident.span(ast);
         let name = ast.get_utf8(ident.name(ast));
-        if name == "undefined" {
-          let mut eval = BasicEvaluatedExpression::with_range(span.real_lo(), span.real_hi());
-          eval.set_undefined();
-          return Some(eval);
-        }
         let drive = self.plugin_drive();
         let resolution = self
           .definitions_db
@@ -1839,6 +1853,8 @@ impl<'parser> JavascriptParser<'parser> {
           .resolve_identifier(self.ast, ident, resolution)
         {
           call_hooks_name::call_hooks_info(state, self, evaluate)
+        } else if name == "undefined" {
+          Some(eval::evaluate_to_undefined(span.real_lo(), span.real_hi()))
         } else {
           evaluate(self, name)
         };

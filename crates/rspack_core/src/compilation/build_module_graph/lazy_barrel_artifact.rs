@@ -1,383 +1,566 @@
 use rspack_cacheable::{
   cacheable,
-  with::{AsMap, AsPreset, AsVec},
+  with::{AsMap, AsOption, AsPreset, AsVec},
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_intern::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
-use crate::{DependencyId, DependencyRef, ModuleIdentifier};
+use crate::{DependencyId, DependencyRef, ModuleGraph, ModuleIdentifier};
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
 pub enum ForwardId {
   All,
   Id(Atom),
   Empty,
-  StarReexport,
 }
 
-#[derive(Debug, Clone)]
-pub enum ForwardedIdSet {
-  All,
-  IdSet(FxHashSet<Atom>),
-}
-
-impl ForwardedIdSet {
-  pub fn empty() -> Self {
-    Self::IdSet(FxHashSet::default())
-  }
-
-  pub fn append(&mut self, other: Self) {
-    match self {
-      Self::All => {}
-      Self::IdSet(set) => match other {
-        Self::All => {
-          *self = Self::All;
-        }
-        Self::IdSet(other) => {
-          set.extend(other);
-        }
-      },
-    }
-  }
-
-  pub fn is_empty(&self) -> bool {
-    match self {
-      Self::All => false,
-      Self::IdSet(set) => set.is_empty(),
-    }
-  }
-}
-
-/// How a dependency of a side-effect-free module takes part in lazy barrel. Fixed at parse time;
-/// whether it is currently deferred lives in the module graph.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum LazyRole {
   LocalExport(Atom),
   NamedReexport(Atom),
   StarReexport,
   ReexportSideEffect,
-  StarReexportSideEffect,
   ImportDeclaration,
 }
 
 #[cacheable]
+#[derive(Debug)]
+enum ForwardedIdSet {
+  All,
+  IdSet(#[cacheable(with=AsVec<AsPreset>)] FxHashSet<Atom>),
+}
+
+impl ForwardedIdSet {
+  fn is_empty(&self) -> bool {
+    match self {
+      Self::All => false,
+      Self::IdSet(ids) => ids.is_empty(),
+    }
+  }
+
+  fn to_owned_ids(&self) -> Self {
+    match self {
+      Self::All => Self::All,
+      Self::IdSet(ids) => Self::IdSet(ids.iter().cloned().collect()),
+    }
+  }
+}
+
+#[cacheable]
+#[derive(Debug)]
+enum ForwardRequest {
+  Request(#[cacheable(with=AsPreset)] Atom),
+  Imports,
+  ImportsAnd(#[cacheable(with=AsPreset)] Atom),
+}
+
+struct LazyRequest {
+  dependencies: Vec<DependencyId>,
+  fallback_ids: Option<ForwardedIdSet>,
+  fallback_targets: Vec<ModuleIdentifier>,
+}
+
+fn request_key(dependency: &DependencyRef) -> Option<Atom> {
+  let module_dependency = dependency.as_module_dependency()?;
+  Some(match module_dependency.resource_identifier() {
+    Some(resource_identifier) => Atom::from(resource_identifier),
+    None => Atom::from(format!(
+      "{}|{}",
+      module_dependency.dependency_type(),
+      module_dependency.request()
+    )),
+  })
+}
+
+fn take(
+  request_to_dependencies: &mut FxHashMap<Atom, Vec<DependencyId>>,
+  request_key: &Atom,
+  dependencies: &mut Vec<DependencyId>,
+  module_graph: &mut ModuleGraph,
+) {
+  let Some(group) = request_to_dependencies.remove(request_key) else {
+    return;
+  };
+  dependencies.extend(
+    group
+      .into_iter()
+      .filter(|dependency| module_graph.remove_lazy_dependency(dependency)),
+  );
+}
+
+fn can_lazy_imports(
+  forwarded_ids: Option<&ForwardedIdSet>,
+  local_ids: &FxHashSet<Atom>,
+  deferred_reexports: &[(Atom, Atom)],
+) -> bool {
+  let Some(ForwardedIdSet::IdSet(ids)) = forwarded_ids else {
+    return false;
+  };
+  !ids.is_empty()
+    && ids
+      .iter()
+      .all(|id| !local_ids.contains(id) && !deferred_reexports.iter().any(|(name, _)| name == id))
+}
+
+#[cacheable]
 #[derive(Debug, Default)]
-pub struct LazyDependencies {
-  #[cacheable(with=AsMap<AsPreset, AsPreset>)]
-  forward_id_to_request: FxHashMap<Atom, Atom>,
+struct LazyDependencies {
   #[cacheable(with=AsMap<AsPreset>)]
-  request_to_dependencies: FxHashMap<Atom, FxHashSet<DependencyId>>,
+  request_to_dependencies: FxHashMap<Atom, Vec<DependencyId>>,
+  #[cacheable(with=AsMap<AsPreset>)]
+  forward_id_to_request: FxHashMap<Atom, ForwardRequest>,
   #[cacheable(with=AsVec<AsPreset>)]
-  terminal_forward_ids: FxHashSet<Atom>,
-  fallback_dependencies: FxHashSet<DependencyId>,
-  #[cacheable(with=AsVec<AsPreset>)]
-  import_requests: FxHashSet<Atom>,
-  #[cacheable(with=AsVec<AsPreset>)]
-  deferred_reexport_ids: FxHashSet<Atom>,
-  requested_all: bool,
-  #[cacheable(with=AsVec<AsPreset>)]
-  requested_ids: FxHashSet<Atom>,
+  import_requests: Vec<Atom>,
+  #[cacheable(with=AsOption<AsVec<AsPreset>>)]
+  fallback_requests: Option<Vec<Atom>>,
   fallback_targets: IdentifierSet,
 }
 
 impl LazyDependencies {
-  pub fn is_empty(&self) -> bool {
-    self.request_to_dependencies.is_empty() && self.fallback_dependencies.is_empty()
-  }
+  fn create(
+    dependencies: &[DependencyRef],
+    forwarded_ids: Option<&ForwardedIdSet>,
+    lazy_imports: bool,
+    module_graph: &mut ModuleGraph,
+  ) -> Option<Self> {
+    let mut info: Option<Self> = None;
+    let mut local_ids = FxHashSet::default();
+    let mut deferred_reexports = vec![];
 
-  pub fn insert(&mut self, dependency: &DependencyRef, role: LazyRole) -> bool {
-    match role {
-      LazyRole::StarReexport | LazyRole::StarReexportSideEffect => {
-        self.fallback_dependencies.insert(*dependency.id());
-        true
-      }
-      LazyRole::LocalExport(forward_id) => {
-        self.terminal_forward_ids.insert(forward_id);
-        false
-      }
-      role => {
-        let Some(dep) = dependency.as_module_dependency() else {
-          return false;
-        };
-        let request = Atom::from(dep.request());
-        match role {
-          LazyRole::NamedReexport(forward_id) => {
-            // SideEffectsFlagPlugin keeps a re-export of an `import defer` namespace on the barrel.
-            if dependency.get_phase().is_defer() {
-              self.deferred_reexport_ids.insert(forward_id.clone());
-            }
-            self
-              .forward_id_to_request
-              .insert(forward_id, request.clone());
-          }
-          LazyRole::ImportDeclaration => {
-            self.import_requests.insert(request.clone());
-          }
-          _ => {}
+    for dependency in dependencies {
+      let role = match dependency.lazy_role() {
+        None | Some(LazyRole::ImportDeclaration) => continue,
+        Some(LazyRole::LocalExport(name)) => {
+          local_ids.insert(name);
+          continue;
         }
-        self
-          .request_to_dependencies
-          .entry(request)
-          .or_default()
-          .insert(*dependency.id());
-        true
+        Some(role) => role,
+      };
+      let Some(request_key) = request_key(dependency) else {
+        continue;
+      };
+      let info = info.get_or_insert_default();
+      info.add_lazy(request_key.clone(), *dependency.id(), module_graph);
+      match role {
+        LazyRole::NamedReexport(name) => {
+          if dependency.get_phase().is_defer() {
+            deferred_reexports.push((name.clone(), request_key.clone()));
+          }
+          info.add_forward_id(name, ForwardRequest::Request(request_key));
+        }
+        LazyRole::StarReexport => info.add_fallback(request_key),
+        _ => {}
       }
+    }
+
+    if lazy_imports && can_lazy_imports(forwarded_ids, &local_ids, &deferred_reexports) {
+      for dependency in dependencies {
+        if dependency.lazy_role() != Some(LazyRole::ImportDeclaration) {
+          continue;
+        }
+        let Some(request_key) = request_key(dependency) else {
+          continue;
+        };
+        let info = info.get_or_insert_default();
+        info.add_lazy(request_key.clone(), *dependency.id(), module_graph);
+        if !info.import_requests.contains(&request_key) {
+          info.import_requests.push(request_key);
+        }
+      }
+    }
+
+    let mut info = info?;
+    if !info.import_requests.is_empty() {
+      for (id, request_key) in deferred_reexports {
+        info.add_forward_id(id, ForwardRequest::ImportsAnd(request_key));
+      }
+    }
+    for id in local_ids {
+      info.add_forward_id(id, ForwardRequest::Imports);
+    }
+    Some(info)
+  }
+
+  fn add_lazy(
+    &mut self,
+    request_key: Atom,
+    dependency: DependencyId,
+    module_graph: &mut ModuleGraph,
+  ) {
+    let group = self.request_to_dependencies.entry(request_key).or_default();
+    if !group.contains(&dependency) {
+      group.push(dependency);
+    }
+    module_graph.add_lazy_dependency(dependency);
+  }
+
+  fn add_forward_id(&mut self, id: Atom, request: ForwardRequest) {
+    self.forward_id_to_request.insert(id, request);
+  }
+
+  fn add_fallback(&mut self, request_key: Atom) {
+    let fallback_requests = self.fallback_requests.get_or_insert_default();
+    if !fallback_requests.contains(&request_key) {
+      fallback_requests.push(request_key);
     }
   }
 
-  /// Only a running barrel uses its import declarations. Names it merely re-exports are redirected
-  /// past it, so the declarations can wait until a local export or a deferred re-export is requested.
-  pub fn can_lazy_imports(&self, forwarded_ids: &ForwardedIdSet) -> bool {
-    match forwarded_ids {
-      ForwardedIdSet::All => false,
-      ForwardedIdSet::IdSet(ids) => {
-        !ids.is_empty()
-          && ids.iter().all(|id| {
-            !self.terminal_forward_ids.contains(id) && !self.deferred_reexport_ids.contains(id)
-          })
-      }
-    }
-  }
-
-  fn all_lazy_dependencies(&self) -> impl Iterator<Item = DependencyId> + use<'_> {
-    self
-      .request_to_dependencies
-      .values()
-      .flatten()
-      .chain(self.fallback_dependencies.iter())
-      .copied()
+  fn add_fallback_target(&mut self, module: ModuleIdentifier) -> bool {
+    self.fallback_requests.is_some() && self.fallback_targets.insert(module)
   }
 
   fn is_known_id(&self, id: &Atom) -> bool {
-    self.terminal_forward_ids.contains(id) || self.forward_id_to_request.contains_key(id)
+    self.forward_id_to_request.contains_key(id)
   }
 
-  fn references_local(&self, ids: &FxHashSet<Atom>) -> bool {
-    ids
-      .iter()
-      .any(|forward_id| self.terminal_forward_ids.contains(forward_id))
-  }
-
-  pub fn merge_requested_ids(&mut self, ids: ForwardedIdSet) -> Option<ForwardedIdSet> {
-    if self.requested_all {
-      return None;
-    }
+  fn references_local(&self, ids: &ForwardedIdSet) -> bool {
     match ids {
-      ForwardedIdSet::All => {
-        self.requested_all = true;
-        self.requested_ids.clear();
-        Some(ForwardedIdSet::All)
-      }
-      ForwardedIdSet::IdSet(ids) => {
-        let new_ids = ids
-          .into_iter()
-          .filter(|id| self.requested_ids.insert(id.clone()))
-          .collect::<FxHashSet<_>>();
-        (!new_ids.is_empty()).then_some(ForwardedIdSet::IdSet(new_ids))
-      }
+      ForwardedIdSet::All => false,
+      ForwardedIdSet::IdSet(ids) => ids.iter().any(|id| {
+        matches!(
+          self.forward_id_to_request.get(id),
+          Some(ForwardRequest::Imports)
+        )
+      }),
     }
   }
 
-  pub fn star_reexport_ids(
-    &mut self,
-    target: ModuleIdentifier,
-    eager_on_local_reference: bool,
-  ) -> ForwardedIdSet {
-    self.fallback_targets.insert(target);
-    if self.requested_all
-      || (eager_on_local_reference && self.references_local(&self.requested_ids))
-    {
-      return ForwardedIdSet::All;
-    }
-    ForwardedIdSet::IdSet(
-      self
-        .requested_ids
-        .iter()
-        .filter(|id| !self.is_known_id(id))
-        .cloned()
-        .collect(),
-    )
+  fn is_empty(&self) -> bool {
+    self.request_to_dependencies.is_empty()
   }
 
   fn defers_imports(&self) -> bool {
-    !self.import_requests.is_empty()
-      && !self.requested_all
-      && !self
-        .requested_ids
-        .iter()
-        .any(|id| self.terminal_forward_ids.contains(id) || self.deferred_reexport_ids.contains(id))
+    self
+      .import_requests
+      .iter()
+      .any(|request_key| self.request_to_dependencies.contains_key(request_key))
   }
 
-  pub fn fallback_targets(&self) -> &IdentifierSet {
-    &self.fallback_targets
-  }
-
-  pub fn requested_lazy_dependencies(
-    &self,
-    forwarded_ids: &ForwardedIdSet,
-    eager_on_local_reference: bool,
-  ) -> (FxHashSet<DependencyId>, Option<ForwardedIdSet>) {
-    let ids = match forwarded_ids {
+  fn request(&mut self, ids: &ForwardedIdSet, module_graph: &mut ModuleGraph) -> LazyRequest {
+    let mut dependencies = vec![];
+    let fallback_ids = match ids {
       ForwardedIdSet::All => {
-        return (
-          self.all_lazy_dependencies().collect(),
-          Some(ForwardedIdSet::All),
-        );
-      }
-      ForwardedIdSet::IdSet(ids) => ids,
-    };
-    if eager_on_local_reference && self.references_local(ids) {
-      return (
-        self.all_lazy_dependencies().collect(),
-        Some(ForwardedIdSet::All),
-      );
-    }
-
-    let mut dependencies = FxHashSet::default();
-    let mut unknown_ids = FxHashSet::default();
-    let take = |request: &Atom, dependencies: &mut FxHashSet<DependencyId>| {
-      if let Some(deps) = self.request_to_dependencies.get(request) {
-        dependencies.extend(deps.iter().copied());
-      }
-    };
-    for id in ids {
-      if self.terminal_forward_ids.contains(id) {
-        for request in &self.import_requests {
-          take(request, &mut dependencies);
+        for (_, group) in self.request_to_dependencies.drain() {
+          dependencies.extend(
+            group
+              .into_iter()
+              .filter(|dependency| module_graph.remove_lazy_dependency(dependency)),
+          );
         }
-      } else if let Some(request) = self.forward_id_to_request.get(id) {
-        take(request, &mut dependencies);
-        if self.deferred_reexport_ids.contains(id) {
-          for request in &self.import_requests {
-            take(request, &mut dependencies);
+        Some(ForwardedIdSet::All)
+      }
+      ForwardedIdSet::IdSet(ids) => self
+        .take_ids(ids, &mut dependencies, module_graph)
+        .map(ForwardedIdSet::IdSet),
+    };
+    let fallback_targets = if fallback_ids.is_some() {
+      self.fallback_targets.iter().copied().collect()
+    } else {
+      vec![]
+    };
+    if matches!(ids, ForwardedIdSet::All)
+      || (self.request_to_dependencies.is_empty() && self.fallback_requests.is_none())
+    {
+      self.release();
+    }
+    LazyRequest {
+      dependencies,
+      fallback_ids,
+      fallback_targets,
+    }
+  }
+
+  fn take_ids(
+    &mut self,
+    ids: &FxHashSet<Atom>,
+    dependencies: &mut Vec<DependencyId>,
+    module_graph: &mut ModuleGraph,
+  ) -> Option<FxHashSet<Atom>> {
+    let mut unknown_ids: Option<FxHashSet<Atom>> = None;
+    for id in ids {
+      match self.forward_id_to_request.get(id) {
+        Some(ForwardRequest::Request(request_key)) => take(
+          &mut self.request_to_dependencies,
+          request_key,
+          dependencies,
+          module_graph,
+        ),
+        Some(ForwardRequest::Imports) => {
+          for request_key in &self.import_requests {
+            take(
+              &mut self.request_to_dependencies,
+              request_key,
+              dependencies,
+              module_graph,
+            );
           }
         }
-      } else if !self.fallback_dependencies.is_empty() {
-        dependencies.extend(self.fallback_dependencies.iter().copied());
-        unknown_ids.insert(id.clone());
+        Some(ForwardRequest::ImportsAnd(own_request_key)) => {
+          for request_key in self.import_requests.iter().chain([own_request_key]) {
+            take(
+              &mut self.request_to_dependencies,
+              request_key,
+              dependencies,
+              module_graph,
+            );
+          }
+        }
+        None => {
+          let Some(fallback_requests) = &self.fallback_requests else {
+            continue;
+          };
+          for request_key in fallback_requests {
+            take(
+              &mut self.request_to_dependencies,
+              request_key,
+              dependencies,
+              module_graph,
+            );
+          }
+          unknown_ids.get_or_insert_default().insert(id.clone());
+        }
       }
     }
-    (
-      dependencies,
-      (!unknown_ids.is_empty()).then_some(ForwardedIdSet::IdSet(unknown_ids)),
-    )
+    unknown_ids
+  }
+
+  fn release(&mut self) {
+    self.forward_id_to_request = Default::default();
+    self.import_requests = Default::default();
+    self.fallback_requests = None;
+    self.fallback_targets = Default::default();
   }
 }
 
+#[cacheable]
 #[derive(Debug)]
-pub enum HasLazyDependencies {
-  Pending(ForwardedIdSet),
-  Has(Box<LazyDependencies>),
+pub struct LazyMakeState {
+  forwarded_ids: ForwardedIdSet,
+  lazy_dependencies: Option<LazyDependencies>,
 }
 
 #[derive(Debug, Default)]
 pub struct ModuleToLazyMake {
-  /// Expand a barrel before its local exports make its factory observable.
-  /// Enabled by lazy compilation to avoid changing that factory on activation.
   pub eager_on_local_reference: bool,
-  module_to_lazy_dependencies: IdentifierMap<HasLazyDependencies>,
+  modules: IdentifierMap<LazyMakeState>,
   updated_modules: IdentifierSet,
 }
 
 impl ModuleToLazyMake {
-  pub fn get_lazy_dependencies(&self, module: &ModuleIdentifier) -> Option<&LazyDependencies> {
-    self
-      .module_to_lazy_dependencies
-      .get(module)
-      .and_then(|info| match info {
-        HasLazyDependencies::Pending(_) => None,
-        HasLazyDependencies::Has(lazy_dependencies) => Some(&**lazy_dependencies),
-      })
-  }
-
-  /// Barrels whose import declarations are still deferred. Such a barrel must never run, since
-  /// side effects optimization moves every re-exported name past it.
-  pub fn modules_deferring_imports(&self) -> impl Iterator<Item = &ModuleIdentifier> {
-    self
-      .module_to_lazy_dependencies
-      .iter()
-      .filter_map(|(module, info)| match info {
-        HasLazyDependencies::Has(lazy_dependencies) if lazy_dependencies.defers_imports() => {
-          Some(module)
-        }
-        _ => None,
-      })
-  }
-
-  pub fn get_lazy_dependencies_mut(
-    &mut self,
-    module: &ModuleIdentifier,
-  ) -> Option<&mut LazyDependencies> {
-    self
-      .module_to_lazy_dependencies
-      .get_mut(module)
-      .and_then(|info| match info {
-        HasLazyDependencies::Pending(_) => None,
-        HasLazyDependencies::Has(lazy_dependencies) => Some(&mut **lazy_dependencies),
-      })
-  }
-
-  pub fn update_module_lazy_dependencies(
+  pub fn classify(
     &mut self,
     module: ModuleIdentifier,
-    to: Option<LazyDependencies>,
-  ) -> Option<HasLazyDependencies> {
-    match to {
-      Some(lazy_dependencies) => self.module_to_lazy_dependencies.insert(
+    side_effect_free: bool,
+    dependencies: &[DependencyRef],
+    lazy_imports: bool,
+    module_graph: &mut ModuleGraph,
+  ) -> bool {
+    if !side_effect_free {
+      self.modules.remove(&module);
+      return false;
+    }
+    let state = self.modules.get_mut(&module);
+    if let Some(state) = &state
+      && matches!(state.forwarded_ids, ForwardedIdSet::All)
+    {
+      return false;
+    }
+    let Some(mut info) = LazyDependencies::create(
+      dependencies,
+      state.as_ref().map(|state| &state.forwarded_ids),
+      lazy_imports,
+      module_graph,
+    ) else {
+      self.modules.remove(&module);
+      return false;
+    };
+    let Some(state) = state else {
+      self.modules.insert(
         module,
-        HasLazyDependencies::Has(Box::new(lazy_dependencies)),
-      ),
-      None => self.module_to_lazy_dependencies.remove(&module),
+        LazyMakeState {
+          forwarded_ids: ForwardedIdSet::IdSet(Default::default()),
+          lazy_dependencies: Some(info),
+        },
+      );
+      return true;
+    };
+    if self.eager_on_local_reference && info.references_local(&state.forwarded_ids) {
+      state.forwarded_ids = ForwardedIdSet::All;
+    }
+    info.request(&state.forwarded_ids, module_graph);
+    let has_lazy_dependencies = !info.is_empty();
+    state.lazy_dependencies = Some(info);
+    has_lazy_dependencies
+  }
+
+  pub fn request(
+    &mut self,
+    module: ModuleIdentifier,
+    side_effect_free: bool,
+    dependencies: &[DependencyRef],
+    module_graph: &mut ModuleGraph,
+  ) -> Vec<(ModuleIdentifier, Vec<DependencyId>)> {
+    let mut activated = vec![];
+    match self.modules.get(&module) {
+      Some(state) if matches!(state.forwarded_ids, ForwardedIdSet::All) => return activated,
+      Some(_) => {}
+      None if !side_effect_free || module_graph.module_by_identifier(&module).is_some() => {
+        return activated;
+      }
+      None => {}
+    }
+    let ids = self.requested_ids(module, dependencies, module_graph);
+    self.request_with_ids(module, &ids, module_graph, &mut activated);
+    activated
+  }
+
+  fn requested_ids(
+    &mut self,
+    module: ModuleIdentifier,
+    dependencies: &[DependencyRef],
+    module_graph: &ModuleGraph,
+  ) -> ForwardedIdSet {
+    let mut ids = FxHashSet::default();
+    for dependency in dependencies {
+      if dependency.lazy_role() == Some(LazyRole::StarReexport)
+        && let Some(parent) = module_graph.get_parent_module(dependency.id())
+        && let Some(parent_state) = self.modules.get_mut(parent)
+      {
+        if let Some(parent_info) = &mut parent_state.lazy_dependencies
+          && parent_info.add_fallback_target(module)
+        {
+          self.updated_modules.insert(*parent);
+        }
+        let ForwardedIdSet::IdSet(parent_ids) = &parent_state.forwarded_ids else {
+          return ForwardedIdSet::All;
+        };
+        let parent_info = parent_state.lazy_dependencies.as_ref();
+        ids.extend(
+          parent_ids
+            .iter()
+            .filter(|id| !parent_info.is_some_and(|parent_info| parent_info.is_known_id(id)))
+            .cloned(),
+        );
+        continue;
+      }
+      match dependency.forward_id() {
+        ForwardId::All => return ForwardedIdSet::All,
+        ForwardId::Id(id) => {
+          ids.insert(id);
+        }
+        ForwardId::Empty => {}
+      }
+    }
+    ForwardedIdSet::IdSet(ids)
+  }
+
+  fn request_with_ids(
+    &mut self,
+    module: ModuleIdentifier,
+    ids: &ForwardedIdSet,
+    module_graph: &mut ModuleGraph,
+    activated: &mut Vec<(ModuleIdentifier, Vec<DependencyId>)>,
+  ) {
+    if ids.is_empty() {
+      return;
+    }
+    let Some(state) = self.modules.get_mut(&module) else {
+      if module_graph.module_by_identifier(&module).is_none()
+        && module_graph
+          .module_graph_module_by_identifier(&module)
+          .is_some()
+      {
+        self.modules.insert(
+          module,
+          LazyMakeState {
+            forwarded_ids: ids.to_owned_ids(),
+            lazy_dependencies: None,
+          },
+        );
+      }
+      return;
+    };
+    let all = ForwardedIdSet::All;
+    let ids = if self.eager_on_local_reference
+      && let Some(info) = &state.lazy_dependencies
+      && info.references_local(ids)
+    {
+      &all
+    } else {
+      ids
+    };
+    let Some(new_ids) = merge_forwarded_ids(&mut state.forwarded_ids, ids) else {
+      return;
+    };
+    if state.lazy_dependencies.is_some() {
+      self.updated_modules.insert(module);
+    }
+    let Some(info) = &mut state.lazy_dependencies else {
+      return;
+    };
+    let LazyRequest {
+      dependencies,
+      fallback_ids,
+      fallback_targets,
+    } = info.request(&new_ids, module_graph);
+    if !dependencies.is_empty() {
+      activated.push((module, dependencies));
+    }
+    if let Some(fallback_ids) = fallback_ids {
+      for target in fallback_targets {
+        self.request_with_ids(target, &fallback_ids, module_graph, activated);
+      }
     }
   }
 
-  /// Modules whose lazy state changed without a rebuild, so the persistent cache must save them again.
+  pub fn get(&self, module: &ModuleIdentifier) -> Option<&LazyMakeState> {
+    self.modules.get(module)
+  }
+
+  pub fn restore(&mut self, module: ModuleIdentifier, state: LazyMakeState) {
+    self.modules.insert(module, state);
+  }
+
+  pub fn modules_deferring_imports(&self) -> impl Iterator<Item = &ModuleIdentifier> {
+    self.modules.iter().filter_map(|(module, state)| {
+      state
+        .lazy_dependencies
+        .as_ref()
+        .is_some_and(LazyDependencies::defers_imports)
+        .then_some(module)
+    })
+  }
+
   pub fn updated_modules(&self) -> &IdentifierSet {
     &self.updated_modules
   }
 
-  pub fn mark_updated(&mut self, module: ModuleIdentifier) {
-    self.updated_modules.insert(module);
-  }
-
   pub fn revoke_module(&mut self, module: &ModuleIdentifier) {
+    self.modules.remove(module);
     self.updated_modules.remove(module);
   }
 
   pub fn reset_updated_modules(&mut self) {
     self.updated_modules.clear();
   }
+}
 
-  pub fn take_pending_forwarded_ids(
-    &mut self,
-    module: &ModuleIdentifier,
-  ) -> Option<ForwardedIdSet> {
-    if !matches!(
-      self.module_to_lazy_dependencies.get(module),
-      Some(HasLazyDependencies::Pending(_))
-    ) {
-      return None;
-    }
-    match self.module_to_lazy_dependencies.remove(module) {
-      Some(HasLazyDependencies::Pending(forwarded_ids)) => Some(forwarded_ids),
-      _ => None,
-    }
-  }
-
-  pub fn pending_forwarded_ids(&mut self, module: ModuleIdentifier) -> &mut ForwardedIdSet {
-    match self
-      .module_to_lazy_dependencies
-      .entry(module)
-      .and_modify(|info| {
-        if matches!(info, HasLazyDependencies::Has(_)) {
-          *info = HasLazyDependencies::Pending(ForwardedIdSet::empty())
-        }
-      })
-      .or_insert_with(|| HasLazyDependencies::Pending(ForwardedIdSet::empty()))
-    {
-      HasLazyDependencies::Pending(forwarded_ids) => forwarded_ids,
-      HasLazyDependencies::Has(_) => unreachable!(),
-    }
-  }
+fn merge_forwarded_ids(
+  forwarded_ids: &mut ForwardedIdSet,
+  ids: &ForwardedIdSet,
+) -> Option<ForwardedIdSet> {
+  let ForwardedIdSet::IdSet(forwarded) = forwarded_ids else {
+    return None;
+  };
+  let ForwardedIdSet::IdSet(ids) = ids else {
+    *forwarded_ids = ForwardedIdSet::All;
+    return Some(ForwardedIdSet::All);
+  };
+  let new_ids = ids
+    .iter()
+    .filter(|id| forwarded.insert((*id).clone()))
+    .cloned()
+    .collect::<FxHashSet<_>>();
+  (!new_ids.is_empty()).then_some(ForwardedIdSet::IdSet(new_ids))
 }

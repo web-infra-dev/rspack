@@ -1,3 +1,5 @@
 await Promise.resolve("aaa");
 
 for await (const _ of [Promise.resolve("bbbb")]) { }
+
+await using resource = { [Symbol.dispose]() {} };

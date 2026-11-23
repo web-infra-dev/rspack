@@ -63,6 +63,11 @@ impl Diagnostic {
     }
   }
 
+  pub fn with_title(mut self, title: &str) -> Self {
+    self.message = format!("{title}: {}", self.message);
+    self
+  }
+
   pub fn render_report(&self, colored: bool) -> Result<String> {
     let renderer = Renderer::new(colored);
     renderer.render(self)

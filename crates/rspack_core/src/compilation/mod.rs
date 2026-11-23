@@ -32,7 +32,7 @@ use std::{
   hash::{BuildHasherDefault, Hash},
   mem,
   sync::{
-    Arc,
+    Arc, Weak,
     atomic::{AtomicBool, AtomicU32, Ordering},
   },
 };
@@ -85,8 +85,8 @@ use crate::{
   RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
-    BuildModuleGraphArtifact, ModuleExecutor, UpdateParam, module_build_cache::ModuleBuildCache,
-    update_module_graph,
+    BuildModuleGraphArtifact, ModuleExecutor, ModuleGraphUpdateResult, UpdateParam,
+    expand_rebuild_modules, update_module_graph,
   },
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
@@ -95,7 +95,7 @@ use crate::{
   legacy_cache::persistent::occasion::{
     devtool::SourceMapDevToolPluginCache, minimize::MinimizePersistentCache,
   },
-  new_cache::{CacheFacade, CompilerCache},
+  new_cache::{CacheFacade, CompilerCache, LoaderCache},
   to_identifier,
 };
 
@@ -220,6 +220,7 @@ pub struct Compilation {
   // The status is different, should generate different hash for `.hot-update.js`
   // So use compilation hash update `hot_index` to fix it.
   pub hot_index: u32,
+  pub hot: bool,
   pub records: Option<Arc<CompilationRecords>>,
   pub options: Arc<CompilerOptions>,
   pub platform: Arc<CompilerPlatform>,
@@ -236,7 +237,8 @@ pub struct Compilation {
   diagnostics: Vec<Diagnostic>,
   logging: CompilationLogging,
   pub cache: CompilerCache,
-  pub(crate) module_build_cache: Option<ModuleBuildCache>,
+  // Compilations and retained incremental artifacts must not keep loader storage open.
+  loader_cache: Weak<LoaderCache>,
   pub resolver_cache: Option<crate::ResolverCache>,
   pub file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
@@ -308,6 +310,7 @@ pub struct Compilation {
   // TODO move to MakeArtifact
   pub module_executor: Option<ModuleExecutor>,
   in_finish_make: AtomicBool,
+  build_module_graph_error: Option<rspack_error::Error>,
 
   pub modified_files: InternedPathSet,
   pub removed_files: InternedPathSet,
@@ -350,6 +353,7 @@ impl Compilation {
     module_executor: Option<ModuleExecutor>,
     logging: CompilationLogging,
     cache: CompilerCache,
+    loader_cache: Weak<LoaderCache>,
     modified_files: InternedPathSet,
     removed_files: InternedPathSet,
     input_filesystem: Arc<dyn ReadableFileSystem>,
@@ -358,13 +362,6 @@ impl Compilation {
     is_rebuild: bool,
     compiler_context: Arc<CompilerContext>,
   ) -> Self {
-    // Rebuilds own their invalidation path, so skip module restoration while
-    // still publishing rebuilt modules for subsequent compilations.
-    let module_build_cache = options
-      .experiments
-      .new_cache
-      .module
-      .then(|| ModuleBuildCache::new(cache.facade("Compilation/modules"), !is_rebuild));
     let file_system_info = FileSystemInfo::new(
       input_filesystem.clone(),
       CompilationLogger::new("rspack.FileSystemInfo", logging.clone()),
@@ -379,6 +376,7 @@ impl Compilation {
       id: CompilationId::new(),
       compiler_id,
       hot_index: 0,
+      hot: false,
       runtime_template: RuntimeTemplate::new(options.clone()),
       records,
       options: options.clone(),
@@ -396,7 +394,7 @@ impl Compilation {
       diagnostics: Default::default(),
       logging,
       cache,
-      module_build_cache,
+      loader_cache,
       resolver_cache,
       file_system_info,
       plugin_driver,
@@ -452,6 +450,7 @@ impl Compilation {
 
       module_executor,
       in_finish_make: AtomicBool::new(false),
+      build_module_graph_error: None,
 
       build_module_graph_artifact: StealCell::new(BuildModuleGraphArtifact::new()),
       modified_files,
@@ -467,6 +466,14 @@ impl Compilation {
 
   pub fn get_cache(&self, name: &str) -> CacheFacade {
     self.cache.facade(name)
+  }
+
+  pub fn loader_cache_counters(&self) -> Arc<crate::CacheCounters> {
+    self.cache.counters("loader")
+  }
+
+  pub fn loader_cache(&self) -> Weak<LoaderCache> {
+    self.loader_cache.clone()
   }
 
   pub fn id(&self) -> CompilationId {
@@ -626,11 +633,7 @@ impl Compilation {
   ) -> String {
     let mut runtime_map = self.import_var_map.entry(module).or_default();
     let import_var_map_of_module = runtime_map
-      .entry(
-        runtime
-          .map(|r| get_runtime_key(r).clone())
-          .unwrap_or_default(),
-      )
+      .entry(runtime.map_or_default(|r| get_runtime_key(r).clone()))
       .or_default();
     let len = import_var_map_of_module.len();
     let is_deferred = phase.is_defer()
@@ -664,7 +667,8 @@ impl Compilation {
     let plugin_driver = self.plugin_driver.clone();
     self
       .build_module_graph_artifact
-      .add_unfactorized_dependency(entry);
+      .get_module_graph_mut()
+      .add_dependency_ref(entry);
     let entry_options = if let Some(name) = &entry_name {
       if let Some(data) = self.entries.get_mut(name) {
         data.dependencies.push(entry_id);
@@ -705,13 +709,8 @@ impl Compilation {
       self.add_entry(entry.into(), options).await?;
     }
 
-    let make_artifact = self.build_module_graph_artifact.steal();
-    let exports_info_artifact = self.exports_info_artifact.steal();
-    let (make_artifact, exports_info_artifact) = update_module_graph(
-      self,
-      make_artifact,
-      exports_info_artifact,
-      vec![UpdateParam::BuildEntry(
+    self
+      .update_module_graph(vec![UpdateParam::BuildEntry(
         self
           .entries
           .values()
@@ -719,11 +718,8 @@ impl Compilation {
           .chain(self.global_entry.all_dependencies())
           .copied()
           .collect(),
-      )],
-    )
-    .await?;
-    self.build_module_graph_artifact = make_artifact.into();
-    self.exports_info_artifact = exports_info_artifact.into();
+      )])
+      .await?;
 
     Ok(())
   }
@@ -743,7 +739,8 @@ impl Compilation {
       let entry_id = *entry.id();
       self
         .build_module_graph_artifact
-        .add_unfactorized_dependency(entry);
+        .get_module_graph_mut()
+        .add_dependency_ref(entry);
       if let Some(name) = options.name.clone() {
         if let Some(data) = self.entries.get_mut(&name) {
           data.include_dependencies.push(entry_id);
@@ -762,13 +759,8 @@ impl Compilation {
 
     // Recheck entry and clean useless entry
     // This should before finish_modules hook is called, ensure providedExports effects on new added modules
-    let make_artifact = self.build_module_graph_artifact.steal();
-    let exports_info_artifact = self.exports_info_artifact.steal();
-    let (make_artifact, exports_info_artifact) = update_module_graph(
-      self,
-      make_artifact,
-      exports_info_artifact,
-      vec![UpdateParam::BuildEntry(
+    self
+      .update_module_graph(vec![UpdateParam::BuildEntry(
         self
           .entries
           .values()
@@ -776,11 +768,8 @@ impl Compilation {
           .chain(self.global_entry.all_dependencies())
           .copied()
           .collect(),
-      )],
-    )
-    .await?;
-    self.build_module_graph_artifact = make_artifact.into();
-    self.exports_info_artifact = exports_info_artifact.into();
+      )])
+      .await?;
 
     Ok(())
   }
@@ -853,15 +842,22 @@ impl Compilation {
           filename,
           is_source_equal
         );
-        self.push_diagnostic(
-          rspack_error::error!(
-            "Conflict: Multiple assets emit different content to the same filename {}{}",
-            filename,
-            // TODO: source file name
-            ""
-          )
-          .into(),
-        );
+        let mut sources = [
+          original.info.source_filename.as_deref(),
+          asset.info.source_filename.as_deref(),
+        ]
+        .map(|source| source.filter(|name| !name.is_empty()));
+        sources.sort_unstable();
+        let source_info = match sources {
+          [Some(a), Some(b)] if a != b => format!(" (from {a:?} and {b:?})"),
+          [_, Some(source)] => format!(" (known source: {source:?})"),
+          _ => String::new(),
+        };
+        let mut diagnostic = Diagnostic::from(rspack_error::error!(
+          "Multiple assets{source_info} produce different content for the same output file {filename:?}."
+        ));
+        diagnostic.file = Some(filename.as_str().into());
+        self.push_diagnostic(diagnostic);
         self.set_asset_info(&filename, Some(asset.get_info()), None);
         self.assets.insert(filename, asset);
         return;
@@ -1007,8 +1003,7 @@ impl Compilation {
       d.labels
         .as_ref()
         .and_then(|l| l.first())
-        .map(|l| l.offset)
-        .unwrap_or_default()
+        .map_or_default(|l| l.offset)
     };
     self
       .get_errors()
@@ -1033,8 +1028,7 @@ impl Compilation {
       d.labels
         .as_ref()
         .and_then(|l| l.first())
-        .map(|l| l.offset)
-        .unwrap_or_default()
+        .map_or_default(|l| l.offset)
     };
     self
       .get_warnings()
@@ -1077,32 +1071,96 @@ impl Compilation {
     ukey
   }
 
+  pub(crate) fn apply_module_graph_update(
+    &mut self,
+    update: ModuleGraphUpdateResult,
+  ) -> Result<()> {
+    self.build_module_graph_artifact = update.artifact.into();
+    self.exports_info_artifact = update.exports_info_artifact.into();
+    if let Err(error) = &update.result {
+      // A plugin may handle the callback error. The incomplete graph must still
+      // stop the compilation before diagnostics, checkpoints or optimization.
+      self.build_module_graph_error = Some(error.clone());
+    }
+    update.result
+  }
+
+  async fn update_module_graph(&mut self, params: Vec<UpdateParam>) -> Result<()> {
+    if let Some(error) = &self.build_module_graph_error {
+      return Err(error.clone());
+    }
+    let artifact = self.build_module_graph_artifact.steal();
+    let exports_info_artifact = self.exports_info_artifact.steal();
+    let update = update_module_graph(self, artifact, exports_info_artifact, params).await;
+    self.apply_module_graph_update(update)
+  }
+
   pub async fn rebuild_module<T>(
     &mut self,
-    module_identifiers: IdentifierSet,
-    exports_info_artifact: &mut ExportsInfoArtifact,
-    f: impl Fn(Vec<&crate::ModuleRef>) -> T,
+    module_identifiers: Vec<ModuleIdentifier>,
+    f: impl FnOnce(Vec<Option<&crate::ModuleRef>>) -> T,
   ) -> Result<T> {
-    let artifact = self.build_module_graph_artifact.steal();
+    if !self.in_finish_make.load(Ordering::Acquire) {
+      return Err(rspack_error::error!(
+        "compilation.rebuildModule() is only supported in compiler.hooks.finishMake. Move the rebuild from finishModules or later hooks to finishMake."
+      ));
+    }
+    if let Some(error) = &self.build_module_graph_error {
+      return Err(error.clone());
+    }
 
-    // https://github.com/webpack/webpack/blob/19ca74127f7668aaf60d59f4af8fcaee7924541a/lib/Compilation.js#L2462C21-L2462C25
+    // Preserve every request, including duplicates. A changed loader chain may
+    // replace the identifier, so retain incoming dependencies to find its result.
+    let module_graph = self.get_module_graph();
+    let requests = module_identifiers
+      .into_iter()
+      .map(|id| {
+        let dependencies = if module_graph.module_by_identifier(&id).is_some() {
+          module_graph
+            .get_incoming_connections(&id)
+            .map(|connection| connection.dependency_id)
+            .collect::<Vec<_>>()
+        } else {
+          Vec::new()
+        };
+        (id, dependencies)
+      })
+      .collect::<Vec<_>>();
+    let mut modules = requests
+      .iter()
+      .filter_map(|(id, _)| module_graph.module_by_identifier(id).map(|_| *id))
+      .collect::<IdentifierSet>();
+    expand_rebuild_modules(module_graph, &mut modules);
+
     self.module_graph_cache_artifact.unfreeze();
-
-    let (artifact, updated_exports_info_artifact) = update_module_graph(
-      self,
-      artifact,
-      std::mem::take(exports_info_artifact),
-      vec![UpdateParam::ForceBuildModules(module_identifiers.clone())],
-    )
-    .await?;
-    *exports_info_artifact = updated_exports_info_artifact;
-    self.build_module_graph_artifact = artifact.into();
+    if !modules.is_empty() {
+      if let Some(executor) = &mut self.module_executor {
+        let mut executor = std::mem::take(executor);
+        let result = executor.prepare_rebuild(self, &modules).await;
+        self.module_executor = Some(executor);
+        if let Err(error) = result {
+          self.build_module_graph_error = Some(error.clone());
+          return Err(error);
+        }
+      }
+      self
+        .update_module_graph(vec![UpdateParam::ForceBuildModules(modules)])
+        .await?;
+    }
 
     let module_graph = self.get_module_graph();
-    Ok(f(module_identifiers
+    Ok(f(requests
       .into_iter()
-      .filter_map(|id| module_graph.module_by_identifier(&id))
-      .collect::<Vec<_>>()))
+      .map(|(id, dependencies)| {
+        module_graph.module_by_identifier(&id).or_else(|| {
+          dependencies.iter().find_map(|dependency| {
+            module_graph
+              .module_identifier_by_dependency_id(dependency)
+              .and_then(|id| module_graph.module_by_identifier(id))
+          })
+        })
+      })
+      .collect()))
   }
 
   pub fn entry_modules(&self) -> IdentifierSet {

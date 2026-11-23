@@ -11,17 +11,17 @@ use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
 use crate::{
-  BoxChunkInitFragment, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildMetaExportsType,
-  ChunkGraph, ChunkInitFragments, ChunkUkey, CodeGenerationDataChunkInitFragments,
-  CodeGenerationDataUrl, CodeGenerationResultBuilder, Compilation, ConcatenationScope, Context,
-  CssLayer, CssModuleRenderCondition, DependenciesBlock, DependenciesBlockData, DependencyRef,
-  ExportProvided, ExternalType, FactoryMetaStore, FreezeLock, ImportAttributes, ImportPhase,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, LibIdentOptions, Module, ModuleArgument,
-  ModuleCodeGenerationContext, ModuleCodeTemplate, ModuleGraph, ModuleType,
-  NAMESPACE_OBJECT_EXPORT, NeedBuildContext, NormalInitFragment, RuntimeGlobals, RuntimeSpec,
-  SourceType, StaticExportsDependency, StaticExportsSpec, UsageState, UsedExports, UsedNameItem,
-  css_module_render_conditions_identifier, extract_url_and_global, impl_module_meta_info,
-  module_update_hash, property_access,
+  BoxChunkInitFragment, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
+  BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
+  CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl, CodeGenerationResultBuilder,
+  Compilation, ConcatenationScope, Context, CssLayer, CssModuleRenderCondition, DependenciesBlock,
+  DependenciesBlockData, DependencyRef, ExportProvided, ExternalType, FactoryMetaStore, FreezeLock,
+  ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage,
+  LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
+  ModuleGraph, ModuleType, NAMESPACE_OBJECT_EXPORT, NeedBuildContext, NormalInitFragment,
+  RuntimeGlobals, RuntimeSpec, SourceType, StaticExportsDependency, StaticExportsSpec, UsageState,
+  UsedExports, UsedNameItem, css_module_render_conditions_identifier, extract_url_and_global,
+  impl_module_meta_info, module_update_hash, property_access,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
@@ -29,6 +29,22 @@ use crate::{
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 static EXTERNAL_MODULE_CSS_SOURCE_TYPES: &[SourceType] = &[SourceType::CssImport];
 static EXTERNAL_MODULE_ASSET_URL_SOURCE_TYPES: &[SourceType] = &[SourceType::AssetUrl];
+
+#[cacheable]
+#[derive(Debug, Clone, Copy)]
+pub enum ExternalInterop {
+  Default,
+  EsModule,
+}
+
+impl ExternalInterop {
+  pub fn as_str(self) -> &'static str {
+    match self {
+      Self::Default => "default",
+      Self::EsModule => "esModule",
+    }
+  }
+}
 
 define_hook!(ExternalModuleChunkCondition: SeriesBail(
   chunk_ukey: &ChunkUkey,
@@ -530,6 +546,7 @@ pub struct ExternalModule {
   build_meta: FreezeLock<BuildMeta>,
   dependency_meta: DependencyMeta,
   place_in_initial: bool,
+  interop: Option<ExternalInterop>,
 }
 
 #[cacheable]
@@ -557,6 +574,7 @@ impl ExternalModule {
     request: &ExternalRequest,
     external_type: &str,
     dependency_meta: &DependencyMeta,
+    interop: Option<ExternalInterop>,
   ) -> Identifier {
     let resolved_type = resolve_external_type(external_type, dependency_meta);
     let request_str = simd_json::to_string(request).expect("invalid json to_string");
@@ -579,8 +597,11 @@ impl ExternalModule {
         .map_or(String::new(), |conditions| {
           format!(" css-import-conditions={}", json_stringify_str(&conditions))
         });
+    let interop_str = interop.map_or(String::new(), |interop| {
+      format!("|interop={}", interop.as_str())
+    });
     Identifier::from(format!(
-      "external {resolved_type} {request_str}{attrs_str}{phase_str}{css_import_str}"
+      "external {resolved_type} {request_str}{attrs_str}{phase_str}{css_import_str}{interop_str}"
     ))
   }
 
@@ -590,10 +611,11 @@ impl ExternalModule {
     user_request: String,
     dependency_meta: DependencyMeta,
     place_in_initial: bool,
+    interop: Option<ExternalInterop>,
   ) -> Self {
     Self {
       dependencies_block: Default::default(),
-      id: Self::create_identifier(&request, &external_type, &dependency_meta),
+      id: Self::create_identifier(&request, &external_type, &dependency_meta, interop),
       request,
       external_type,
       user_request,
@@ -608,6 +630,7 @@ impl ExternalModule {
       source_map_kind: SourceMapKind::empty(),
       dependency_meta,
       place_in_initial,
+      interop,
     }
   }
 
@@ -629,6 +652,49 @@ impl ExternalModule {
 
   pub fn resolve_external_type(&self) -> &str {
     resolve_external_type(self.external_type.as_str(), &self.dependency_meta)
+  }
+
+  /// Renders the CSS text of a `css-import` external module.
+  ///
+  /// These modules have no source of their own, their stylesheet is generated
+  /// from the external request and the `@import` conditions.
+  pub fn css_import_source(&self) -> Option<String> {
+    if self.resolve_external_type() != "css-import" {
+      return None;
+    }
+    let request = self.try_get_request()?;
+    let mut source = format!(
+      "@import url({})",
+      rspack_util::json_stringify_str(request.primary())
+    );
+    if let Some(conditions) = &self.dependency_meta.css_import_conditions {
+      if let Some(layer) = &conditions.layer {
+        source.push_str(" layer(");
+        if let CssLayer::Named(layer) = layer {
+          source.push_str(layer);
+        }
+        source.push(')');
+      }
+      if let Some(supports) = conditions
+        .supports
+        .as_deref()
+        .filter(|value| !value.is_empty())
+      {
+        source.push_str(" supports(");
+        source.push_str(supports);
+        source.push(')');
+      }
+      if let Some(media) = conditions
+        .media
+        .as_deref()
+        .filter(|value| !value.is_empty())
+      {
+        source.push(' ');
+        source.push_str(media);
+      }
+    }
+    source.push(';');
+    Some(source)
   }
 
   pub async fn chunk_condition_with_hooks(
@@ -664,7 +730,12 @@ impl ExternalModule {
       map.insert(new_type.clone(), request);
     }
     self.external_type = new_type;
-    self.id = Self::create_identifier(&self.request, &self.external_type, &self.dependency_meta);
+    self.id = Self::create_identifier(
+      &self.request,
+      &self.external_type,
+      &self.dependency_meta,
+      self.interop,
+    );
   }
 
   pub fn get_request(&self) -> &ExternalRequestValue {
@@ -916,8 +987,8 @@ impl ExternalModule {
                 let namespace_export_with_name = format!(
                   "{}{}{}",
                   NAMESPACE_OBJECT_EXPORT,
-                  &external_module_id,
-                  &property_access(request.iter(), 1)
+                  external_module_id,
+                  property_access(request.iter(), 1)
                 );
 
                 concatenation_scope.register_namespace_import(
@@ -989,8 +1060,8 @@ impl ExternalModule {
                     let namespace_export_with_name = format!(
                       "{}{}{}",
                       NAMESPACE_OBJECT_EXPORT,
-                      &external_module_id,
-                      &property_access(request.iter(), 1)
+                      external_module_id,
+                      property_access(request.iter(), 1)
                     );
                     concatenation_scope.register_namespace_export(&namespace_export_with_name);
                     String::new()
@@ -1096,7 +1167,7 @@ if(typeof {global} !== "undefined") return resolve();
         ) {
           format!(
             "if(typeof {} === 'undefined') {{ {} }}\n",
-            &external_variable,
+            external_variable,
             runtime_template.throw_missing_module_error_block(&external_variable)
           )
         } else {
@@ -1217,6 +1288,16 @@ impl Module for ExternalModule {
       ExternalRequest::Single(request) => Some(request),
       ExternalRequest::Map(map) => map.get(&self.external_type),
     };
+    let has_property_selection = match (resolved_external_type, &self.request) {
+      ("umd" | "umd2", ExternalRequest::Map(map)) => ["root", "commonjs", "commonjs2", "amd"]
+        .iter()
+        .any(|external_type| {
+          map
+            .get(*external_type)
+            .is_some_and(|request| request.has_rest())
+        }),
+      _ => request.is_some_and(|request| request.has_rest()),
+    };
     let mut can_mangle = false;
     let mut exports_type = BuildMetaExportsType::Dynamic;
 
@@ -1252,6 +1333,22 @@ impl Module for ExternalModule {
         }
       }
       _ => {}
+    }
+    // Property-selected externals keep their existing dynamic export semantics.
+    if let Some(interop) = self.interop
+      && !has_property_selection
+    {
+      match interop {
+        ExternalInterop::EsModule => exports_type = BuildMetaExportsType::Namespace,
+        ExternalInterop::Default => {
+          exports_type = BuildMetaExportsType::Default;
+          self
+            .build_meta
+            .get_mut()
+            .set_default_object(BuildMetaDefaultObject::Redirect);
+        }
+      }
+      can_mangle = false;
     }
     self.build_meta.get_mut().set_exports_type(exports_type);
     Ok(BoxModule::new(self).with_dependencies(
@@ -1299,40 +1396,10 @@ impl Module for ExternalModule {
           .data_mut()
           .insert(CodeGenerationDataUrl::new(request.primary().to_string()));
       }
-      "css-import" if request.is_some() => {
-        let request = request.expect("request should be some");
-        let mut source = format!(
-          "@import url({})",
-          rspack_util::json_stringify_str(request.primary())
-        );
-        if let Some(conditions) = &self.dependency_meta.css_import_conditions {
-          if let Some(layer) = &conditions.layer {
-            source.push_str(" layer(");
-            if let CssLayer::Named(layer) = layer {
-              source.push_str(layer);
-            }
-            source.push(')');
-          }
-          if let Some(supports) = conditions
-            .supports
-            .as_deref()
-            .filter(|value| !value.is_empty())
-          {
-            source.push_str(" supports(");
-            source.push_str(supports);
-            source.push(')');
-          }
-          if let Some(media) = conditions
-            .media
-            .as_deref()
-            .filter(|value| !value.is_empty())
-          {
-            source.push(' ');
-            source.push_str(media);
-          }
+      "css-import" => {
+        if let Some(source) = self.css_import_source() {
+          cgr.add(SourceType::Css, RawStringSource::from(source).boxed());
         }
-        source.push(';');
-        cgr.add(SourceType::Css, RawStringSource::from(source).boxed());
       }
       _ => {
         let (source, chunk_init_fragments) = self.get_source(

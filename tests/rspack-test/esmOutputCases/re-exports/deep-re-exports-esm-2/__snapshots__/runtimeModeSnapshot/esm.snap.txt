@@ -52,10 +52,9 @@ const lib2 = 42
 
 definePropertyGetters(exports, {
   fs: () => (/* reexport safe */ _lib3__rspack_import_1.fs),
+  lib2: () => (lib2),
   lib3: () => (/* reexport safe */ (/* inlined export _lib3__rspack_import_1 */42)),
   lib4: () => (/* reexport safe */ (/* inlined export _lib3__rspack_import_1 */24))
-}, {
-  lib2: lib2
 });
 
 
@@ -175,10 +174,7 @@ var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, p
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
+	Object.defineProperties(exports, { [Symbol.toStringTag]: { value: 'Module' }, __esModule: { value: true } });
 };;
 export { makeNamespaceObject };
 

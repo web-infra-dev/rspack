@@ -4,7 +4,6 @@ categories.workspace    = true
 description             = "Rspack node builder"
 documentation.workspace = true
 edition.workspace       = true
-homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack_binding_builder"
 repository.workspace    = true

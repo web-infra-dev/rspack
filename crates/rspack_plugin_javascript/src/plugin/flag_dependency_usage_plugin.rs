@@ -7,12 +7,13 @@ use rayon::prelude::*;
 use rspack_collections::IdentifierMap;
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BuildMetaExportsType, CanInlineUse, Compilation,
-  CompilationOptimizeDependencies, ConnectionState, DependenciesBlock, DependencyId, ExportsInfo,
-  ExportsInfoArtifact, ExportsInfoData, GroupOptions, ModuleGraph, ModuleGraphCacheArtifact,
-  ModuleIdentifier, Plugin, ReferencedExport, ReferencedExportFlags, ReferencedExportPath,
-  RuntimeSpec, SideEffectsOptimizeArtifact, SideEffectsStateArtifact, UsageState,
-  build_module_graph::BuildModuleGraphArtifact, get_entry_runtime, incremental::IncrementalPasses,
-  is_exports_object_referenced, is_no_exports_referenced, module_declared_side_effect_free,
+  CompilationOptimizeDependencies, ConnectionState, ContextTypePrefix, DependenciesBlock,
+  DependencyId, DependencyType, ExportsInfo, ExportsInfoArtifact, ExportsInfoData, GroupOptions,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Plugin, ReferencedExport,
+  ReferencedExportFlags, ReferencedExportPath, RuntimeSpec, SideEffectsOptimizeArtifact,
+  SideEffectsStateArtifact, UsageState, build_module_graph::BuildModuleGraphArtifact,
+  get_entry_runtime, incremental::IncrementalPasses, is_exports_object_referenced,
+  is_no_exports_referenced, module_declared_side_effect_free,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -22,6 +23,7 @@ use rustc_hash::FxHashMap as HashMap;
 type SharedRuntimeSpec = Option<Arc<RuntimeSpec>>;
 type ProcessBlockTask = (ModuleOrAsyncDependenciesBlock, SharedRuntimeSpec, bool);
 type NonNestedTask = (SharedRuntimeSpec, bool, Vec<ReferencedExport>);
+type ReferencedModule = (ModuleIdentifier, Vec<ReferencedExport>, bool);
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone, Copy)]
 enum ModuleOrAsyncDependenciesBlock {
@@ -183,7 +185,8 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
             |(runtime, force_side_effects, referenced_exports, module_tasks)| {
               let mut nested_tasks = Vec::with_capacity(referenced_exports.len());
               let mut non_nested_tasks = Vec::with_capacity(referenced_exports.len());
-              for (module_id, exports) in referenced_exports {
+              for (module_id, exports, dependency_force_side_effects) in referenced_exports {
+                let force_side_effects = force_side_effects || dependency_force_side_effects;
                 let exports_info = self.exports_info_artifact.get_exports_info_data(&module_id);
                 let has_nested = exports.iter().any(|export| export.name.len() > 1);
                 if has_nested {
@@ -290,7 +293,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           exports_info,
           module_id,
           referenced_exports,
-          runtime.clone(),
+          runtime,
           force_side_effects,
           &side_effects_state_artifact,
         );
@@ -315,10 +318,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     runtime: &SharedRuntimeSpec,
     force_side_effects: bool,
     global: bool,
-  ) -> (
-    Vec<(ModuleIdentifier, Vec<ReferencedExport>)>,
-    Vec<ProcessBlockTask>,
-  ) {
+  ) -> (Vec<ReferencedModule>, Vec<ProcessBlockTask>) {
     let compilation = self.compilation;
     let mut q = vec![];
 
@@ -356,18 +356,29 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           Some(module_graph),
         );
 
-      if let Some(mut referenced_exports) = referenced_exports_result {
+      if let Some(referenced_exports) = referenced_exports_result {
+        // An active import() must evaluate its target even when no exports are
+        // read and package metadata declares the target side-effect-free.
+        let force_evaluation = matches!(
+          module_graph.dependency_by_id(&dep_id).dependency_type(),
+          DependencyType::DynamicImport
+            | DependencyType::DynamicImportEager
+            | DependencyType::DynamicImportWeak
+            | DependencyType::ContextElement(ContextTypePrefix::Import)
+        );
         match map.entry(module_id) {
           Entry::Occupied(mut occ) => {
+            let (old_exports, force_side_effects) = occ.get_mut();
+            *force_side_effects |= force_evaluation;
             let merged_referenced_exports = merge_referenced_exports(
               Some(std::mem::replace(
-                occ.get_mut(),
+                old_exports,
                 ProcessModuleReferencedExports::ExtendRef(Vec::new()),
               )),
               referenced_exports,
             );
             if let Some(new_referenced_exports) = merged_referenced_exports {
-              *occ.get_mut() = new_referenced_exports;
+              occ.get_mut().0 = new_referenced_exports;
             } else {
               occ.remove();
             }
@@ -375,7 +386,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           Entry::Vacant(vac) => {
             if let Some(new_referenced_exports) = merge_referenced_exports(None, referenced_exports)
             {
-              vac.insert(new_referenced_exports);
+              vac.insert((new_referenced_exports, force_evaluation));
             }
           }
         }
@@ -385,7 +396,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
     (
       map
         .into_iter()
-        .map(|(module_id, referenced_exports)| {
+        .map(|(module_id, (referenced_exports, force_side_effects))| {
           (
             module_id,
             match referenced_exports {
@@ -395,6 +406,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                 .collect::<Vec<_>>(),
               ProcessModuleReferencedExports::ExtendRef(extend_ref) => extend_ref,
             },
+            force_side_effects,
           )
         })
         .collect::<Vec<_>>(),
@@ -487,10 +499,11 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
           let mut current_exports_info = mgm_exports_info;
           let len = used_exports.len();
 
-          for (i, used_export) in used_exports.into_iter().enumerate() {
+          let mut i = 0;
+          while i < len {
             let export_info = current_exports_info
               .as_data_mut(self.exports_info_artifact)
-              .ensure_export_info(&used_export)
+              .ensure_export_info(&used_exports[i])
               .as_data_mut(self.exports_info_artifact);
             if ns_access {
               export_info.set_ns_access(true);
@@ -508,8 +521,17 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
               export_info.set_can_inline_use(Some(CanInlineUse::No));
             }
 
-            let last_one = i == len - 1;
-            if !last_one && let Some(nested_info) = export_info.exports_info() {
+            // `next == len` means the access ends at this export.
+            // - for a fake namespace object `ns`,
+            // the `default` after it is the exports object itself, so it is skipped:
+            //   [ns, data]       -> next = 1, continue with `data`
+            //   [ns, default, x] -> next = 2, continue with `x`
+            //   [ns, default]    -> next = 2 == len, `ns` is used as a whole
+            // - for any other export `next` is `i + 1`.
+            let next = len - export_info.strip_self_default(&used_exports[i + 1..]).len();
+            if next < len
+              && let Some(nested_info) = export_info.exports_info()
+            {
               let changed_flag = export_info.set_used_conditionally(
                 |used| used == &UsageState::Unused,
                 UsageState::OnlyPropertiesUsed,
@@ -533,6 +555,7 @@ impl<'a> FlagDependencyUsagePluginProxy<'a> {
                 }
               }
               current_exports_info = nested_info;
+              i = next;
               continue;
             }
 

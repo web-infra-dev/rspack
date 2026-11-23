@@ -50,29 +50,28 @@ fn create_resource_identifier_for_context_dependency(
   let include = options
     .include
     .as_ref()
-    .map(|x| x.to_source_string())
-    .unwrap_or_default();
+    .map_or_default(|x| x.to_source_string());
   let exclude = options
     .exclude
     .as_ref()
-    .map(|x| x.to_source_string())
-    .unwrap_or_default();
+    .map_or_default(|x| x.to_source_string());
   let mode = options.mode.as_str();
   let referenced_exports = options
     .referenced_specifiers
     .as_ref()
-    .map(|specifiers| {
-      specifiers
-        .iter()
-        .map(ReferencedSpecifier::to_identifier_string)
-        .join(", ")
-    })
-    .unwrap_or_default();
+    .map_or_default(|specifiers| {
+      format!(
+        "referencedExports: {}",
+        specifiers
+          .iter()
+          .map(ReferencedSpecifier::to_identifier_string)
+          .join(", ")
+      )
+    });
   let glob_import = options
     .glob_import
     .as_ref()
-    .map(|import| format!("globImport: {import}"))
-    .unwrap_or_default();
+    .map_or_default(|import| format!("globImport: {import}"));
   let glob_exhaustive = if options.glob_exhaustive {
     "globExhaustive"
   } else {
@@ -174,11 +173,6 @@ fn context_dependency_template_as_id(
     source.replace(*start, *end, content.clone(), None);
   }
 
-  source.replace(
-    range.start,
-    range.start,
-    format!("{}.resolve(", &expr),
-    None,
-  );
+  source.replace(range.start, range.start, format!("{expr}.resolve("), None);
   source.replace_static(range.end, range.end, ")", None);
 }

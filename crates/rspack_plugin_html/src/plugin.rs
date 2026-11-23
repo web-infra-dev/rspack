@@ -65,16 +65,12 @@ async fn generate_html(
   config: &HtmlRspackPluginOptions,
   compilation: &mut Compilation,
   hooks: ArcHtmlPluginHooks,
-) -> Result<(String, String, Vec<PathBuf>)> {
+) -> Result<(String, String, Vec<PathBuf>), Diagnostic> {
   let public_path = config.get_public_path(compilation, filename).await;
 
   let mut template = HtmlTemplate::new(config, compilation).await?;
 
-  let template_file_name = compilation
-    .options
-    .output
-    .path
-    .join(template.filename.clone());
+  let template_file_name = compilation.options.output.path.join(&template.filename);
 
   let assets_info = HtmlPluginAssets::create_assets(
     config,
@@ -155,13 +151,22 @@ async fn generate_html(
 
   let parser = HtmlCompiler::new(config);
 
-  let ast_with_diagnostic = parser.parse_file(&template.url, after_template_execution_data.html)?;
-
-  let (mut current_ast, diagnostic) = ast_with_diagnostic.split_into_parts();
-
-  if !diagnostic.is_empty() {
-    compilation.extend_diagnostics(diagnostic);
-  }
+  let diagnostic_file = match (&config.template_content, &config.template) {
+    (Some(_), _) => filename,
+    (None, Some(path)) => path.as_str(),
+    // With neither option set, the plugin may have loaded src/index.ejs.
+    (None, None) if !template.file_dependencies.is_empty() => &template.filename,
+    (None, None) => filename,
+  };
+  let with_file = |diagnostic: Diagnostic| Diagnostic {
+    file: Some(diagnostic_file.into()),
+    ..diagnostic
+  };
+  let (mut current_ast, diagnostics) = parser
+    .parse_file(&template.url, after_template_execution_data.html)
+    .map_err(|err| with_file(err.into()))?
+    .split_into_parts();
+  compilation.extend_diagnostics(diagnostics.into_iter().map(with_file));
 
   if !matches!(config.inject, HtmlInject::False) {
     let mut visitor = AssetInjector::new(
@@ -226,7 +231,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
       Err(err) => {
         let error_msg = err.to_string();
-        compilation.push_diagnostic(Diagnostic::from(err));
+        compilation.push_diagnostic(err);
         ("error.html".to_string(), create_error_html(&error_msg))
       }
     };

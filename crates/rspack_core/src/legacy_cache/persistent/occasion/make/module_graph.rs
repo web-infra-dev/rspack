@@ -13,7 +13,7 @@ use crate::{
   ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, ModuleRef,
   RayonConsumer,
   cache::CacheCodec,
-  compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
+  compilation::build_module_graph::{LazyMakeState, ModuleToLazyMake},
   legacy_cache::persistent::storage::Storage,
 };
 
@@ -23,7 +23,7 @@ type CachedDependency<'a> = (
   OwnedOrRef<'a, DependencyRef>,
   Option<OwnedOrRef<'a, AsyncDependenciesBlockIdentifier>>,
   Option<OwnedOrRef<'a, FactorizeInfo>>,
-  bool,
+  bool, // Deferred in the saved module graph.
 );
 
 /// The value struct of current storage scope
@@ -34,7 +34,7 @@ struct Node<'a> {
   pub dependencies: Vec<CachedDependency<'a>>,
   pub connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
   pub blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlockRef>>,
-  pub lazy_info: Option<OwnedOrRef<'a, LazyDependencies>>,
+  pub lazy_state: Option<OwnedOrRef<'a, LazyMakeState>>,
 }
 
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::save", skip_all)]
@@ -79,7 +79,7 @@ pub fn save_module_graph(
             mg.dependency_ref_by_id(dep_id).into(),
             mg.get_parent_block(dep_id).map(Into::into),
             factorization_artifact.get_by_owner(dep_id).map(Into::into),
-            mg.is_dependency_deferred(dep_id),
+            mg.is_lazy_dependency(dep_id),
           )
         })
         .collect::<Vec<_>>();
@@ -92,16 +92,14 @@ pub fn save_module_graph(
             .into()
         })
         .collect::<Vec<_>>();
-      let lazy_info = module_to_lazy_make
-        .get_lazy_dependencies(identifier)
-        .map(|lazy_deps| lazy_deps.into());
+      let lazy_state = module_to_lazy_make.get(identifier).map(Into::into);
       let mut node = Node {
         mgm: mgm.into(),
         module: module.into(),
         dependencies,
         connections,
         blocks,
-        lazy_info,
+        lazy_state,
       };
       match codec.encode(&node) {
         Ok(bytes) => (identifier.as_bytes().to_vec(), bytes),
@@ -112,12 +110,12 @@ pub fn save_module_graph(
           node.dependencies = node
             .dependencies
             .into_iter()
-            .map(|(dep, _, factorize_info, deferred)| {
+            .map(|(dep, _, factorize_info, lazy)| {
               (
                 TempDependency::transform_from(dep),
                 None,
                 factorize_info,
-                deferred,
+                lazy,
               )
             })
             .collect();
@@ -168,12 +166,12 @@ pub async fn recovery_module_graph(
     .consume(|node| {
       let mgm = node.mgm.into_owned();
       let module = node.module.into_owned();
-      for (index_in_block, (dep, parent_block, factorize_info, deferred)) in
+      for (index_in_block, (dep, parent_block, factorize_info, lazy)) in
         node.dependencies.into_iter().enumerate()
       {
         let dep = dep.into_owned();
-        if deferred {
-          mg.defer_dependency(*dep.id());
+        if lazy {
+          mg.add_lazy_dependency(*dep.id());
         }
         mg.set_parents(
           *dep.id(),
@@ -202,9 +200,8 @@ pub async fn recovery_module_graph(
         blocks.extend(block.get_block_refs().iter().cloned());
         mg.add_block(block);
       }
-      if let Some(lazy_info) = node.lazy_info {
-        module_to_lazy_make
-          .update_module_lazy_dependencies(module.identifier(), Some(lazy_info.into_owned()));
+      if let Some(lazy_state) = node.lazy_state {
+        module_to_lazy_make.restore(module.identifier(), lazy_state.into_owned());
       }
       mg.add_module_graph_module(mgm);
       mg.add_module(module);

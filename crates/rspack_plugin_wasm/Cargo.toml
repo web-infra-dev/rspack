@@ -19,12 +19,11 @@ rspack_hash        = { workspace = true }
 rspack_hook        = { workspace = true }
 rspack_intern      = { workspace = true, features = ["atom"] }
 rspack_util        = { workspace = true }
-tokio              = { workspace = true }
 tracing            = { workspace = true }
 wasmparser         = { workspace = true }
 
 [package.metadata.cargo-shear]
-ignored = ["tracing", "rspack_hash", "tokio"]
+ignored = ["tracing", "rspack_hash"]
 
 [lints]
 workspace = true

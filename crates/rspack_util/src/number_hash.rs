@@ -81,7 +81,7 @@ pub fn get_number_hash_state(prefix: &str, range: usize) -> NumberHashState {
   NumberHashState { inner, range }
 }
 
-pub fn get_number_hash_combined_from_state(state: NumberHashState, suffix: usize) -> usize {
+pub fn get_number_hash_combined_from_state(state: NumberHashState, suffix: u64) -> usize {
   let mut suffix_buffer = itoa::Buffer::new();
   let suffix = suffix_buffer.format(suffix);
 
@@ -95,7 +95,7 @@ pub fn get_number_hash_combined_from_state(state: NumberHashState, suffix: usize
   }
 }
 
-pub fn get_number_hash_combined(prefix: &str, suffix: usize, range: usize) -> usize {
+pub fn get_number_hash_combined(prefix: &str, suffix: u64, range: usize) -> usize {
   get_number_hash_combined_from_state(get_number_hash_state(prefix, range), suffix)
 }
 
@@ -151,14 +151,14 @@ fn test_number_hash() {
 #[test]
 fn test_number_hash_combined_matches_concatenated_input() {
   let test_cases = [
-    ("module/a.js", 0usize, 100usize),
-    ("module/a.js", 7usize, 100usize),
-    ("我能吞下玻璃而不伤身体", 42usize, 100usize),
-    ("vendor/react/index.js", 12345usize, 100usize),
-    ("chunk~main", 9usize, 167_772_160_usize),
+    ("module/a.js", 0, 100usize),
+    ("module/a.js", 7, 100usize),
+    ("我能吞下玻璃而不伤身体", 42, 100usize),
+    ("vendor/react/index.js", 12345, 100usize),
+    ("chunk~main", 9, 167_772_160_usize),
     (
       "君が笑ってると、僕もうれしくなるんだ。",
-      314_159_usize,
+      314_159,
       167_772_160_usize,
     ),
   ];

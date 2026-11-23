@@ -1,4 +1,7 @@
-use std::fmt::{self, Display};
+use std::{
+  collections::hash_map::Entry,
+  fmt::{self, Display},
+};
 
 use itertools::Itertools;
 use rspack_cacheable::cacheable;
@@ -6,7 +9,7 @@ use rspack_collections::IdentifierMap;
 use rspack_error::{Result, error};
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_util::fx_hash::FxIndexSet;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxHashMap, FxHashSet};
 
 use crate::{
   Chunk, ChunkByUkey, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation,
@@ -42,6 +45,7 @@ pub struct ChunkGroup {
   pub(crate) entrypoint_chunk: Option<ChunkUkey>,
   origins: Vec<OriginRecord>,
   pub(crate) is_over_size_limit: Option<bool>,
+  pub(crate) hmr_loading_chunk: Option<ChunkUkey>,
 }
 
 /// Chunk groups usually hold a handful of modules, so reserving a small amount of
@@ -85,6 +89,7 @@ impl ChunkGroup {
       index: None,
       origins: vec![],
       is_over_size_limit: None,
+      hmr_loading_chunk: None,
     }
   }
 
@@ -140,6 +145,109 @@ impl ChunkGroup {
 
   pub fn is_initial(&self) -> bool {
     matches!(self.kind, ChunkGroupKind::Entrypoint { initial, .. } if initial)
+  }
+
+  /// Chunks requested by an import, in loading order.
+  pub fn get_loading_chunks<'a>(
+    &'a self,
+    compilation: &'a Compilation,
+  ) -> impl DoubleEndedIterator<Item = &'a Chunk> {
+    let graph = &compilation.build_chunk_graph_artifact;
+    self.loading_chunks_with(&graph.chunk_by_ukey, move |chunk| {
+      graph.is_runtime_chunk(chunk)
+    })
+  }
+
+  fn loading_chunks_with<'a>(
+    &'a self,
+    chunk_by_ukey: &'a ChunkByUkey,
+    has_runtime: impl Fn(&Chunk) -> bool + 'a,
+  ) -> impl DoubleEndedIterator<Item = &'a Chunk> {
+    self
+      .chunks
+      .iter()
+      .map(move |key| chunk_by_ukey.expect_get(key))
+      .filter(move |chunk| !has_runtime(chunk) && chunk.id().is_some())
+  }
+
+  /// The last chunk can represent the group unless it also represents a different
+  /// loading plan. Ambiguous groups keep their explicit chunk lists in codegen.
+  pub fn get_hmr_loading_chunk<'a>(&'a self, compilation: &'a Compilation) -> Option<&'a Chunk> {
+    let ukey = self.hmr_loading_chunk?;
+    Some(
+      compilation
+        .build_chunk_graph_artifact
+        .chunk_by_ukey
+        .expect_get(&ukey),
+    )
+  }
+
+  pub(crate) fn collect_runtime_chunks(
+    chunk_group_by_ukey: &ChunkGroupByUkey,
+    chunk_by_ukey: &ChunkByUkey,
+  ) -> FxHashSet<ChunkUkey> {
+    chunk_group_by_ukey
+      .values()
+      .filter(|group| group.kind.is_entrypoint())
+      .filter_map(|group| {
+        let runtime_chunk = group.get_runtime_chunk(chunk_group_by_ukey);
+        chunk_by_ukey
+          .get(&runtime_chunk)
+          .is_some_and(|chunk| chunk.groups().contains(&group.ukey))
+          .then_some(runtime_chunk)
+      })
+      .collect()
+  }
+
+  pub(crate) fn assign_hmr_loading_chunks(
+    chunk_group_by_ukey: &mut ChunkGroupByUkey,
+    chunk_by_ukey: &ChunkByUkey,
+    runtime_chunks: &FxHashSet<ChunkUkey>,
+  ) {
+    let has_runtime = |chunk: &Chunk| runtime_chunks.contains(&chunk.ukey());
+
+    let mut representatives: FxHashMap<ChunkUkey, Option<&ChunkGroup>> = FxHashMap::default();
+    let mut candidates = Vec::new();
+    for group in chunk_group_by_ukey.values() {
+      if group.kind.get_normal_options().is_none() {
+        continue;
+      }
+      let Some(last) = group
+        .loading_chunks_with(chunk_by_ukey, &has_runtime)
+        .next_back()
+        .map(Chunk::ukey)
+      else {
+        continue;
+      };
+      candidates.push((group.ukey, last));
+      match representatives.entry(last) {
+        Entry::Vacant(entry) => {
+          entry.insert(Some(group));
+        }
+        Entry::Occupied(mut entry) => {
+          if let Some(representative) = entry.get()
+            && !representative
+              .loading_chunks_with(chunk_by_ukey, &has_runtime)
+              .map(Chunk::ukey)
+              .eq(
+                group
+                  .loading_chunks_with(chunk_by_ukey, &has_runtime)
+                  .map(Chunk::ukey),
+              )
+          {
+            entry.insert(None);
+          }
+        }
+      }
+    }
+    let assigned: FxHashMap<ChunkGroupUkey, ChunkUkey> = candidates
+      .into_iter()
+      .filter(|(_, last)| representatives[last].is_some())
+      .collect();
+
+    for group in chunk_group_by_ukey.values_mut() {
+      group.hmr_loading_chunk = assigned.get(&group.ukey).copied();
+    }
   }
 
   pub fn set_runtime_chunk(&mut self, chunk_ukey: ChunkUkey) {
@@ -423,6 +531,9 @@ impl Display for EntryRuntime {
 pub struct EntryOptions {
   pub name: Option<String>,
   pub runtime: Option<EntryRuntime>,
+  /// Browser worker entry; Node workers retain module-factory top-level `this`.
+  pub worker: Option<bool>,
+  pub worklet: Option<bool>,
   pub chunk_loading: Option<ChunkLoading>,
   pub wasm_loading: Option<WasmLoading>,
   pub async_chunks: Option<bool>,
@@ -449,6 +560,8 @@ impl EntryOptions {
     }
     merge_field!(name);
     merge_field!(runtime);
+    merge_field!(worker);
+    merge_field!(worklet);
     merge_field!(chunk_loading);
     merge_field!(wasm_loading);
     merge_field!(async_chunks);

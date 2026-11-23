@@ -3,7 +3,9 @@ use rspack_hash::RspackHasher;
 use rustc_hash::FxHashSet;
 
 use super::*;
-use crate::{ModuleCodeGenerationContext, compilation::pass::PassExt, logger::Logger};
+use crate::{
+  ModuleCodeGenerationContext, OutputOptions, compilation::pass::PassExt, logger::Logger,
+};
 
 pub struct ChunkHashResult {
   pub hash: RspackHashDigest,
@@ -385,7 +387,8 @@ pub async fn create_hash(
     .build_chunk_graph_artifact
     .chunk_by_ukey
     .values()
-    .sorted_unstable_by_key(|chunk| chunk.ukey())
+    // Chunk ids are stable across compilations; ukeys depend on creation history.
+    .sorted_unstable_by(|a, b| a.id().cmp(&b.id()).then_with(|| a.ukey().cmp(&b.ukey())))
     .for_each(|chunk| {
       if let Some(hash) = chunk.hash(&compilation.chunk_hashes_artifact) {
         compilation_hasher.update(hash);
@@ -454,7 +457,7 @@ pub async fn create_hash(
           );
           (
             *source_type,
-            hasher.digest(&compilation.options.output.hash_digest),
+            digest_content_hash(hasher, *source_type, &compilation.options.output),
           )
         })
         .collect()
@@ -550,7 +553,10 @@ async fn process_chunk_hash(
     .into_iter()
     .map(|(t, mut hasher)| {
       hasher.update(&chunk_hash);
-      (t, hasher.digest(&compilation.options.output.hash_digest))
+      (
+        t,
+        digest_content_hash(hasher, t, &compilation.options.output),
+      )
     })
     .collect();
 
@@ -558,4 +564,17 @@ async fn process_chunk_hash(
     hash: chunk_hash,
     content_hash: content_hashes,
   })
+}
+
+fn digest_content_hash(
+  hasher: RspackHasher,
+  source_type: SourceType,
+  output: &OutputOptions,
+) -> RspackHashDigest {
+  let digest = hasher.digest(&output.hash_digest);
+  if source_type == SourceType::JavaScript {
+    digest.non_numeric_only(output.hash_digest_length)
+  } else {
+    digest
+  }
 }

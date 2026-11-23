@@ -8,7 +8,7 @@ use crate::{
   BuildContext, Context, DependencyRef, FactorizeInfo, ImportPhase, ModuleFactory,
   ModuleFactoryCreateData, ModuleFactoryResult, ModuleIdentifier, ModuleLayer, Resolve,
   dependency::DependencyType,
-  module_graph::{ModuleGraph, ModuleGraphModule},
+  module_graph::ModuleGraphModule,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
 
@@ -125,6 +125,11 @@ impl Task<TaskContext> for FactorizeResultTask {
       // Some dependencies do not come from the process_dependencies task,
       // so add all dependencies here.
       artifact.affected_dependencies.mark_as_add(dep.id());
+      // Clear any previous deferral before the failure path returns; otherwise
+      // code generation would suppress the runtime error for a now-missing target.
+      artifact
+        .get_module_graph_mut()
+        .remove_lazy_dependency(dep.id());
     }
 
     let module_graph = artifact.get_module_graph_mut();
@@ -139,15 +144,12 @@ impl Task<TaskContext> for FactorizeResultTask {
     };
 
     if let Some(module) = factory_result.module.as_ref()
-      && skip_side_effect_free_esm_import_side_effect_dependencies(
-        module_graph,
-        module,
-        &dependencies,
-      )
+      && skip_side_effect_free_esm_import_side_effect_dependencies(module, &dependencies)
     {
       let dep = &dependencies[0];
       tracing::trace!("Module make-skipped as side-effect-only import: {dep:?}");
       for dep in dependencies {
+        module_graph.add_lazy_dependency(*dep.id());
         module_graph.add_dependency_ref(dep)
       }
       return Ok(vec![]);
@@ -181,24 +183,13 @@ impl Task<TaskContext> for FactorizeResultTask {
 }
 
 fn skip_side_effect_free_esm_import_side_effect_dependencies(
-  module_graph: &mut ModuleGraph,
   module: &crate::BoxModule,
   dependencies: &[DependencyRef],
 ) -> bool {
-  let should_skip = module.as_normal_module().is_some()
+  module.as_normal_module().is_some()
     && module.factory_meta().and_then(|meta| meta.side_effect_free) == Some(true)
     && dependencies.iter().all(|dep| {
       dep.dependency_type() == &DependencyType::EsmImport
         && dep.get_phase() == ImportPhase::Evaluation
-    });
-
-  for dep in dependencies {
-    if should_skip {
-      module_graph.defer_dependency(*dep.id());
-    } else {
-      module_graph.activate_dependency(dep.id());
-    }
-  }
-
-  should_skip
+    })
 }

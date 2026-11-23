@@ -445,7 +445,6 @@ export const run = async (
         Atomics.notify(sharedBufferView, 0, Number.POSITIVE_INFINITY);
       }
 
-      checkCloneableProps(task, loaderName);
       pool
         .run(
           {
@@ -466,6 +465,18 @@ export const run = async (
             ],
           },
         )
-        .catch(handleError);
+        .catch((error) => {
+          // Only inspect the task when sending it fails. Checking every task
+          // eagerly would clone its content and source map an extra time.
+          if (error?.name === 'DataCloneError') {
+            try {
+              checkCloneableProps(task, loaderName);
+            } catch (cloneError) {
+              handleError(cloneError);
+              return;
+            }
+          }
+          handleError(error);
+        });
     });
   });

@@ -16,7 +16,7 @@ exports.bar = 2
   \****************/
 (__unused_rspack_module, exports) {
 makeNamespaceObject(exports);
-/* import */ var _bar__rspack_import_0 = rspackRequire(/*! ./bar */ "./bar.js");
+/* import */ var _bar__rspack_import_0 = /*#__PURE__*/ rspackRequire(/*! ./bar */ "./bar.js");
 const foo = 1
 
 
@@ -102,10 +102,7 @@ var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, p
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
+	Object.defineProperties(exports, { [Symbol.toStringTag]: { value: 'Module' }, __esModule: { value: true } });
 };;
 export { makeNamespaceObject };
 

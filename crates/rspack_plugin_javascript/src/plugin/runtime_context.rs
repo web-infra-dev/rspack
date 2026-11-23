@@ -1,15 +1,18 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
-  CodeGenerationDataTopLevelDeclarations, Compilation, ExportsArgument, Module, ModuleGraph,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable, SourceType,
-  property_access, render_init_fragments,
+  ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey, Compilation, ExportsArgument,
+  Module, ModuleGraph, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
+  RuntimeVariable, SourceType, property_access, render_init_fragments,
   rspack_sources::{BoxSource, ConcatSource, OriginalSource, RawStringSource, SourceExt},
+  runtime_variable_name,
 };
 use rspack_error::Result;
 
-use super::{JsPlugin, RenderBootstrapResult, get_js_entry_modules_with_chunk_group};
+use super::{
+  JsPlugin, RenderBootstrapResult, entry_top_level_declarations_bailout,
+  get_js_entry_modules_with_chunk_group,
+};
 use crate::{
   RenderSource,
   runtime::{
@@ -80,18 +83,36 @@ var module = ({module_cache}[moduleId] = {{"#,
     let module_execution = if runtime_requirements
       .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
     {
-      let (factory_runtime_argument, context_prototype) =
-        if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext {
-          (
-            "execOptions.context",
-            runtime_template.render_runtime_variable(&RuntimeVariable::Context),
-          )
-        } else {
-          ("execOptions.require", callable_require.clone())
-        };
+      let context_mode = runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext;
+      let bridged = compilation
+        .runtime_proxy_metadata_artifact
+        .get(chunk_ukey)
+        .is_some_and(|m| m.runtime_module_bridge.owner);
+      let context_prototype = if context_mode {
+        runtime_template.render_runtime_variable(&RuntimeVariable::Context)
+      } else if bridged {
+        runtime_variable_name(&RuntimeVariable::Context).to_owned()
+      } else {
+        callable_require.clone()
+      };
+      let loader = if bridged {
+        format!("{context_prototype}.r")
+      } else {
+        callable_require
+      };
+      let factory_runtime_argument = if bridged && context_mode {
+        // A webpack interceptor can replace the factory or the loader it receives.
+        format!(
+          "execOptions.factory === {module_factories}[execOptions.id] && execOptions.require === execOptions.context.r ? execOptions.context : execOptions.require"
+        )
+      } else if context_mode {
+        "execOptions.context".into()
+      } else {
+        "execOptions.require".into()
+      };
       format!(
         r#"
-        var execOptions = {{ id: moduleId, module: module, factory: {module_factories}[moduleId], require: {callable_require}, context: Object.create({context_prototype}) }};
+        var execOptions = {{ id: moduleId, module: module, factory: {module_factories}[moduleId], require: {loader}, context: Object.create({context_prototype}) }};
         {}.forEach(function(handler) {{ handler(execOptions); }});
         module = execOptions.module;
         execOptions.factory.call(module.exports, module, module.exports, {factory_runtime_argument});
@@ -396,23 +417,15 @@ function {}(moduleId) {{
             );
             allow_inline_startup = false;
           }
-          if allow_inline_startup && {
-            let codegen = compilation
-              .code_generation_results
-              .get(module, Some(chunk.runtime()));
-            let module_graph = compilation.get_module_graph();
-            let top_level_decls = codegen
-              .data()
-              .get::<CodeGenerationDataTopLevelDeclarations>()
-              .map(|_| ())
-              .or_else(|| {
-                module_graph
-                  .module_by_identifier(module)
-                  .and_then(|m| m.build_info().top_level_declarations.as_ref().map(|_| ()))
-              });
-            top_level_decls.is_none()
-          } {
-            buf2.push("// This entry module doesn't tell about it's top-level declarations so it can't be inlined".into());
+          if allow_inline_startup
+            && let Some(bailout) = entry_top_level_declarations_bailout(
+              compilation,
+              module,
+              chunk.runtime(),
+              runtime_template,
+            )
+          {
+            buf2.push(bailout.into());
             allow_inline_startup = false;
           }
           let hooks = JsPlugin::get_compilation_hooks(compilation.id());
