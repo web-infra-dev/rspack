@@ -777,7 +777,7 @@ async fn done(&self, compilation: &Compilation) -> Result<()> {
 }
 
 #[plugin_hook(CompilerFailed for RscServerPlugin)]
-async fn failed(&self, _compilation: &Compilation) -> Result<()> {
-  self.coordinator.failed().await?;
+async fn failed(&self, _compilation: &Compilation, error: &rspack_error::Error) -> Result<()> {
+  self.coordinator.failed(error).await;
   Ok(())
 }
