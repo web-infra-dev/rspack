@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{path::Path, sync::Arc};
 
 use rspack_paths::{InternedPath, InternedPathDashSet};
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
@@ -60,13 +60,58 @@ impl<'a> DependencyFinder<'a> {
   /// Like [`Self::find_associated_event`], but resolving the logical
   /// subscribers of a *physical* path through the link table first: a disk
   /// event names the physical target, while the caller registered the link.
-  pub fn find_aliased_event(
+  ///
+  /// Each subscription is judged by its own logical path, so ignoring a target
+  /// only silences the contexts that reach it through the ignored spelling.
+  pub async fn find_aliased_event(
     &self,
     path: &InternedPath,
     kind_of_event: FsEventKind,
     path_manager: &PathManager,
   ) -> Vec<(InternedPath, FsEventKind)> {
-    let mut paths = self.find_associated_event(path, kind_of_event);
+    let mut paths = Vec::new();
+    let push = |paths: &mut Vec<(InternedPath, FsEventKind)>, entry: InternedPath, kind| {
+      if !paths.iter().any(|(existing, _)| *existing == entry) {
+        paths.push((entry, kind));
+      }
+    };
+    for (entry, kind) in self.find_associated_event(path, kind_of_event) {
+      // A registered directory link whose physical target is ignored behaves
+      // like watchpack's *file* watcher on the link: it reports the link
+      // itself, never bubbling its target's changes to the parent context.
+      if entry != *path && path_manager.is_unfollowed(&entry) {
+        continue;
+      }
+      // A registered directory link is spelled by its physical target: that is
+      // what its own watcher sees, so that is what `ignored` is judged on. The
+      // link's logical path may be visible while the entry behind it is not.
+      // Without `followSymlinks` there is no such second spelling, and the
+      // event's own spelling was already judged by `process`.
+      let ignored = if !path_manager.follows_symlinks() {
+        false
+      } else if entry != *path && path_manager.is_registered_link(&entry) {
+        match path_manager.registered_physical_root(&entry) {
+          Some(root) => {
+            let physical = path.strip_prefix(entry.as_ref() as &Path).map_or_else(
+              |_| root.clone(),
+              |suffix| InternedPath::from(root.join(suffix)),
+            );
+            path_manager.is_ignored_path(physical.as_ref()).await
+          }
+          None => path_manager.is_ignored_path(path.as_ref()).await,
+        }
+      } else {
+        path_manager.is_ignored_path(entry.as_ref()).await
+      };
+      if !ignored {
+        push(&mut paths, entry, kind);
+      }
+    }
+    // Link aliases only exist with `followSymlinks`; without it a link is one
+    // plain entry and the event's own spelling is the only subscription.
+    if !path_manager.follows_symlinks() {
+      return paths;
+    }
     for subscriber in path_manager.entry_subscribers(path) {
       let logical = subscriber.logical_path();
       if logical == path {
@@ -78,8 +123,9 @@ impl<'a> DependencyFinder<'a> {
             DepKind::Directory => FsEventKind::Change,
             _ => kind_of_event,
           };
-          if !paths.iter().any(|(existing, _)| existing == logical) {
-            paths.push((logical.clone(), event_kind));
+          let ign = path_manager.is_ignored_path(logical.as_ref()).await;
+          if !ign {
+            push(&mut paths, logical.clone(), event_kind);
           }
         }
         // A file link found by a context scan reports only its context, like
@@ -87,18 +133,26 @@ impl<'a> DependencyFinder<'a> {
         // registered, and the link path is what its scan found. A target that
         // went away leaves the link itself in place, so nothing changed.
         EntrySubscriber::ContextFile { root_context, .. } => {
-          if kind_of_event != FsEventKind::Remove
-            && !paths.iter().any(|(existing, _)| existing == root_context)
-          {
-            paths.push((root_context.clone(), FsEventKind::Change));
+          let ign = path_manager.is_ignored_path(root_context.as_ref()).await;
+          if kind_of_event != FsEventKind::Remove && !ign {
+            push(&mut paths, root_context.clone(), FsEventKind::Change);
           }
         }
       }
     }
     // A context link's target reports the context root it was found under.
-    for (root_context, _, _) in path_manager.context_subscribers(path) {
-      if !paths.iter().any(|(existing, _)| existing == &root_context) {
-        paths.push((root_context, FsEventKind::Change));
+    // `ignored` is judged on the subscription's own spelling: a registered
+    // directory link is spelled by its physical target, a link a context scan
+    // found by its logical path under the context.
+    for (root_context, logical, _, registered) in path_manager.context_subscribers(path) {
+      let spelled = if registered {
+        path.as_ref()
+      } else {
+        logical.as_ref() as &std::path::Path
+      };
+      let ign = path_manager.is_ignored_path(spelled).await;
+      if !ign {
+        push(&mut paths, root_context, FsEventKind::Change);
       }
     }
     paths
@@ -292,9 +346,10 @@ impl EventProcessor {
     // a spurious rebuild.
     // A scan's event was filtered when the scan found the path.
     //
-    // A physical target reached through a link is judged by the logical path
-    // the caller registered: ignoring a target directory must not hide a link
-    // to it that is itself visible.
+    // A physical target reached through a link is judged per subscription by
+    // its logical path (see `find_aliased_event`): ignoring a target must not
+    // hide a link to it that is itself visible, and vice versa. Only without
+    // `followSymlinks` is the event's own spelling the sole subscription.
     if !matches!(origin, Origin::Scan) {
       // An event from behind a link whose target is ignored is dropped: the
       // backend still reports through such a link even when only its parent
@@ -302,9 +357,11 @@ impl EventProcessor {
       if self.path_manager.is_behind_unfollowed_link(path) {
         return;
       }
-      let reported = self.report_path(path);
-      if self.path_manager.is_ignored_path(reported.as_ref()).await {
-        return;
+      if !self.path_manager.follows_symlinks() {
+        let reported = self.report_path(path);
+        if self.path_manager.is_ignored_path(reported.as_ref()).await {
+          return;
+        }
       }
     }
 
@@ -396,19 +453,20 @@ impl EventProcessor {
       if existing_directory {
         let mut associated_event = self
           .finder()
-          .find_aliased_event(path, kind, &self.path_manager);
+          .find_aliased_event(path, kind, &self.path_manager)
+          .await;
         associated_event.retain(|(dependency, _)| dependency == path);
         if !associated_event.is_empty() {
-          self.path_manager.set_last_watch_events(path);
-          self.trigger_events(associated_event, None, Vec::new(), None);
+          self.trigger_events(associated_event, Vec::new(), Vec::new(), None);
         }
         return;
       }
     }
-    self.path_manager.set_last_watch_events(path);
 
     let finder = self.finder();
-    let mut associated_event = finder.find_aliased_event(path, kind, &self.path_manager);
+    let mut associated_event = finder
+      .find_aliased_event(path, kind, &self.path_manager)
+      .await;
     // A directory above changes with `path`, unless it is gone itself: an
     // event below it may arrive after the directory's own removal.
     // Its records go with it, as for `path` itself.
@@ -433,7 +491,12 @@ impl EventProcessor {
         .iter()
         .any(|(associated, kind)| associated != path && *kind == FsEventKind::Change))
     .then(|| self.report_path(path));
-    let context_only_removal = context_removal.is_some() && !finder.contains_file(path);
+    // A removal only a context sees stays a `context_removal`, unless the path
+    // is an entry of a registered directory link's physical target: that
+    // target's own watcher reports it concretely, like watchpack.
+    let context_only_removal = context_removal.is_some()
+      && !finder.contains_file(path)
+      && !self.path_manager.has_registered_prefix(path);
     if context_removal.is_some() {
       associated_event.retain_mut(|(associated, associated_kind)| {
         if *associated_kind == FsEventKind::Remove && !finder.contains_file(associated) {
@@ -445,15 +508,28 @@ impl EventProcessor {
         true
       });
     }
-    // The raw (undelayed) event names what the caller registered. A file
-    // reached through a link found by a context scan is reported under that
-    // link's logical path; a link that is itself a registered context keeps
-    // the physical target, which is what watchpack reports.
-    let raw_path = self.report_path(path);
-    let raw = (!associated_event.is_empty() && !context_only_removal).then(|| FsEvent {
-      path: raw_path,
-      kind,
-    });
+    // The raw (undelayed) event names what the caller registered, once per
+    // spelling: watchpack runs one watcher per physical path *and* one per link
+    // component, and each emits its own `change`. A file reached through a link
+    // found by a context scan is reported under that link's logical path; a link
+    // that is itself a registered context keeps the physical target.
+    //
+    // A removal that only the context sees (the path was never a subscription
+    // of its own) stays a `context_removal`: watchpack reports it as a `null`
+    // change time, not as a concrete event.
+    let raw = if associated_event.is_empty() || context_only_removal {
+      Vec::new()
+    } else {
+      self
+        .report_paths(path)
+        .await
+        .into_iter()
+        .map(|raw_path| FsEvent {
+          path: raw_path,
+          kind,
+        })
+        .collect()
+    };
 
     let mut recovered = Vec::new();
     if appeared && path.is_dir() && !path.is_symlink() {
@@ -558,13 +634,83 @@ impl EventProcessor {
       .iter()
       .map(|subscriber| subscriber.logical_path().clone())
       .collect();
-    for (_, entry, link) in self.path_manager.context_subscribers(path) {
-      if !self.path_manager.is_registered_directory(&link) {
+    for (_, entry, link, registered) in self.path_manager.context_subscribers(path) {
+      if !registered {
         logical.push(entry);
       }
+      let _ = link;
     }
     logical.sort_by(|a, b| a.as_ref().cmp(b.as_ref()));
     logical.first().cloned().unwrap_or_else(|| path.clone())
+  }
+
+  /// Every spelling of `path` a subscription watches, each of which watchpack
+  /// would report a `change` for: the physical path itself, each registered
+  /// logical alias, and each context's logical spelling. Each spelling is
+  /// judged by `ignored` on its own, so a target hidden behind an ignored
+  /// directory is still reported under a visible link.
+  async fn report_paths(&self, path: &InternedPath) -> Vec<InternedPath> {
+    let mut spelled: Vec<InternedPath> = Vec::new();
+    let mut push = |entry: InternedPath| {
+      if !spelled.contains(&entry) {
+        spelled.push(entry);
+      }
+    };
+    let accessor = self.path_manager.logical_access();
+    let follow_symlinks = self.path_manager.follows_symlinks();
+    // Without `followSymlinks` a path has exactly one spelling: its own. A link
+    // is one plain entry, and a context file is reported as spelled.
+    if !follow_symlinks {
+      push(path.clone());
+    } else {
+      let physical_is_watched = accessor.files().0.contains(path)
+        || accessor.missing().0.contains(path)
+        // An entry of a registered directory link's physical target: that
+        // target's own watcher reports it under the physical spelling.
+        || self.path_manager.has_registered_prefix(path);
+      if physical_is_watched {
+        push(path.clone());
+      }
+    }
+    // Link aliases only exist when links are followed; without `followSymlinks`
+    // a link is one plain entry and only its own spelling is reported.
+    if follow_symlinks {
+      // A path spelled logically under a registered directory link is also
+      // reported under the physical spelling that link's own watcher uses.
+      if let Some(physical) = self.path_manager.physical_spelling(path) {
+        push(physical);
+      }
+      for subscriber in self.path_manager.entry_subscribers(path) {
+        push(subscriber.logical_path().clone());
+      }
+      for (_, entry, link, registered) in self.path_manager.context_subscribers(path) {
+        // A registered directory link is spelled physically above; a link a
+        // context scan found is spelled by its logical path under the context.
+        if !registered {
+          push(entry);
+        }
+        let _ = link;
+      }
+    }
+    // A registered directory link's target is spelled physically by its own
+    // watcher: an event on the logical link path is reported under both.
+    //
+    // Only with `followSymlinks` does a second spelling exist to filter: the
+    // event's own spelling was already judged by `process`, and judging it
+    // again would call the caller's predicate twice for one path.
+    let mut visible = Vec::with_capacity(spelled.len());
+    for entry in spelled {
+      if !follow_symlinks || !self.path_manager.is_ignored_path(entry.as_ref()).await {
+        visible.push(entry);
+      }
+    }
+    // An event no alias explains is still reported as spelled: watchpack emits
+    // it from the watcher that saw it.
+    if visible.is_empty() && !self.path_manager.is_ignored_path(path.as_ref()).await {
+      visible.push(path.clone());
+    }
+    visible.sort_by(|a, b| a.as_ref().cmp(b.as_ref()));
+    visible
   }
 
   /// Helper to construct a `DependencyFinder` for the current path register state.
@@ -590,10 +736,25 @@ impl EventProcessor {
   fn trigger_events(
     &self,
     events: Vec<(InternedPath, FsEventKind)>,
-    raw: Option<FsEvent>,
+    raw: EventBatch,
     recovered: EventBatch,
     context_removal: Option<InternedPath>,
   ) -> bool {
+    // Every path actually reported to the caller advances the safe time of the
+    // contexts above it, which is what `collectTimeInfoEntries` exposes. Doing
+    // it here means only *visible* subscriptions count: a context whose link is
+    // ignored never hears about the target behind it.
+    //
+    // A registered directory link's own time moves with its physical target,
+    // not with the logical path: its watcher is rooted at the target, so the
+    // link's parent context is not involved.
+    for (path, _) in &events {
+      if self.path_manager.is_registered_link(path) {
+        self.path_manager.set_last_watch_event_only(path);
+      } else {
+        self.path_manager.set_last_watch_events(path);
+      }
+    }
     self
       .tx
       .send(ResolvedEvents {

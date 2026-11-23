@@ -456,11 +456,14 @@ impl PathManager {
     self.read_links().entry_subscribers(disk_path)
   }
 
-  /// The `(root context, logical path)` pairs a physical path belongs to.
+  /// The `(root context, logical path, logical link)` triples a physical path
+  /// belongs to, each with whether it is a registered directory (whose events
+  /// are spelled physically) or a link a context scan found (spelled
+  /// logically).
   pub(crate) fn context_subscribers(
     &self,
     disk_path: &InternedPath,
-  ) -> smallvec::SmallVec<[(InternedPath, InternedPath, InternedPath); 2]> {
+  ) -> smallvec::SmallVec<[(InternedPath, InternedPath, InternedPath, bool); 2]> {
     self.read_links().context_subscribers(disk_path)
   }
 
@@ -482,10 +485,33 @@ impl PathManager {
     self.read_links().tracks_link(path)
   }
 
-  /// Whether `path` is a link whose target is ignored.
-  #[allow(dead_code)]
+  /// Whether `path` is a registered directory link whose target is ignored.
   pub(crate) fn is_unfollowed(&self, path: &InternedPath) -> bool {
     self.read_links().is_unfollowed(path)
+  }
+
+  /// Whether `path` is a registered directory link: it is watched through its
+  /// physical target, never as an ancestor of its own events.
+  pub(crate) fn is_registered_link(&self, path: &InternedPath) -> bool {
+    self.read_links().is_registered_link(path)
+  }
+
+  /// The physical directory a registered directory link is watched at, when its
+  /// target is followed. Its scan and `ignored` judgments use the physical
+  /// spelling, like watchpack's `DirectoryWatcher` rooted at the target.
+  pub(crate) fn registered_physical_root(&self, logical: &InternedPath) -> Option<InternedPath> {
+    self.read_links().registered_physical_root(logical)
+  }
+
+  /// The physical spelling of a logical path under a registered directory link.
+  pub(crate) fn physical_spelling(&self, logical: &InternedPath) -> Option<InternedPath> {
+    self.read_links().physical_spelling(logical)
+  }
+
+  /// Whether `path` lies inside the physical target of a registered directory
+  /// link: its watcher spells it physically.
+  pub(crate) fn has_registered_prefix(&self, path: &InternedPath) -> bool {
+    self.read_links().has_registered_prefix(path)
   }
 
   /// Whether any ancestor of `path` is a link whose target is ignored: the
@@ -504,6 +530,11 @@ impl PathManager {
 
   /// Resolve the physical target of a link a context scan found, and remember
   /// it so events on that target map back to the logical link path.
+  ///
+  /// The subscription is judged by the *logical* path the context scan found,
+  /// like watchpack's nested `DirectoryWatcher` rooted at the link: a target
+  /// spelled under an ignored directory is still reported through a visible
+  /// link, and a link that is itself ignored stays silent.
   pub(crate) async fn bind_context_link(
     &self,
     root_context: &InternedPath,
@@ -511,6 +542,9 @@ impl PathManager {
     directory: bool,
   ) -> bool {
     if !self.follow_symlinks || !logical_path.is_symlink() {
+      return false;
+    }
+    if self.is_ignored_path(logical_path.as_ref()).await {
       return false;
     }
     let mut resolver = LinkResolver::new(self.follow_symlinks);
@@ -589,6 +623,7 @@ impl PathManager {
       &missing,
       &ignored_targets,
       &unfollowed_links,
+      self.follow_symlinks,
     );
     let next_files = links.files.clone();
     let next_directories = links.directories.clone();
@@ -840,14 +875,21 @@ impl PathManager {
     let mut changed = Vec::new();
     // Each directory carries the real paths of the directories above it: with
     // `followSymlinks`, a link back into its own ancestry is a loop, while two
-    // links to one directory are two aliases, each scanned.
-    let mut pending: Vec<(InternedPath, Vec<PathBuf>, bool, InternedPath)> = roots
-      .into_iter()
-      .map(|root| {
-        let context = root.clone();
-        (root, Vec::new(), recovered, context)
-      })
-      .collect();
+    // links to one directory are two aliases, each scanned. It also carries the
+    // logical spelling its watcher sees, which is what `ignored` is judged on:
+    // a link is scanned through its logical path, like watchpack's nested
+    // `DirectoryWatcher` rooted at the link.
+    let mut pending: Vec<(InternedPath, Vec<PathBuf>, bool, InternedPath)> = Vec::new();
+    for root in roots {
+      // A registered directory link is scanned through the logical path the
+      // caller registered: entries are recorded and judged under that spelling,
+      // like watchpack's `DirectoryWatcher` rooted at the link. A link whose
+      // target is ignored is not followed at all.
+      if self.is_registered_link(&root) && self.registered_physical_root(&root).is_none() {
+        continue;
+      }
+      pending.push((root.clone(), Vec::new(), recovered, root));
+    }
     while let Some((dir, mut ancestry, observed, root_context)) = pending.pop() {
       if self.follow_symlinks {
         let Ok(real) = std::fs::canonicalize(&dir) else {
@@ -900,11 +942,6 @@ impl PathManager {
           }
           pending.push((path, ancestry.clone(), false, root_context.clone()));
         } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
-          // A file behind a link whose target is ignored is not reported: only
-          // the link itself is a dependency.
-          if self.is_behind_unfollowed_link(&path) {
-            continue;
-          }
           self.record(&path, || {
             self.context_files.insert(path.clone());
             self.write_file_time(&path, mtime, !observed, true)
@@ -961,6 +998,11 @@ impl PathManager {
     // `collect_time_info_entries` reports the link, not its target.
     let logical = self.logical_entry(disk_path);
     let path = &logical;
+    // A path under a followed link has more than one spelling, so the caller's
+    // `ignored` is consulted for this one here. Without `followSymlinks`
+    // `process` already judged the only spelling.
+    let indexable = !self.is_behind_unfollowed_link(path)
+      && (!self.follow_symlinks || !self.is_ignored_path(path.as_ref()).await);
     let recovered: Vec<InternedPath> = self
       .absent_directories
       .iter()
@@ -1047,6 +1089,14 @@ impl PathManager {
         EntryChange::ExistingDirectory
       };
     }
+    if !indexable {
+      // The caller's `ignored` excludes this path: drop any record an earlier
+      // cycle made, so `collectTimeInfoEntries` stops reporting it.
+      self.context_files.remove(path);
+      self.context_directories.remove(path);
+      self.file_times.remove(path);
+      return EntryChange::Changed;
+    }
     self.record(path, || self.context_files.insert(path.clone()));
     // A file reached through a link reports its target's time when the event
     // named the target; an event on the link itself keeps the link's own time,
@@ -1076,7 +1126,9 @@ impl PathManager {
     if untouched {
       return EntryChange::Unchanged;
     }
-    self.set_file_time(path, mtime, false, false);
+    // `path` is already the spelling to record: a logical registration, or the
+    // physical spelling a registered directory link's watcher sees.
+    self.record(path, || self.write_file_time(path, mtime, false, false));
     // Every other registration sharing this physical target moved with it.
     for other in self.logical_entries(disk_path) {
       if other != *path {
@@ -1127,6 +1179,19 @@ impl PathManager {
   }
 
   fn is_below_context(&self, path: &InternedPath) -> bool {
+    // A registered directory link's target is a context of its own: its
+    // entries are recorded under the physical spelling.
+    if self.read_links().has_registered_prefix(path) {
+      return true;
+    }
+    self.is_below_registered_context(path)
+  }
+
+  /// Whether `path` lives below a registered context spelled as the caller
+  /// spelled it. Unlike [`Self::is_below_context`], a link's physical target
+  /// does not count: an entry there belongs to the link, and goes when the
+  /// link's target is replaced.
+  fn is_below_registered_context(&self, path: &InternedPath) -> bool {
     path
       .ancestors()
       .skip(1)
@@ -1154,11 +1219,6 @@ impl PathManager {
     })
   }
 
-  /// Whether `path` was explicitly registered as a context.
-  pub(crate) fn is_registered_directory(&self, path: &InternedPath) -> bool {
-    self.directories.all.contains(path)
-  }
-
   /// Every logical registration a physical path serves.
   pub(crate) fn logical_entries(&self, path: &InternedPath) -> Vec<InternedPath> {
     let mut logical: Vec<InternedPath> = self
@@ -1170,7 +1230,7 @@ impl PathManager {
       self
         .context_subscribers(path)
         .into_iter()
-        .map(|(_, logical, _)| logical),
+        .map(|(_, logical, _, _)| logical),
     );
     logical.sort_by(|a, b| a.as_ref().cmp(b.as_ref()));
     logical.dedup();
@@ -1179,12 +1239,9 @@ impl PathManager {
 
   /// The logical registration a physical path serves, or the path itself.
   fn logical_entry(&self, path: &InternedPath) -> InternedPath {
-    if self.files.all.contains(path)
-      || self.missing.all.contains(path)
-      || self.context_files.contains(path)
-    {
-      return path.clone();
-    }
+    // A path behind a link's physical target maps back to the logical spelling
+    // the caller registered, even when the physical spelling was recorded as a
+    // context file.
     let mut logical: Vec<InternedPath> = self
       .entry_subscribers(path)
       .iter()
@@ -1196,10 +1253,13 @@ impl PathManager {
       self
         .context_subscribers(path)
         .into_iter()
-        .map(|(_, logical, _)| logical),
+        .map(|(_, logical, _, _)| logical),
     );
-    logical.sort_by(|a, b| a.as_ref().cmp(b.as_ref()));
-    logical.first().cloned().unwrap_or_else(|| path.clone())
+    if !logical.is_empty() {
+      logical.sort_by(|a, b| a.as_ref().cmp(b.as_ref()));
+      return logical.swap_remove(0);
+    }
+    path.clone()
   }
 
   /// [`Self::set_file_time`]'s write, for a caller already inside
@@ -1241,6 +1301,16 @@ impl PathManager {
       if self.directories.all.contains(&ancestor) || self.context_directories.contains(&ancestor) {
         self.last_watch_events.insert(ancestor, now);
       }
+    }
+  }
+
+  /// Advance only `path`'s own `lastWatchEvent`, leaving its ancestors alone.
+  /// A registered directory link is watched at its physical target, so its
+  /// event belongs to the link alone; the context holding the link was not
+  /// the one watching it.
+  pub fn set_last_watch_event_only(&self, path: &InternedPath) {
+    if self.directories.all.contains(path) || self.context_directories.contains(path) {
+      self.last_watch_events.insert(path.clone(), current_time());
     }
   }
 
@@ -1362,6 +1432,21 @@ impl PathManager {
     }
     let removed_dirs: Vec<InternedPath> =
       self.directories.removed.iter().map(|p| p.clone()).collect();
+    // A registered directory link's scan is rooted at its physical target, so
+    // the records below that target belong to the link and go with it. Retire
+    // the links first, so the sweep below no longer reads their entries as
+    // "still below a context".
+    let physical_targets: Vec<InternedPath> = {
+      let mut links = self.lock_links();
+      let targets = removed_dirs
+        .iter()
+        .filter_map(|dir| links.registered_physical_root(dir))
+        .collect();
+      for dir in &removed_dirs {
+        links.retire_registered_link(dir);
+      }
+      targets
+    };
     for dir in &removed_dirs {
       // Still below a registered context and on disk: it stays reported, as a
       // directory found there, and keeps its event clock. Absent, it is
@@ -1373,6 +1458,9 @@ impl PathManager {
         self.last_watch_events.remove(dir);
       }
       self.forget_context_entries_under(dir);
+    }
+    for target in physical_targets {
+      self.forget_context_entries_under(&target);
     }
 
     Ok(())

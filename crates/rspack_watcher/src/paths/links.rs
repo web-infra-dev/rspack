@@ -13,8 +13,6 @@ use rspack_paths::{InternedPath, InternedPathDashSet, InternedPathMap, InternedP
 use rspack_util::fx_hash::FxHashMap;
 use smallvec::SmallVec;
 
-
-
 /// The physical path a logical path resolves to, the links passed on the way,
 /// and the first component that did not exist — so a later `pnpm link` can be
 /// noticed without a full rescan.
@@ -189,7 +187,6 @@ pub(crate) enum DepKind {
   Missing = 2,
 }
 
-
 /// Why a physical path is watched.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum EntrySubscriber {
@@ -231,7 +228,6 @@ impl LinkState {
       target: std::fs::read_link(path).ok(),
     }
   }
-
 }
 
 /// A physical path set handed to the analyzer, with the same `added` /
@@ -263,7 +259,6 @@ impl PhysicalSet {
       self.all.insert(path.clone());
     }
   }
-
 }
 
 /// One logical dependency that must be re-resolved after its link moved.
@@ -292,8 +287,17 @@ pub(crate) struct LinkUpdate {
 pub(crate) struct LinkMappings {
   /// Physical entry path -> the logical subscribers it serves.
   entry_aliases: InternedPathMap<SmallVec<[EntrySubscriber; 1]>>,
-  /// Physical directory prefix -> (root context, logical prefix).
-  dir_aliases: InternedPathMap<SmallVec<[(InternedPath, InternedPath); 1]>>,
+  /// Physical directory prefix -> (root context, logical prefix, whether the
+  /// link was explicitly registered rather than found by a context scan).
+  ///
+  /// A registered directory link is watched *as its physical target*: the
+  /// caller asked for that directory, so `ignored` was already applied to the
+  /// logical spelling when it registered. A link a context scan found is
+  /// watched as the *logical* link path: it only exists because its parent
+  /// context is watched, and `ignored` applies to the logical spelling under
+  /// the context, exactly like watchpack's nested `DirectoryWatcher` rooted at
+  /// the link.
+  dir_aliases: InternedPathMap<SmallVec<[(InternedPath, InternedPath, bool); 1]>>,
   /// First missing component -> the logical dependencies waiting for it.
   pending_missing_heads: InternedPathMap<SmallVec<[RebindRequest; 1]>>,
   /// (kind, logical path) -> physical paths this registration holds.
@@ -306,16 +310,19 @@ pub(crate) struct LinkMappings {
   pub(crate) missing: InternedPathDashSet,
   /// Every watched link's last observed state.
   link_states: InternedPathMap<LinkState>,
-  /// Logical links whose target is ignored: their target is not watched, and
-  /// events reported through them are dropped.
+  /// Registered directory links whose physical target is ignored. Their target
+  /// is not watched; the link is watched non-recursively instead, so a retarget
+  /// is still seen.
   unfollowed_links: InternedPathSet,
+  /// Logical paths registered as directory links. Their subscription is spelled
+  /// by the physical target, not by this logical path.
+  registered_link_roots: InternedPathSet,
 }
 
 impl LinkMappings {
   pub(crate) fn new() -> Self {
     Self::default()
   }
-
 
   pub(crate) fn is_empty(&self) -> bool {
     self.entry_aliases.is_empty()
@@ -336,12 +343,17 @@ impl LinkMappings {
       })
   }
 
-  /// The `(root context, logical path, logical link)` triples a physical path
-  /// belongs to.
+  /// The `(root context, logical path, logical link, registered)` tuples a
+  /// physical path belongs to.
+  ///
+  /// `registered` tells whether the link was explicitly registered (the
+  /// subscription's own spelling is the physical target) or found by a context
+  /// scan (its spelling is the logical path under the context). `ignored` is
+  /// judged on that spelling.
   pub(crate) fn context_subscribers(
     &self,
     disk_path: &InternedPath,
-  ) -> SmallVec<[(InternedPath, InternedPath, InternedPath); 2]> {
+  ) -> SmallVec<[(InternedPath, InternedPath, InternedPath, bool); 2]> {
     let mut contexts = SmallVec::new();
     for ancestor in disk_path.ancestors().skip(1) {
       let ancestor = InternedPath::from(ancestor);
@@ -349,13 +361,18 @@ impl LinkMappings {
         let suffix = disk_path
           .strip_prefix(&ancestor)
           .expect("physical ancestor");
-        for (root_context, logical_dir) in subscribers {
+        for (root_context, logical_dir, registered) in subscribers {
           let logical = if suffix.as_os_str().is_empty() {
             logical_dir.clone()
           } else {
             InternedPath::from(logical_dir.join(suffix))
           };
-          contexts.push((root_context.clone(), logical, logical_dir.clone()));
+          contexts.push((
+            root_context.clone(),
+            logical,
+            logical_dir.clone(),
+            *registered,
+          ));
         }
       }
     }
@@ -367,9 +384,7 @@ impl LinkMappings {
     self
       .pending_missing_heads
       .get(disk_path)
-      .map_or_else(SmallVec::new, |waiters| {
-        waiters.iter().cloned().collect()
-      })
+      .map_or_else(SmallVec::new, |waiters| waiters.iter().cloned().collect())
   }
 
   /// The logical dependencies whose physical chain includes this link.
@@ -391,6 +406,77 @@ impl LinkMappings {
     self.link_states.contains_key(path)
   }
 
+  /// Whether `path` is a registered directory link: its subscription is spelled
+  /// by the physical target.
+  pub(crate) fn is_registered_link(&self, path: &InternedPath) -> bool {
+    self.registered_link_roots.contains(path)
+  }
+
+  /// Retire a link the caller unregistered, so its physical target no longer
+  /// reads as "behind a registered link".
+  pub(crate) fn retire_registered_link(&mut self, path: &InternedPath) {
+    self.registered_link_roots.remove(path);
+  }
+
+  /// The contexts a *logical* path belongs to through a link a context scan
+  /// found. The scan spells entries under the link, so routing them needs the
+  /// logical prefix rather than the physical one.
+  /// Whether `disk_path` is watched under its physical spelling: it lies inside
+  /// the physical target of a directory link the caller registered. Such a
+  /// subscription reports the physical path, like watchpack's `DirectoryWatcher`
+  /// rooted at the resolved target.
+  /// Whether `path` lies inside the physical target of a *currently
+  /// registered* directory link: that target's watcher reports the physical
+  /// spelling, like watchpack's `DirectoryWatcher` rooted at the target.
+  ///
+  /// Only meaningful with `followSymlinks`: without it the link is never
+  /// followed, so nothing behind it is reported under either spelling.
+  pub(crate) fn has_registered_prefix(&self, disk_path: &InternedPath) -> bool {
+    disk_path.ancestors().skip(1).any(|ancestor| {
+      self
+        .dir_aliases
+        .get(&InternedPath::from(ancestor))
+        .is_some_and(|subscribers| {
+          subscribers
+            .iter()
+            .any(|(root, _, registered)| *registered && self.registered_link_roots.contains(root))
+        })
+    })
+  }
+
+  /// The physical root a registered directory link is watched at, so its scan
+  /// spells every entry physically.
+  pub(crate) fn registered_physical_root(&self, logical: &InternedPath) -> Option<InternedPath> {
+    self.dir_aliases.iter().find_map(|(physical, subscribers)| {
+      subscribers
+        .iter()
+        .any(|(root, logical_dir, registered)| {
+          *registered && root == logical && logical_dir == logical
+        })
+        .then(|| physical.clone())
+    })
+  }
+
+  /// The physical spelling of a *logical* path that lives under a registered
+  /// directory link, if any: `app/link/value.js` under a registered
+  /// `app/link -> target` becomes `target/value.js`. That is the spelling the
+  /// link's own watcher sees, so that is what `ignored` is judged on.
+  pub(crate) fn physical_spelling(&self, logical: &InternedPath) -> Option<InternedPath> {
+    for ancestor in logical.ancestors() {
+      let ancestor = InternedPath::from(ancestor);
+      if let Some(physical) = self.registered_physical_root(&ancestor) {
+        let suffix = logical
+          .strip_prefix(ancestor.as_ref() as &std::path::Path)
+          .ok()?;
+        return Some(if suffix.as_os_str().is_empty() {
+          physical
+        } else {
+          InternedPath::from(physical.join(suffix))
+        });
+      }
+    }
+    None
+  }
 
   /// Whether `path` is a link whose target is ignored, so nothing behind it
   /// is reported.
@@ -413,6 +499,7 @@ impl LinkMappings {
     self.dir_aliases.clear();
     self.pending_missing_heads.clear();
     self.reverse_deps.clear();
+    self.registered_link_roots.clear();
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -444,26 +531,30 @@ impl LinkMappings {
         .entry(link.clone())
         .or_insert_with(|| LinkState::read(link));
     }
-    if resolved.target != *logical_path && !target_ignored {
-      if directory {
-        self
-          .dir_aliases
-          .entry(resolved.target.clone())
-          .or_default()
-          .push((logical_path.clone(), logical_path.clone()));
-        directories.insert(resolved.target.clone());
-      } else {
-        self
-          .entry_aliases
-          .entry(resolved.target.clone())
-          .or_default()
-          .push(EntrySubscriber::Registered {
-            kind,
-            logical_path: logical_path.clone(),
-          });
-        files.insert(resolved.target.clone());
+    if resolved.target != *logical_path {
+      // A registered directory link is watched through its physical target; a
+      // target the caller ignores makes it a plain file entry instead.
+      if !target_ignored {
+        if directory {
+          self
+            .dir_aliases
+            .entry(resolved.target.clone())
+            .or_default()
+            .push((logical_path.clone(), logical_path.clone(), true));
+          directories.insert(resolved.target.clone());
+        } else {
+          self
+            .entry_aliases
+            .entry(resolved.target.clone())
+            .or_default()
+            .push(EntrySubscriber::Registered {
+              kind,
+              logical_path: logical_path.clone(),
+            });
+          files.insert(resolved.target.clone());
+        }
+        bound.push(resolved.target.clone());
       }
-      bound.push(resolved.target.clone());
     } else if resolved.target == *logical_path && directory {
       directories.insert(logical_path.clone());
     } else if resolved.target == *logical_path && kind == DepKind::Missing {
@@ -498,6 +589,7 @@ impl LinkMappings {
 
   /// Rebuild every physical subscription from the current logical sets. Runs
   /// once per watch cycle and again after a link retarget.
+  #[allow(clippy::too_many_arguments)]
   pub(crate) fn rebuild(
     &mut self,
     resolver: &mut LinkResolver,
@@ -506,6 +598,7 @@ impl LinkMappings {
     missing: &InternedPathSet,
     ignored_targets: &InternedPathSet,
     unfollowed_links: &InternedPathSet,
+    follow_symlinks: bool,
   ) -> LinkUpdate {
     let mut update = LinkUpdate::default();
     let previous_reverse = self.reverse_deps.clone();
@@ -540,13 +633,19 @@ impl LinkMappings {
           })
       })
       .collect();
+    // Only context-scan results survive a rebuild. A registered directory
+    // link's alias is re-derived from the current registration below: keeping
+    // a stale one would keep watching a target the caller no longer asked for.
     let dir_context: Vec<(InternedPath, InternedPath, InternedPath)> = self
       .dir_aliases
       .iter()
       .flat_map(|(physical, subscribers)| {
-        subscribers.iter().map(move |(root_context, logical_dir)| {
-          (root_context.clone(), logical_dir.clone(), physical.clone())
-        })
+        subscribers
+          .iter()
+          .filter(|(_, _, registered)| !*registered)
+          .map(move |(root_context, logical_dir, _)| {
+            (root_context.clone(), logical_dir.clone(), physical.clone())
+          })
       })
       .collect();
     self.clear_mappings();
@@ -580,6 +679,16 @@ impl LinkMappings {
         &mut next_directories,
         &mut next_missing,
       );
+      // Without `followSymlinks` the link is never followed: recording it as a
+      // registered link would make its logical path behave like a followed
+      // one, suppressing events it should still report.
+      if follow_symlinks
+        && resolved.target != *logical
+        && !resolved.is_identity(logical)
+        && logical.is_symlink()
+      {
+        self.registered_link_roots.insert(logical.clone());
+      }
     }
     for logical in missing {
       let resolved = resolver.resolve_entry(logical);
@@ -613,11 +722,11 @@ impl LinkMappings {
         .push(physical);
     }
     for (root_context, logical_dir, physical) in dir_context {
-      self
-        .dir_aliases
-        .entry(physical.clone())
-        .or_default()
-        .push((root_context.clone(), logical_dir));
+      self.dir_aliases.entry(physical.clone()).or_default().push((
+        root_context.clone(),
+        logical_dir,
+        false,
+      ));
       next_directories.insert(physical.clone());
       self
         .reverse_context_scans
@@ -666,7 +775,7 @@ impl LinkMappings {
         .dir_aliases
         .entry(resolved.target.clone())
         .or_default()
-        .push((root_context.clone(), logical_path.clone()));
+        .push((root_context.clone(), logical_path.clone(), false));
       directories.insert(resolved.target.clone());
     } else {
       self
@@ -685,5 +794,4 @@ impl LinkMappings {
       .or_default()
       .push(resolved.target.clone());
   }
-
 }
