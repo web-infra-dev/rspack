@@ -232,11 +232,11 @@ export default {
 - **Type:** `{ customMedia?: boolean; scrollNavigationControls?: boolean }`
 - **Default:** `undefined`
 
-Enable parsing of draft CSS syntax.
+Both options default to `false` and can be set independently.
 
-Set `drafts.scrollNavigationControls` to `true` to recognize the `:target-current`, `:target-before`, and `:target-after` pseudo-classes on scroll markers. It defaults to `false`.
+By default, Lightning CSS treats `:target-current`, `:target-before`, and `:target-after` as unknown pseudo-classes. Set `drafts.scrollNavigationControls` to `true` to let it use browser compatibility data for these scroll marker pseudo-classes. For example, when targeting Chrome 150, Lightning CSS preserves the selector list `a:target-before, a:target-after`. With the option off, it wraps that list in `:is()`.
 
-Set `drafts.customMedia` to `true` to parse `@custom-media` rules. The loader expands custom media references and removes their definitions when `include.customMediaQueries` is set or when browser targets are configured. Lightning CSS treats custom media as unsupported in every browser, so any browser targets enable this transform, including targets derived from Rspack's [`target`](/config/target). Set `exclude.customMediaQueries` to keep custom media unchanged. Because `include` takes precedence over `exclude` and `include.mediaQueries` already contains `include.customMediaQueries`, this only works when both `include.customMediaQueries` and `include.mediaQueries` are disabled.
+By default, the loader keeps `@custom-media` definitions and their references in the output. Set `drafts.customMedia` to `true` to let it resolve references such as `@media (--wide)` against their definitions. The loader expands custom media references and removes their definitions when `include.customMediaQueries` is set or when browser targets are configured. Lightning CSS treats custom media as unsupported in every browser, so any browser targets enable this transform, including targets derived from Rspack's [`target`](/config/target). Set `exclude.customMediaQueries` to keep custom media unchanged. Because `include` takes precedence over `exclude` and `include.mediaQueries` already contains `include.customMediaQueries`, this only works when both `include.customMediaQueries` and `include.mediaQueries` are disabled.
 
 For example, with `drafts: { customMedia: true }` and `include: { customMediaQueries: true }`, the following CSS:
 

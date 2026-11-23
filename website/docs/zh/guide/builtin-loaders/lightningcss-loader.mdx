@@ -232,11 +232,11 @@ export default {
 - **类型：** `{ customMedia?: boolean; scrollNavigationControls?: boolean }`
 - **默认值：** `undefined`
 
-启用草案 CSS 语法的解析。
+两个选项的默认值都是 `false`，可以分别设置。
 
-将 `drafts.scrollNavigationControls` 设为 `true` 可以识别滚动标记上的 `:target-current`、`:target-before` 和 `:target-after` 伪类。默认值为 `false`。
+默认情况下，Lightning CSS 将 `:target-current`、`:target-before` 和 `:target-after` 视为未知伪类。将 `drafts.scrollNavigationControls` 设为 `true` 后，它会根据目标浏览器对这些滚动标记伪类的支持情况处理选择器。例如，目标为 Chrome 150 时，开启此选项会保留选择器列表 `a:target-before, a:target-after`，关闭时会用 `:is()` 包裹该列表。
 
-将 `drafts.customMedia` 设为 `true` 可以解析 `@custom-media` 规则。当设置了 `include.customMediaQueries` 或配置了浏览器 targets 时，loader 会展开自定义媒体查询的引用，并移除对应的定义。由于 Lightning CSS 认为所有浏览器都不支持自定义媒体查询，任何浏览器 targets 都会启用该转换，包括从 Rspack 的 [`target`](/config/target) 推导出的 targets。设置 `exclude.customMediaQueries` 可以保持自定义媒体查询不变。由于 `include` 的优先级高于 `exclude`，且 `include.mediaQueries` 已包含 `include.customMediaQueries`，因此只有在 `include.customMediaQueries` 和 `include.mediaQueries` 都未启用时，该设置才会生效。
+默认情况下，loader 会在输出中保留 `@custom-media` 定义及其引用。将 `drafts.customMedia` 设为 `true` 后，loader 就能找到 `@media (--wide)` 这类引用对应的定义。当设置了 `include.customMediaQueries` 或配置了浏览器 targets 时，loader 会展开自定义媒体查询的引用，并移除对应的定义。由于 Lightning CSS 认为所有浏览器都不支持自定义媒体查询，任何浏览器 targets 都会启用该转换，包括从 Rspack 的 [`target`](/config/target) 推导出的 targets。设置 `exclude.customMediaQueries` 可以保持自定义媒体查询不变。由于 `include` 的优先级高于 `exclude`，且 `include.mediaQueries` 已包含 `include.customMediaQueries`，因此只有在 `include.customMediaQueries` 和 `include.mediaQueries` 都未启用时，该设置才会生效。
 
 例如，在设置 `drafts: { customMedia: true }` 和 `include: { customMediaQueries: true }` 后，以下 CSS：
 
