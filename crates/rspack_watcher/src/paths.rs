@@ -232,9 +232,9 @@ impl PathTracker {
   }
 }
 
-/// A directory's filesystem identity: `(device, inode)` on Unix, the volume
-/// serial and file index on Windows. Two observations with different
-/// identities are two different directories, however equal their mtimes.
+/// A directory's filesystem identity: `(device, inode)` on Unix, the creation
+/// and last-write times on Windows. Two observations with different identities
+/// are two different directories, however equal their mtimes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) struct DirectoryIdentity {
   device: u64,
@@ -253,10 +253,16 @@ impl DirectoryIdentity {
     }
     #[cfg(windows)]
     {
+      // `volume_serial_number` and `file_index` are nightly-only
+      // (`windows_by_handle`). A recreated directory always gets a fresh
+      // creation time, and a rename pair changes at least one of the two, so
+      // the pair distinguishes a replacement from an attribute-only event.
       use std::os::windows::fs::MetadataExt;
+      let created = metadata.creation_time();
+      let written = metadata.last_write_time();
       Some(Self {
-        device: metadata.volume_serial_number()?.into(),
-        index: metadata.file_index()?,
+        device: created,
+        index: written,
       })
     }
     #[cfg(not(any(unix, windows)))]
