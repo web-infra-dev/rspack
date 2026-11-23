@@ -860,7 +860,11 @@ impl PathManager {
   /// `checkStartTime`): they changed before the watch was active, so no event
   /// will come for them.
   pub async fn scan_contexts(&self, start_time: SystemTime) -> Vec<InternedPath> {
-    let contexts: Vec<InternedPath> = self.directories.added.iter().map(|p| p.clone()).collect();
+    // Every registered context, not just this cycle's additions: a link created
+    // after the initial watch is never discovered otherwise, and on Linux a
+    // recursive inotify watch does not follow links, so its target would stay
+    // unwatched.
+    let contexts: Vec<InternedPath> = self.directories.all.iter().map(|p| p.clone()).collect();
     self
       .scan_below(contexts, false, Some(system_time_to_millis(start_time)))
       .await

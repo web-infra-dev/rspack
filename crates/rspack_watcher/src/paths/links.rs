@@ -618,6 +618,9 @@ impl LinkMappings {
         })
       })
       .collect();
+    let context_registered = |root: &InternedPath| {
+      directories.contains(root) || files.contains(root) || missing.contains(root)
+    };
     let entry_context: Vec<(InternedPath, InternedPath, InternedPath)> = self
       .entry_aliases
       .iter()
@@ -628,21 +631,24 @@ impl LinkMappings {
             EntrySubscriber::ContextFile {
               root_context,
               logical_file,
-            } => Some((root_context.clone(), logical_file.clone(), physical.clone())),
-            EntrySubscriber::Registered { .. } => None,
+            } if context_registered(root_context) => {
+              Some((root_context.clone(), logical_file.clone(), physical.clone()))
+            }
+            _ => None,
           })
       })
       .collect();
-    // Only context-scan results survive a rebuild. A registered directory
-    // link's alias is re-derived from the current registration below: keeping
-    // a stale one would keep watching a target the caller no longer asked for.
+    // Only context-scan results survive a rebuild, and only while the context
+    // that discovered them is still registered. A registered directory link's
+    // alias is re-derived from the current registration below: keeping a stale
+    // one would keep watching a target the caller no longer asked for.
     let dir_context: Vec<(InternedPath, InternedPath, InternedPath)> = self
       .dir_aliases
       .iter()
       .flat_map(|(physical, subscribers)| {
         subscribers
           .iter()
-          .filter(|(_, _, registered)| !*registered)
+          .filter(|(root, _, registered)| !*registered && context_registered(root))
           .map(move |(root_context, logical_dir, _)| {
             (root_context.clone(), logical_dir.clone(), physical.clone())
           })
