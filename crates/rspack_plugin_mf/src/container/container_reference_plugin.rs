@@ -74,23 +74,24 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
         let internal_request = &request[key_len..];
         let runtime_mode = data.build_context.compiler_options.experiments.runtime_mode;
         let namespace = module_identifier_namespace(runtime_mode);
+        let mut fallback_index = 0;
         let remote = RemoteModule::new(
           request.to_owned(),
           config
             .external
             .iter()
-            .enumerate()
-            .map(|(i, e)| {
+            .map(|e| {
               if let Some(stripped) = e.strip_prefix("internal ") {
                 stripped.to_string()
               } else {
-                let fallback_suffix = if i > 0 {
+                let fallback_suffix = if fallback_index > 0 {
                   let mut i_buffer = itoa::Buffer::new();
-                  let i_str = i_buffer.format(i);
+                  let i_str = i_buffer.format(fallback_index);
                   format!("/fallback-{i_str}")
                 } else {
                   Default::default()
                 };
+                fallback_index += 1;
                 format!("{namespace}/container/reference/{key}{fallback_suffix}")
               }
             })
