@@ -86,7 +86,8 @@ pub(crate) fn resolve_imported_local_ident<'a>(
       }
       CssExportKind::LocalDashedIdent => return None,
       CssExportKind::ImportedSelector { import }
-      | CssExportKind::ImportedSelectorExport { import } => {
+      | CssExportKind::ImportedSelectorExport { import }
+      | CssExportKind::ImportedSelectorCompose { import } => {
         id = import;
       }
       CssExportKind::Value => {

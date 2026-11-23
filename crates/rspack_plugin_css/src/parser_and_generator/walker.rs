@@ -273,6 +273,29 @@ fn visit_definition<'g, S: CssModuleGraphSink<'g>>(
         sink.local(export, requirements)
       }
     }
+    CssExportKind::ImportedSelectorCompose { import } => {
+      let mut resolved = S::ExportValue::default();
+      if resolve_imported_local_ident(walker.compilation, import).is_some() {
+        for id in &export.composes {
+          sink.compose(*export.id(), *id);
+          let value =
+            walker.visit_css_export_dependency(sink, *id, requirements, follow_self_imports)?;
+          sink.append_compose(&mut resolved, value);
+        }
+      } else {
+        for reference in &export.references {
+          sink.reference(*export.id(), reference.dependency_id);
+          let value = walker.visit_css_export_dependency(
+            sink,
+            reference.dependency_id,
+            requirements,
+            follow_self_imports,
+          )?;
+          sink.append_reference(&mut resolved, value);
+        }
+      }
+      return Ok(resolved);
+    }
     CssExportKind::Value | CssExportKind::ImportedSelectorExport { .. } => {
       let mut resolved = S::ExportValue::default();
       let mut cursor = 0;

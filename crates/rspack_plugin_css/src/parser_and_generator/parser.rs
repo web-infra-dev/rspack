@@ -59,6 +59,8 @@ pub(super) struct CssModuleParser<'context> {
   pending_local_composes: FxHashMap<SmolStr, DependencyId>,
   // Reuses literal definitions for names composed with `from global`.
   global_composes: FxHashMap<SmolStr, DependencyId>,
+  // Reuses compose wrappers for imported bindings that also have a matching ImportedSelector.
+  imported_selector_composes: FxHashMap<(DependencyId, DependencyId), DependencyId>,
   // Current @value/:import/:export bindings, including whether a name can
   // interpolate individual identifiers or only replace a whole value.
   icss_definitions: FxHashMap<SmolStr, IcssBinding>,
@@ -302,6 +304,7 @@ impl<'context> CssModuleParser<'context> {
       css_local_names: Default::default(),
       pending_local_composes: Default::default(),
       global_composes: Default::default(),
+      imported_selector_composes: Default::default(),
       icss_definitions: Default::default(),
       current_icss_import_from: None,
       composes_order: Default::default(),
@@ -1279,6 +1282,7 @@ impl<'context> CssModuleParser<'context> {
         definition.kind,
         CssExportKind::ImportedSelector { import }
           | CssExportKind::ImportedSelectorExport { import }
+          | CssExportKind::ImportedSelectorCompose { import }
           if import == target_import
       ) {
         return true;
@@ -1294,19 +1298,55 @@ impl<'context> CssModuleParser<'context> {
     false
   }
 
+  fn matching_imported_selector(&self, name: &str, import: DependencyId) -> Option<DependencyId> {
+    let selector_id = self.local_ident_definition(name)?;
+    let dep = self.definition(selector_id)?;
+    matches!(
+      dep.kind,
+      CssExportKind::ImportedSelector {
+        import: existing_import
+      } if existing_import == import
+    )
+    .then_some(selector_id)
+  }
+
+  fn imported_selector_compose_target(
+    &mut self,
+    name: &str,
+    import: DependencyId,
+    binding_dependency: DependencyId,
+    selector_id: DependencyId,
+  ) -> DependencyId {
+    if let Some(&id) = self
+      .imported_selector_composes
+      .get(&(binding_dependency, selector_id))
+    {
+      return id;
+    }
+    let mut compose = CssIcssExportDependency::new(
+      name.into(),
+      "".into(),
+      vec![CssIcssReference {
+        range: (0, 0).into(),
+        dependency_id: binding_dependency,
+      }],
+      CssExportKind::ImportedSelectorCompose { import },
+      None,
+    );
+    compose.composes.push(selector_id);
+    let id = self.add_dependency(compose);
+    self
+      .imported_selector_composes
+      .insert((binding_dependency, selector_id), id);
+    id
+  }
+
   fn ensure_imported_selector_definition(
     &mut self,
     name: &str,
     import: DependencyId,
   ) -> DependencyId {
-    let selector_id = if let Some(&existing_id) = self.local_ident_definitions.get(name)
-      && let Some(dep) = self.definition(existing_id)
-      && matches!(
-        dep.kind,
-        CssExportKind::ImportedSelector {
-          import: existing_import
-        } if existing_import == import
-      ) {
+    let selector_id = if let Some(existing_id) = self.matching_imported_selector(name, import) {
       existing_id
     } else {
       let ident = self.get_local_ident_options().get_local_ident(name);
@@ -1427,25 +1467,27 @@ impl<'context> CssModuleParser<'context> {
           self.global_composes.insert(name.as_ref().into(), id);
           id
         }
-      } else if let Some(binding) = self.icss_definitions.get(name.as_ref()) {
+      } else if let Some((binding_dependency, binding_import)) = self
+        .icss_definitions
+        .get(name.as_ref())
+        .map(|binding| (binding.dependency, binding.import))
+      {
         // A local @value can name a local class; follow that definition without
         // copying its value or building a synthetic module request.
-        if let Some(import) = binding.import
-          && let Some(selector_id) = self.local_ident_definition(name.as_ref())
-          && let Some(dep) = self.definition(selector_id)
-          && matches!(
-            dep.kind,
-            CssExportKind::ImportedSelector {
-              import: existing_import
-            } if existing_import == import
-          )
+        if let Some(import) = binding_import
+          && let Some(selector_id) = self.matching_imported_selector(name.as_ref(), import)
         {
-          selector_id
+          self.imported_selector_compose_target(
+            name.as_ref(),
+            import,
+            binding_dependency,
+            selector_id,
+          )
         } else {
           self
-            .literal_definition(binding.dependency)
+            .literal_definition(binding_dependency)
             .and_then(|value| self.local_ident_definition(value))
-            .unwrap_or(binding.dependency)
+            .unwrap_or(binding_dependency)
         }
       } else if let Some(id) = self.local_ident_definition(name.as_ref()) {
         id
@@ -1475,7 +1517,16 @@ impl<'context> CssModuleParser<'context> {
     let mut local_targets = FxHashMap::default();
     for (name, placeholder) in std::mem::take(&mut self.pending_local_composes) {
       let target = if let Some(id) = self.local_ident_definition(&name) {
-        id
+        if let Some((binding_dependency, Some(import))) = self
+          .icss_definitions
+          .get(&name)
+          .map(|binding| (binding.dependency, binding.import))
+          && self.matching_imported_selector(&name, import) == Some(id)
+        {
+          self.imported_selector_compose_target(&name, import, binding_dependency, id)
+        } else {
+          id
+        }
       } else if let Some(binding) = self.icss_definitions.get(&name) {
         self
           .literal_definition(binding.dependency)

@@ -51,6 +51,15 @@ it("should resolve imported @value and :import class/id selectors to the shared 
 	// Plain @value tokens and dashed custom properties fall back to consumer
 	// local selectors instead of corrupting selectors.
 	expect(consumer["plain-token"]).toBe(`12px ${consumerJsPrefix}plain-token`);
+	expect(consumer["plain-utility"]).toBe(
+		`real-global-utility ${consumerJsPrefix}plain-utility`
+	);
+	expect(consumer["backward-plain-compose"]).toBe(
+		`${consumerJsPrefix}backward-plain-compose real-global-utility`
+	);
+	expect(consumer["forward-plain-compose"]).toBe(
+		`${consumerJsPrefix}forward-plain-compose real-global-utility`
+	);
 	expect(consumer["accent"]).toBe(
 		`--${sharedJsPrefix}accent ${consumerJsPrefix}accent`
 	);
@@ -70,6 +79,7 @@ it("should resolve imported @value and :import class/id selectors to the shared 
 	);
 	expect(css).toContain(`.${sharedCssPrefix}u-1\\/2`);
 	expect(css).toContain(`.${consumerCssPrefix}plain-token`);
+	expect(css).toContain(`.${consumerCssPrefix}plain-utility`);
 	expect(css).toContain(`.${consumerCssPrefix}accent`);
 	expect(css).not.toContain(".--");
 	expect(css).toContain(".real-global-btn");

@@ -2,7 +2,7 @@
 @value (shared-class as shared-class-alias, composed-class) from "./shared.module.css";
 @value u-1\/2 as half-alias from "./shared.module.css";
 @value shared-id from "./shared.module.css";
-@value plain-token, unused-plain from "./shared.module.css";
+@value plain-token, unused-plain, plain-utility from "./shared.module.css";
 @value accent from "./shared.module.css";
 @value local-chain: shared-class;
 @value global-target: real-global-btn;
@@ -52,6 +52,18 @@ article .shared-class-alias {
 	gap: unused-plain;
 }
 
+.plain-utility {
+	line-height: 1.5;
+}
+
+.backward-plain-compose {
+	composes: plain-utility;
+}
+
+.forward-plain-compose {
+	composes: forward-plain-utility;
+}
+
 .accent {
 	outline-color: red;
 }
@@ -94,6 +106,12 @@ article .shared-class-alias {
 
 .backward-compose {
 	composes: forward-shared;
+}
+
+@value plain-utility as forward-plain-utility from "./shared.module.css";
+
+.forward-plain-utility {
+	line-height: 1.6;
 }
 
 .self-cycle {

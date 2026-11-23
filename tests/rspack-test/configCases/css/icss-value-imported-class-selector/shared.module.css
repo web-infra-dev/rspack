@@ -21,6 +21,7 @@
 
 @value plain-token: 12px;
 @value unused-plain: 20px;
+@value plain-utility: real-global-utility;
 
 :root {
 	--accent: teal;

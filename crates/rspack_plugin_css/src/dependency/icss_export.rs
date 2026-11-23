@@ -38,6 +38,11 @@ pub enum CssExportKind {
   /// when `import` resolves to a `LocalIdent` while preserving any extra
   /// `composes` declared on the selector rule itself.
   ImportedSelectorExport { import: DependencyId },
+  /// Compose target referencing an imported binding (`references[0]`) that also
+  /// has a matching `ImportedSelector` (`composes[0]`). Resolves to `composes[0]`
+  /// when `import` targets a `LocalIdent`, or falls back to `references[0]` when
+  /// `import` targets a plain value.
+  ImportedSelectorCompose { import: DependencyId },
 }
 
 impl RspackHash for CssExportKind {
@@ -48,6 +53,7 @@ impl RspackHash for CssExportKind {
       Self::LocalDashedIdent => state.write(b"LocalDashedIdent"),
       Self::ImportedSelector { .. } => state.write(b"ImportedSelector"),
       Self::ImportedSelectorExport { .. } => state.write(b"ImportedSelectorExport"),
+      Self::ImportedSelectorCompose { .. } => state.write(b"ImportedSelectorCompose"),
     }
   }
 }
