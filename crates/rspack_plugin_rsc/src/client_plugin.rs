@@ -6,9 +6,9 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, ChunkGraph, ChunkGroup, ChunkGroupUkey,
   ChunkUkey, Compilation, CompilationAfterProcessAssets, CompilationParams, CompilerCompilation,
-  CompilerFailed, CompilerFinishMake, CompilerMake, CrossOriginLoading, DependenciesBlock,
-  DependencyId, DependencyType, EntryDependency, Logger, ModuleGraph, ModuleId, ModuleIdentifier,
-  Plugin,
+  CompilerFailed, CompilerFinishMake, CompilerId, CompilerMake, CrossOriginLoading,
+  DependenciesBlock, DependencyId, DependencyType, EntryDependency, Logger, ModuleGraph, ModuleId,
+  ModuleIdentifier, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -467,6 +467,30 @@ impl RscClientPlugin {
     Self::new_inner(options.coordinator, Default::default())
   }
 
+  fn replace_client_entries(
+    &self,
+    compilation: &mut Compilation,
+    server_compiler_id: CompilerId,
+    entry_names: Vec<Arc<str>>,
+  ) -> Result<()> {
+    let plugin_state = PLUGIN_STATES.get(&server_compiler_id).ok_or_else(|| {
+      rspack_error::error!("RscServerPlugin state not found while updating RSC client entries")
+    })?;
+    let mut dependencies = self.client_entries_by_entry.borrow_mut();
+    for entry_name in entry_names {
+      let previous = dependencies.remove(&entry_name);
+      if let Some(entry_dependencies) = replace_client_entry(
+        compilation,
+        &entry_name,
+        &plugin_state.entries[&entry_name],
+        previous,
+      ) {
+        dependencies.insert(entry_name, entry_dependencies);
+      }
+    }
+    Ok(())
+  }
+
   fn traverse_modules(
     &self,
     compilation: &Compilation,
@@ -631,22 +655,14 @@ async fn compilation(
 // before injecting client component entries. Stage 100 ensures proper ordering.
 #[plugin_hook(CompilerMake for RscClientPlugin, stage = 100)]
 async fn make(&self, compilation: &mut Compilation) -> Result<()> {
-  self.coordinator.start_client_entries_compilation().await?;
-
+  let Some(entry_names) = self.coordinator.next_client_entries().await? else {
+    return Err(rspack_error::error!(
+      "RSC client reached the seal phase before building its first round"
+    ));
+  };
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
-  let plugin_state = PLUGIN_STATES.get(&server_compiler_id).ok_or_else(|| {
-    rspack_error::error!("RscServerPlugin state not found while creating RSC client entries")
-  })?;
-  let mut dependencies = self.client_entries_by_entry.borrow_mut();
-  dependencies.clear();
-  for (entry_name, entry_state) in &plugin_state.entries {
-    if let Some(entry_dependencies) =
-      replace_client_entry(compilation, entry_name, entry_state, None)
-    {
-      dependencies.insert(entry_name.clone(), entry_dependencies);
-    }
-  }
-  Ok(())
+  self.client_entries_by_entry.borrow_mut().clear();
+  self.replace_client_entries(compilation, server_compiler_id, entry_names)
 }
 
 fn replace_client_entry(
@@ -728,50 +744,22 @@ fn replace_client_entry(
 async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
   loop {
-    {
-      let mut plugin_state = PLUGIN_STATES.get_mut(&server_compiler_id).ok_or_else(|| {
-        rspack_error::error!("RscServerPlugin state not found while collecting client actions")
-      })?;
-      for (entry_name, dependencies) in self.client_entries_by_entry.borrow().iter() {
-        if let Some(dependency) = dependencies.rsc {
-          let client_actions = collect_client_actions_from_dependencies(compilation, dependency);
-          plugin_state
-            .entries
-            .entry(entry_name.clone())
-            .or_default()
-            .client_actions = client_actions;
-        }
-      }
-    }
-    self
-      .coordinator
-      .complete_client_entries_compilation()
-      .await?;
-    if !self
-      .coordinator
-      .start_updated_client_entries_compilation()
-      .await?
-    {
+    let actions = self
+      .client_entries_by_entry
+      .borrow()
+      .iter()
+      .filter_map(|(entry_name, dependencies)| {
+        let dependency = dependencies.rsc?;
+        let actions = collect_client_actions_from_dependencies(compilation, dependency);
+        Some((entry_name.clone(), actions))
+      })
+      .collect();
+    self.coordinator.client_round_done(actions).await?;
+    let Some(entry_names) = self.coordinator.next_client_entries().await? else {
       return Ok(());
-    }
+    };
 
-    {
-      let plugin_state = PLUGIN_STATES.get(&server_compiler_id).ok_or_else(|| {
-        rspack_error::error!("RscServerPlugin state not found while updating RSC client entries")
-      })?;
-      let mut dependencies = self.client_entries_by_entry.borrow_mut();
-      for entry_name in &plugin_state.updated_client_entries {
-        let previous = dependencies.remove(entry_name);
-        if let Some(entry_dependencies) = replace_client_entry(
-          compilation,
-          entry_name,
-          &plugin_state.entries[entry_name],
-          previous,
-        ) {
-          dependencies.insert(entry_name.clone(), entry_dependencies);
-        }
-      }
-    }
+    self.replace_client_entries(compilation, server_compiler_id, entry_names)?;
     // Rebuild the module graph with the replacement entry dependencies before sealing.
     compilation.add_include::<BoxDependency>(Vec::new()).await?;
   }
@@ -806,7 +794,7 @@ async fn after_process_assets(
     logger.time_end(start);
   }
 
-  self.coordinator.complete_client_manifest().await?;
+  self.coordinator.client_manifest_ready().await?;
 
   Ok(())
 }

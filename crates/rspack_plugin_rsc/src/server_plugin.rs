@@ -272,7 +272,7 @@ async fn this_compilation(
 
   self
     .coordinator
-    .start_server_entries_compilation(compilation.compiler_id())
+    .start_server_entries(compilation.compiler_id())
     .await?;
 
   Ok(())
@@ -400,30 +400,15 @@ impl RscServerPlugin {
         )
       })
       .collect();
-    self
+    let initial_entries = self
       .update_client_entries(compilation, &mut entry_graphs, true)
       .await?;
     self
       .coordinator
-      .complete_server_entries_compilation()
+      .server_entries_done(initial_entries)
       .await?;
 
-    loop {
-      self.coordinator.start_server_actions_compilation().await?;
-      let mut client_actions: FxHashMap<_, _> = {
-        let mut plugin_state = PLUGIN_STATES
-          .get_mut(&compilation.compiler_id())
-          .ok_or_else(|| {
-            rspack_error::error!(
-              "RscServerPlugin state not found while adding client-imported actions"
-            )
-          })?;
-        plugin_state
-          .entries
-          .iter_mut()
-          .map(|(name, state)| (name.clone(), std::mem::take(&mut state.client_actions)))
-          .collect()
-      };
+    while let Some(mut client_actions) = self.coordinator.next_server_actions().await? {
       let mut includes = Vec::new();
       for (name, graph) in &mut entry_graphs {
         let Some(mut actions) = client_actions.remove(name) else {
@@ -445,23 +430,17 @@ impl RscServerPlugin {
         }
       }
 
-      // Only a previously unseen action can grow the server graph in this loop.
-      if !includes.is_empty() {
+      let updated_entries = if includes.is_empty() {
+        Vec::new()
+      } else {
         build_injected_entries(compilation, includes).await?;
-        if self
+        self
           .update_client_entries(compilation, &mut entry_graphs, false)
           .await?
-        {
-          self.coordinator.publish_updated_client_entries().await?;
-          continue;
-        }
-      }
-      self
-        .coordinator
-        .complete_server_actions_compilation()
-        .await?;
-      return self.coordinator.wait_for_client_manifest().await;
+      };
+      self.coordinator.server_round_done(updated_entries).await?;
     }
+    Ok(())
   }
 
   async fn update_client_entries(
@@ -469,11 +448,11 @@ impl RscServerPlugin {
     compilation: &mut Compilation,
     entry_graphs: &mut FxIndexMap<Arc<str>, ServerEntryGraph>,
     initial: bool,
-  ) -> Result<bool> {
+  ) -> Result<Vec<Arc<str>>> {
     let mut includes = Vec::new();
     let mut action_includes = Vec::new();
     let mut updated_client_entries = Vec::new();
-    let updated = {
+    {
       let mut plugin_state = PLUGIN_STATES.entry(compilation.compiler_id()).or_default();
       for (name, graph) in entry_graphs {
         if !initial && graph.client_action_entries.is_empty() {
@@ -533,14 +512,11 @@ impl RscServerPlugin {
         graph.client_entry = client_entry;
         updated_client_entries.push(name.clone());
       }
-      let updated = !updated_client_entries.is_empty();
-      plugin_state.updated_client_entries = updated_client_entries;
-      updated
-    };
+    }
 
     includes.extend(action_includes);
     build_injected_entries(compilation, includes).await?;
-    Ok(updated)
+    Ok(updated_client_entries)
   }
 
   fn inject_client_entry_and_ssr_modules(
@@ -795,7 +771,7 @@ async fn done(&self, compilation: &Compilation) -> Result<()> {
     }
   }
 
-  self.coordinator.idle().await?;
+  self.coordinator.server_done().await?;
   Ok(())
 }
 

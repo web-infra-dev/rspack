@@ -1,8 +1,8 @@
 'use client';
 
 import { createElement } from 'react';
-import { showInner } from './actions.js';
+import { showMiddle } from './show-middle.js';
 
 export function Outer() {
-  return createElement('button', { onClick: showInner }, 'show inner');
+  return createElement('button', { onClick: showMiddle }, 'show middle');
 }

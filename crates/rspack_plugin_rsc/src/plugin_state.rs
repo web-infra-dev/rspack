@@ -52,8 +52,6 @@ pub struct EntryState {
   /// Root CSS import paths reached through a parent chain without `use server-entry`.
   /// These are attached directly to the matching client compiler entry.
   pub root_css_imports: RootCssImports,
-  /// Dependency path -> action id/name pairs.
-  pub client_actions: FxHashMap<String, Vec<ActionIdNamePair>>,
   pub server_actions: ServerReferenceManifest,
   pub bootstrap_scripts: FxIndexSet<String>,
   pub changed_server_components: IdentifierSet,
@@ -84,7 +82,6 @@ pub struct PluginState {
   pub module_loading: Option<ModuleLoading>,
   pub css_link_props: RscCssLinkProps,
   pub entries: FxHashMap<Arc<str>, EntryState>,
-  pub updated_client_entries: Vec<Arc<str>>,
 }
 
 impl PluginState {
@@ -92,7 +89,6 @@ impl PluginState {
     self.module_loading = None;
     self.css_link_props.clear();
     self.entries.clear();
-    self.updated_client_entries.clear();
   }
 }
 
