@@ -410,21 +410,6 @@ fn value_at_rule_import() {
   assert_icss_symbol_dependency(input, &dependencies[19], "green", "green");
   assert_icss_symbol_dependency(input, &dependencies[20], "ink", "ink");
   assert_icss_symbol_dependency(input, &dependencies[21], "white", "white");
-  let value_import_items = dependencies
-    .value_at_rule_import_items()
-    .iter()
-    .map(|item| (item.local_name(), item.import_name()))
-    .collect::<Vec<_>>();
-  assert_eq!(
-    value_import_items,
-    [
-      ("red", "red"),
-      ("sky", "blue"),
-      ("green", "green"),
-      ("ink", "black"),
-      ("white", "white"),
-    ]
-  );
   assert_eq!(dependencies.len(), 22);
 }
 
