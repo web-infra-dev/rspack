@@ -119,7 +119,11 @@ async fn assert_known_directory_event(registered: bool, replaced: bool) {
       .expect("register child context");
   }
   let kind = if replaced {
-    fs::remove_dir(&child).expect("remove child directory");
+    // Move the old directory aside and create a fresh one, rather than
+    // removing and recreating in place: ext4 hands the just-freed inode to the
+    // new directory, so an in-place recreation can look like the same
+    // directory and would not exercise the replacement path.
+    fs::rename(&child, parent.join("previous")).expect("move old child aside");
     fs::create_dir(&child).expect("recreate child directory");
     EventKind::Modify(ModifyKind::Name(RenameMode::To))
   } else {
