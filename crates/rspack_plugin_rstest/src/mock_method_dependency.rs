@@ -1,9 +1,9 @@
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{
-  AsContextDependency, AsModuleDependency, ConditionalInitFragment, DependencyCodeGeneration,
-  DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, InitFragmentExt,
-  InitFragmentKey, InitFragmentStage, NormalInitFragment, RuntimeCondition, RuntimeGlobals,
-  TemplateContext, TemplateReplaceSource,
+  AsContextDependency, AsModuleDependency, ConditionalInitFragment, DefaultInteropInitFragment,
+  DependencyCodeGeneration, DependencyRange, DependencyTemplate, DependencyTemplateType,
+  DependencyType, InitFragmentExt, InitFragmentKey, InitFragmentStage, NormalInitFragment,
+  RuntimeCondition, RuntimeGlobals, TemplateContext, TemplateReplaceSource,
 };
 use rspack_util::json_stringify_str;
 
@@ -274,7 +274,32 @@ impl MockMethodDependencyTemplate {
       None,
       RuntimeCondition::Boolean(true),
     );
+    let default_interop = init_fragments
+      .iter()
+      .find(|fragment| {
+        fragment.stage() == InitFragmentStage::StageESMImports
+          && fragment.position() == source_order
+          && matches!(fragment.key(), InitFragmentKey::ESMDefaultInterop(_))
+      })
+      .and_then(|fragment| {
+        let cloned: Box<dyn rspack_core::InitFragment> = fragment.clone();
+        cloned
+          .into_any()
+          .downcast::<DefaultInteropInitFragment>()
+          .ok()
+      })
+      .map(|fragment| {
+        DefaultInteropInitFragment::new(
+          fragment.import_var().to_string(),
+          InitFragmentStage::StageESMImports,
+          -3,
+          RuntimeCondition::Boolean(true),
+        )
+      });
     init_fragments.insert(0, test_api_import.boxed());
+    if let Some(default_interop) = default_interop {
+      init_fragments.insert(1, default_interop.boxed());
+    }
   }
 
   /// Transform the source code by:

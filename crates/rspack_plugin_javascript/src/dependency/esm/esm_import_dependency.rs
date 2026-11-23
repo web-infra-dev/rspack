@@ -3,8 +3,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
-  ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
+  ConditionalInitFragment, ConnectionState, DefaultInteropInitFragment, Dependency,
+  DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
   DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided, ExportsInfoArtifact,
   ExportsType, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
@@ -178,7 +178,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     phase,
     *runtime,
   );
-  let content: (String, String) = runtime_template.import_statement(
+  let (import_content, default_interop) = runtime_template.import_statement(
     *module,
     compilation,
     module_dependency.id(),
@@ -236,33 +236,31 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   }
 
   let is_async_module = matches!(target_module, Some(target_module) if ModuleGraph::is_async(&compilation.async_modules_artifact, &target_module.identifier()));
+  init_fragments.push(Box::new(ConditionalInitFragment::new(
+    import_content,
+    InitFragmentStage::StageESMImports,
+    source_order,
+    InitFragmentKey::ESMImport(key),
+    None,
+    runtime_condition.clone(),
+  )));
   if is_async_module {
-    init_fragments.push(Box::new(ConditionalInitFragment::new(
-      content.0,
-      InitFragmentStage::StageESMImports,
-      source_order,
-      InitFragmentKey::ESMImport(key.clone()),
-      None,
-      runtime_condition.clone(),
-    )));
-    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var).boxed());
-    init_fragments.push(Box::new(ConditionalInitFragment::new(
-      content.1,
-      InitFragmentStage::StageAsyncESMImports,
-      source_order,
-      InitFragmentKey::ESMImport(format!("{key} compat")),
-      None,
-      runtime_condition,
-    )));
-  } else {
-    init_fragments.push(Box::new(ConditionalInitFragment::new(
-      format!("{}{}", content.0, content.1),
-      InitFragmentStage::StageESMImports,
-      source_order,
-      InitFragmentKey::ESMImport(key),
-      None,
-      runtime_condition,
-    )));
+    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var.clone()).boxed());
+  }
+  if default_interop {
+    init_fragments.push(
+      DefaultInteropInitFragment::new(
+        import_var,
+        if is_async_module {
+          InitFragmentStage::StageAsyncESMImports
+        } else {
+          InitFragmentStage::StageESMImports
+        },
+        source_order,
+        runtime_condition,
+      )
+      .boxed(),
+    );
   }
 }
 
@@ -545,10 +543,6 @@ fn find_type_exports_from_outgoings(
 
 #[cacheable_dyn]
 impl Dependency for ESMImportSideEffectDependency {
-  fn may_read_default_export(&self, _module_graph: &ModuleGraph) -> bool {
-    false
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }

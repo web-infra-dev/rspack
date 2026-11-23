@@ -1,6 +1,6 @@
 asset main.js xx KiB [emitted] (name: main)
-runtime modules xx KiB 4 modules
-cacheable modules xx KiB
+runtime modules xx bytes 3 modules
+modules by path ./node_modules/ xx KiB
   modules by path ./node_modules/big-module/*.js xx bytes
     ./node_modules/big-module/index.js xx bytes [built] [code generated]
       [only some exports used: huh]
@@ -19,18 +19,18 @@ cacheable modules xx KiB
     ./node_modules/module-with-export/emptyModule.js xx bytes [built] [code generated]
       [used exports unknown]
       ModuleConcatenation bailout: Module is not an ECMAScript module
-  ./index.js xx bytes [built] [code generated]
-    [no exports]
-    [no exports used]
-    Statement with side_effects in source code at ./index.js<LINE_COL>-31
-    ModuleConcatenation bailout: Module is an entry point
-    ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)
-    ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/module-with-export/index.js because of <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)
+./index.js xx bytes [built] [code generated]
+  [no exports]
+  [no exports used]
+  Statement with side_effects in source code at ./index.js<LINE_COL>-31
+  ModuleConcatenation bailout: Module is an entry point
+  ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)
+  ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/module-with-export/index.js because of <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)
 Rspack x.x.x compiled successfully in X s
 
 asset main.no-side.js xx KiB [emitted] (name: main)
-runtime modules xx KiB 4 modules
-cacheable modules xx KiB
+runtime modules xx bytes 3 modules
+modules by path ./node_modules/ xx KiB
   modules by path ./node_modules/big-module/*.js xx bytes
     ./node_modules/big-module/index.js xx bytes [built] [code generated]
       [only some exports used: a, huh]
@@ -48,10 +48,10 @@ cacheable modules xx KiB
     ./node_modules/module-with-export/emptyModule.js xx bytes [built] [code generated]
       [used exports unknown]
       ModuleConcatenation bailout: Module is not an ECMAScript module
-  ./index.js xx bytes [built] [code generated]
-    [no exports]
-    [no exports used]
-    ModuleConcatenation bailout: Module is an entry point
-    ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)
-    ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/module-with-export/index.js because of <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)
+./index.js xx bytes [built] [code generated]
+  [no exports]
+  [no exports used]
+  ModuleConcatenation bailout: Module is an entry point
+  ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)
+  ModuleConcatenation bailout: Cannot concat with <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/module-with-export/index.js because of <TEST_ROOT>/statsOutputCases/side-effects-optimization/node_modules/big-module/index.js: Reexports in this module do not have a static target (huh : used in main)
 Rspack x.x.x compiled successfully in X s

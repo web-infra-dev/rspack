@@ -851,7 +851,7 @@ pub struct ModuleCodeTemplate {
   runtime_globals_render_mode: RuntimeGlobalsRenderMode,
   runtime_globals: Arc<RuntimeGlobalsRenderMap>,
   runtime_requirements: RuntimeGlobals,
-  default_interop_targets: Option<IdentifierSet>,
+  default_interop_vars: HashSet<String>,
 }
 
 impl ModuleCodeTemplate {
@@ -864,7 +864,7 @@ impl ModuleCodeTemplate {
       runtime_globals_render_mode,
       runtime_globals: get_runtime_globals_render_map(runtime_globals_render_mode),
       runtime_requirements: RuntimeGlobals::default(),
-      default_interop_targets: None,
+      default_interop_vars: HashSet::default(),
     }
   }
 
@@ -1341,38 +1341,23 @@ impl ModuleCodeTemplate {
     }
   }
 
-  fn needs_default_interop(
-    &mut self,
-    module: &dyn Module,
-    target: ModuleIdentifier,
-    mg: &ModuleGraph,
-  ) -> bool {
-    fn collect_targets(
-      block: &dyn DependenciesBlock,
-      mg: &ModuleGraph,
-      targets: &mut IdentifierSet,
-    ) {
-      for dep in block.get_dependencies() {
-        if dep.may_read_default_export(mg)
-          && let Some(target) = mg.module_identifier_by_dependency_id(dep.id())
-        {
-          targets.insert(*target);
-        }
-      }
-      for child in block.get_block_refs() {
-        collect_targets(child.as_ref(), mg, targets);
-      }
+  pub fn default_interop_var(&mut self, import_var: &str) -> String {
+    if !self.default_interop_vars.contains(import_var) {
+      self.default_interop_vars.insert(import_var.to_string());
     }
+    format!("{import_var}_default")
+  }
 
-    // All references to a target share one import statement, including references in async blocks.
-    self
-      .default_interop_targets
-      .get_or_insert_with(|| {
-        let mut targets = IdentifierSet::default();
-        collect_targets(module, mg, &mut targets);
-        targets
-      })
-      .contains(&target)
+  pub fn uses_default_interop(&self, import_var: &str) -> bool {
+    self.default_interop_vars.contains(import_var)
+  }
+
+  pub fn default_interop_statement(&mut self, import_var: &str, update: bool) -> String {
+    let opt_declaration = if update { "" } else { "var " };
+    format!(
+      "/* import */ {opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
+      self.render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
+    )
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -1385,10 +1370,10 @@ impl ModuleCodeTemplate {
     request: &str,
     phase: ImportPhase,
     update: bool, // whether a new variable should be created or the existing one updated
-  ) -> (String, String) {
+  ) -> (String, bool) {
     let mg = compilation.get_module_graph();
     let Some(target_module) = mg.get_module_by_dependency_id(id) else {
-      return (self.missing_module_statement(request), String::new());
+      return (self.missing_module_statement(request), false);
     };
 
     let module_id_expr = self.module_id(compilation, id, request, false);
@@ -1408,7 +1393,7 @@ impl ModuleCodeTemplate {
         "/* deferred import */{opt_declaration}{import_var} = {};\n",
         self.get_optimized_deferred_module(exports_type, &module_id_expr, async_deps)
       );
-      return (import_content, String::new());
+      return (import_content, false);
     }
 
     let annotation = self.module_side_effects_annotation(compilation, target_module.as_ref());
@@ -1416,18 +1401,7 @@ impl ModuleCodeTemplate {
       "/* import */ {opt_declaration}{import_var} = {annotation}{}({module_id_expr});\n",
       self.render_runtime_globals(&RuntimeGlobals::REQUIRE)
     );
-    if matches!(exports_type, ExportsType::Dynamic)
-      && self.needs_default_interop(module, target_module.identifier(), mg)
-    {
-      return (
-        import_content,
-        format!(
-          "/* import */ {opt_declaration}{import_var}_default = /*#__PURE__*/{}({import_var});\n",
-          self.render_runtime_globals(&RuntimeGlobals::COMPAT_GET_DEFAULT_EXPORT),
-        ),
-      );
-    }
-    (import_content, String::new())
+    (import_content, matches!(exports_type, ExportsType::Dynamic))
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -1500,24 +1474,16 @@ impl ModuleCodeTemplate {
         }
         match exports_type {
           ExportsType::Dynamic => {
+            let default_var = self.default_interop_var(import_var);
+            let access = property_access(export_name, 1);
             if is_call {
-              return format!("{import_var}_default(){}", property_access(export_name, 1));
-            } else {
-              return if let Some(asi_safe) = asi_safe {
-                match asi_safe {
-                  true => format!(
-                    "({import_var}_default(){})",
-                    property_access(export_name, 1)
-                  ),
-                  false => format!(
-                    ";({import_var}_default(){})",
-                    property_access(export_name, 1)
-                  ),
-                }
-              } else {
-                format!("{import_var}_default.a{}", property_access(export_name, 1))
-              };
+              return format!("{default_var}(){access}");
             }
+            return match asi_safe {
+              Some(true) => format!("({default_var}(){access})"),
+              Some(false) => format!(";({default_var}(){access})"),
+              None => format!("{default_var}.a{access}"),
+            };
           }
           ExportsType::DefaultOnly | ExportsType::DefaultWithNamed => {
             exclude_default_export_name = Some(export_name[1..].to_vec());
