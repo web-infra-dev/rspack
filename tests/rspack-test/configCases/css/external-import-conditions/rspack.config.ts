@@ -15,7 +15,15 @@ export default defineConfig({
   module: {
     rules: [
       {
+        test: /\.style\.css$/,
+        type: 'css/auto',
+        parser: {
+          exportType: 'style',
+        },
+      },
+      {
         test: /\.css$/,
+        exclude: /\.style\.css$/,
         type: 'css/auto',
       },
     ],
