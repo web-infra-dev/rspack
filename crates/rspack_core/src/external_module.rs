@@ -10,12 +10,11 @@ use rspack_util::{json_stringify_str, source_map::SourceMapKind};
 use rustc_hash::FxHashMap as HashMap;
 use serde::Serialize;
 
-use self::css_import::render_css_import_source;
 use crate::{
   BoxChunkInitFragment, BoxModule, BuildContext, BuildInfo, BuildMeta, BuildMetaDefaultObject,
   BuildMetaExportsType, ChunkGraph, ChunkInitFragments, ChunkUkey,
   CodeGenerationDataChunkInitFragments, CodeGenerationDataUrl, CodeGenerationResultBuilder,
-  Compilation, ConcatenationScope, Context, CssModuleRenderCondition, DependenciesBlock,
+  Compilation, ConcatenationScope, Context, CssLayer, CssModuleRenderCondition, DependenciesBlock,
   DependenciesBlockData, DependencyRef, ExportProvided, ExternalType, FactoryMetaStore, FreezeLock,
   ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey, InitFragmentStage,
   LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext, ModuleCodeTemplate,
@@ -26,8 +25,6 @@ use crate::{
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
   to_identifier,
 };
-
-mod css_import;
 
 static EXTERNAL_MODULE_JS_SOURCE_TYPES: &[SourceType] = &[SourceType::JavaScript];
 static EXTERNAL_MODULE_CSS_SOURCE_TYPES: &[SourceType] = &[SourceType::CssImport];
@@ -569,7 +566,7 @@ pub struct DependencyMeta {
   pub attributes: Option<ImportAttributes>,
   pub phase: ImportPhase,
   pub source_type: Option<SourceType>,
-  pub css_import_conditions: Vec<CssModuleRenderCondition>,
+  pub css_import_condition: Option<CssModuleRenderCondition>,
 }
 
 impl ExternalModule {
@@ -596,7 +593,7 @@ impl ExternalModule {
       format!(" phase={}", dependency_meta.phase.as_str())
     };
     let css_import_str =
-      css_module_render_conditions_identifier(dependency_meta.css_import_conditions.iter())
+      css_module_render_conditions_identifier(dependency_meta.css_import_condition.iter())
         .map_or(String::new(), |conditions| {
           format!(" css-import-conditions={}", json_stringify_str(&conditions))
         });
@@ -666,10 +663,33 @@ impl ExternalModule {
       return None;
     }
     let request = self.try_get_request()?;
-    Some(render_css_import_source(
-      request.primary(),
-      &self.dependency_meta.css_import_conditions,
-    ))
+    let mut source = format!("@import url({})", json_stringify_str(request.primary()));
+    if let Some(condition) = &self.dependency_meta.css_import_condition {
+      match &condition.layer {
+        Some(CssLayer::Anonymous) => source.push_str(" layer()"),
+        Some(CssLayer::Named(layer)) => {
+          source.push_str(" layer(");
+          source.push_str(layer);
+          source.push(')');
+        }
+        None => {}
+      }
+      if let Some(supports) = condition
+        .supports
+        .as_deref()
+        .filter(|value| !value.is_empty())
+      {
+        source.push_str(" supports(");
+        source.push_str(supports);
+        source.push(')');
+      }
+      if let Some(media) = condition.media.as_deref().filter(|value| !value.is_empty()) {
+        source.push(' ');
+        source.push_str(media);
+      }
+    }
+    source.push(';');
+    Some(source)
   }
 
   pub async fn chunk_condition_with_hooks(

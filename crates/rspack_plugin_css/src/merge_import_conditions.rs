@@ -1,8 +1,7 @@
 use std::borrow::Cow;
 
-use rspack_util::json_stringify_str;
-
-use crate::{CssLayer, CssModuleRenderCondition};
+use rspack_core::{CssLayer, CssModuleRenderCondition, iter_css_module_render_conditions};
+use smol_str::SmolStr;
 
 fn push_all(out: &mut String, parts: &[&str]) {
   for part in parts {
@@ -350,22 +349,20 @@ impl<'a> MediaScanner<'a> {
   }
 }
 
-/// Renders an `@import` rule for an external stylesheet.
-///
-/// Conditions are ordered from the outermost to the innermost context and are
-/// folded into the `@import` prelude: nested layers become a single layer path,
-/// supports conditions are combined with `and`, and media query lists are
-/// intersected.
+/// Merges a chain of `@import` render conditions (ordered from outermost to
+/// innermost) into a single flat condition suitable for an external `@import`
+/// prelude: nested layers become a single layer path, supports conditions are
+/// combined with `and`, and media query lists are intersected.
 #[inline(never)]
-pub(super) fn render_css_import_source(
-  request: &str,
-  conditions: &[CssModuleRenderCondition],
-) -> String {
+pub(crate) fn merge_css_import_conditions(
+  inherited: &[CssModuleRenderCondition],
+  current: &CssModuleRenderCondition,
+) -> Option<CssModuleRenderCondition> {
   let mut layer: Option<CssLayer> = None;
   let mut supports: Vec<&str> = Vec::new();
   let mut media: Option<String> = None;
 
-  for condition in conditions {
+  for condition in iter_css_module_render_conditions(inherited, current) {
     if let Some(condition_layer) = &condition.layer {
       layer = Some(match (layer.take(), condition_layer.clone()) {
         (None, layer) => layer,
@@ -387,31 +384,22 @@ pub(super) fn render_css_import_source(
     }
   }
 
-  let mut source = String::new();
-  let quoted_request = json_stringify_str(request);
-  push_all(&mut source, &["@import url(", &quoted_request, ")"]);
-  match layer {
-    Some(CssLayer::Anonymous) => source.push_str(" layer()"),
-    Some(CssLayer::Named(layer)) => push_all(&mut source, &[" layer(", &layer, ")"]),
-    None => {}
-  }
-  if let Some((first, rest)) = supports.split_first() {
-    source.push_str(" supports(");
+  let supports = supports.split_first().map(|(first, rest)| {
     if rest.is_empty() {
-      source.push_str(first);
+      SmolStr::new(first)
     } else {
-      push_all(&mut source, &["(", first, ")"]);
+      let mut combined = String::new();
+      push_all(&mut combined, &["(", first, ")"]);
       for value in rest {
-        push_all(&mut source, &[" and (", value, ")"]);
+        push_all(&mut combined, &[" and (", value, ")"]);
       }
+      combined.into()
     }
-    source.push(')');
-  }
-  if let Some(media) = media {
-    push_all(&mut source, &[" ", &media]);
-  }
-  source.push(';');
-  source
+  });
+  let media = media.map(SmolStr::from);
+
+  let merged = CssModuleRenderCondition::new(media, supports, layer);
+  (!merged.is_empty()).then_some(merged)
 }
 
 /// Merges a nested layer into its outer layer.

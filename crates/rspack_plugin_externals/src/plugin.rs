@@ -160,10 +160,10 @@ impl ExternalsPlugin {
         }
       },
       source_type: None,
-      css_import_conditions: dependency
+      css_import_condition: dependency
         .as_any()
         .downcast_ref::<CssImportDependency>()
-        .map_or_default(|dependency| dependency.render_conditions().cloned().collect()),
+        .and_then(CssImportDependency::merged_render_condition),
     };
 
     let external_module_type = r#type.unwrap_or(external_module_type);
