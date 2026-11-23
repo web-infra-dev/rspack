@@ -6,7 +6,7 @@ it('should handle mixed: single-module chunk + multi-module chunk', async () => 
 	expect(solo).toHaveProperty('default', 'solo')
 	expect(solo).toHaveProperty('value', 100)
 
-	// m1 and mX share a chunk via magic comment - need namespace objects
+	// m1 and m2 share a chunk via magic comment - need namespace objects
 	const m1 = await import("./shared.mjs").then(m => m.m1_namespaceObject)
 	const m2 = await import("./shared.mjs").then(m => m.m2_namespaceObject)
 

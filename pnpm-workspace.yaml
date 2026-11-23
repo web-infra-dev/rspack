@@ -117,7 +117,7 @@ catalog:
   'mini-svg-data-uri': '^1.4.4'
   'node-polyfill-webpack-plugin': '^4.1.0'
   'open': '^11.0.4'
-  'path-serializer': '0.7.0'
+  'path-serializer': '0.8.1'
   'playwright': '1.65.1'
   'postcss': '^8.5.33'
   'postcss-loader': '^8.2.1'

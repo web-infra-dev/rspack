@@ -633,15 +633,15 @@ a[href="#b.c"].basic_module_css-x.basic_module_css-y {
   background: red;
 }
 
-#_-XsomeId {
+#_-1someId {
   background: green;
 }
 
-._-1className ._-XsubClass {
+._-1className ._-1subClass {
   color: green;
 }
 
-#_-XsomeId ._-XsubClass {
+#_-1someId ._-1subClass {
   color: blue;
 }
 
@@ -1036,7 +1036,7 @@ a[href="#b.c"].basic_module_css-x.basic_module_css-y {
 .☺☃--UkbyJ0 { background: lime; }
 .⌘⌥--sADnT- { background: lime; }
 .𝄞♪♩♫♬--UKTXkz { background: lime; }
-.💩--gXsly_ { background: lime; }
+.💩--g2sly_ { background: lime; }
 .\?--Z0P-AF { background: lime; }
 .\@--19RtRZ { background: lime; }
 .\.--slqzEI { background: lime; }
@@ -1048,7 +1048,7 @@ a[href="#b.c"].basic_module_css-x.basic_module_css-y {
 .\<\>\<\<\<\>\>\<\>--LT8Tam { background: lime; }
 .\+\+\+\+\+\+\+\+\+\+\[\>\+\+\+\+\+\+\+\>\+\+\+\+\+\+\+\+\+\+\>\+\+\+\>\+\<\<\<\<-\]\>\+\+\.\>\+\.\+\+\+\+\+\+\+\.\.\+\+\+\.\>\+\+\.\<\<\+\+\+\+\+\+\+\+\+\+\+\+\+\+\+\.\>\.\+\+\+\.------\.--------\.\>\+\.\>\.--u3K9S5 { background: lime; }
 .\#--9iFogX { background: lime; }
-.\#\#--XsRGQ9 { background: lime; }
+.\#\#--3sRGQ9 { background: lime; }
 .\#\.\#\.\#--AaqfcF { background: lime; }
 ._--Vk3C0v { background: lime; }
 .\{\}--b4KFj7 { background: lime; }
@@ -1516,7 +1516,7 @@ a[href="#b.c"].basic_module_css-x.basic_module_css-y {
 .prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---foo\.bar----l1eME-postfix { background: lime; }
 .prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\:hover---G9f1lN-postfix { background: lime; }
 .prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\:hover\:focus\:active---p0R12n-postfix { background: lime; }
-.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\[attr\=value\]---XsSHZ6-postfix { background: lime; }
+.prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---\[attr\=value\]---5sSHZ6-postfix { background: lime; }
 .prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\/o\/o---pll2oR-postfix { background: lime; }
 .prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\\o\\o---j2mg8O-postfix { background: lime; }
 .prefix-\.\/local-Ident-name\.module\.css\?local-ident-name-9---f\*o\*o---h8czyn-postfix { background: lime; }
@@ -1652,7 +1652,7 @@ a[href="#b.c"].basic_module_css-x.basic_module_css-y {
   background: hotpink;
 }
 
-.local-Ident-name\.module--foo\\bar\\baz--flXsxN {
+.local-Ident-name\.module--foo\\bar\\baz--fl0sxN {
   background: hotpink;
 }
 
