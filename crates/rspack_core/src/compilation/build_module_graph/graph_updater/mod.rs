@@ -96,7 +96,9 @@ pub async fn update_module_graph(
     .map(|cache| cache.begin_build());
   let mut cutout = Cutout::default();
 
-  let build_dependencies = cutout.cutout_artifact(compilation, &mut artifact, params);
+  let mut force_build_modules = IdentifierSet::default();
+  let build_dependencies =
+    cutout.cutout_artifact(compilation, &mut artifact, params, &mut force_build_modules);
 
   let revoked_modules = artifact.revoked_modules().copied().collect();
   let result = compilation
@@ -119,6 +121,7 @@ pub async fn update_module_graph(
     artifact,
     exports_info_artifact,
     build_dependencies,
+    force_build_modules,
   )
   .await;
   if result.is_ok() {

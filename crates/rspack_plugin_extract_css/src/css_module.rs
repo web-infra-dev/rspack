@@ -162,6 +162,9 @@ impl Module for CssModule {
   }
 
   async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
+    if context.force_build {
+      return Ok(true);
+    }
     let Some(fresh_module) = context.fresh_module.downcast_ref::<Self>() else {
       return Ok(true);
     };
