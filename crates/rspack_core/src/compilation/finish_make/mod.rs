@@ -13,13 +13,6 @@ pub async fn finish_make_pass(
     .finish_make
     .call(compilation)
     .await?;
-  if compilation.build_module_graph_error.is_none() {
-    plugin_driver
-      .compiler_hooks
-      .after_finish_make
-      .call(compilation)
-      .await?;
-  }
   logger.time_end(start);
 
   Ok(())

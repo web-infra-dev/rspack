@@ -43,7 +43,6 @@ define_hook!(CompilerCompilation: Series(compilation: &mut Compilation, params: 
 // should be AsyncParallelHook
 define_hook!(CompilerMake: Series(compilation: &mut Compilation));
 define_hook!(CompilerFinishMake: Series(compilation: &mut Compilation));
-define_hook!(CompilerAfterFinishMake: Series(compilation: &mut Compilation));
 define_hook!(CompilerAfterCompile: Series(compilation: &mut Compilation));
 // should be SyncBailHook, but rspack need call js hook
 define_hook!(CompilerShouldEmit: SeriesBail(compilation: &mut Compilation) -> bool);
@@ -61,8 +60,6 @@ pub struct CompilerHooks {
   pub compilation: CompilerCompilationHook,
   pub make: CompilerMakeHook,
   pub finish_make: CompilerFinishMakeHook,
-  /// Native finalizers can still update the module graph after all finishMake taps.
-  pub after_finish_make: CompilerAfterFinishMakeHook,
   pub after_compile: CompilerAfterCompileHook,
   pub should_emit: CompilerShouldEmitHook,
   pub should_record: CompilerShouldRecordHook,

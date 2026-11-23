@@ -6,37 +6,6 @@ import { createFsFromVolume, Volume } from 'memfs';
 
 const context = import.meta.dirname;
 
-function rebuildWithLateAction() {
-  let injectAction = false;
-  return {
-    apply(compiler) {
-      compiler.hooks.compilation.tap('RebuildWithLateAction', (compilation) => {
-        rspack.NormalModule.getCompilationHooks(compilation).loader.tap(
-          'RebuildWithLateAction',
-          (loaderContext) => {
-            loaderContext.injectAction = injectAction;
-          },
-        );
-      });
-      compiler.hooks.finishMake.tapPromise(
-        { name: 'RebuildWithLateAction', stage: 2 ** 31 - 1 },
-        async (compilation) => {
-          const outer = [...compilation.modules].find(
-            (module) => module.resource === path.join(context, 'outer.js'),
-          );
-          assert.ok(outer, 'Outer was built from the RSC entry');
-          injectAction = true;
-          await new Promise((resolve, reject) => {
-            compilation.rebuildModule(outer, (error) =>
-              error ? reject(error) : resolve(),
-            );
-          });
-        },
-      );
-    },
-  };
-}
-
 const appendOverrides = {
   apply(compiler) {
     compiler.hooks.finishMake.tapPromise('AppendOverrides', (compilation) =>
@@ -52,10 +21,9 @@ const appendOverrides = {
   },
 };
 
-export default async function run(scenario) {
+export default async function run() {
   const { createPlugins, Layers } = rspack.experiments.rsc;
   const { ServerPlugin, ClientPlugin } = createPlugins();
-  const lateAction = scenario === 'late-action';
   const clientPath = path.join(context, 'dist', 'client');
   const outputFileSystem = createFsFromVolume(new Volume());
   let manifest;
@@ -99,15 +67,8 @@ export default async function run(scenario) {
       entry: './client.js',
       output: { path: clientPath },
       optimization: { minimize: false },
-      module: {
-        rules: lateAction
-          ? [...rules, { test: /outer\.js$/, loader: './late-action-loader.mjs' }]
-          : rules,
-      },
-      plugins: [
-        new ClientPlugin(),
-        lateAction ? rebuildWithLateAction() : appendOverrides,
-      ],
+      module: { rules },
+      plugins: [new ClientPlugin(), appendOverrides],
     },
   ]);
   compiler.outputFileSystem = outputFileSystem;
@@ -120,19 +81,11 @@ export default async function run(scenario) {
         .sort(),
       ['inner.js', 'outer.js'],
     );
-    if (lateAction) {
-      assert.equal(
-        Object.keys(manifest.serverManifest).length,
-        2,
-        'Both the initial and late actions should be registered',
-      );
-    } else {
-      const css = outputFileSystem.readFileSync(
-        path.join(clientPath, 'main.css'),
-        'utf8',
-      );
-      assert.match(css, /color:\s*red[\s\S]*color:\s*blue/);
-    }
+    const css = outputFileSystem.readFileSync(
+      path.join(clientPath, 'main.css'),
+      'utf8',
+    );
+    assert.match(css, /color:\s*red[\s\S]*color:\s*blue/);
   } finally {
     await closeCompiler(compiler);
   }

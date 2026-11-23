@@ -5,10 +5,10 @@ use derive_more::Debug;
 use rspack_collections::IdentifierSet;
 use rspack_core::{
   AsyncDependenciesBlockIdentifier, BoxDependency, ChunkGraph, ChunkGroup, ChunkGroupUkey,
-  ChunkUkey, Compilation, CompilationAfterProcessAssets, CompilationParams,
-  CompilerAfterFinishMake, CompilerCompilation, CompilerFailed, CompilerId, CompilerMake,
-  CrossOriginLoading, DependenciesBlock, DependencyId, DependencyType, EntryDependency, Logger,
-  ModuleGraph, ModuleId, ModuleIdentifier, Plugin,
+  ChunkUkey, Compilation, CompilationAfterProcessAssets, CompilationParams, CompilerCompilation,
+  CompilerFailed, CompilerFinishMake, CompilerId, CompilerMake, CrossOriginLoading,
+  DependenciesBlock, DependencyId, DependencyType, EntryDependency, Logger, ModuleGraph, ModuleId,
+  ModuleIdentifier, Plugin,
 };
 use rspack_error::{Diagnostic, Result};
 use rspack_hook::{plugin, plugin_hook};
@@ -623,10 +623,7 @@ impl Plugin for RscClientPlugin {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
 
     ctx.compiler_hooks.make.tap(make::new(self));
-    ctx
-      .compiler_hooks
-      .after_finish_make
-      .tap(after_finish_make::new(self));
+    ctx.compiler_hooks.finish_make.tap(finish_make::new(self));
 
     ctx.compiler_hooks.failed.tap(failed::new(self));
 
@@ -769,9 +766,8 @@ fn replace_client_entry(
   Some(ClientEntryDependencies { rsc, ..previous })
 }
 
-// A finishMake tap can rebuild a client module and add more action imports.
-#[plugin_hook(CompilerAfterFinishMake for RscClientPlugin)]
-async fn after_finish_make(&self, compilation: &mut Compilation) -> Result<()> {
+#[plugin_hook(CompilerFinishMake for RscClientPlugin, stage = i32::MAX)]
+async fn finish_make(&self, compilation: &mut Compilation) -> Result<()> {
   let server_compiler_id = self.coordinator.get_server_compiler_id().await?;
   loop {
     let actions = self
