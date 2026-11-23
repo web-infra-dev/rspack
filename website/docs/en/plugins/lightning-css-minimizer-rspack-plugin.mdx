@@ -184,9 +184,12 @@ The following options are also supported under `minimizerOptions`:
 | Option          | Type                                   | Description                                                                                                                |
 | --------------- | -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
 | `errorRecovery` | `boolean`                              | Recover from invalid CSS rules or declarations where possible instead of failing during parsing. Defaults to `true`.       |
-| `drafts`        | Object with optional boolean values    | Enable draft syntax with `customMedia` and `scrollNavigationControls`.                                                     |
+| `drafts`        | Object with optional boolean values    | Enable draft syntax with [`customMedia`][customMedia] and [`scrollNavigationControls`][scrollNavigationControls].          |
 | `nonStandard`   | `{ deepSelectorCombinator?: boolean }` | Enable the non-standard `>>>` and `/deep/` selector combinators.                                                           |
 | `pseudoClasses` | Object with optional string values     | Replace pseudo classes with class names. Supported keys are `hover`, `active`, `focus`, `focusVisible`, and `focusWithin`. |
 | `unusedSymbols` | `string[]`                             | Specify symbols that are known to be unused so Lightning CSS can remove them. Defaults to `[]`.                            |
+
+[customMedia]: /guide/builtin-loaders/lightningcss-loader#custommedia
+[scrollNavigationControls]: /guide/builtin-loaders/lightningcss-loader#scrollnavigationcontrols
 
 For details on draft syntax, non-standard syntax, and pseudo class replacement, see [Lightning CSS transpilation](https://lightningcss.dev/transpilation.html#draft-syntax). For `unusedSymbols`, see [removing unused symbols](https://lightningcss.dev/minification.html#unused-symbols).
