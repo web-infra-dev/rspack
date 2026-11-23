@@ -569,16 +569,12 @@ pub struct DependencyMeta {
   pub css_import_conditions: Vec<CssModuleRenderCondition>,
 }
 
-#[cold]
-#[inline(never)]
 fn push_all(out: &mut String, parts: &[&str]) {
   for part in parts {
     out.push_str(part);
   }
 }
 
-#[cold]
-#[inline(never)]
 fn eq_ci(a: &str, b: &str) -> bool {
   a.eq_ignore_ascii_case(b)
 }
@@ -590,8 +586,6 @@ struct MediaType {
 }
 
 impl MediaType {
-  #[cold]
-  #[inline(never)]
   fn from_ident(ident: ParsedIdent<'_>) -> Self {
     let raw_output = match &ident.decoded {
       Cow::Borrowed(_) => None,
@@ -665,8 +659,6 @@ fn is_valid_escape(bytes: &[u8], idx: usize) -> bool {
   bytes.get(idx) == Some(&b'\\') && !matches!(bytes.get(idx + 1), Some(b'\n' | b'\r' | 0x0C))
 }
 
-#[cold]
-#[inline(never)]
 fn is_plain_ident(s: &str) -> bool {
   let bytes = s.as_bytes();
   let start = match bytes.first() {
@@ -720,8 +712,6 @@ impl<'a> MediaScanner<'a> {
   }
 
   /// Advances past a `/* ... */` comment. Returns `false` if unclosed.
-  #[cold]
-  #[inline(never)]
   fn skip_comment(&mut self) -> bool {
     let bytes = self.bytes();
     let mut i = self.pos + 2;
@@ -736,8 +726,6 @@ impl<'a> MediaScanner<'a> {
     false
   }
 
-  #[cold]
-  #[inline(never)]
   fn skip_ws_and_comments(&mut self) {
     let bytes = self.bytes();
     loop {
@@ -751,8 +739,6 @@ impl<'a> MediaScanner<'a> {
   }
 
   /// Consumes a CSS escape sequence starting at `self.pos` (`\`).
-  #[cold]
-  #[inline(never)]
   fn consume_css_escape(&mut self) -> Option<char> {
     let bytes = self.bytes();
     if !is_valid_escape(bytes, self.pos) {
@@ -800,8 +786,6 @@ impl<'a> MediaScanner<'a> {
 
   /// Consumes a CSS identifier (decoding CSS escapes if present).
   /// Leaves `self.pos` unchanged and returns `None` if no identifier starts here.
-  #[cold]
-  #[inline(never)]
   fn consume_ident(&mut self) -> Option<ParsedIdent<'a>> {
     let bytes = self.bytes();
     let start = self.pos;
@@ -850,8 +834,6 @@ impl<'a> MediaScanner<'a> {
 
   /// Consumes a leading identifier followed by EOF, ASCII whitespace, or `/*`.
   /// Restores `self.pos` if not matched.
-  #[cold]
-  #[inline(never)]
   fn take_leading_ident(&mut self) -> Option<ParsedIdent<'a>> {
     let saved = self.pos;
     let ident = self.consume_ident()?;
@@ -869,8 +851,6 @@ impl<'a> MediaScanner<'a> {
   /// Scans tokens skipping quoted strings, comments, and CSS escapes.
   /// - `split_commas == true`: stops after the next top-level `,` (tracking `()`/`[]`).
   /// - `split_commas == false`: expects `self.pos` at `(` and stops after the matching `)`.
-  #[cold]
-  #[inline(never)]
   fn scan_balanced(&mut self, split_commas: bool) -> bool {
     let bytes = self.bytes();
     let mut depth = 0usize;
@@ -918,8 +898,6 @@ impl<'a> MediaScanner<'a> {
   }
 
   /// Consumes `<media-in-parens>` (`(...)` or `ident(...)`).
-  #[cold]
-  #[inline(never)]
   fn consume_media_in_parens(&mut self) -> bool {
     let saved = self.pos;
     if self.peek_byte() != Some(b'(')
@@ -943,7 +921,6 @@ impl<'a> MediaScanner<'a> {
 /// folded into the `@import` prelude: nested layers become a single layer path,
 /// supports conditions are combined with `and`, and media query lists are
 /// intersected.
-#[cold]
 #[inline(never)]
 fn render_css_import_source(request: &str, conditions: &[CssModuleRenderCondition]) -> String {
   let mut layer: Option<CssLayer> = None;
@@ -1016,8 +993,6 @@ fn merge_css_layers(outer: CssLayer, inner: CssLayer) -> CssLayer {
   }
 }
 
-#[cold]
-#[inline(never)]
 fn push_comma_item(out: &mut String, item: &str) {
   if !out.is_empty() {
     out.push_str(", ");
@@ -1025,8 +1000,6 @@ fn push_comma_item(out: &mut String, item: &str) {
   out.push_str(item);
 }
 
-#[cold]
-#[inline(never)]
 fn parse_media_query_list(items: &[&str]) -> Vec<ParsedMediaQuery> {
   let mut parsed = Vec::with_capacity(items.len());
   for item in items {
@@ -1040,8 +1013,6 @@ fn parse_media_query_list(items: &[&str]) -> Vec<ParsedMediaQuery> {
 /// Intersects two media query lists according to CSS Media Queries Level 4
 /// syntax, keeping at most one `[not | only]? <media-type>` at the start of
 /// each query.
-#[cold]
-#[inline(never)]
 fn merge_media_query_lists(outer: &str, inner: &str) -> String {
   let outer = split_media_query_list(outer);
   let inner = split_media_query_list(inner);
@@ -1082,8 +1053,6 @@ fn merge_media_query_lists(outer: &str, inner: &str) -> String {
   }
 }
 
-#[cold]
-#[inline(never)]
 fn split_media_query_list(media: &str) -> Vec<&str> {
   let mut queries = Vec::new();
   let mut scanner = MediaScanner::new(media);
@@ -1106,8 +1075,6 @@ fn split_media_query_list(media: &str) -> Vec<&str> {
   queries
 }
 
-#[cold]
-#[inline(never)]
 fn is_valid_media_condition(s: &str, allow_or: bool, allow_not: bool) -> bool {
   let mut scanner = MediaScanner::new(s);
   scanner.skip_ws_and_comments();
@@ -1155,8 +1122,6 @@ fn is_valid_media_condition(s: &str, allow_or: bool, allow_not: bool) -> bool {
   }
 }
 
-#[cold]
-#[inline(never)]
 fn is_valid_media_type(ident: &str) -> bool {
   for kw in ["only", "not", "and", "or", "layer"] {
     if eq_ci(ident, kw) {
@@ -1166,8 +1131,6 @@ fn is_valid_media_type(ident: &str) -> bool {
   true
 }
 
-#[cold]
-#[inline(never)]
 fn parse_media_query_tail(scanner: &mut MediaScanner<'_>) -> Option<Option<String>> {
   scanner.skip_ws_and_comments();
   if scanner.is_empty() {
@@ -1185,8 +1148,6 @@ fn parse_media_query_tail(scanner: &mut MediaScanner<'_>) -> Option<Option<Strin
   Some(Some(cond.trim_ascii().to_string()))
 }
 
-#[cold]
-#[inline(never)]
 fn parse_media_query(raw: &str) -> Option<ParsedMediaQuery> {
   let mut scanner = MediaScanner::new(raw);
   scanner.skip_ws_and_comments();
@@ -1258,8 +1219,6 @@ fn parse_media_query(raw: &str) -> Option<ParsedMediaQuery> {
   })
 }
 
-#[cold]
-#[inline(never)]
 fn push_wrapped_for_and(out: &mut String, condition: &str) {
   if !is_valid_media_condition(condition, false, false) {
     push_all(out, &["(", condition, ")"]);
@@ -1268,8 +1227,6 @@ fn push_wrapped_for_and(out: &mut String, condition: &str) {
   }
 }
 
-#[cold]
-#[inline(never)]
 fn negate_condition(condition: &str) -> String {
   let trimmed = condition.trim_ascii();
   let mut scanner = MediaScanner::new(trimmed);
@@ -1287,8 +1244,6 @@ fn negate_condition(condition: &str) -> String {
   out
 }
 
-#[cold]
-#[inline(never)]
 fn combine_conditions(a: Option<&str>, b: Option<&str>) -> Option<String> {
   match (a, b) {
     (None, None) => None,
@@ -1304,8 +1259,6 @@ fn combine_conditions(a: Option<&str>, b: Option<&str>) -> Option<String> {
   }
 }
 
-#[cold]
-#[inline(never)]
 fn expand_negated_query(media_type: &MediaType, condition: Option<&str>) -> Vec<ParsedMediaQuery> {
   let mut expanded = Vec::with_capacity(4);
   for known in ["screen", "print", "speech"] {
@@ -1327,8 +1280,6 @@ fn expand_negated_query(media_type: &MediaType, condition: Option<&str>) -> Vec<
   expanded
 }
 
-#[cold]
-#[inline(never)]
 fn push_intersected_queries(
   a: &ParsedMediaQuery,
   b: &ParsedMediaQuery,
@@ -1411,8 +1362,6 @@ fn push_intersected_queries(
   }
 }
 
-#[cold]
-#[inline(never)]
 fn format_media_query(query: &ParsedMediaQuery) -> String {
   let mut out = String::new();
   match query.qualifier {
