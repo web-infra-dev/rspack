@@ -75,9 +75,10 @@ pub type TimeInfoEntries = Vec<(String, TimeInfoEntry)>;
 
 pub(crate) type EventBatch = Vec<FsEvent>;
 
+#[derive(Default)]
 pub(crate) struct ResolvedEvents {
   pub dependencies: EventBatch,
-  pub raw: Option<FsEvent>,
+  pub raw: EventBatch,
   pub recovered: EventBatch,
   pub context_removal: Option<InternedPath>,
 }
@@ -453,15 +454,41 @@ impl FsWatcherInner {
     //     in flight for that write would then be suppressed as a duplicate.
     self.record_initial_file_mtimes();
 
+    // Resolve symbolic links before planning watches: the analyzer must see
+    // the physical paths, not the logical spellings that alias them.
+    let link_update = self.path_manager.refresh_links().await;
+    self
+      .analyzer
+      .set_unfollowed_links(&link_update.unfollowed_links);
     let watch_patterns = self.analyzer.analyze(self.path_manager.access());
     if let Err(error) = self.disk_watcher.watch(watch_patterns.into_iter()) {
       self.analyzer.invalidate_all();
       return Err(error);
     }
     let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
+    // A context scan can discover links to directories and files outside the
+    // context. Those physical targets were not in the plan above, so they need
+    // a second refresh and another watch pass.
+    let scanned_update = if link_update.changed || self.path_manager.follows_symlinks() {
+      let update = self.path_manager.refresh_links().await;
+      self.analyzer.set_unfollowed_links(&update.unfollowed_links);
+      if update.changed {
+        let patterns = self.analyzer.analyze(self.path_manager.access());
+        if let Err(error) = self.disk_watcher.watch(patterns.into_iter()) {
+          self.analyzer.invalidate_all();
+          return Err(error);
+        }
+      }
+      update
+    } else {
+      link_update
+    };
     if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
       for path in &changed_in_contexts {
         trigger.on_scanned_change(path);
+      }
+      for request in scanned_update.retargeted {
+        trigger.on_rebind(request);
       }
     }
 
@@ -481,7 +508,7 @@ impl FsWatcherInner {
   }
 
   fn record_initial_file_mtimes(&self) {
-    let accessor = self.path_manager.access();
+    let accessor = self.path_manager.logical_access();
     // `.1` is `files.added` — the diff set populated by `update()` and
     // cleared by `reset()`. In steady state (no add/remove churn) this
     // is empty and the loop is a no-op.

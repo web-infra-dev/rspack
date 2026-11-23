@@ -5688,6 +5688,7 @@ version = "0.103.3"
 dependencies = [
  "cow-utils",
  "dashmap",
+ "dunce",
  "futures",
  "notify",
  "regex",
@@ -5695,6 +5696,7 @@ dependencies = [
  "rspack_paths",
  "rspack_regex",
  "rspack_util",
+ "smallvec",
  "tempfile",
  "tokio",
  "tracing",
@@ -5702,7 +5704,7 @@ dependencies = [
 
 [[package]]
 name = "rspack_watcher_testing"
-version = "0.103.3"
+version = "0.103.2"
 dependencies = [
  "notify",
  "rspack_error",
