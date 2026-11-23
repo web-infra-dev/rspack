@@ -86,7 +86,7 @@ use crate::{
   SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, ModuleGraphUpdateResult, UpdateParam,
-    expand_rebuild_modules, update_module_graph,
+    expand_module_executor_results, update_module_graph,
   },
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
@@ -1130,7 +1130,7 @@ impl Compilation {
       .iter()
       .filter_map(|(id, _)| module_graph.module_by_identifier(id).map(|_| *id))
       .collect::<IdentifierSet>();
-    expand_rebuild_modules(module_graph, &mut modules);
+    expand_module_executor_results(module_graph, &mut modules, true);
 
     self.module_graph_cache_artifact.unfreeze();
     if !modules.is_empty() {

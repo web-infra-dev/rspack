@@ -68,9 +68,8 @@ impl CssModule {
       dependencies_block: Default::default(),
       factory_meta: Default::default(),
       build_info: BuildInfo {
-        cacheable: dep.cacheable,
+        cacheable: true,
         strict: true,
-        dependencies: dep.dependencies.clone(),
         ..Default::default()
       }
       .into(),
@@ -169,8 +168,7 @@ impl Module for CssModule {
     let Some(build_info) = self.build_info.frozen() else {
       return Ok(true);
     };
-    let fresh_build_info = fresh_module.build_info.read();
-    if build_info.hash.is_none() || !build_info.cacheable || !fresh_build_info.cacheable {
+    if build_info.hash.is_none() || !build_info.cacheable {
       return Ok(true);
     }
 
@@ -182,12 +180,7 @@ impl Module for CssModule {
         || self.supports != fresh_module.supports
         || self.media != fresh_module.media
         || self.module_layer != fresh_module.module_layer
-        || self._context != fresh_module._context
-        // A cache hit must retain the dependencies used by later incremental builds.
-        || build_info.dependencies.file != fresh_build_info.dependencies.file
-        || build_info.dependencies.context != fresh_build_info.dependencies.context
-        || build_info.dependencies.missing != fresh_build_info.dependencies.missing
-        || build_info.dependencies.build != fresh_build_info.dependencies.build,
+        || self._context != fresh_module._context,
     )
   }
 
