@@ -234,48 +234,21 @@ pub struct TokenWithTrivia {
   pub leading: Trivia,
 }
 
-pub trait LexerVisitor {
-  fn visit_ident(&mut self, name: &str, range: Range);
-}
-
-impl LexerVisitor for () {
-  #[inline(always)]
-  fn visit_ident(&mut self, _name: &str, _range: Range) {}
-}
-
 #[derive(Debug)]
-pub struct Lexer<'s, V: LexerVisitor = ()> {
+pub struct Lexer<'s> {
   value: &'s [u8],
   scan_pos: Pos,
-  visitor: V,
   function_kind: FunctionKind,
 }
 
-impl<'s, V: LexerVisitor> Lexer<'s, V> {
-  pub fn new(value: &'s str, visitor: V) -> Self {
+impl<'s> Lexer<'s> {
+  pub fn new(value: &'s str) -> Self {
     assert!(value.len() <= Pos::MAX as usize, "CSS input is too large");
     Self {
       value: value.as_bytes(),
       scan_pos: 0,
-      visitor,
       function_kind: FunctionKind::Other,
     }
-  }
-
-  #[inline]
-  pub(crate) fn visitor_mut(&mut self) -> &mut V {
-    &mut self.visitor
-  }
-
-  #[inline]
-  fn visit_ident(&mut self, kind: TokenKind, range: Range) {
-    if !matches!(kind, TokenKind::Ident | TokenKind::Function) {
-      return;
-    }
-    let value = &self.value[range.start as usize..range.end as usize];
-    // SAFETY: token value ranges always lie on UTF-8 boundaries.
-    let value = unsafe { str::from_utf8_unchecked(value) };
-    self.visitor.visit_ident(value, range);
   }
 
   #[inline]
@@ -383,12 +356,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
       && candidate.flat_probe_start != Some(position as Pos)
     {
       candidate.flat_probe_start = Some(position as Pos);
-      if let Some(end) = self.scan_flat_value(position)
-        && (!candidate.collect_dashed
-          || !self.value[position..end]
-            .windows(2)
-            .any(|bytes| bytes == b"--"))
-      {
+      if let Some(end) = self.scan_flat_value(position) {
         if end > position {
           note_opaque_value(&mut block_item);
         }
@@ -526,9 +494,6 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
         } else {
           note_opaque_value(&mut block_item);
         }
-        self
-          .visitor
-          .visit_ident(name, Range::new(position as Pos, end as Pos));
         if is_function {
           if !validating {
             state.consume(TokenKind::LeftParenthesis);
@@ -844,9 +809,6 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
         if is_ident_candidate(name) {
           break;
         }
-        self
-          .visitor
-          .visit_ident(name, Range::new(position as Pos, end as Pos));
         invalidates_composes = true;
         trivia_start = None;
         position = end;
@@ -1023,7 +985,7 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
   }
 }
 
-impl Lexer<'_, ()> {
+impl Lexer<'_> {
   pub fn slice_range<'a>(input: &'a str, range: &Range) -> Option<&'a str> {
     let start = range.start as usize;
     let end = range.end as usize;
@@ -1046,14 +1008,14 @@ unsafe fn slice_unchecked<'a>(input: &'a [u8], range: &Range) -> &'a str {
   }
 }
 
-impl<V: LexerVisitor> Lexer<'_, V> {
+impl Lexer<'_> {
   #[inline]
   pub(crate) fn scan_pos(&self) -> Pos {
     self.scan_pos
   }
 }
 
-impl<'s, V: LexerVisitor> Lexer<'s, V> {
+impl<'s> Lexer<'s> {
   /// Return the next CSS token without allocating or decoding its value.
   ///
   /// `TokenKind::Eof` is returned after the input is exhausted. Unterminated
@@ -1061,12 +1023,6 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
   /// `Bad*` token kinds, so EOF and tokenizer errors are never conflated.
   #[inline]
   pub fn next_token(&mut self) -> Token {
-    let token = self.next_token_without_visit();
-    self.visit_ident(token.kind, token.value_range);
-    token
-  }
-
-  fn next_token_without_visit(&mut self) -> Token {
     self.function_kind = FunctionKind::Other;
     let start = self.scan_pos as usize;
     let len = self.value.len();
@@ -1905,8 +1861,8 @@ impl<'s, V: LexerVisitor> Lexer<'s, V> {
 /// source range is tokenized at most once. A speculative declaration consumes
 /// tokens immediately; a surviving rule can replay its saved semantic events
 /// after declaration effects are rolled back. The source scanner never rewinds.
-pub(crate) struct TokenStream<'a, 's, V: LexerVisitor = ()> {
-  lexer: &'a mut Lexer<'s, V>,
+pub(crate) struct TokenStream<'a, 's> {
+  lexer: &'a mut Lexer<'s>,
   consumed: Pos,
   buffered: VecDeque<BufferedToken>,
   value_state: GenericValueScanState,
@@ -2093,8 +2049,8 @@ fn never_fast_forward_candidate(_: &str) -> bool {
   false
 }
 
-impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
-  pub(crate) fn from_lexer(lexer: &'a mut Lexer<'s, V>) -> Self {
+impl<'a, 's> TokenStream<'a, 's> {
+  pub(crate) fn from_lexer(lexer: &'a mut Lexer<'s>) -> Self {
     Self {
       lexer,
       consumed: 0,
@@ -2130,9 +2086,6 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       }
     }
     self.function_kind = token.function;
-    self
-      .lexer
-      .visit_ident(token.token.kind, token.token.value_range);
     self.consumed = token.token.range.end;
     debug_assert!(
       self.consumed <= self.lexer.scan_pos(),
@@ -2174,7 +2127,6 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
     ident: Token,
     custom: bool,
     flat: bool,
-    collect_dashed: bool,
   ) -> (bool, Option<Pos>) {
     let mut flat_probe_start = None;
     if self.byte_at(ident.range.end) != Some(C_COLON) {
@@ -2190,13 +2142,6 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
       let Some(end) = self.lexer.scan_flat_value(ident.range.end as usize + 1) else {
         return (false, flat_probe_start);
       };
-      if collect_dashed
-        && self.lexer.value[ident.range.end as usize + 1..end]
-          .windows(2)
-          .any(|bytes| bytes == b"--")
-      {
-        return (false, flat_probe_start);
-      }
       Some(end as Pos)
     };
     // `peek` has already buffered the identifier. Its colon is read once too.
@@ -2214,12 +2159,10 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
     &mut self,
     custom: bool,
     has_mode: bool,
-    collect_dashed: bool,
     flat_probe_start: Option<Pos>,
   ) {
     let mut candidate = BlockItemCandidates::new(custom, has_mode);
     candidate.flat_probe_start = flat_probe_start;
-    candidate.collect_dashed = collect_dashed;
     self.block_item = Some(candidate);
   }
 
@@ -2623,12 +2566,12 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
   }
 
   #[inline]
-  pub(crate) fn lexer(&self) -> &Lexer<'s, V> {
+  pub(crate) fn lexer(&self) -> &Lexer<'s> {
     self.lexer
   }
 
   #[inline]
-  pub(crate) fn lexer_mut(&mut self) -> &mut Lexer<'s, V> {
+  pub(crate) fn lexer_mut(&mut self) -> &mut Lexer<'s> {
     self.lexer
   }
 
@@ -2659,7 +2602,7 @@ impl<'a, 's, V: LexerVisitor> TokenStream<'a, 's, V> {
     let mut first_comment_start = None;
     let mut has_white_space = false;
     loop {
-      let token = self.lexer.next_token_without_visit();
+      let token = self.lexer.next_token();
       debug_assert!(token.range.start >= end);
       if token.kind == TokenKind::WhiteSpace {
         has_white_space = true;

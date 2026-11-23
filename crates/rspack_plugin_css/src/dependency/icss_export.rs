@@ -7,7 +7,7 @@ use rspack_core::{
 use rspack_hash::{RspackHash, RspackHasher};
 use smol_str::SmolStr;
 
-use crate::utils::{css_generator_options, export_locals_convention};
+use crate::utils::export_locals_convention;
 
 /// A reference inside one value, such as `color` in `@value shadow: 0 0 color`.
 /// The surrounding text stays in the owning definition; the referenced value
@@ -18,6 +18,44 @@ pub struct CssIcssReference {
   pub range: DependencyRange,
   #[rspack_hash(skip)]
   pub dependency_id: DependencyId,
+}
+
+#[cacheable]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CssExportKind {
+  /// Plain `@value`, `:export`, global compose literal, or alias-collision wrapper.
+  Value,
+  /// Local `.class`, `#id`, `@keyframes`, `@counter-style`, `@container`, or grid identifier.
+  LocalIdent,
+  /// Local `--custom-property`, `@property`, `@function`, or `@font-palette-values`.
+  LocalDashedIdent,
+  /// `.class` or `#id` selector bound to an imported ICSS value.
+  /// Resolves to `import`'s scoped `LocalIdent` when the target is one; otherwise
+  /// falls back to the local identifier stored in `value`.
+  ImportedSelector { import: DependencyId },
+  /// Combines an earlier export (`references[0]`) that already exports `import`
+  /// with an `ImportedSelector` (`composes[0]`), suppressing the duplicate `import`
+  /// when `import` resolves to a `LocalIdent` while preserving any extra
+  /// `composes` declared on the selector rule itself.
+  ImportedSelectorExport { import: DependencyId },
+  /// Compose target referencing an imported binding (`references[0]`) that also
+  /// has a matching `ImportedSelector` (`composes[0]`). Resolves to `composes[0]`
+  /// when `import` targets a `LocalIdent`, or falls back to `references[0]` when
+  /// `import` targets a plain value.
+  ImportedSelectorCompose { import: DependencyId },
+}
+
+impl RspackHash for CssExportKind {
+  fn hash(&self, state: &mut RspackHasher) {
+    match self {
+      Self::Value => state.write(b"Value"),
+      Self::LocalIdent => state.write(b"LocalIdent"),
+      Self::LocalDashedIdent => state.write(b"LocalDashedIdent"),
+      Self::ImportedSelector { .. } => state.write(b"ImportedSelector"),
+      Self::ImportedSelectorExport { .. } => state.write(b"ImportedSelectorExport"),
+      Self::ImportedSelectorCompose { .. } => state.write(b"ImportedSelectorCompose"),
+    }
+  }
 }
 
 /// One CSS definition and its composition relationships.
@@ -39,7 +77,7 @@ pub struct CssIcssExportDependency {
   /// Space-separated values appended by `composes`; never copied definitions.
   #[rspack_hash(skip)]
   pub composes: Vec<DependencyId>,
-  pub local_ident: bool,
+  pub kind: CssExportKind,
   /// `None` for definitions used internally without declaring a JS export.
   // The module graph hash already includes the resulting export names and state.
   #[rspack_hash(skip)]
@@ -51,7 +89,7 @@ impl CssIcssExportDependency {
     name: SmolStr,
     value: SmolStr,
     references: Vec<CssIcssReference>,
-    local_ident: bool,
+    kind: CssExportKind,
     can_mangle: Option<bool>,
   ) -> Self {
     Self {
@@ -60,7 +98,7 @@ impl CssIcssExportDependency {
       value,
       references,
       composes: Vec::new(),
-      local_ident,
+      kind,
       can_mangle,
     }
   }
@@ -85,17 +123,11 @@ impl Dependency for CssIcssExportDependency {
   ) -> Option<ExportsSpec> {
     let can_mangle = self.can_mangle?;
     let module = mg.module_by_identifier(mg.get_parent_module(&self.id)?)?;
-    let options = module
-      .as_normal_module()
-      .and_then(|module| module.get_generator_options());
-    let convention = css_generator_options(options)
-      .exports_convention
-      .unwrap_or_default();
-    let info = module.build_info();
-    let index = &info.css.as_deref()?.exports;
-    let exports = export_locals_convention(&self.name, convention)
+    let build_info = module.build_info();
+    let css = build_info.css.as_deref()?;
+    let exports = export_locals_convention(&self.name, css.exports_convention)
       .into_iter()
-      .filter(|name| index.get(name.as_str()) == Some(&self.id))
+      .filter(|name| css.exports.get(name.as_str()) == Some(&self.id))
       .map(|name| {
         ExportNameOrSpec::ExportSpec(ExportSpec {
           name: name.into(),

@@ -8,11 +8,11 @@ use rspack_core::{
   AssetInfo, BoxModule, Chunk, ChunkGraph, ChunkKind, ChunkUkey, Compilation,
   CompilationContentHash, CompilationId, CompilationParams, CompilationRenderManifest,
   CompilationRuntimeRequirementInTree, CompilerCompilation, CssBuildInfo, CssModuleRenderCondition,
-  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph, ModuleRule,
-  ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve, NormalModuleFactoryModule,
-  ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry, RuntimeGlobals,
-  RuntimeModule, RuntimeModuleExt, SourceType, css_module_render_conditions_identifier,
-  get_css_chunk_filename_template, is_source_equal,
+  DependencyType, ManifestAssetType, Module, ModuleFactoryCreateData, ModuleGraph,
+  ModuleRuleEffect, ModuleType, NormalModuleCreateData, NormalModuleFactoryAfterResolve,
+  NormalModuleFactoryModule, ParserAndGenerator, PathData, Plugin, PublicPath, RenderManifestEntry,
+  RuntimeGlobals, RuntimeModule, RuntimeModuleExt, SourceType,
+  css_module_render_conditions_identifier, get_css_chunk_filename_template, is_source_equal,
   rspack_sources::{BoxSource, CachedSource, ReplaceSource, Source, SourceExt},
 };
 use rspack_error::{Diagnostic, Result, ToStringResultToRspackResultExt};
@@ -314,8 +314,8 @@ async fn normal_module_factory_after_resolve(
   }
 
   let configured_export_type = create_data
-    .module_options
-    .parser_options()
+    .parser_options
+    .as_deref()
     .and_then(|options| options.get_css_module())
     .and_then(|options| options.export_type);
   // Match the module's effective export type for every incoming dependency so
@@ -388,13 +388,12 @@ async fn compilation(
 // chunk must carry the css hmr handler whenever such a rule exists, even before any
 // stylesheet is imported. Otherwise the first stylesheet added via HMR is emitted but
 // never requested, because the runtime baked at the initial build lacks `hmrC.css`.
-fn has_css_module_rule(rules: &[ModuleRule]) -> bool {
-  rules.iter().any(|rule| {
+fn has_css_module_rule(effects: &[ModuleRuleEffect]) -> bool {
+  effects.iter().any(|effect| {
     matches!(
-      rule.effect.r#type,
+      effect.r#type,
       Some(ModuleType::Css | ModuleType::CssModule | ModuleType::CssAuto | ModuleType::CssGlobal)
-    ) || rule.one_of.as_deref().is_some_and(has_css_module_rule)
-      || rule.rules.as_deref().is_some_and(has_css_module_rule)
+    )
   })
 }
 
@@ -409,6 +408,13 @@ async fn runtime_requirements_in_tree(
   runtime_modules_to_add: &mut Vec<(ChunkUkey, Box<dyn RuntimeModule>)>,
 ) -> Result<Option<()>> {
   let link_runtime_enabled = CssLoadingRuntimeModule::link_runtime_enabled(compilation, chunk_ukey);
+  if !link_runtime_enabled
+    && !runtime_requirements
+      .intersects(RuntimeGlobals::CSS_INJECT_STYLE | RuntimeGlobals::CSS_STYLE_SHEET)
+  {
+    return Ok(None);
+  }
+
   // A compilation configured for native css (via a `type: "css*"` module rule) but
   // without any css module yet still needs the css hmr runtime baked into the initial
   // chunk, so a stylesheet added by a later hot update can be requested. Once a css
@@ -416,7 +422,7 @@ async fn runtime_requirements_in_tree(
   // scan is only reached under HMR, so non-watch builds pay nothing.
   let has_css_rule = all_runtime_requirements
     .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
-    && has_css_module_rule(&compilation.options.module.rules);
+    && has_css_module_rule(&compilation.options.module.effects);
   let hmr_needs_css_runtime =
     has_css_rule && !all_runtime_requirements.contains(RuntimeGlobals::HAS_CSS_MODULES);
   let needs_css_loading_runtime = runtime_requirements.intersects(
@@ -426,13 +432,6 @@ async fn runtime_requirements_in_tree(
   ) || (runtime_requirements
     .contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS)
     && has_css_rule);
-
-  if !link_runtime_enabled
-    && !runtime_requirements
-      .intersects(RuntimeGlobals::CSS_INJECT_STYLE | RuntimeGlobals::CSS_STYLE_SHEET)
-  {
-    return Ok(None);
-  }
 
   if needs_css_loading_runtime {
     runtime_modules_to_add.push((
@@ -661,8 +660,11 @@ impl Plugin for CssPlugin {
     ] {
       ctx.register_parser_and_generator_builder(
         module_type,
-        Box::new(|options| {
-          Box::new(CssParserAndGenerator::new(options)) as Box<dyn ParserAndGenerator>
+        Box::new(|parser_options, generator_options| {
+          Box::new(CssParserAndGenerator::new(
+            parser_options,
+            generator_options,
+          )) as Box<dyn ParserAndGenerator>
         }),
       );
     }

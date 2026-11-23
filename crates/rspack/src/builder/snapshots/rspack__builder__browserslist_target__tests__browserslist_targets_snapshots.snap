@@ -90,6 +90,9 @@ expression: results
             spread: Some(
                 false,
             ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -187,6 +190,9 @@ expression: results
                 false,
             ),
             spread: Some(
+                false,
+            ),
+            symbol: Some(
                 false,
             ),
             template_literal: Some(
@@ -288,6 +294,9 @@ expression: results
             spread: Some(
                 true,
             ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -385,6 +394,9 @@ expression: results
                 false,
             ),
             spread: Some(
+                false,
+            ),
+            symbol: Some(
                 false,
             ),
             template_literal: Some(
@@ -486,6 +498,9 @@ expression: results
             spread: Some(
                 false,
             ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -583,6 +598,9 @@ expression: results
                 false,
             ),
             spread: Some(
+                false,
+            ),
+            symbol: Some(
                 false,
             ),
             template_literal: Some(
@@ -684,6 +702,9 @@ expression: results
             spread: Some(
                 true,
             ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -781,6 +802,9 @@ expression: results
                 true,
             ),
             spread: Some(
+                true,
+            ),
+            symbol: Some(
                 true,
             ),
             template_literal: Some(
@@ -882,6 +906,9 @@ expression: results
             spread: Some(
                 true,
             ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -979,6 +1006,9 @@ expression: results
                 false,
             ),
             spread: Some(
+                true,
+            ),
+            symbol: Some(
                 true,
             ),
             template_literal: Some(
@@ -1080,6 +1110,9 @@ expression: results
             spread: Some(
                 true,
             ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1177,6 +1210,9 @@ expression: results
                 false,
             ),
             spread: Some(
+                true,
+            ),
+            symbol: Some(
                 true,
             ),
             template_literal: Some(
@@ -1278,6 +1314,9 @@ expression: results
             spread: Some(
                 true,
             ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -1377,6 +1416,9 @@ expression: results
             spread: Some(
                 false,
             ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1474,6 +1516,9 @@ expression: results
                 true,
             ),
             spread: Some(
+                true,
+            ),
+            symbol: Some(
                 true,
             ),
             template_literal: Some(
@@ -1575,6 +1620,9 @@ expression: results
             spread: Some(
                 false,
             ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1672,6 +1720,9 @@ expression: results
                 false,
             ),
             spread: Some(
+                true,
+            ),
+            symbol: Some(
                 true,
             ),
             template_literal: Some(
@@ -1773,6 +1824,9 @@ expression: results
             spread: Some(
                 true,
             ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1870,6 +1924,9 @@ expression: results
                 false,
             ),
             spread: Some(
+                true,
+            ),
+            symbol: Some(
                 true,
             ),
             template_literal: Some(
@@ -1971,6 +2028,9 @@ expression: results
             spread: Some(
                 true,
             ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -2068,6 +2128,9 @@ expression: results
                 false,
             ),
             spread: Some(
+                false,
+            ),
+            symbol: Some(
                 false,
             ),
             template_literal: Some(
@@ -2169,6 +2232,9 @@ expression: results
             spread: Some(
                 true,
             ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -2266,6 +2332,9 @@ expression: results
                 false,
             ),
             spread: Some(
+                true,
+            ),
+            symbol: Some(
                 true,
             ),
             template_literal: Some(
@@ -2367,6 +2436,9 @@ expression: results
             spread: Some(
                 false,
             ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -2464,6 +2536,9 @@ expression: results
                 false,
             ),
             spread: Some(
+                false,
+            ),
+            symbol: Some(
                 false,
             ),
             template_literal: Some(
@@ -2565,6 +2640,9 @@ expression: results
             spread: Some(
                 false,
             ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -2662,6 +2740,9 @@ expression: results
                 false,
             ),
             spread: Some(
+                false,
+            ),
+            symbol: Some(
                 false,
             ),
             template_literal: Some(
@@ -2763,6 +2844,9 @@ expression: results
             spread: Some(
                 true,
             ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -2860,6 +2944,9 @@ expression: results
                 false,
             ),
             spread: Some(
+                true,
+            ),
+            symbol: Some(
                 true,
             ),
             template_literal: Some(
@@ -2961,6 +3048,9 @@ expression: results
             spread: Some(
                 true,
             ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -3058,6 +3148,9 @@ expression: results
                 false,
             ),
             spread: Some(
+                false,
+            ),
+            symbol: Some(
                 false,
             ),
             template_literal: Some(
@@ -3159,6 +3252,9 @@ expression: results
             spread: Some(
                 false,
             ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -3258,6 +3354,9 @@ expression: results
             spread: Some(
                 false,
             ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -3355,6 +3454,9 @@ expression: results
                 false,
             ),
             spread: Some(
+                false,
+            ),
+            symbol: Some(
                 false,
             ),
             template_literal: Some(
@@ -3457,6 +3559,9 @@ expression: results
             spread: Some(
                 true,
             ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -3539,6 +3644,9 @@ expression: results
                 false,
             ),
             spread: Some(
+                true,
+            ),
+            symbol: Some(
                 true,
             ),
             template_literal: Some(
@@ -3638,6 +3746,9 @@ expression: results
                 false,
             ),
             spread: Some(
+                false,
+            ),
+            symbol: Some(
                 false,
             ),
             template_literal: Some(

@@ -40,7 +40,7 @@ impl Compiler {
           .plugin_driver
           .compiler_hooks
           .failed
-          .call(&self.compilation)
+          .call(&self.compilation, &e)
           .await;
         failed.and(Err(e))
       }
@@ -144,7 +144,6 @@ impl Compiler {
       // FOR BINDING SAFETY:
       // Update `compilation` for each rebuild.
       // Make sure `thisCompilation` hook was called before any other hooks that leverage `JsCompilation`.
-      self.cache.before_compile(&mut self.compilation).await;
       self.compile().await?;
     }
 

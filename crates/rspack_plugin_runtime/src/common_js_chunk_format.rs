@@ -1,5 +1,5 @@
 use rspack_core::{
-  ChunkGraph, ChunkKind, ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
+  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
   CompilationDependentFullHash, CompilationParams, CompilerCompilation, Plugin,
   RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
@@ -132,11 +132,7 @@ async fn render_chunk(
     .expect_get(chunk_ukey);
   let base_chunk_output_name = get_chunk_output_name(chunk, compilation).await?;
   let mut sources = ConcatSource::default();
-  if !matches!(chunk.kind(), ChunkKind::HotUpdate)
-    && ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey)
-      .contains(RuntimeGlobals::HMR_CHUNK_VERSIONS)
-    && let Some(version) = get_hmr_chunk_version(compilation, chunk)
-  {
+  if let Some(version) = get_hmr_chunk_version(compilation, chunk) {
     sources.add(RawStringSource::from(format!(
       "exports.__rspack_cjs_hash = {};\n",
       json_stringify_str(version)

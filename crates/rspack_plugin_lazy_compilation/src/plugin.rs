@@ -8,7 +8,7 @@ use rspack_collections::IdentifierSet;
 use rspack_core::{
   BoxModule, Compilation, CompilationId, CompilationParams, CompilerCompilation, CompilerId,
   CompilerMake, DependencyId, DependencyType, EntryDependency, LibIdentOptions, Module, ModuleExt,
-  ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleRule,
+  ModuleFactory, ModuleFactoryCreateData, ModuleIdentifier, ModuleLayer, ModuleRuleEffect,
   NormalModuleCreateData, NormalModuleFactoryModule, Plugin,
 };
 use rspack_error::Result;
@@ -250,15 +250,11 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
         self
           .reserved_layer_externals
           .get_or_try_init(|| async {
-            let mut layers = FxHashSet::default();
-            collect_rule_layers(
-              &module_factory_create_data
-                .build_context
-                .compiler_options
-                .module
-                .rules,
-              &mut layers,
-            );
+            let module_options = &module_factory_create_data
+              .build_context
+              .compiler_options
+              .module;
+            let layers = collect_rule_layers(&module_options.effects);
             let mut backend = self.backend.lock().await;
             let mut reserved = Vec::new();
             for layer in layers {
@@ -266,7 +262,10 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
                 .collect_reserved_externals(Some(layer.clone()))
                 .await?;
               if !requests.is_empty() {
-                reserved.push(ReservedLayerExternals { layer, requests });
+                reserved.push(ReservedLayerExternals {
+                  layer: layer.clone(),
+                  requests,
+                });
               }
             }
             Result::<Arc<[ReservedLayerExternals]>>::Ok(reserved.into())
@@ -306,15 +305,11 @@ impl<T: Backend, F: LazyCompilationTestCheck> LazyCompilationPlugin<T, F> {
   }
 }
 
-fn collect_rule_layers(rules: &[ModuleRule], layers: &mut FxHashSet<ModuleLayer>) {
-  for rule in rules {
-    if let Some(layer) = &rule.effect.layer {
-      layers.insert(layer.clone());
-    }
-    for nested in rule.rules.iter().chain(rule.one_of.iter()) {
-      collect_rule_layers(nested, layers);
-    }
-  }
+fn collect_rule_layers(effects: &[ModuleRuleEffect]) -> FxHashSet<&ModuleLayer> {
+  effects
+    .iter()
+    .filter_map(|effect| effect.layer.as_ref())
+    .collect()
 }
 
 #[plugin_hook(CompilerMake for LazyCompilationPlugin<T: Backend, F: LazyCompilationTestCheck>)]

@@ -111,6 +111,10 @@ loadLocale('english');
 
 这样，Rspack 就能找到并打包 `./locale` 下的 `.json` 文件。应用运行时，`loadLocale('english')` 会加载 `./locale/english.json`，`loadLocale('german')` 会加载 `./locale/german.json`，前提是这些文件在构建时存在。
 
+如果希望 Rspack 跳过路径完全动态的 `import(path)`，可以写成 `import(/* rspackIgnore: true */ path)`。运行时会直接执行这次导入。
+
+如果这样的 `import(path)` 位于第三方包中，可以在 `module.rules` 中添加一条匹配该包的规则，并将规则的 [`parser.importDynamic`](/config/module-parser#javascriptimportdynamic) 设为 `false`。参见 [Solid 加载水合模块的示例](/guide/integrations/solid#load-hydration-modules)。
+
 ### import() 中的魔法注释 \{#magic-comments}
 
 <ApiMeta specific={['Rspack', 'Webpack']} />

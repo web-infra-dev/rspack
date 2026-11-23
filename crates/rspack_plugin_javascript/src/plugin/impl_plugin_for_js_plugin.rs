@@ -5,9 +5,9 @@ use rspack_core::{
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
   CompilationId, CompilationParams, CompilationRenderManifest, CompilerCompilation,
   ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ManifestAssetType,
-  ModuleGraph, ModuleIdentifier, ModuleType, ParserAndGenerator, PathData, Plugin,
-  RenderManifestEntry, RuntimeGlobals, RuntimeModule, RuntimeRequirementsDependencyTemplate,
-  SelfModuleFactory, SourceType, get_js_chunk_filename_template,
+  ModuleGraph, ModuleIdentifier, ModuleType, PathData, Plugin, RenderManifestEntry, RuntimeGlobals,
+  RuntimeModule, RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
+  get_js_chunk_filename_template,
   rspack_sources::{BoxSource, CachedSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
@@ -697,21 +697,12 @@ impl Plugin for JsPlugin {
       .render_manifest
       .tap(render_manifest::new(self));
 
-    ctx.register_parser_and_generator_builder(ModuleType::JsAuto, {
-      Box::new(move |options| {
-        Box::new(JavaScriptParserAndGenerator::new(options)) as Box<dyn ParserAndGenerator>
-      })
-    });
-    ctx.register_parser_and_generator_builder(ModuleType::JsEsm, {
-      Box::new(move |options| {
-        Box::new(JavaScriptParserAndGenerator::new(options)) as Box<dyn ParserAndGenerator>
-      })
-    });
-    ctx.register_parser_and_generator_builder(ModuleType::JsDynamic, {
-      Box::new(move |options| {
-        Box::new(JavaScriptParserAndGenerator::new(options)) as Box<dyn ParserAndGenerator>
-      })
-    });
+    for module_type in [ModuleType::JsAuto, ModuleType::JsEsm, ModuleType::JsDynamic] {
+      ctx.register_parser_and_generator_builder(
+        module_type,
+        Box::new(|_, _| Box::<JavaScriptParserAndGenerator>::default()),
+      );
+    }
 
     Ok(())
   }

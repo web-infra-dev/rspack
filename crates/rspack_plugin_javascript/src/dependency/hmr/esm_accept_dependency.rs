@@ -104,7 +104,7 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
         phase,
         *runtime,
       );
-      let stmts = runtime_template.import_statement(
+      let (mut stmts, default_interop) = runtime_template.import_statement(
         *module,
         compilation,
         id,
@@ -113,13 +113,15 @@ impl DependencyTemplate for ESMAcceptDependencyTemplate {
         phase,
         true,
       );
+      if default_interop {
+        runtime_template.default_interop_var(&import_var);
+        stmts.push_str(&runtime_template.default_interop_statement(&import_var, true));
+      }
       if condition == "true" {
-        content.push_str(stmts.0.as_str());
-        content.push_str(stmts.1.as_str());
+        content.push_str(&stmts);
       } else {
         content.push_str(format!("if ({condition}) {{\n").as_str());
-        content.push_str(stmts.0.as_str());
-        content.push_str(stmts.1.as_str());
+        content.push_str(&stmts);
         content.push_str("\n}\n");
       }
     });

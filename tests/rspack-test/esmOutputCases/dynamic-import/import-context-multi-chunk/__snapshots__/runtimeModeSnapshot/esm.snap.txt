@@ -105,9 +105,9 @@ module.exports = __rspack_async_context;
 
 module.exports = {
 
-  "./modules/a.js": function() { return Promise.all(/*! esm */ [ensureChunk("shared-chunk"), ensureChunk("a")]).then(rspackRequire.bind(rspackRequire, /*! ./modules/a.js */ "./modules/a.js")); },
+  "./modules/a.js": function() { return Promise.all(/*! esm */ [ensureChunk("shared-chunk"), ensureChunk("a")]).then(() => rspackRequire(/*! ./modules/a.js */ "./modules/a.js")); },
 
-  "./modules/b.js": function() { return Promise.all(/*! esm */ [ensureChunk("shared-chunk"), ensureChunk("b")]).then(rspackRequire.bind(rspackRequire, /*! ./modules/b.js */ "./modules/b.js")); }
+  "./modules/b.js": function() { return Promise.all(/*! esm */ [ensureChunk("shared-chunk"), ensureChunk("b")]).then(() => rspackRequire(/*! ./modules/b.js */ "./modules/b.js")); }
 };
 
 
@@ -191,10 +191,7 @@ export { hasOwnProperty };
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
+	Object.defineProperties(exports, { [Symbol.toStringTag]: { value: 'Module' }, __esModule: { value: true } });
 };;
 export { makeNamespaceObject };
 // rspack/runtime/esm_chunk_loading

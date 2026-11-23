@@ -15,6 +15,8 @@ mod context;
 pub use context::*;
 mod module;
 pub use module::*;
+mod module_rule_options;
+pub use module_rule_options::*;
 mod externals;
 pub use externals::*;
 mod stats;

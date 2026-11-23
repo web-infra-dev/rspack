@@ -209,7 +209,7 @@ fn collect_dependencies_diagnostics(
         .filter_map(|dependency_id| {
           let dependency = module_graph.dependency_by_id(dependency_id);
           dependency
-            .get_diagnostics_with_context(
+            .get_diagnostics(
               module_graph,
               module_graph_cache,
               exports_info_artifact,

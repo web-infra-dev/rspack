@@ -8,13 +8,19 @@ use rspack_core::{
   DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType, ExportNameOrSpec,
   ExportProvided, ExportSpec, ExportsInfoArtifact, ExportsOfExportsSpec, ExportsSpec, ExportsType,
   ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, Nullable,
-  ReferencedExport, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsageState, UsedName,
-  collect_referenced_export_items, create_exports_object_referenced, create_no_exports_referenced,
-  property_access, to_normal_comment,
+  ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource,
+  UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
+  create_no_exports_referenced, property_access, to_normal_comment,
 };
+use rspack_hash::RspackHasher;
 use rustc_hash::FxHashSet;
 
-use super::ExportsBase;
+use super::{
+  ExportsBase,
+  common_js_dependency_helpers::{
+    is_worker_entry_module, is_worker_entry_this, update_worker_entry_this_hash,
+  },
+};
 use crate::{Atom, dependency::commonjs::OBJECT_PROTOTYPE_METHODS};
 
 #[cacheable]
@@ -317,10 +323,13 @@ impl Dependency for CommonJsExportRequireDependency {
     if self.result_used {
       return get_full_result();
     }
-    let mut exports_info = exports_info_artifact.get_exports_info_data(
-      mg.get_parent_module(&self.id)
-        .expect("Can not get parent module"),
-    );
+    let parent_module = mg
+      .get_parent_module(&self.id)
+      .expect("Can not get parent module");
+    if self.base.is_this() && is_worker_entry_module(mg, *parent_module, runtime) {
+      return get_full_result();
+    }
+    let mut exports_info = exports_info_artifact.get_exports_info_data(parent_module);
 
     for name in &self.names {
       let export_info = exports_info.get_read_only_export_info(name);
@@ -402,6 +411,18 @@ impl DependencyCodeGeneration for CommonJsExportRequireDependency {
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(CommonJsExportRequireDependencyTemplate::template_type())
   }
+
+  fn update_hash(
+    &self,
+    hasher: &mut RspackHasher,
+    compilation: &rspack_core::Compilation,
+    runtime: Option<&RuntimeSpec>,
+  ) {
+    if !self.base.is_this() {
+      return;
+    }
+    update_worker_entry_this_hash(&self.id, hasher, compilation, runtime);
+  }
 }
 
 #[cacheable]
@@ -451,10 +472,16 @@ impl CommonJsExportRequireDependencyTemplate {
     let exports_argument = module.get_exports_argument();
     let module_argument = module.get_module_argument();
 
+    let is_worker_entry =
+      dep.base.is_this() && is_worker_entry_this(compilation, module.identifier(), *runtime);
     let exports_info = compilation
       .exports_info_artifact
       .get_exports_info_data(&module.identifier());
-    let used = exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names);
+    let used = if is_worker_entry {
+      Some(UsedName::Normal(dep.names.clone()))
+    } else {
+      exports_info.get_used_name(&compilation.exports_info_artifact, *runtime, &dep.names)
+    };
 
     let base = if dep.base.is_exports() {
       runtime_template.render_exports_argument(exports_argument)
@@ -463,6 +490,8 @@ impl CommonJsExportRequireDependencyTemplate {
         "{}.exports",
         runtime_template.render_module_argument(module_argument)
       )
+    } else if is_worker_entry {
+      runtime_template.render_runtime_globals(&RuntimeGlobals::GLOBAL)
     } else if dep.base.is_this() {
       runtime_template.render_this_exports()
     } else {

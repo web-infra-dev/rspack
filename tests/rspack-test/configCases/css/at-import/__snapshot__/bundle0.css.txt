@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter");
+@import url("https://fonts.googleapis.com/css2?family=Inter") (prefers-color-scheme: dark);
 @media (prefers-color-scheme: dark){
 
 

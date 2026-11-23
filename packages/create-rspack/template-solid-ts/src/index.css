@@ -1,0 +1,18 @@
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  color-scheme: light dark;
+}
+
+main {
+  display: grid;
+  min-height: 100vh;
+  place-content: center;
+  justify-items: center;
+}
+
+button {
+  padding: 0.5em 1em;
+  font: inherit;
+  cursor: pointer;
+}

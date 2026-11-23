@@ -278,7 +278,6 @@ pub struct ContextModule {
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
   build_meta: FreezeLock<BuildMeta>,
-  force_build: bool,
   // Only needed before building. Cache misses build a fresh module from the factory.
   #[debug(skip)]
   #[cacheable(with=Skip)]
@@ -306,7 +305,6 @@ impl ContextModule {
         .with_exports_type(BuildMetaExportsType::Default)
         .with_default_object(BuildMetaDefaultObject::RedirectWarn)
         .into(),
-      force_build: true,
       source_map_kind: SourceMapKind::empty(),
       resolve_dependencies: Some(resolve_dependencies),
     }
@@ -1419,7 +1417,7 @@ impl Module for ContextModule {
   }
 
   async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
-    if self.force_build {
+    if context.force_build {
       return Ok(true);
     }
 
@@ -1563,7 +1561,6 @@ impl Module for ContextModule {
       self.build_info.get_mut().dependencies.context = context_dependencies;
     }
 
-    self.force_build = false;
     Ok(BoxModule::new(self).with_dependencies(
       dependencies.into_iter().map(Into::into).collect(),
       blocks.into_iter().map(Into::into).collect(),

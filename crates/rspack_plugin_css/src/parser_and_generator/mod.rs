@@ -4,10 +4,7 @@ mod parser;
 mod source_builder;
 mod walker;
 
-use std::{
-  borrow::Cow,
-  sync::{Arc, LazyLock},
-};
+use std::{borrow::Cow, sync::LazyLock};
 
 use regex::Regex;
 use rspack_cacheable::{
@@ -17,8 +14,8 @@ use rspack_cacheable::{
 use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem, Compilation,
   CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType, DependencyType, ExportsInfoArtifact,
-  GenerateContext, Module, ModuleGraph, ModuleIdentifier, NO_SOURCE_TYPE_LIST, NormalModule,
-  ParseContext, ParseResult, ParserAndGenerator, ParserOptions, ResolvedModuleOptions, RuntimeSpec,
+  GenerateContext, GeneratorOptions, Module, ModuleGraph, ModuleIdentifier, NO_SOURCE_TYPE_LIST,
+  NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, RuntimeSpec,
   SourceType, UsageState,
   rspack_sources::{BoxSource, Source},
 };
@@ -61,12 +58,14 @@ pub struct CssParserAndGenerator {
 }
 
 impl CssParserAndGenerator {
-  pub fn new(module_options: Arc<ResolvedModuleOptions>) -> Self {
-    let parser_options = module_options
-      .parser_options()
-      .and_then(|options| options.get_css_module());
-    let export_type = parser_options.and_then(|options| options.export_type);
-    let generator_options = css_generator_options(module_options.generator_options());
+  pub fn new(
+    parser_options: Option<&ParserOptions>,
+    generator_options: Option<&GeneratorOptions>,
+  ) -> Self {
+    let export_type = parser_options
+      .and_then(ParserOptions::get_css_module)
+      .and_then(|options| options.export_type);
+    let generator_options = css_generator_options(generator_options);
     let runtime_public_path = generator_options.runtime_public_path.unwrap_or(false);
     let exports_only = generator_options
       .exports_only

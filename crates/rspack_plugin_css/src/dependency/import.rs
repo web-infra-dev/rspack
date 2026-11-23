@@ -8,7 +8,7 @@ use rspack_core::{
 };
 use rspack_hash::{RspackHasher, rspack_hash_object};
 
-use crate::utils::source_order_to_i32;
+use crate::{merge_import_conditions::merge_css_import_conditions, utils::source_order_to_i32};
 
 /// A stylesheet import, for example `@import "./base.css" screen;`.
 /// Owns the module request and rendering conditions, and removes the original
@@ -58,6 +58,13 @@ impl CssImportDependency {
 
   pub fn render_condition(&self) -> &CssModuleRenderCondition {
     &self.render_condition
+  }
+
+  pub fn merged_render_condition(&self) -> Option<CssModuleRenderCondition> {
+    if self.inherited_render_conditions.is_empty() && self.render_condition.is_empty() {
+      return None;
+    }
+    merge_css_import_conditions(&self.inherited_render_conditions, &self.render_condition)
   }
 
   pub fn export_type(&self) -> Option<CssExportType> {

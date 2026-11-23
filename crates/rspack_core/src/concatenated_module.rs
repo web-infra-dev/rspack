@@ -41,7 +41,7 @@ use crate::{
   FactoryMeta, FactoryMetaStore, FreezeLock, ImportedByDeferModulesArtifact, InitFragment,
   InitFragmentStage, LibIdentOptions, Module, ModuleArgument, ModuleCodeGenerationContext,
   ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ModuleLayer,
-  ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, ParserOptions, Resolve, RuntimeCondition,
+  ModuleOptions, ModuleStaticCache, ModuleType, NAMESPACE_OBJECT_EXPORT, Resolve, RuntimeCondition,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, SourceType, URLStaticMode, UsageState,
   UsedName, UsedNameItem, analyze_module_scope, escape_identifier, fast_set, filter_runtime,
   get_runtime_key, impl_source_map_config, merge_runtime_condition,
@@ -814,16 +814,17 @@ impl Module for ConcatenatedModule {
           .module_by_identifier(&item.id)
           .expect("should have module");
 
-        module
-          .get_dependencies()
-          .iter()
-          .filter(|dep| {
-            let module_id_of_dep = module_graph.module_identifier_by_dependency_id(dep.id());
-            !is_esm_dep_like(dep.as_ref())
-              || module_id_of_dep.is_none_or(|module_id| !modules.contains(module_id))
-          })
-          .cloned()
-          .collect::<Vec<_>>()
+        let mut part = Vec::new();
+        for dep in module.get_dependencies() {
+          let inner = is_esm_dep_like(dep.as_ref())
+            && module_graph
+              .module_identifier_by_dependency_id(dep.id())
+              .is_some_and(|module_id| modules.contains(module_id));
+          if !inner {
+            part.push(dep.clone());
+          }
+        }
+        part
       })
       .collect::<Vec<_>>();
     for part in dependency_parts {
@@ -1792,7 +1793,7 @@ impl Module for ConcatenatedModule {
     self.root_module_ctxt.lib_indent.clone().map(Cow::Owned)
   }
 
-  fn get_resolve_options(&self) -> Option<Arc<Resolve>> {
+  fn get_resolve_options(&self, _module_options: &ModuleOptions) -> Option<Arc<Resolve>> {
     self.root_module_ctxt.resolve_options.clone()
   }
 
@@ -2280,8 +2281,8 @@ impl ConcatenatedModule {
       let jsx = module
         .as_ref()
         .as_normal_module()
-        .and_then(|normal_module| normal_module.get_parser_options())
-        .and_then(|options: &ParserOptions| {
+        .and_then(|normal_module| normal_module.get_parser_options(&compilation.options.module))
+        .and_then(|options| {
           options
             .get_javascript()
             .and_then(|js_options| js_options.jsx)

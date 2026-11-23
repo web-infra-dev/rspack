@@ -11,10 +11,7 @@
   },
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
+    ".": "./dist/index.js",
     "./hot/*": "./hot/*.js",
     "./hot/*.js": "./hot/*.js",
     "./package.json": "./package.json",
@@ -24,7 +21,8 @@
     "prepare": "prebundle && node ./move-tinypool.js",
     "build": "rs lib",
     "build:browser": "rs lib -c rstack.browser.config.ts",
-    "dev": "rs lib --watch"
+    "dev": "rs lib --watch",
+    "test": "rs test"
   },
   "files": [
     "dist",

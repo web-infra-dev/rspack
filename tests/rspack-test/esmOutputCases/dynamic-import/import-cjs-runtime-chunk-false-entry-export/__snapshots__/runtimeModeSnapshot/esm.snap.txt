@@ -64,7 +64,7 @@ var compatGetDefaultExport = (module) => {
 ;
 export { compatGetDefaultExport };
 // rspack/runtime/create_fake_namespace_object
-var getProto = Object.getPrototypeOf ? (obj) => (Object.getPrototypeOf(obj)) : (obj) => (obj.__proto__);
+var getProto = Object.getPrototypeOf;
 var leafPrototypes;
 // create a fake namespace object
 // mode & 1: value is a module id, require it
@@ -115,10 +115,7 @@ var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, p
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
+	Object.defineProperties(exports, { [Symbol.toStringTag]: { value: 'Module' }, __esModule: { value: true } });
 };;
 // rspack/runtime/module_chunk_loading
 // no BaseURI
@@ -144,7 +141,7 @@ var makeNamespaceObject = (exports) => {
         if (hasOwnProperty(moduleInstalledChunks, chunkId) && moduleInstalledChunks[chunkId]) {
             moduleInstalledChunks[chunkId][0]();
         }
-        moduleInstalledChunks[__rspack_esm_ids[i]] = 0;
+        moduleInstalledChunks[chunkId] = 0;
     }
     
 };
