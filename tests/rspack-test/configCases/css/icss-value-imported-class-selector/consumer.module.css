@@ -60,6 +60,18 @@ article .shared-class-alias {
 	z-index: 2;
 }
 
+:global(.shared-class-alias) {
+	z-index: 3;
+}
+
+:global(.composed-class) {
+	z-index: 4;
+}
+
+:global(.half-alias) {
+	z-index: 5;
+}
+
 .forward-compose {
 	composes: forward-shared;
 }

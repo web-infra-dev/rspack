@@ -75,6 +75,21 @@ it("should resolve imported @value and :import class/id selectors to the shared 
 	expect(css).toContain(".real-global-btn");
 	expect(css).toMatch(
 		new RegExp(
+			`${escapeRegExp(`.${sharedCssPrefix}shared-class`)}\\s*\\{[^}]*z-index:\\s*3`
+		)
+	);
+	expect(css).toMatch(
+		new RegExp(
+			`${escapeRegExp(`.${sharedCssPrefix}composed-class`)}\\s*\\{[^}]*z-index:\\s*4`
+		)
+	);
+	expect(css).toMatch(
+		new RegExp(
+			`${escapeRegExp(`.${sharedCssPrefix}u-1\\/2`)}\\s*\\{[^}]*z-index:\\s*5`
+		)
+	);
+	expect(css).toMatch(
+		new RegExp(
 			`${escapeRegExp(`.${sharedCssPrefix}shared-class`)}\\s*\\{[^}]*padding-top:\\s*7px`
 		)
 	);
@@ -95,6 +110,7 @@ it("should resolve imported @value and :import class/id selectors to the shared 
 		expect(css).not.toContain(".consumer\\.module__icss-half");
 		expect(css).not.toContain("#consumer\\.module__shared-id");
 		expect(css).not.toContain(".consumer\\.module__forward-shared");
+		expect(css).not.toContain(".shared.module__");
 		expect(css).not.toMatch(
 			new RegExp(
 				`${escapeRegExp(`.${sharedCssPrefix}shared-class`)}\\s*\\{[^}]*margin-top:\\s*14px`

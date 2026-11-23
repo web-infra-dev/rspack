@@ -329,8 +329,14 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       {
         // Local symbols such as `animation: spin` keep their definitions alive
         // even though rendering the use only needs the generated identifier.
-        roots.entry(symbol.target).or_default().css |=
-          render_css && symbol.kind == CssIcssSymbolKind::IcssReference;
+        let needs_css_value = match symbol.kind {
+          CssIcssSymbolKind::IcssReference => true,
+          CssIcssSymbolKind::IcssSelectorReference => {
+            resolve_imported_local_ident(self.generate_context.compilation, symbol.target).is_none()
+          }
+          _ => false,
+        };
+        roots.entry(symbol.target).or_default().css |= render_css && needs_css_value;
       }
     }
     roots
@@ -423,6 +429,20 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
           }
           CssIcssSymbolKind::IcssReference => {
             css_values.get(&symbol.target).and_then(Option::as_deref)
+          }
+          CssIcssSymbolKind::IcssSelectorReference => {
+            if let Some((target_module, target_definition)) =
+              resolve_imported_local_ident(context.compilation, symbol.target)
+            {
+              let value = local_idents
+                .entry(*target_definition.id())
+                .or_insert_with(|| {
+                  Self::render_local_ident(context.compilation, target_module, target_definition)
+                });
+              Some(value.as_str())
+            } else {
+              css_values.get(&symbol.target).and_then(Option::as_deref)
+            }
           }
         };
         if let Some(value) = value {

@@ -4116,7 +4116,7 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       if !ident.starts_with("--") && self.contains_icss_symbol(ident) {
         self
           .dependency_context
-          .push_dependency(Dependency::ICSSSymbol {
+          .push_dependency(Dependency::ICSSSelectorSymbol {
             name: ident,
             range: Range::new(start + 1, end),
           });

@@ -306,6 +306,12 @@ pub enum Dependency<'s> {
     name: &'s str,
     range: Range,
   },
+  /// An ICSS symbol interpolated in a global class selector identifier
+  /// position (such as `:global(.alias)`).
+  ICSSSelectorSymbol {
+    name: &'s str,
+    range: Range,
+  },
 }
 
 /// Owns dependencies and the side-table payloads referenced by them.

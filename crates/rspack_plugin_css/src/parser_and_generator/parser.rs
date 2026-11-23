@@ -619,7 +619,11 @@ impl<'context> CssModuleParser<'context> {
         }
       }
       css_module_lexer::Dependency::ICSSSymbol { name, range } => {
-        self.handle_icss_symbol(name, *range);
+        self.add_icss_symbol(name, *range, CssIcssSymbolKind::IcssReference);
+        Ok(())
+      }
+      css_module_lexer::Dependency::ICSSSelectorSymbol { name, range } => {
+        self.add_icss_symbol(name, *range, CssIcssSymbolKind::IcssSelectorReference);
         Ok(())
       }
       css_module_lexer::Dependency::LocalCounterStyle { name, range, .. }
@@ -1616,14 +1620,19 @@ impl<'context> CssModuleParser<'context> {
     }
   }
 
-  fn handle_icss_symbol(&mut self, name: &str, range: css_module_lexer::Range) {
+  fn add_icss_symbol(
+    &mut self,
+    name: &str,
+    range: css_module_lexer::Range,
+    kind: CssIcssSymbolKind,
+  ) {
     let Some(binding) = self.icss_definitions.get(name) else {
       return;
     };
     self.add_dependency(CssIcssSymbolDependency::new(
       binding.dependency,
       (range.start, range.end).into(),
-      CssIcssSymbolKind::IcssReference,
+      kind,
     ));
   }
 
