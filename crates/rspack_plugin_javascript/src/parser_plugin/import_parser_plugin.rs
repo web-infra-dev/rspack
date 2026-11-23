@@ -172,6 +172,9 @@ fn track_dynamic_import_pattern(
   pattern: BindingPattern,
 ) {
   let ast = parser.ast.ast;
+  if get_import_phase(parser, import_call.phase(ast)).is_source() {
+    return;
+  }
   match ast.binding_pattern_data(pattern) {
     BindingPatternData::BindingIdentifier(binding) => {
       tag_dynamic_import_referenced(parser, import_call, binding);
@@ -396,8 +399,12 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     expr: Expr,
   ) -> Option<bool> {
     let ast = parser.ast.ast;
-    if expr.as_import_expression(ast).is_some() {
-      return Some(true);
+    if let Some(import_expr) = expr.as_import_expression(ast) {
+      return if get_import_phase(parser, import_expr.phase(ast)).is_source() {
+        None
+      } else {
+        Some(true)
+      };
     }
     if let Some(ident) = expr.as_identifier_reference(ast)
       && let Some(name_info) = parser.get_name_info_from_variable(ast.get_utf8(ident.name(ast)))
@@ -559,6 +566,14 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       .or(dynamic_import_fetch_priority);
     let include = magic_comment_options.get_include();
     let exclude = magic_comment_options.get_exclude();
+    let phase = get_import_phase(parser, node.phase(parser.ast.ast));
+    if phase.is_defer() && !parser.compiler_options.experiments.defer_import {
+      parser.add_error(rspack_error::error!("deferImport is still an experimental feature. To continue using it, please enable 'experiments.deferImport'.").into());
+    }
+    if phase.is_source() && !parser.compiler_options.experiments.source_import {
+      parser.add_error(rspack_error::error!("sourceImport is still an experimental feature. To continue using it, please enable 'experiments.sourceImport'.").into());
+    }
+
     let mut exports = magic_comment_options.get_exports().map(|x| {
       x.iter()
         .map(|name| ReferencedSpecifier::new(vec![Atom::from(name.as_str())]))
@@ -566,14 +581,29 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
     });
     let has_exports_magic_comment = exports.is_some();
 
-    let referenced_in_destructuring = parser
-      .destructuring_assignment_properties
-      .get(&import_call_span);
-    let referenced_in_variable = parser
-      .dynamic_import_references
-      .get_import(&import_call_span);
-    let referenced_fulfilled_ns_obj = import_then
-      .and_then(|import_then| get_fulfilled_callback_namespace_obj(parser.ast.ast, import_then));
+    // `import.source(...)` resolves to the module source (`m["default"]`), not a
+    // module namespace object, so namespace export inference does not apply.
+    let (
+      referenced_in_destructuring,
+      referenced_in_variable,
+      referenced_fulfilled_ns_obj,
+      referenced_in_members,
+    ) = if phase.is_source() {
+      (None, None, None, None)
+    } else {
+      (
+        parser
+          .destructuring_assignment_properties
+          .get(&import_call_span),
+        parser
+          .dynamic_import_references
+          .get_import(&import_call_span),
+        import_then.and_then(|import_then| {
+          get_fulfilled_callback_namespace_obj(parser.ast.ast, import_then)
+        }),
+        referenced_in_members,
+      )
+    };
     if let Some(keys) = referenced_in_destructuring {
       exports = Some(
         collect_destructuring_references(keys)
@@ -614,14 +644,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       parser.add_warning(error.into());
     }
 
-    let phase = get_import_phase(parser, node.phase(parser.ast.ast));
-    if phase.is_defer() && !parser.compiler_options.experiments.defer_import {
-      parser.add_error(rspack_error::error!("deferImport is still an experimental feature. To continue using it, please enable 'experiments.deferImport'.").into());
-    }
-    if phase.is_source() && !parser.compiler_options.experiments.source_import {
-      parser.add_error(rspack_error::error!("sourceImport is still an experimental feature. To continue using it, please enable 'experiments.sourceImport'.").into());
-    }
-
     let attributes = get_attributes_from_import_expr(parser.ast.ast, node);
     let param = parser.evaluate_expression(dyn_imported);
 
@@ -634,7 +656,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           phase,
         );
         if let Some(exports) = exports {
-          dep.set_referenced_specifiers(exports, !is_statical && has_exports_magic_comment);
+          dep.set_referenced_specifiers(exports);
         }
         let dep_id = *dep.id();
         let dep_idx = parser.next_dependency_idx();
@@ -657,7 +679,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           parser.in_try,
         );
         if let Some(exports) = exports {
-          dep.set_referenced_specifiers(exports, !is_statical && has_exports_magic_comment);
+          dep.set_referenced_specifiers(exports);
         }
         let dep_idx = parser.next_dependency_idx();
         parser.add_dependency(BoxDependency::new(dep));
@@ -682,7 +704,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           },
         );
         if let Some(export) = exports {
-          dep.set_referenced_specifiers(export, !is_statical && has_exports_magic_comment);
+          dep.set_referenced_specifiers(export);
         }
         let dep_id = dep.id;
         let range = DependencyRange::from(import_call_span);
@@ -771,7 +793,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         parser.in_try,
       );
       if let Some(export) = exports {
-        dep.set_referenced_specifiers(export, !is_statical && has_exports_magic_comment);
+        dep.set_referenced_specifiers(export);
       }
       dep.set_critical(critical);
       let dep_idx = parser.next_dependency_idx();
@@ -870,25 +892,25 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
           let dep = dep
             .downcast_mut::<ImportDependency>()
             .expect("Failed to downcast to ImportDependency");
-          dep.set_referenced_specifiers(references, false);
+          dep.set_referenced_specifiers(references);
         }
         DependencyType::DynamicImportEager => {
           let dep = dep
             .downcast_mut::<ImportEagerDependency>()
             .expect("Failed to downcast to ImportEagerDependency");
-          dep.set_referenced_specifiers(references, false);
+          dep.set_referenced_specifiers(references);
         }
         DependencyType::DynamicImportWeak => {
           let dep = dep
             .downcast_mut::<ImportWeakDependency>()
             .expect("Failed to downcast to ImportWeakDependency");
-          dep.set_referenced_specifiers(references, false);
+          dep.set_referenced_specifiers(references);
         }
         DependencyType::ImportContext => {
           let dep = dep
             .downcast_mut::<ImportContextDependency>()
             .expect("Failed to downcast to ImportContextDependency");
-          dep.set_referenced_specifiers(references, false);
+          dep.set_referenced_specifiers(references);
         }
         _ => unreachable!(),
       };
