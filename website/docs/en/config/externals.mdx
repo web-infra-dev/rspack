@@ -592,7 +592,7 @@ Note that there will be an `import()` statement in the output bundle.
 
 ### externalsType['module-import']
 
-With `'module-import'`, Rspack uses ESM to load external dependencies. For example, the following configuration marks `zod` as external and emits ESM. Here, `externalsType` defaults to `'module-import'`, so you can omit it.
+With `'module-import'`, Rspack uses ESM to load external dependencies. The following example marks `zod` as external. When `output.module` is `true` and `output.library` is unset, `externalsType` defaults to `'module-import'`, so you can omit it.
 
 ```js title="rspack.config.mjs"
 export default {

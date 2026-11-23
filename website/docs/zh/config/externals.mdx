@@ -592,7 +592,7 @@ async function foo() {
 
 ### externalsType['module-import']
 
-使用 `'module-import'` 时，Rspack 会通过 ESM 导入外部依赖。例如，下面的配置将 `zod` 设为外部依赖并输出 ESM。此时 `externalsType` 默认为 `'module-import'`，可以省略。
+使用 `'module-import'` 时，Rspack 会通过 ESM 导入外部依赖。下面的示例将 `zod` 设为外部依赖。当 `output.module` 为 `true` 且未配置 `output.library` 时，`externalsType` 默认为 `'module-import'`，可以省略。
 
 ```js title="rspack.config.mjs"
 export default {
