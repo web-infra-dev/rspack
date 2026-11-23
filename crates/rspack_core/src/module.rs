@@ -60,6 +60,7 @@ pub struct NeedBuildContext<'a> {
   pub fresh_module: &'a dyn Module,
   pub file_system_info: &'a FileSystemInfo,
   pub value_cache_versions: &'a ValueCacheVersions,
+  pub force_build: bool,
 }
 
 impl<'a> NeedBuildContext<'a> {
@@ -67,11 +68,13 @@ impl<'a> NeedBuildContext<'a> {
     fresh_module: &'a dyn Module,
     file_system_info: &'a FileSystemInfo,
     value_cache_versions: &'a ValueCacheVersions,
+    force_build: bool,
   ) -> Self {
     Self {
       fresh_module,
       file_system_info,
       value_cache_versions,
+      force_build,
     }
   }
 }
