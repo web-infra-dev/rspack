@@ -60,14 +60,18 @@ impl Scanner {
         removed.retain(|path| !files_path_manager.is_known_absent(path));
         let changed = files
           .iter()
-          .filter(|p| changed_since(p, start_time))
+          .filter(|path| {
+            files_path_manager
+              .file_mtime(path)
+              .is_some_and(|mtime| changed_since(mtime, start_time))
+          })
           .cloned()
           .collect::<Vec<_>>();
         // A `Change` is judged here, not by `Trigger`'s baseline check: the
         // record is re-read now, in case the mtime moved on since it was
         // seeded.
         for path in &changed {
-          if let Some(mtime) = disk_mtime(path) {
+          if let Some(mtime) = files_path_manager.file_mtime(path) {
             files_path_manager.set_reported_file_time(path, mtime);
           }
         }
@@ -93,7 +97,7 @@ impl Scanner {
         );
         let changed = directories
           .into_iter()
-          .filter(|p| changed_since(p, start_time))
+          .filter(|path| disk_mtime(path).is_some_and(|mtime| changed_since(mtime, start_time)))
           .collect::<Vec<_>>();
         _ = send_events(changed, FsEventKind::Change, &dirs_tx);
       });
@@ -114,10 +118,10 @@ impl Scanner {
         // must not deduplicate that path's own event.
         let mut created = Vec::new();
         for path in missing_added {
-          let Some(mtime) = disk_mtime(&path) else {
+          let Some(mtime) = path_manager.file_mtime(&path) else {
             continue;
           };
-          if changed_since(&path, start_time) {
+          if changed_since(mtime, start_time) {
             path_manager.set_reported_file_time(&path, mtime);
             created.push(path);
           } else {
@@ -164,21 +168,11 @@ fn send_events(
   tx.send(events).is_ok()
 }
 
-/// Whether `path`'s current on-disk mtime is at or after `start_time`, using
+/// Whether the observed mtime is at or after `start_time`, using
 /// watchpack's accuracy padding ([`mtime_safe_time`]) so a change hidden by
-/// coarse mtime granularity is still caught. A failed stat (missing/unreadable)
-/// counts as unchanged.
-fn changed_since(path: &InternedPath, start_time: SystemTime) -> bool {
-  let Ok(metadata) = path.metadata() else {
-    return false;
-  };
-  let mtime = metadata.modified();
-  if let Ok(mtime) = &mtime {
-    mtime_accuracy(*mtime);
-  }
-  let Ok(mtime) = mtime.or_else(|_| metadata.created()) else {
-    return false;
-  };
+/// coarse mtime granularity is still caught.
+fn changed_since(mtime: SystemTime, start_time: SystemTime) -> bool {
+  mtime_accuracy(mtime);
   mtime_safe_time(mtime) >= system_time_to_millis(start_time)
 }
 
