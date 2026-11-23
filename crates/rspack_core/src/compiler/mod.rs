@@ -333,8 +333,6 @@ impl Compiler {
         self.compiler_context.clone(),
       ),
     );
-    self.cache.before_compile(&mut self.compilation).await;
-
     self.compile().await?;
     self
       .plugin_driver
@@ -377,6 +375,9 @@ impl Compiler {
       .compilation
       .call(&mut self.compilation, &mut compilation_params)
       .await?;
+
+    // Validate snapshots after the compilation hooks can write virtual files.
+    self.cache.before_compile(&mut self.compilation).await;
 
     let logger = self.compilation.get_logger("rspack.Compiler");
     let start = logger.time("seal compilation");
