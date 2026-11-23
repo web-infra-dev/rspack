@@ -10,7 +10,10 @@ const excludes = {
 		/^loader\/context-module$/,
 
 		// Shared extracted CSS can retain different producers' loader dependencies.
-		/^plugins\/mini-css-extract-plugin$/
+		/^plugins\/mini-css-extract-plugin$/,
+
+		// One codeGeneration lookup of a remote with an internal entry is never reused.
+		/^container-1-5\/mf-remote-internal-fallback$/
 	]
 };
 
