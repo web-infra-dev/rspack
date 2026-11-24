@@ -63,8 +63,6 @@ export default function () {
     };
     const optInForLayer = (shareKey, kind, layer) => {
       runtimeRequire.federation.shareScopeDispatch = 'declared';
-      runtimeRequire.federation.additionalShareScopeKeys =
-        runtimeRequire.initializeSharingData?.additionalInitScopes;
       if (!supportsSharedIdentity) {
         unsupportedIdentity(shareKey, `uses ${kind} layer "${layer}"`);
       }
@@ -84,6 +82,17 @@ export default function () {
       if (data.layer != null) {
         optInForLayer(data.shareKey, 'consumer', data.layer);
       }
+    }
+    if (runtimeRequire.federation.shareScopeDispatch === 'declared') {
+      runtimeRequire.federation.additionalShareScopeKeys = Object.keys(
+        initializeSharingScopeToInitDataMapping,
+      )
+        .filter((scope) =>
+          initializeSharingScopeToInitDataMapping[scope].some(
+            (stage) => stage && typeof stage === 'object',
+          ),
+        )
+        .sort();
     }
     if (!supportsSharedIdentity) {
       for (const [shareKey, entries] of Object.entries(

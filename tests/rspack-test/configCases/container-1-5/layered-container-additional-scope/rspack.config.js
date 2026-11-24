@@ -29,7 +29,11 @@ module.exports = [false, true].map((passScopeMap) => {
         library: { type: 'commonjs-module' },
         implementation:
           require.resolve('@module-federation/runtime-tools-layers'),
-        exposes: { './provider': './provider.js', './unused': './unused.js' },
+        exposes: {
+          './provider': './provider.js',
+          './plain': './plain.js',
+          './unused': './unused.js',
+        },
         remotes: {
           unused: {
             external:
@@ -38,6 +42,11 @@ module.exports = [false, true].map((passScopeMap) => {
           },
         },
         shared: {
+          plain: {
+            import: './plain.js',
+            shareScope: 'scalar',
+            version: '1.0.0',
+          },
           lib: {
             import: './provider.js',
             shareKey: 'lib',
