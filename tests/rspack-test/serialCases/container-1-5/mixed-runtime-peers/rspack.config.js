@@ -86,13 +86,13 @@ module.exports = pairs.flatMap(([name, host, remote, transitive]) =>
         : []),
       app(
         `${id}-middle`,
-        reference ? 'old' : remote,
+        reference && remote === 'layered' ? 'old' : remote,
         transitive ? { last: remoteRef(`${id}-last`, 'other') } : undefined,
         false,
       ),
       app(
         id,
-        reference ? 'old' : host,
+        reference && host === 'layered' ? 'old' : host,
         { peer: remoteRef(`${id}-middle`, 'default') },
         true,
         transitive ? '1.0.0' : '1.1.0',
