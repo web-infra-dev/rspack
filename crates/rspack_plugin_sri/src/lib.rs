@@ -14,7 +14,7 @@ pub use config::{
   IntegrityCallbackData, IntegrityCallbackFn, IntegrityHashLoading, IntegrityHtmlPlugin,
   SubresourceIntegrityPluginOptions,
 };
-use html::{alter_asset_tag_groups, before_asset_tag_generation};
+use html::{alter_asset_tag_groups, before_asset_tag_generation, collect_import_map_integrity};
 pub use integrity::SubresourceIntegrityHashFunction;
 use manifest::ChunkManifest;
 use rspack_core::{
@@ -214,6 +214,9 @@ async fn handle_compilation(
     html_plugin_hooks
       .alter_asset_tag_groups
       .tap(alter_asset_tag_groups::new(self));
+    html_plugin_hooks
+      .collect_import_map_integrity
+      .tap(collect_import_map_integrity::new(self));
   }
 
   Ok(())

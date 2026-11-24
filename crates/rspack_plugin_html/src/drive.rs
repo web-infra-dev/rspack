@@ -1,4 +1,6 @@
-use rspack_core::CompilationId;
+use std::collections::BTreeMap;
+
+use rspack_core::{ChunkGroupUkey, Compilation, CompilationId};
 use rspack_hook::define_hook;
 #[cfg(allocative)]
 use rspack_util::rspack_allocative;
@@ -66,6 +68,7 @@ define_hook!(HtmlPluginAlterAssetTagGroups: SeriesWaterfall(data: AlterAssetTagG
 define_hook!(HtmlPluginAfterTemplateExecution: SeriesWaterfall(data: AfterTemplateExecutionData) -> AfterTemplateExecutionData);
 define_hook!(HtmlPluginBeforeEmit: SeriesWaterfall(data: BeforeEmitData) -> BeforeEmitData);
 define_hook!(HtmlPluginAfterEmit: SeriesWaterfall(data: AfterEmitData) -> AfterEmitData);
+define_hook!(HtmlPluginCollectImportMapIntegrity: Series(compilation: &Compilation, entrypoints: &[ChunkGroupUkey], public_path: &str, integrity: &mut BTreeMap<String, String>));
 
 #[derive(Debug, Default)]
 #[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
@@ -82,4 +85,6 @@ pub struct HtmlPluginHooks {
   pub before_emit: HtmlPluginBeforeEmitHook,
   #[cfg_attr(allocative, allocative(skip))]
   pub after_emit: HtmlPluginAfterEmitHook,
+  #[cfg_attr(allocative, allocative(skip))]
+  pub collect_import_map_integrity: HtmlPluginCollectImportMapIntegrityHook,
 }

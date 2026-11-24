@@ -1,5 +1,6 @@
 use std::{
   borrow::Cow,
+  collections::BTreeMap,
   path::{Path, PathBuf},
   sync::{Arc, LazyLock},
 };
@@ -19,6 +20,7 @@ use crate::{
   BeforeAssetTagGenerationData, BeforeEmitData, HtmlPluginHooks,
   asset::{HtmlPluginAssetTags, HtmlPluginAssets, create_favicon_asset, create_html_asset},
   config::{HtmlInject, HtmlRspackPluginOptions},
+  import_map::add_integrity_to_import_map,
   injector::AssetInjector,
   parser::HtmlCompiler,
   template::HtmlTemplate,
@@ -72,7 +74,7 @@ async fn generate_html(
 
   let template_file_name = compilation.options.output.path.join(&template.filename);
 
-  let assets_info = HtmlPluginAssets::create_assets(
+  let (assets, entrypoints) = HtmlPluginAssets::create_assets(
     config,
     compilation,
     &public_path,
@@ -85,7 +87,7 @@ async fn generate_html(
     .borrow()
     .before_asset_tag_generation
     .call(BeforeAssetTagGenerationData {
-      assets: assets_info.0,
+      assets,
       output_name: html_file_name.as_str().to_string(),
       compilation_id: compilation.id(),
       uid: config.uid,
@@ -174,6 +176,16 @@ async fn generate_html(
       &after_template_execution_data.body_tags,
     );
     current_ast.visit_mut_with(&mut visitor);
+  }
+
+  let mut integrity = BTreeMap::new();
+  hooks
+    .borrow()
+    .collect_import_map_integrity
+    .call(compilation, &entrypoints, &public_path, &mut integrity)
+    .await?;
+  if !integrity.is_empty() {
+    add_integrity_to_import_map(&mut current_ast, integrity)?;
   }
 
   let raw_html = parser.codegen(&mut current_ast, compilation)?;

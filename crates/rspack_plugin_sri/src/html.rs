@@ -1,16 +1,18 @@
-use std::sync::Arc;
+use std::{collections::BTreeMap, sync::Arc};
 
 use futures::future::join_all;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use rspack_core::{ChunkGroupUkey, ChunkLoading, ChunkLoadingType, Compilation, ManifestAssetType};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
 use rspack_plugin_html::{
   AlterAssetTagGroupsData, BeforeAssetTagGenerationData, HtmlPluginAlterAssetTagGroups,
-  HtmlPluginBeforeAssetTagGeneration,
+  HtmlPluginBeforeAssetTagGeneration, HtmlPluginCollectImportMapIntegrity,
   tag::{HtmlPluginAttribute, HtmlPluginTag},
 };
+use rspack_plugin_runtime::is_enabled_for_chunk;
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::RwLock;
 use url::Url;
@@ -305,4 +307,68 @@ pub async fn alter_asset_tag_groups(
   )
   .await?;
   Ok(data)
+}
+
+#[plugin_hook(HtmlPluginCollectImportMapIntegrity for SubresourceIntegrityPlugin)]
+pub async fn collect_import_map_integrity(
+  &self,
+  compilation: &Compilation,
+  entrypoints: &[ChunkGroupUkey],
+  public_path: &str,
+  integrity: &mut BTreeMap<String, String>,
+) -> Result<()> {
+  if compilation.options.output.import_function_name != "import" {
+    return Ok(());
+  }
+
+  let graph = &compilation.build_chunk_graph_artifact;
+  let import_loading = ChunkLoading::Enable(ChunkLoadingType::Import);
+  let mut imported_files = std::collections::BTreeSet::new();
+  for entrypoint in entrypoints {
+    let entry = graph.chunk_group_by_ukey.expect_get(entrypoint);
+    let runtime_chunk = entry.get_runtime_chunk(&graph.chunk_group_by_ukey);
+    if !is_enabled_for_chunk(&runtime_chunk, &import_loading, compilation) {
+      continue;
+    }
+
+    let entry_chunk = graph
+      .chunk_by_ukey
+      .expect_get(&entry.get_entrypoint_chunk());
+    let chunks = entry_chunk.get_all_referenced_chunks(&graph.chunk_group_by_ukey);
+    let files = chunks
+      .iter()
+      .flat_map(|chunk| graph.chunk_by_ukey.expect_get(chunk).files())
+      .filter(|file| {
+        compilation
+          .assets()
+          .get(*file)
+          .is_some_and(|asset| asset.get_info().asset_type == ManifestAssetType::JavaScript)
+      })
+      .collect::<Vec<_>>();
+    // A standalone entry script already has an integrity attribute in the HTML.
+    if files.len() > 1 {
+      imported_files.extend(files);
+    }
+  }
+
+  if imported_files.is_empty() {
+    return Ok(());
+  }
+
+  let integrities = SubresourceIntegrityPlugin::get_compilation_integrities(compilation.id());
+  let integrities = integrities.read().await;
+  for file in imported_files {
+    if let Some(hash) = integrities.get(file) {
+      let mut url = format!("{public_path}{file}");
+      if !url.starts_with('/')
+        && !url.starts_with("./")
+        && !url.starts_with("../")
+        && Url::parse(&url).is_err()
+      {
+        url.insert_str(0, "./");
+      }
+      integrity.insert(url, hash.clone());
+    }
+  }
+  Ok(())
 }
