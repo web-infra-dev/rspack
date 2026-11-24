@@ -123,7 +123,7 @@ export default function App() {
 
 ## Star re-exports (`export *`)
 
-Star re-exports (`export * from "./module"`) are not fully optimized by lazy barrel and remain a performance concern.
+Rspack cannot know which names a star re-export (`export * from "./module"`) provides until it builds the target module.
 
 ```js title="components/index.js (barrel file with star re-exports)"
 export * from './Button';
@@ -132,36 +132,29 @@ export * from './Modal';
 export const API_VERSION = '1.0';
 ```
 
-### When lazy barrel can still optimize
-
-Lazy barrel will skip building star re-exports only when:
-
-1. The barrel file is side-effect-free, and
-2. The imported specifier is found in the barrel's named exports
-
-Example scenario where optimization works:
+When the imported name is exported by the barrel file itself, no star re-export target is built:
 
 ```js title="src/index.js"
 import { API_VERSION } from './components';
 console.log(API_VERSION);
 ```
 
-In this case:
-
 - ✅ `API_VERSION` is a named export in the barrel file itself
-- ✅ Rspack can optimize this—no modules are built (`Button.js`, `Card.js`, `Modal.js` are all skipped)
+- ✅ `Button.js`, `Card.js` and `Modal.js` are not built
 
-Example scenario where optimization fails:
+Otherwise, Rspack builds every star re-export target to find the module that exports the name:
 
 ```js title="src/index.js"
 import { Button } from './components';
 console.log(Button);
 ```
 
-In this case:
+- ❌ `Button` is not a named export in the barrel file, so `Button.js`, `Card.js` and `Modal.js` are all built to find it
+- ✅ Each target is only asked for `Button`. When a target is itself a side-effect-free barrel file, its re-exports and imports that `Button` does not need are not built
 
-- ❌ `Button` is not a named export in the barrel file—it's from `export * from './Button'`
-- ❌ Rspack must build `./Button.js` and potentially all other star re-exports to find which module exports `Button`
+Names imported later are forwarded to the targets that are already built, so the targets are not built again.
+
+Prefer named re-exports in barrel files you control, so Rspack knows which module provides each name without building the others.
 
 ## Imports in barrel files
 

@@ -2,7 +2,7 @@ use rspack_cacheable::{
   cacheable,
   with::{AsMap, AsOption, AsPreset, AsVec},
 };
-use rspack_collections::IdentifierMap;
+use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_intern::Atom;
 use rustc_hash::{FxHashMap, FxHashSet};
 
@@ -38,6 +38,13 @@ impl ForwardedIdSet {
       Self::IdSet(ids) => ids.is_empty(),
     }
   }
+
+  fn to_owned_ids(&self) -> Self {
+    match self {
+      Self::All => Self::All,
+      Self::IdSet(ids) => Self::IdSet(ids.iter().cloned().collect()),
+    }
+  }
 }
 
 #[cacheable]
@@ -46,6 +53,12 @@ enum ForwardRequest {
   Request(#[cacheable(with=AsPreset)] Atom),
   Imports,
   ImportsAnd(#[cacheable(with=AsPreset)] Atom),
+}
+
+struct LazyRequest {
+  dependencies: Vec<DependencyId>,
+  fallback_ids: Option<ForwardedIdSet>,
+  fallback_targets: Vec<ModuleIdentifier>,
 }
 
 fn request_key(dependency: &DependencyRef) -> Option<Atom> {
@@ -101,6 +114,7 @@ struct LazyDependencies {
   import_requests: Vec<Atom>,
   #[cacheable(with=AsOption<AsVec<AsPreset>>)]
   fallback_requests: Option<Vec<Atom>>,
+  fallback_targets: IdentifierSet,
 }
 
 impl LazyDependencies {
@@ -192,6 +206,14 @@ impl LazyDependencies {
     }
   }
 
+  fn add_fallback_target(&mut self, module: ModuleIdentifier) -> bool {
+    self.fallback_requests.is_some() && self.fallback_targets.insert(module)
+  }
+
+  fn is_known_id(&self, id: &Atom) -> bool {
+    self.forward_id_to_request.contains_key(id)
+  }
+
   fn references_local(&self, ids: &ForwardedIdSet) -> bool {
     match ids {
       ForwardedIdSet::All => false,
@@ -215,9 +237,9 @@ impl LazyDependencies {
       .any(|request_key| self.request_to_dependencies.contains_key(request_key))
   }
 
-  fn request(&mut self, ids: &ForwardedIdSet, module_graph: &mut ModuleGraph) -> Vec<DependencyId> {
+  fn request(&mut self, ids: &ForwardedIdSet, module_graph: &mut ModuleGraph) -> LazyRequest {
     let mut dependencies = vec![];
-    match ids {
+    let fallback_ids = match ids {
       ForwardedIdSet::All => {
         for (_, group) in self.request_to_dependencies.drain() {
           dependencies.extend(
@@ -226,13 +248,27 @@ impl LazyDependencies {
               .filter(|dependency| module_graph.remove_lazy_dependency(dependency)),
           );
         }
+        Some(ForwardedIdSet::All)
       }
-      ForwardedIdSet::IdSet(ids) => self.take_ids(ids, &mut dependencies, module_graph),
-    }
-    if self.request_to_dependencies.is_empty() {
+      ForwardedIdSet::IdSet(ids) => self
+        .take_ids(ids, &mut dependencies, module_graph)
+        .map(ForwardedIdSet::IdSet),
+    };
+    let fallback_targets = if fallback_ids.is_some() {
+      self.fallback_targets.iter().copied().collect()
+    } else {
+      vec![]
+    };
+    if matches!(ids, ForwardedIdSet::All)
+      || (self.request_to_dependencies.is_empty() && self.fallback_requests.is_none())
+    {
       self.release();
     }
-    dependencies
+    LazyRequest {
+      dependencies,
+      fallback_ids,
+      fallback_targets,
+    }
   }
 
   fn take_ids(
@@ -240,7 +276,8 @@ impl LazyDependencies {
     ids: &FxHashSet<Atom>,
     dependencies: &mut Vec<DependencyId>,
     module_graph: &mut ModuleGraph,
-  ) {
+  ) -> Option<FxHashSet<Atom>> {
+    let mut unknown_ids: Option<FxHashSet<Atom>> = None;
     for id in ids {
       match self.forward_id_to_request.get(id) {
         Some(ForwardRequest::Request(request_key)) => take(
@@ -281,15 +318,18 @@ impl LazyDependencies {
               module_graph,
             );
           }
+          unknown_ids.get_or_insert_default().insert(id.clone());
         }
       }
     }
+    unknown_ids
   }
 
   fn release(&mut self) {
     self.forward_id_to_request = Default::default();
     self.import_requests = Default::default();
     self.fallback_requests = None;
+    self.fallback_targets = Default::default();
   }
 }
 
@@ -304,6 +344,7 @@ pub struct LazyMakeState {
 pub struct ModuleToLazyMake {
   pub eager_on_local_reference: bool,
   modules: IdentifierMap<LazyMakeState>,
+  updated_modules: IdentifierSet,
 }
 
 impl ModuleToLazyMake {
@@ -359,50 +400,118 @@ impl ModuleToLazyMake {
     side_effect_free: bool,
     dependencies: &[DependencyRef],
     module_graph: &mut ModuleGraph,
-  ) -> Vec<DependencyId> {
+  ) -> Vec<(ModuleIdentifier, Vec<DependencyId>)> {
+    let mut activated = vec![];
     match self.modules.get(&module) {
-      Some(state) if matches!(state.forwarded_ids, ForwardedIdSet::All) => return vec![],
+      Some(state) if matches!(state.forwarded_ids, ForwardedIdSet::All) => return activated,
       Some(_) => {}
       None if !side_effect_free || module_graph.module_by_identifier(&module).is_some() => {
-        return vec![];
+        return activated;
       }
       None => {}
     }
-    let ids = requested_ids(dependencies);
+    let ids = self.requested_ids(module, dependencies, module_graph);
+    self.request_with_ids(module, &ids, module_graph, &mut activated);
+    activated
+  }
+
+  fn requested_ids(
+    &mut self,
+    module: ModuleIdentifier,
+    dependencies: &[DependencyRef],
+    module_graph: &ModuleGraph,
+  ) -> ForwardedIdSet {
+    let mut ids = FxHashSet::default();
+    for dependency in dependencies {
+      if dependency.lazy_role() == Some(LazyRole::StarReexport)
+        && let Some(parent) = module_graph.get_parent_module(dependency.id())
+        && let Some(parent_state) = self.modules.get_mut(parent)
+      {
+        if let Some(parent_info) = &mut parent_state.lazy_dependencies
+          && parent_info.add_fallback_target(module)
+        {
+          self.updated_modules.insert(*parent);
+        }
+        let ForwardedIdSet::IdSet(parent_ids) = &parent_state.forwarded_ids else {
+          return ForwardedIdSet::All;
+        };
+        let parent_info = parent_state.lazy_dependencies.as_ref();
+        ids.extend(
+          parent_ids
+            .iter()
+            .filter(|id| !parent_info.is_some_and(|parent_info| parent_info.is_known_id(id)))
+            .cloned(),
+        );
+        continue;
+      }
+      match dependency.forward_id() {
+        ForwardId::All => return ForwardedIdSet::All,
+        ForwardId::Id(id) => {
+          ids.insert(id);
+        }
+        ForwardId::Empty => {}
+      }
+    }
+    ForwardedIdSet::IdSet(ids)
+  }
+
+  fn request_with_ids(
+    &mut self,
+    module: ModuleIdentifier,
+    ids: &ForwardedIdSet,
+    module_graph: &mut ModuleGraph,
+    activated: &mut Vec<(ModuleIdentifier, Vec<DependencyId>)>,
+  ) {
     if ids.is_empty() {
-      return vec![];
+      return;
     }
     let Some(state) = self.modules.get_mut(&module) else {
-      if module_graph
-        .module_graph_module_by_identifier(&module)
-        .is_some()
+      if module_graph.module_by_identifier(&module).is_none()
+        && module_graph
+          .module_graph_module_by_identifier(&module)
+          .is_some()
       {
         self.modules.insert(
           module,
           LazyMakeState {
-            forwarded_ids: ids,
+            forwarded_ids: ids.to_owned_ids(),
             lazy_dependencies: None,
           },
         );
       }
-      return vec![];
+      return;
     };
     let all = ForwardedIdSet::All;
     let ids = if self.eager_on_local_reference
       && let Some(info) = &state.lazy_dependencies
-      && info.references_local(&ids)
+      && info.references_local(ids)
     {
       &all
     } else {
-      &ids
+      ids
     };
     let Some(new_ids) = merge_forwarded_ids(&mut state.forwarded_ids, ids) else {
-      return vec![];
+      return;
     };
+    if state.lazy_dependencies.is_some() {
+      self.updated_modules.insert(module);
+    }
     let Some(info) = &mut state.lazy_dependencies else {
-      return vec![];
+      return;
     };
-    info.request(&new_ids, module_graph)
+    let LazyRequest {
+      dependencies,
+      fallback_ids,
+      fallback_targets,
+    } = info.request(&new_ids, module_graph);
+    if !dependencies.is_empty() {
+      activated.push((module, dependencies));
+    }
+    if let Some(fallback_ids) = fallback_ids {
+      for target in fallback_targets {
+        self.request_with_ids(target, &fallback_ids, module_graph, activated);
+      }
+    }
   }
 
   pub fn get(&self, module: &ModuleIdentifier) -> Option<&LazyMakeState> {
@@ -423,23 +532,18 @@ impl ModuleToLazyMake {
     })
   }
 
+  pub fn updated_modules(&self) -> &IdentifierSet {
+    &self.updated_modules
+  }
+
   pub fn revoke_module(&mut self, module: &ModuleIdentifier) {
     self.modules.remove(module);
+    self.updated_modules.remove(module);
   }
-}
 
-fn requested_ids(dependencies: &[DependencyRef]) -> ForwardedIdSet {
-  let mut ids = FxHashSet::default();
-  for dependency in dependencies {
-    match dependency.forward_id() {
-      ForwardId::All => return ForwardedIdSet::All,
-      ForwardId::Id(id) => {
-        ids.insert(id);
-      }
-      ForwardId::Empty => {}
-    }
+  pub fn reset_updated_modules(&mut self) {
+    self.updated_modules.clear();
   }
-  ForwardedIdSet::IdSet(ids)
 }
 
 fn merge_forwarded_ids(

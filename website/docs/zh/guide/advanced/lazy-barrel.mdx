@@ -123,27 +123,7 @@ export default function App() {
 
 ## 星号重导出（`export *`）
 
-星号重导出（`export * from "./module"`）**未完全优化**，仍然是一个性能问题。
-
-```js title="不推荐"
-export * from './Button';
-export * from './Card';
-export * from './Modal';
-```
-
-在以下情况下，lazy barrel 仍会构建星号重导出：
-
-1. barrel 文件不是无副作用的，或者
-2. 你导入的特定导出在 barrel 的具名导出中未找到
-
-### Lazy barrel 仍可优化的情况
-
-Lazy barrel 将跳过构建星号重导出仅当：
-
-1. barrel 文件是无副作用的，并且
-2. 导入的标识符在 barrel 的具名导出中找到
-
-优化生效的场景示例：
+在构建目标模块之前，Rspack 无法知道星号重导出（`export * from "./module"`）提供了哪些名称。
 
 ```js title="components/index.js (带星号重导出的 barrel 文件)"
 export * from './Button';
@@ -152,37 +132,27 @@ export * from './Modal';
 export const API_VERSION = '1.0';
 ```
 
+当导入的名称由 barrel 文件自身导出时，不会构建任何星号重导出的目标模块：
+
 ```js title="src/index.js"
 import { API_VERSION } from './components';
 console.log(API_VERSION);
 ```
 
-在这种情况下：
-
 - ✅ `API_VERSION` 是 barrel 文件本身的具名导出
-- ✅ Rspack 可以优化这个——不构建任何模块（`Button.js`、`Card.js`、`Modal.js` 全部跳过）
+- ✅ `Button.js`、`Card.js` 和 `Modal.js` 都不会被构建
 
-优化失效的场景示例：
+否则，Rspack 会构建所有星号重导出的目标模块，以找到导出该名称的模块：
 
 ```js title="src/index.js"
 import { Button } from './components';
 console.log(Button);
 ```
 
-在这种情况下：
+- ❌ `Button` 不是 barrel 文件的具名导出，因此 `Button.js`、`Card.js` 和 `Modal.js` 都会被构建以找到它
+- ✅ 每个目标模块只会被请求 `Button`。如果目标模块本身也是无副作用的 barrel 文件，它的重导出和 import 中 `Button` 用不到的部分不会被构建
 
-- ❌ `Button` 不是 barrel 文件的具名导出——它来自 `export * from './Button'`
-- ❌ Rspack 必须构建 `./Button.js` 以及可能的所有其他星号重导出来找到哪个模块导出了 `Button`
-
-### 星号重导出为何有问题
-
-星号重导出要求打包工具：
-
-1. 读取重导出的模块以发现它导出了什么
-2. 可能需要解决命名冲突
-3. 检查循环依赖
-
-这破坏了惰性求值的目的，因为必须预先处理模块才能知道正在重导出什么。
+之后再导入的名称会转发给已经构建的目标模块，这些模块不会被重复构建。
 
 ### 推荐的替代方案
 
