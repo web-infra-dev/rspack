@@ -38,6 +38,7 @@ pub struct PluginOptions {
 #[derive(Debug, rspack_hash::RspackHash)]
 pub struct Draft {
   pub custom_media: bool,
+  pub scroll_navigation_controls: bool,
 }
 
 #[derive(Debug, rspack_hash::RspackHash)]
@@ -125,6 +126,10 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         parser_flags.set(
           ParserFlags::CUSTOM_MEDIA,
           matches!(&minimizer_options.drafts, Some(drafts) if drafts.custom_media),
+        );
+        parser_flags.set(
+          ParserFlags::SCROLL_NAVIGATION_CONTROLS,
+          matches!(&minimizer_options.drafts, Some(drafts) if drafts.scroll_navigation_controls),
         );
         parser_flags.set(
           ParserFlags::DEEP_SELECTOR_COMBINATOR,

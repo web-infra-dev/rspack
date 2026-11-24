@@ -2329,6 +2329,7 @@ export interface RawDllReferenceAgencyPluginOptions {
 
 export interface RawDraft {
   customMedia: boolean
+  scrollNavigationControls: boolean
 }
 
 export interface RawDynamicEntryPluginOptions {

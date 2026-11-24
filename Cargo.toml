@@ -147,10 +147,10 @@ rkyv      = { version = "=0.8.18", default-features = false, features = ["std", 
 # Must be pinned with the same swc versions
 # pnp 0.12.12 requires regress 0.12, while swc_config still requires regress 0.11.
 pnp                 = { version = "=0.12.11", default-features = false }
-swc                 = { version = "=83.0.0", default-features = false }
+swc                 = { version = "=83.0.1", default-features = false }
 swc_config          = { version = "7.0.0", default-features = false }
-swc_core            = { version = "=85.0.0", default-features = false, features = ["parallel_rayon"] }
-swc_ecma_minifier   = { version = "65.0.0", default-features = false }
+swc_core            = { version = "=85.1.0", default-features = false, features = ["parallel_rayon"] }
+swc_ecma_minifier   = { version = "65.0.1", default-features = false }
 swc_error_reporters = { version = "30.0.0", default-features = false }
 swc_html            = { version = "40.0.0", default-features = false }
 swc_html_minifier   = { version = "65.0.0", default-features = false }

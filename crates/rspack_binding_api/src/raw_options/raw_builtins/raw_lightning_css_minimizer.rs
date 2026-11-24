@@ -54,6 +54,7 @@ pub struct RawLightningCssBrowsers {
 #[napi(object)]
 pub struct RawDraft {
   pub custom_media: bool,
+  pub scroll_navigation_controls: bool,
 }
 
 #[derive(Debug)]
@@ -107,6 +108,7 @@ impl TryFrom<RawLightningCssMinimizerRspackPluginOptions> for PluginOptions {
         exclude: value.minimizer_options.exclude,
         drafts: value.minimizer_options.drafts.map(|d| Draft {
           custom_media: d.custom_media,
+          scroll_navigation_controls: d.scroll_navigation_controls,
         }),
         non_standard: value.minimizer_options.non_standard.map(|n| NonStandard {
           deep_selector_combinator: n.deep_selector_combinator,
