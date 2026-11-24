@@ -12,7 +12,11 @@ use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::get_scheme;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_sources::SourceMap;
-use rspack_util::{base64, node_path::NodePath};
+use rspack_util::{
+  base64,
+  identifier::{split_resource, strip_zero_width_space_for_fragment},
+  node_path::NodePath,
+};
 use rustc_hash::FxHashSet;
 
 /// Source map extractor result
@@ -36,8 +40,7 @@ static SOURCE_MAPPING_URL_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r#"(?:/\*(?:\s*\r?\n(?://)?)?(?:\s*[#@]\s*sourceMappingURL\s*=\s*([^\s'"]*)\s*)\s*\*/|//(?:\s*[#@]\s*sourceMappingURL\s*=\s*([^\s'"]*)\s*))\s*"#).expect("Invalid regex pattern")
 });
 static URI_REGEX: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"^data:(?:[^;,]+)?(?:;[^;,]+)*?(?:;(?<base64>base64)?)?,(?<body>.*)$")
-    .expect("Invalid regex pattern")
+  Regex::new(r"^data:([^;,]+)?((?:;[^;,]+)*?)(?:;(base64)?)?,(.*)$").expect("Invalid regex pattern")
 });
 
 /// Extract source mapping URL from code comments
@@ -154,20 +157,32 @@ fn decode_data_uri(uri: &str) -> Result<String, &'static str> {
   // data URL scheme: "data:text/javascript;charset=utf-8;base64,some-string"
   // http://www.ietf.org/rfc/rfc2397.txt
   let captures = URI_REGEX.captures(uri).ok_or("invalid data URL syntax")?;
-  let body = &captures["body"];
+  let is_base64 = captures.get(3).is_some();
+  let body = &captures[4];
 
-  if captures.name("base64").is_some() {
+  if is_base64 {
     let bytes = base64::decode_to_vec(body).map_err(|_| "invalid Base64 data")?;
     return String::from_utf8(bytes).map_err(|_| "decoded content is not valid UTF-8");
   }
 
   // CSS allows to use `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" style="stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px" /></svg>`
   // so we return original body if we can't `decodeURIComponent`
-  Ok(
-    urlencoding::decode(body)
-      .unwrap_or(Cow::Borrowed(body))
-      .into_owned(),
-  )
+  match urlencoding::decode(body) {
+    Ok(decoded) => Ok(decoded.into_owned()),
+    Err(_) => Ok(body.to_string()),
+  }
+}
+
+/// Fetch source content from data URL
+fn fetch_from_data_url(source_url: &str, owner: &str) -> Result<String, String> {
+  decode_data_uri(source_url).map_err(|reason| {
+    if get_scheme(owner).is_data() {
+      format!("Failed to decode source map data URL in an inline module: {reason}")
+    } else {
+      let name = Utf8Path::new(owner).file_name().unwrap_or(owner);
+      format!("Failed to decode source map data URL in '{name}': {reason}")
+    }
+  })
 }
 
 /// Get absolute path for source file using Node.js logic
@@ -240,14 +255,7 @@ async fn fetch_from_url(
         return Ok((String::new(), None));
       }
 
-      let source_content = decode_data_uri(url).map_err(|reason| {
-        if get_scheme(owner).is_data() {
-          format!("Failed to decode source map data URL in an inline module: {reason}")
-        } else {
-          let name = Utf8Path::new(owner).file_name().unwrap_or(owner);
-          format!("Failed to decode source map data URL in '{name}': {reason}")
-        }
-      })?;
+      let source_content = fetch_from_data_url(url, owner)?;
       return Ok((String::new(), Some(source_content)));
     }
 
@@ -324,10 +332,12 @@ pub async fn extract_source_map(
     .parent()
     .ok_or_else(|| "Invalid resource path".to_string())?;
 
+  let (module_path, ..) = split_resource(resource_path);
+  let module_path = strip_zero_width_space_for_fragment(module_path);
   let (source_url, source_content) = fetch_from_url(
     &fs,
     base_context,
-    resource_path,
+    &module_path,
     &source_mapping_url,
     None,
     false,
@@ -360,12 +370,14 @@ pub async fn extract_source_map(
     }
   })?;
 
-  let map_owner = if source_url.is_empty() {
-    resource_path
+  let (context, owner) = if source_url.is_empty() {
+    (base_context, module_path.as_ref())
   } else {
-    &source_url
+    (
+      Utf8Path::new(&source_url).parent().unwrap_or(base_context),
+      source_url.as_str(),
+    )
   };
-  let context = Utf8Path::new(map_owner).parent().unwrap_or(base_context);
 
   let mut resolved_sources = Vec::new();
   let mut file_dependencies = if source_url.is_empty() {
@@ -382,7 +394,7 @@ pub async fn extract_source_map(
     .iter()
     .map(|source| source.to_string())
     .collect::<Vec<_>>();
-  let source_root = source_map.source_root().map(str::to_owned);
+  let source_root = source_map.source_root().map(|s| s.to_string());
 
   // Pre-collect all source content to avoid borrowing issues
   let source_contents = (0..sources.len())
@@ -395,10 +407,20 @@ pub async fn extract_source_map(
   // Use zip to consume both vectors without extra cloning
   for (source, original_content) in sources.into_iter().zip(source_contents) {
     let skip_reading = original_content.is_some();
-    let fs = &fs;
-    let source_root = source_root.as_deref();
+    let source_root = source_root.clone();
+    let context = context.to_path_buf();
+
+    let fs = fs.clone();
     futures.push_back(async move {
-      let result = fetch_from_url(fs, context, map_owner, &source, source_root, skip_reading).await;
+      let result = fetch_from_url(
+        &fs,
+        &context,
+        owner,
+        &source,
+        source_root.as_deref(),
+        skip_reading,
+      )
+      .await;
       (original_content, skip_reading, result)
     });
   }
