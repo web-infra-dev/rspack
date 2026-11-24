@@ -1,8 +1,4 @@
-use std::sync::{Arc, Mutex, MutexGuard};
-
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap};
-
-use crate::observation::Observations;
 
 pub(super) enum MemberKind {
   File,
@@ -47,25 +43,15 @@ impl DirectoryWatcher {
 #[derive(Default)]
 pub(super) struct WatcherManager {
   pub(super) directories: InternedPathDashMap<DirectoryWatcher>,
-  pub(super) observations: Arc<Mutex<Observations>>,
 }
 
 impl WatcherManager {
-  pub(super) fn lock_observations(&self) -> MutexGuard<'_, Observations> {
-    self
-      .observations
-      .lock()
-      .expect("watch observations poisoned")
-  }
-
   pub(super) fn subscribe_context(&self, path: &InternedPath) {
     let mut watcher = self.directories.entry(path.clone()).or_default();
     watcher.subscriptions.explicit = true;
   }
 
   pub(super) fn unsubscribe_context(&self, path: &InternedPath) {
-    let mut state = self.lock_observations();
-    state.unregister(path);
     self.directories.remove_if_mut(path, |_, watcher| {
       watcher.subscriptions.explicit = false;
       watcher.is_unused()

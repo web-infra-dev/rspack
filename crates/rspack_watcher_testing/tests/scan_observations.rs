@@ -2,7 +2,7 @@ use std::{
   fs,
   path::Path,
   sync::{Arc, Mutex},
-  time::{Duration, UNIX_EPOCH},
+  time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use notify::{
@@ -209,6 +209,114 @@ async fn queued_context_events_expire_when_the_subscription_ends() {
 }
 
 #[tokio::test]
+async fn a_single_path_check_belongs_to_the_registration_that_started_it() {
+  let fixture = tempfile::tempdir().unwrap();
+  let root = fixture.path().canonicalize().unwrap();
+  let file = InternedPath::from(root.join("file.js"));
+  let missing = InternedPath::from(root.join("missing.js"));
+  fs::write(&file, "").unwrap();
+  fs::write(&missing, "").unwrap();
+  let analyzer = DirectoryAnalyzer::default();
+  update(&analyzer, added(&file), empty(), added(&missing)).await;
+  let old = analyzer.read_added_paths(UNIX_EPOCH);
+
+  update(&analyzer, removed(&file), empty(), removed(&missing)).await;
+  update(
+    &analyzer,
+    empty(),
+    empty(),
+    (vec![file.clone(), missing.clone()], vec![]),
+  )
+  .await;
+  let events = old.await;
+  let (files, _) = analyzer.collect_time_info_entries();
+  for path in [&file, &missing] {
+    assert_eq!(
+      entry(&files, path),
+      Some(&TimeInfoEntry::Null),
+      "stale timestamp for {path:?}"
+    );
+  }
+  assert!(
+    events.is_empty(),
+    "stale events from the previous registration {events:?}"
+  );
+
+  let current = analyzer.read_added_paths(UNIX_EPOCH).await;
+  for path in [file, missing] {
+    assert!(current.contains(&(path, FsEventKind::Create)));
+  }
+}
+
+#[tokio::test]
+async fn checking_an_unchanged_file_does_not_cancel_its_parent_scan() {
+  for as_missing in [false, true] {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().canonicalize().unwrap();
+    let file = InternedPath::from(root.join("child.js"));
+    fs::File::create(&file)
+      .unwrap()
+      .set_modified(UNIX_EPOCH + Duration::from_secs(1_600_000_000))
+      .unwrap();
+    let (analyzer, release, scan) = paused_scan(&root, &file).await;
+
+    let (files, missing) = if as_missing {
+      (empty(), added(&file))
+    } else {
+      (added(&file), empty())
+    };
+    update(&analyzer, files, empty(), missing).await;
+    assert!(
+      analyzer
+        .read_added_paths(SystemTime::now())
+        .await
+        .is_empty()
+    );
+    release.send(()).unwrap();
+    scan.await.unwrap();
+    let (files, missing) = if as_missing {
+      (empty(), removed(&file))
+    } else {
+      (removed(&file), empty())
+    };
+    update(&analyzer, files, empty(), missing).await;
+
+    let (files, _) = analyzer.collect_time_info_entries();
+    assert!(
+      matches!(entry(&files, &file), Some(TimeInfoEntry::Entry { .. })),
+      "the active parent must retain the file after the explicit subscription is removed"
+    );
+  }
+}
+
+#[tokio::test]
+async fn removing_a_parent_invalidates_a_pending_single_file_check() {
+  let fixture = tempfile::tempdir().unwrap();
+  let parent = fixture.path().canonicalize().unwrap().join("parent");
+  fs::create_dir(&parent).unwrap();
+  let file = InternedPath::from(parent.join("index.js"));
+  fs::write(&file, "").unwrap();
+  let mut analyzer = DirectoryAnalyzer::default();
+  update(&analyzer, added(&file), empty(), empty()).await;
+  let old = analyzer.read_added_paths(UNIX_EPOCH);
+  fs::remove_dir_all(&parent).unwrap();
+  notify(
+    &mut analyzer,
+    &parent,
+    EventKind::Remove(RemoveKind::Folder),
+  )
+  .await;
+  fs::create_dir(&parent).unwrap();
+  fs::write(&file, "replacement").unwrap();
+  assert!(
+    old.await.is_empty(),
+    "a scan started in the previous parent reported the replacement"
+  );
+  let fresh = analyzer.read_added_paths(UNIX_EPOCH).await;
+  assert!(fresh.contains(&(file, FsEventKind::Change)));
+}
+
+#[tokio::test]
 async fn a_live_file_replacing_a_directory_forgets_its_descendants() {
   let fixture = tempfile::tempdir().unwrap();
   let root = fixture.path().canonicalize().unwrap();
@@ -254,6 +362,22 @@ async fn a_live_file_replacing_a_directory_forgets_its_descendants() {
     entry(&files, &fresh),
     Some(TimeInfoEntry::Entry { .. })
   ));
+}
+
+#[tokio::test]
+async fn a_newer_context_scan_preserves_the_first_missing_notification() {
+  let fixture = tempfile::tempdir().unwrap();
+  let root = fixture.path().canonicalize().unwrap();
+  let child = InternedPath::from(root.join("child.js"));
+  let file = fs::File::create(&child).unwrap();
+  let start = UNIX_EPOCH + Duration::from_secs(1_600_000_000);
+  file.set_modified(start - Duration::from_secs(60)).unwrap();
+  let analyzer = DirectoryAnalyzer::default();
+  update(&analyzer, empty(), added(&root), added(&child)).await;
+  let pending = analyzer.read_added_paths(start);
+  file.set_modified(start + Duration::from_secs(60)).unwrap();
+  assert!(!analyzer.scan_contexts().await.unwrap().contains(&child));
+  assert!(pending.await.contains(&(child, FsEventKind::Create)));
 }
 
 #[tokio::test]
@@ -340,8 +464,7 @@ async fn replacing_an_explicit_context_with_a_file_forgets_its_old_children() {
   }
 }
 
-#[tokio::test]
-async fn a_duplicate_disk_event_preserves_the_queued_context_change() {
+async fn check_duplicate_event(explicit: bool, queue: impl AsyncFn(&DirectoryAnalyzer)) {
   let fixture = tempfile::tempdir().expect("create fixture");
   let directory = fixture.path().canonicalize().expect("canonicalize fixture");
   let root = directory.join("ctx");
@@ -358,7 +481,11 @@ async fn a_duplicate_disk_event_preserves_the_queued_context_change() {
   let (ignored, waiting, release) = pause_at(&blocker);
   let mut analyzer = DirectoryAnalyzer::with_ignored(ignored);
   update(&analyzer, added(&marker), empty(), empty()).await;
-  update(&analyzer, empty(), added(&root), empty()).await;
+  if explicit {
+    update(&analyzer, empty(), empty(), added(&child)).await;
+  } else {
+    update(&analyzer, empty(), added(&root), empty()).await;
+  }
   analyzer.on_native_event(Event::new(EventKind::Modify(ModifyKind::Any)).add_path(blocker));
   timeout(Duration::from_secs(5), waiting)
     .await
@@ -366,9 +493,14 @@ async fn a_duplicate_disk_event_preserves_the_queued_context_change() {
     .expect("receive the event pause");
   analyzer
     .on_native_event(Event::new(EventKind::Modify(ModifyKind::Any)).add_path(child.to_path_buf()));
-  analyzer.queue_context_changes().await;
+  queue(&analyzer).await;
   analyzer.on_scanned_change(&marker);
   release.send(()).expect("release event processor");
+  let expected = if explicit {
+    (child, FsEventKind::Create)
+  } else {
+    (InternedPath::from(&root), FsEventKind::Change)
+  };
   let events = timeout(Duration::from_secs(5), async {
     let mut events = Vec::new();
     loop {
@@ -381,8 +513,60 @@ async fn a_duplicate_disk_event_preserves_the_queued_context_change() {
   })
   .await
   .expect("deliver the marker");
-  assert_eq!(
-    events,
-    vec![(InternedPath::from(&root), FsEventKind::Change)]
+  assert_eq!(events, vec![expected]);
+}
+
+#[tokio::test]
+async fn a_duplicate_disk_event_preserves_the_queued_context_change() {
+  check_duplicate_event(false, async |analyzer| {
+    analyzer.queue_context_changes().await
+  })
+  .await;
+}
+
+#[tokio::test]
+async fn a_duplicate_disk_event_preserves_the_queued_missing_create() {
+  check_duplicate_event(true, async |analyzer| {
+    analyzer.queue_added_paths(UNIX_EPOCH)
+  })
+  .await;
+}
+
+#[tokio::test]
+async fn an_older_file_check_cannot_restore_a_timestamp_from_before_a_symlink_replacement() {
+  #[cfg(unix)]
+  use std::os::unix::fs::symlink;
+  #[cfg(windows)]
+  use std::os::windows::fs::symlink_file as symlink;
+  let fixture = tempfile::tempdir().unwrap();
+  let directory = fixture.path().canonicalize().unwrap();
+  let root = directory.join("ctx");
+  fs::create_dir(&root).unwrap();
+  let child = InternedPath::from(root.join("child.js"));
+  let target = directory.join("external.js");
+  let old_time = UNIX_EPOCH + Duration::from_secs(1_600_000_000);
+  fs::File::create(&child)
+    .unwrap()
+    .set_modified(old_time)
+    .unwrap();
+  fs::File::create(&target)
+    .unwrap()
+    .set_modified(old_time + Duration::from_secs(300))
+    .unwrap();
+  let analyzer = DirectoryAnalyzer::default();
+  update(&analyzer, empty(), empty(), added(&child)).await;
+  let pending = analyzer.read_added_paths(UNIX_EPOCH);
+  fs::remove_file(&child).unwrap();
+  symlink(&target, &child).unwrap();
+  update(&analyzer, empty(), added(&root), empty()).await;
+  analyzer.scan_contexts().await.unwrap();
+  assert!(
+    pending
+      .await
+      .contains(&(child.clone(), FsEventKind::Create))
+  );
+  let (files, _) = analyzer.collect_time_info_entries();
+  assert!(
+    matches!(entry(&files, &child), Some(TimeInfoEntry::Entry {timestamp, ..}) if *timestamp > 1_600_000_000_000)
   );
 }

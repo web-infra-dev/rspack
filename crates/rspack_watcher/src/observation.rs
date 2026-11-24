@@ -2,14 +2,24 @@
 use std::{
   collections::BTreeSet,
   sync::{Arc, Mutex},
+  time::SystemTime,
 };
 
 use rspack_paths::{InternedPath, InternedPathMap};
+
+#[derive(Clone, Copy)]
+pub(super) enum Registration {
+  File,
+  Context,
+  Missing,
+}
 
 pub(super) enum Mutation {
   Unchanged,
   Entry,
   Subtree,
+  // A directory walk supplies membership; a single-path check may owe the build a notification.
+  Scan(Option<SystemTime>),
 }
 
 #[derive(Default)]
@@ -18,7 +28,8 @@ pub(super) struct Observations {
   active: BTreeSet<u64>,
   entries: InternedPathMap<u64>,
   subtrees: InternedPathMap<u64>,
-  unregistered: InternedPathMap<u64>,
+  scans: [InternedPathMap<(u64, Option<SystemTime>)>; 2],
+  unregistered: [InternedPathMap<u64>; 3],
 }
 
 pub(super) struct ScanEpoch {
@@ -29,7 +40,20 @@ pub(super) struct ScanEpoch {
 #[derive(Clone)]
 pub(super) struct Scan {
   pub(super) epoch: Arc<ScanEpoch>,
+  pub(super) kind: Registration,
   pub(super) root: InternedPath,
+  pub(super) recursive: bool,
+}
+
+impl Scan {
+  pub(super) fn new(epoch: &Arc<ScanEpoch>, kind: Registration, root: &InternedPath) -> Self {
+    Self {
+      epoch: Arc::clone(epoch),
+      kind,
+      root: root.clone(),
+      recursive: false,
+    }
+  }
 }
 
 impl ScanEpoch {
@@ -57,8 +81,13 @@ impl Drop for ScanEpoch {
     };
     if self.sequence < oldest {
       state.entries.retain(|_, version| *version > oldest);
+      for scans in &mut state.scans {
+        scans.retain(|_, (version, _)| *version > oldest);
+      }
       state.subtrees.retain(|_, version| *version > oldest);
-      state.unregistered.retain(|_, version| *version > oldest);
+      for registrations in &mut state.unregistered {
+        registrations.retain(|_, version| *version > oldest);
+      }
     }
   }
 }
@@ -69,22 +98,25 @@ impl Observations {
     self.sequence
   }
 
-  pub(super) fn unregister(&mut self, path: &InternedPath) {
+  pub(super) fn unregister(&mut self, path: &InternedPath, kind: Registration) {
     if !self.active.is_empty() {
       let version = self.advance();
-      self.unregistered.insert(path.clone(), version);
+      self.unregistered[kind as usize].insert(path.clone(), version);
     }
   }
 
   pub(super) fn accepts(&self, scan: &Scan, path: &InternedPath) -> bool {
     let version = scan.epoch.sequence;
-    self.entries.get(path).is_none_or(|v| *v <= version) && self.covers_subtree(scan, path)
+    self.scans[usize::from(scan.recursive)]
+      .get(path)
+      .is_none_or(|(v, _)| *v <= version)
+      && self.entries.get(path).is_none_or(|v| *v <= version)
+      && self.covers_subtree(scan, path)
   }
 
   pub(super) fn covers_subtree(&self, scan: &Scan, path: &InternedPath) -> bool {
     let version = scan.epoch.sequence;
-    self
-      .unregistered
+    self.unregistered[scan.kind as usize]
       .get(&scan.root)
       .is_none_or(|v| *v <= version)
       && (self.subtrees.is_empty()
@@ -94,6 +126,17 @@ impl Observations {
             .get(&InternedPath::from(ancestor))
             .is_some_and(|v| *v > version)
         }))
+  }
+
+  pub(super) fn newer_scan(
+    &self,
+    path: &InternedPath,
+    scan: &Scan,
+  ) -> Option<(u64, Option<SystemTime>)> {
+    self.scans[usize::from(!scan.recursive)]
+      .get(path)
+      .filter(|(version, _)| *version > scan.epoch.sequence)
+      .copied()
   }
 
   pub(super) fn observe(&mut self, path: &InternedPath, scan: Option<&Scan>, mutation: Mutation) {
@@ -108,6 +151,10 @@ impl Observations {
     if version > oldest {
       match mutation {
         Mutation::Unchanged => {}
+        Mutation::Scan(time) => {
+          let scan = scan.expect("a scan records its own observation");
+          self.scans[usize::from(scan.recursive)].insert(path.clone(), (version, time));
+        }
         Mutation::Subtree => {
           self.subtrees.insert(path.clone(), version);
         }

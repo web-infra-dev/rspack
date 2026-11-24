@@ -1,185 +1,219 @@
-use std::{ops::Deref, sync::Arc, time::SystemTime};
+use std::{sync::Arc, time::SystemTime};
 
-use rspack_paths::{InternedPath, InternedPathDashSet};
+use rspack_paths::InternedPath;
 use rspack_util::time::system_time_to_millis;
-use tokio::sync::mpsc::UnboundedSender;
 
-use super::{EventBatch, FsEvent, FsEventKind, PathManager};
+use super::{FsEvent, FsEventKind, PathManager};
 use crate::{
-  paths::disk_mtime,
+  observation::{Mutation, Registration, Scan, ScanEpoch},
   time::{mtime_accuracy, mtime_safe_time},
+  trigger::Trigger,
 };
 
-// Scanner will scann the path whether it is exist or not in disk on initialization
-pub struct Scanner {
-  path_manager: Arc<PathManager>,
-  tx: Option<UnboundedSender<EventBatch>>,
+pub(super) trait ScanSink: Send + Sync {
+  fn send(&self, event: FsEvent, scan: Scan);
 }
 
-impl Scanner {
-  /// Creates a new `Scanner` that will send events to the provided sender when paths are scanned.
-  pub fn new(tx: UnboundedSender<EventBatch>, path_manager: Arc<PathManager>) -> Self {
+impl ScanSink for Arc<Trigger> {
+  fn send(&self, event: FsEvent, scan: Scan) {
+    self.on_scan_event(event.path, event.kind, scan);
+  }
+}
+
+#[cfg(any(test, feature = "testing"))]
+impl ScanSink for tokio::sync::mpsc::UnboundedSender<super::EventBatch> {
+  fn send(&self, event: FsEvent, _: Scan) {
+    let _ = self.send(vec![event]);
+  }
+}
+
+pub struct Scanner<S = Arc<Trigger>> {
+  path_manager: Arc<PathManager>,
+  sink: Option<S>,
+}
+
+impl<S: ScanSink + Clone + 'static> Scanner<S> {
+  pub fn new(sink: S, path_manager: Arc<PathManager>) -> Self {
     Self {
       path_manager,
-      tx: Some(tx),
+      sink: Some(sink),
     }
   }
 
-  /// Synthesizes the events the live watch could not deliver yet: a `Remove` for
-  /// a registered path gone from disk, a `Change` for a file/directory changed
-  /// since `start_time`, and a `Create` for a registered-missing dependency that
-  /// has appeared. Change is judged from a fresh, accuracy-padded mtime read
-  /// ([`changed_since`]) — the scan runs after the OS watch is active (#14210),
-  /// so a change landing before the watch is on disk and caught here.
-  /// align watchpack action: https://github.com/webpack/watchpack/blob/v2.4.4/lib/DirectoryWatcher.js#L565-L568
+  /// Backfill after the OS watch has been installed. A later watch cycle may
+  /// have replaced the subscription by the time a spawned job finishes.
   pub fn scan(&self, start_time: SystemTime) {
+    for job in self.prepare(start_time) {
+      tokio::spawn(async move {
+        job.read()();
+      });
+    }
+  }
+
+  pub(super) fn prepare(&self, start_time: SystemTime) -> Vec<ScanJob<S>> {
+    let Some(sink) = &self.sink else {
+      return Vec::new();
+    };
     let accessor = self.path_manager.access();
-    let has_added_paths = !accessor.files().1.is_empty()
-      || !accessor.directories().1.is_empty()
-      || !accessor.missing().1.is_empty();
-    if !has_added_paths {
-      return;
+    if accessor.files().1.is_empty()
+      && accessor.directories().1.is_empty()
+      && accessor.missing().1.is_empty()
+    {
+      return Vec::new();
     }
-
-    if let Some(tx) = self.tx.clone() {
-      // only apply for added files
-      let files = accessor
-        .files()
-        .1
-        .iter()
-        .map(|file| file.deref().clone())
-        .collect::<Vec<_>>();
-      let missing = accessor.missing().0.clone();
-      let files_tx = tx.clone();
-      let files_path_manager = Arc::clone(&self.path_manager);
-      tokio::spawn(async move {
-        // A file is there as `lstat` sees it, so a dangling link counts.
-        let mut removed = absent_paths(&files, &missing, |path| {
-          std::fs::symlink_metadata(path).is_ok()
-        });
-        removed.retain(|path| !files_path_manager.is_known_absent(path));
-        let changed = files
-          .iter()
-          .filter(|p| changed_since(p, start_time))
-          .cloned()
-          .collect::<Vec<_>>();
-        // A `Change` is judged here, not by `Trigger`'s baseline check: the
-        // record is re-read now, in case the mtime moved on since it was
-        // seeded.
-        for path in &changed {
-          if let Some(mtime) = disk_mtime(path) {
-            files_path_manager.set_reported_file_time(path, mtime);
-          }
-        }
-        _ = send_events(removed, FsEventKind::Remove, &files_tx);
-        _ = send_events(changed, FsEventKind::Change, &files_tx);
-      });
-
-      let directories = accessor
-        .directories()
-        .1
-        .iter()
-        .map(|file| file.deref().clone())
-        .collect::<Vec<_>>();
-      let missing = accessor.missing().0.clone();
-      let dirs_tx = tx.clone();
-      tokio::spawn(async move {
-        _ = send_events(
-          // A directory is there only through a link that resolves, like
-          // watchpack's `readdir`.
-          absent_paths(&directories, &missing, |path| path.exists()),
-          FsEventKind::Remove,
-          &dirs_tx,
-        );
-        let changed = directories
-          .into_iter()
-          .filter(|p| changed_since(p, start_time))
-          .collect::<Vec<_>>();
-        _ = send_events(changed, FsEventKind::Change, &dirs_tx);
-      });
-
-      // Backfill registered-missing dependencies created in the gap before this
-      // `watch()` registration: a `Create` once the file appears on disk.
-      let missing_added = accessor
-        .missing()
-        .1
-        .iter()
-        .map(|p| p.deref().clone())
-        .collect::<Vec<_>>();
-      let path_manager = Arc::clone(&self.path_manager);
-      tokio::spawn(async move {
-        // Record the file time of every one found on disk and, like
-        // watchpack's initial scan, notify only those changed since
-        // `start_time`. A record for one not notified is time info only: it
-        // must not deduplicate that path's own event.
-        let mut created = Vec::new();
-        for path in missing_added {
-          let Some(mtime) = disk_mtime(&path) else {
-            continue;
-          };
-          if changed_since(&path, start_time) {
-            path_manager.set_reported_file_time(&path, mtime);
-            created.push(path);
-          } else {
-            path_manager.set_file_time(&path, mtime, true, true);
-          }
-        }
-        _ = send_events(created, FsEventKind::Create, &tx);
-      });
-    }
+    let epoch = self.path_manager.start_scan();
+    [
+      (Registration::File, accessor.files().1),
+      (Registration::Context, accessor.directories().1),
+      (Registration::Missing, accessor.missing().1),
+    ]
+    .into_iter()
+    .filter(|(_, added)| !added.is_empty())
+    .map(|(kind, added)| ScanJob {
+      kind,
+      start_time: system_time_to_millis(start_time),
+      paths: added.iter().map(|p| p.clone()).collect(),
+      manager: Arc::clone(&self.path_manager),
+      sink: sink.clone(),
+      epoch: Arc::clone(&epoch),
+    })
+    .collect()
   }
 
   pub fn close(&mut self) {
-    // Close the scanner by dropping the sender
-    self.tx.take();
+    self.sink.take();
   }
 }
 
-/// The registered `paths` not `present` on disk (a registered-missing path
-/// is expected to be absent and is not one of them).
-fn absent_paths(
-  paths: &[InternedPath],
-  missing: &InternedPathDashSet,
-  present: impl Fn(&InternedPath) -> bool,
-) -> Vec<InternedPath> {
-  paths
-    .iter()
-    .filter(|path| !present(path) && !missing.contains(*path))
-    .cloned()
-    .collect()
-}
-
-fn send_events(
+pub(super) struct ScanJob<S> {
+  kind: Registration,
+  start_time: u64,
   paths: Vec<InternedPath>,
-  kind: FsEventKind,
-  tx: &UnboundedSender<EventBatch>,
-) -> bool {
-  if paths.is_empty() {
-    return true;
-  }
-  let events = paths
-    .into_iter()
-    .map(|path| FsEvent { path, kind })
-    .collect::<Vec<_>>();
-  tx.send(events).is_ok()
+  manager: Arc<PathManager>,
+  sink: S,
+  epoch: Arc<ScanEpoch>,
 }
 
-/// Whether `path`'s current on-disk mtime is at or after `start_time`, using
-/// watchpack's accuracy padding ([`mtime_safe_time`]) so a change hidden by
-/// coarse mtime granularity is still caught. A failed stat (missing/unreadable)
-/// counts as unchanged.
-fn changed_since(path: &InternedPath, start_time: SystemTime) -> bool {
-  let Ok(metadata) = path.metadata() else {
-    return false;
-  };
-  let mtime = metadata.modified();
-  if let Ok(mtime) = &mtime {
-    mtime_accuracy(*mtime);
+struct PathStatus {
+  present: bool,
+  exists: bool,
+  symlink: bool,
+  mtime: Option<SystemTime>,
+}
+
+impl PathStatus {
+  fn read(path: &InternedPath, kind: Registration) -> Self {
+    // A dangling link exists as an explicit file. Other dependencies and the mtime check follow it.
+    let own = std::fs::symlink_metadata(path).ok();
+    let exists = own.is_some();
+    let symlink = own.as_ref().is_some_and(|m| m.is_symlink());
+    let target = if symlink { path.metadata().ok() } else { own };
+    let present = matches!(kind, Registration::File) && exists || target.is_some();
+    let mtime = target.and_then(|m| {
+      let modified = m.modified();
+      if let Ok(time) = modified {
+        mtime_accuracy(time);
+      }
+      modified.or_else(|_| m.created()).ok()
+    });
+    Self {
+      present,
+      exists,
+      symlink,
+      mtime,
+    }
   }
-  let Ok(mtime) = mtime.or_else(|_| metadata.created()) else {
-    return false;
-  };
-  mtime_safe_time(mtime) >= system_time_to_millis(start_time)
+}
+
+impl<S: ScanSink> ScanJob<S> {
+  pub(super) fn read(mut self) -> impl FnOnce() {
+    let mut absent = Vec::new();
+    let mut present = Vec::new();
+    for path in std::mem::take(&mut self.paths) {
+      let status = PathStatus::read(&path, self.kind);
+      let entries = if status.present {
+        &mut present
+      } else {
+        &mut absent
+      };
+      entries.push((path, status));
+    }
+    move || {
+      // Report missing paths before changes, as in the original backfill.
+      for (path, status) in absent.into_iter().chain(present) {
+        self.commit(path, status);
+      }
+    }
+  }
+
+  fn commit(&self, path: InternedPath, mut status: PathStatus) {
+    let scan = Scan::new(&self.epoch, self.kind, &path);
+    let mut rechecked = None;
+    loop {
+      let retry = self
+        .manager
+        .observe(&path, Some(&scan), |state| {
+          let newer = match state.newer_scan(&path, &scan) {
+            // The directory walk saw a symlink and recorded its own time. An
+            // explicit dependency needs a fresh stat of the target.
+            Some((version, None)) if rechecked != Some(version) => {
+              return (Some(version), Mutation::Unchanged);
+            }
+            Some((_, time)) => time,
+            None => None,
+          };
+          let mtime = newer.or(status.mtime);
+          let changed = mtime.is_some_and(|time| mtime_safe_time(time) >= self.start_time);
+          let accessor = self.manager.access();
+          let event = match (self.kind, mtime) {
+            (Registration::Missing | Registration::File, Some(mtime)) if changed => {
+              self.manager.set_reported_file_time(&path, mtime);
+              Some(if matches!(self.kind, Registration::File) {
+                FsEventKind::Change
+              } else {
+                FsEventKind::Create
+              })
+            }
+            (Registration::Missing, Some(mtime)) => {
+              self.manager.set_file_time(&path, mtime, true, true);
+              None
+            }
+            (Registration::Missing, _) => None,
+            (Registration::Context, _) if changed => Some(FsEventKind::Change),
+            _ if !status.present
+              && newer.is_none()
+              && !accessor.missing().0.contains(&path)
+              && !(matches!(self.kind, Registration::File)
+                && self.manager.is_known_absent(&path)) =>
+            {
+              Some(FsEventKind::Remove)
+            }
+            _ => None,
+          };
+          if let Some(kind) = event {
+            self.sink.send(
+              FsEvent {
+                path: path.clone(),
+                kind,
+              },
+              scan.clone(),
+            );
+          }
+          let mutation = if status.exists || newer.is_some() {
+            Mutation::Scan(newer.or(status.mtime.filter(|_| !status.symlink)))
+          } else {
+            Mutation::Subtree
+          };
+          (None, mutation)
+        })
+        .flatten();
+      let Some(version) = retry else {
+        return;
+      };
+      status = PathStatus::read(&path, self.kind);
+      rechecked = Some(version);
+    }
+  }
 }
 
 #[cfg(test)]

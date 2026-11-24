@@ -3,7 +3,7 @@ use std::{
   fmt::Debug,
   ops::Deref,
   path::{Path, PathBuf},
-  sync::Arc,
+  sync::{Arc, Mutex},
   time::SystemTime,
 };
 
@@ -19,7 +19,7 @@ use rspack_util::{
 
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
 use crate::{
-  observation::{Mutation, Scan, ScanEpoch},
+  observation::{Mutation, Observations, Registration, Scan, ScanEpoch},
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
   watcher_manager::{MemberKind, WatcherManager},
 };
@@ -128,7 +128,7 @@ struct PathUpdater<'a> {
   pub added: Vec<InternedPath>,
   pub removed: Vec<InternedPath>,
   base_dir: PathBuf,
-  contexts: Option<&'a WatcherManager>,
+  registration: Option<(&'a PathManager, Registration)>,
 }
 
 impl<Added, Removed> From<(Added, Removed)> for PathUpdater<'_>
@@ -141,14 +141,14 @@ where
       added: added.collect(),
       removed: removed.collect(),
       base_dir: std::env::current_dir().unwrap_or_default(),
-      contexts: None,
+      registration: None,
     }
   }
 }
 
 impl<'a> PathUpdater<'a> {
-  fn with_contexts(mut self, contexts: &'a WatcherManager) -> Self {
-    self.contexts = Some(contexts);
+  fn for_registration(mut self, manager: &'a PathManager, kind: Registration) -> Self {
+    self.registration = Some((manager, kind));
     self
   }
 
@@ -182,8 +182,8 @@ impl<'a> PathUpdater<'a> {
       }
 
       if watch_tracker.add(added.clone()) {
-        if let Some(contexts) = self.contexts {
-          contexts.subscribe_context(&added);
+        if let Some((manager, Registration::Context)) = self.registration {
+          manager.watchers.subscribe_context(&added);
         }
         registered.push(added);
       }
@@ -195,9 +195,15 @@ impl<'a> PathUpdater<'a> {
       } else {
         InternedPath::from(self.base_dir.join(removed.as_ref()))
       };
+      let mut observations = self
+        .registration
+        .map(|(manager, kind)| (manager.lock_observations(), kind));
       if watch_tracker.remove(removed.clone()) {
-        if let Some(contexts) = self.contexts {
-          contexts.unsubscribe_context(&removed);
+        if let Some((state, kind)) = &mut observations {
+          state.unregister(&removed, *kind);
+        }
+        if let Some((manager, Registration::Context)) = self.registration {
+          manager.watchers.unsubscribe_context(&removed);
         }
         unregistered.push(removed);
       }
@@ -411,6 +417,7 @@ pub(crate) struct PathManager {
   /// the safe times of the files below.
   last_watch_events: InternedPathDashMap<u64>,
   pub(super) watchers: WatcherManager,
+  observations: Arc<Mutex<Observations>>,
   /// Every directory above a registered path: a removal of one of them may
   /// have taken registered records, or a registered context, with it. Each
   /// counts the registrations directly in it plus its subdirectories here,
@@ -446,11 +453,31 @@ impl PathManager {
       file_times: FileTimes::default(),
       last_watch_events: InternedPathDashMap::default(),
       watchers: WatcherManager::default(),
+      observations: Arc::default(),
       registered_ancestors: InternedPathDashMap::default(),
       absent_directories: InternedPathDashSet::default(),
       recorded_children: InternedPathDashMap::default(),
       index_lock: std::sync::Mutex::default(),
       follow_symlinks: false,
+    }
+  }
+
+  fn lock_observations(&self) -> std::sync::MutexGuard<'_, Observations> {
+    self
+      .observations
+      .lock()
+      .expect("watch observations poisoned")
+  }
+
+  pub(super) fn start_scan(&self) -> Arc<ScanEpoch> {
+    ScanEpoch::start(&self.observations)
+  }
+
+  fn is_registered(&self, scan: &Scan) -> bool {
+    match scan.kind {
+      Registration::File => self.files.all.contains(&scan.root),
+      Registration::Context => self.watchers.is_explicit_context(&scan.root),
+      Registration::Missing => self.missing.all.contains(&scan.root),
     }
   }
 
@@ -460,13 +487,13 @@ impl PathManager {
     path: &InternedPath,
     action: impl FnOnce() -> R,
   ) -> Option<R> {
-    let state = self.watchers.lock_observations();
-    (self.watchers.is_explicit_context(&scan.root) && state.accepts(scan, path)).then(action)
+    let state = self.lock_observations();
+    (self.is_registered(scan) && state.accepts(scan, path)).then(action)
   }
 
   fn can_scan_children(&self, scan: &Scan, path: &InternedPath) -> bool {
-    let state = self.watchers.lock_observations();
-    self.watchers.is_explicit_context(&scan.root) && state.covers_subtree(scan, path)
+    let state = self.lock_observations();
+    self.is_registered(scan) && state.covers_subtree(scan, path)
   }
 
   // Check and commit together, after reading metadata and awaiting ignored.
@@ -474,14 +501,13 @@ impl PathManager {
     &self,
     path: &InternedPath,
     scan: Option<&Scan>,
-    write: impl FnOnce() -> (R, Mutation),
+    write: impl FnOnce(&Observations) -> (R, Mutation),
   ) -> Option<R> {
-    let mut state = self.watchers.lock_observations();
-    if scan.is_some_and(|s| !self.watchers.is_explicit_context(&s.root) || !state.accepts(s, path))
-    {
+    let mut state = self.lock_observations();
+    if scan.is_some_and(|s| !self.is_registered(s) || !state.accepts(s, path)) {
       return None;
     }
-    let (result, mutation) = write();
+    let (result, mutation) = write(&state);
     state.observe(path, scan, mutation);
     Some(result)
   }
@@ -551,7 +577,7 @@ impl PathManager {
     report_absence: bool,
   ) -> bool {
     self
-      .observe(path, scan, || {
+      .observe(path, scan, |_| {
         let subtree = self.may_contain_records(path);
         self.remove_file_time(path, false);
         if subtree {
@@ -738,7 +764,7 @@ impl PathManager {
     if roots.is_empty() {
       return changed;
     }
-    let epoch = ScanEpoch::start(&self.watchers.observations);
+    let epoch = self.start_scan();
     // Each directory carries the real paths of the directories above it: with
     // `followSymlinks`, a link back into its own ancestry is a loop, while two
     // links to one directory are two aliases, each scanned.
@@ -750,8 +776,8 @@ impl PathManager {
           .map(InternedPath::from)
           .find(|p| self.watchers.is_explicit_context(p))?;
         let scan = Scan {
-          epoch: Arc::clone(&epoch),
-          root,
+          recursive: true,
+          ..Scan::new(&epoch, Registration::Context, &root)
         };
         Some((dir, Vec::new(), recovered, scan))
       })
@@ -834,8 +860,8 @@ impl PathManager {
     scan: Option<&Scan>,
     origin: ContextObservation,
   ) -> Option<bool> {
-    self.observe(path, scan, || {
-      if scan.is_none() && !self.is_below_context(path) {
+    self.observe(path, scan, |state| {
+      if scan.is_none_or(|s| !s.recursive) && !self.is_below_context(path) {
         return (false, Mutation::Entry);
       }
       let directory = metadata.is_dir();
@@ -855,6 +881,18 @@ impl PathManager {
           self.remove_file_times_under(path, keep_file);
         }
       }
+      let mtime = metadata.modified().or_else(|_| metadata.created()).ok();
+      let time = scan
+        .and_then(|scan| state.newer_scan(path, scan))
+        .and_then(|(_, time)| time)
+        .or(mtime);
+      let mutation = if replaced {
+        Mutation::Subtree
+      } else if matches!(origin, ContextObservation::Scan { .. }) {
+        Mutation::Scan(time.filter(|_| !symlink))
+      } else {
+        Mutation::Entry
+      };
       let updated = self.record(path, || {
         if directory {
           return self.watchers.add_member(path, MemberKind::Directory);
@@ -863,21 +901,14 @@ impl PathManager {
         if matches!(origin, ContextObservation::Reported) {
           return true;
         }
-        metadata
-          .modified()
-          .or_else(|_| metadata.created())
-          .map_or(true, |mtime| {
-            self.file_times.record(path).observe_member(mtime, origin)
-          })
+        time.is_none_or(|mtime| self.file_times.record(path).observe_member(mtime, origin))
       });
       (
         updated,
         if !directory && !updated && !replaced {
           Mutation::Unchanged
-        } else if replaced {
-          Mutation::Subtree
         } else {
-          Mutation::Entry
+          mutation
         },
       )
     })
@@ -934,7 +965,7 @@ impl PathManager {
         return true;
       }
       if self
-        .observe(path, scan, || {
+        .observe(path, scan, |_| {
           if !self.absent_directories.contains(path) {
             let keep_file =
               judged && (self.files.all.contains(path) || self.missing.all.contains(path));
@@ -1073,7 +1104,7 @@ impl PathManager {
     let present = ReportedBaseline::Present(current_mtime);
     let aged = mtime_ms.saturating_add(mtime_accuracy(current_mtime)) < current_time();
     self
-      .observe(path, scan, || {
+      .observe(path, scan, |_| {
         if aged && self.file_times.reported(path) == present {
           return (false, Mutation::Unchanged);
         }
@@ -1105,15 +1136,23 @@ impl PathManager {
   ) -> Result<()> {
     let mut registered = Vec::new();
     let mut unregistered = Vec::new();
-    for (paths, tracker) in [
-      (PathUpdater::from(files), &self.files),
+    for (paths, tracker, kind) in [
+      (PathUpdater::from(files), &self.files, Registration::File),
       (
-        PathUpdater::from(directories).with_contexts(&self.watchers),
+        PathUpdater::from(directories),
         &self.directories,
+        Registration::Context,
       ),
-      (PathUpdater::from(missing), &self.missing),
+      (
+        PathUpdater::from(missing),
+        &self.missing,
+        Registration::Missing,
+      ),
     ] {
-      let (added, removed) = paths.update(tracker, &self.ignored).await?;
+      let (added, removed) = paths
+        .for_registration(self, kind)
+        .update(tracker, &self.ignored)
+        .await?;
       registered.extend(added);
       unregistered.extend(removed);
     }

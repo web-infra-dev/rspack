@@ -195,25 +195,6 @@ impl Trigger {
       .pending
       .send((path.clone(), FsEventKind::Change, Origin::Scan(None)));
   }
-
-  /// A sender for the scanner's backfilled events. They queue with the live
-  /// ones, so whichever is processed last for a path ends as its state on
-  /// disk: a removal backfilled for a file back on disk by then is a change.
-  pub(crate) fn backfill_sender(&self) -> UnboundedSender<EventBatch> {
-    let (tx, mut batches) = unbounded_channel::<EventBatch>();
-    let pending = self.pending.clone();
-    std::thread::Builder::new()
-      .name("rspack-fs-scan-backfill".to_string())
-      .spawn(move || {
-        while let Some(batch) = batches.blocking_recv() {
-          for event in batch {
-            let _ = pending.send((event.path, event.kind, Origin::Scan(None)));
-          }
-        }
-      })
-      .expect("spawn watcher scan backfill thread");
-    tx
-  }
 }
 
 impl EventProcessor {
@@ -314,7 +295,7 @@ impl EventProcessor {
     }
     if self
       .path_manager
-      .observe(path, scan, || {
+      .observe(path, scan, |_| {
         self.path_manager.set_last_watch_events(path);
         let mutation = if metadata.as_ref().is_some_and(|m| m.is_file()) {
           Mutation::Subtree

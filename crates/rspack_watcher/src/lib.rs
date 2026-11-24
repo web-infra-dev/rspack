@@ -27,6 +27,7 @@ use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
 use executor::{Aggregated, Executor};
 pub use ignored::{FsWatcherIgnored, FsWatcherIgnoredItem, IgnoredFn};
+use observation::{Registration, Scan};
 use paths::PathManager;
 use rspack_error::Result;
 use rspack_paths::InternedPath;
@@ -191,7 +192,7 @@ impl FsWatcher {
     let aggregated = executor.aggregated();
     #[cfg(feature = "testing")]
     let executor_trace = executor.trace();
-    let scanner = Scanner::new(trigger.backfill_sender(), Arc::clone(&path_manager));
+    let scanner = Scanner::new(Arc::clone(&trigger), Arc::clone(&path_manager));
     let trigger = Arc::new(Mutex::new(Some(trigger)));
 
     let inner = FsWatcherInner {
@@ -487,13 +488,22 @@ impl FsWatcherInner {
     // `.1` is `files.added` — the diff set populated by `update()` and
     // cleared by `reset()`. In steady state (no add/remove churn) this
     // is empty and the loop is a no-op.
+    if accessor.files().1.is_empty() {
+      return;
+    }
+    let epoch = self.path_manager.start_scan();
     let paths: Vec<_> = accessor.files().1.iter().map(|p| p.clone()).collect();
     for path in paths {
       if let Ok(mtime) = path
         .metadata()
         .and_then(|m| m.modified().or_else(|_| m.created()))
       {
-        self.path_manager.set_file_time_if_absent(path, mtime);
+        let scan = Scan::new(&epoch, Registration::File, &path);
+        self.path_manager.with_current(&scan, &path, || {
+          self
+            .path_manager
+            .set_file_time_if_absent(path.clone(), mtime)
+        });
       }
     }
   }
