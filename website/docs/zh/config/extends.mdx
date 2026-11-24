@@ -7,7 +7,7 @@ import { Tabs, Tab } from '@theme';
 
 # Extends
 
-使用 `extends` 可以在不同项目或环境中复用 Rspack 配置。把通用选项放在基础配置里，再按需添加或覆盖选项。
+使用 `extends` 可以让多个项目共用一份基础配置，也可以在开发构建和生产构建之间复用配置。例如，开发和生产配置可以继承相同的 loader 和插件，再分别设置 `mode` 和 `devtool`。
 
 - **类型：** `string | string[]`
 - **默认值：** `undefined`
