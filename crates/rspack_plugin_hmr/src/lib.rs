@@ -9,7 +9,7 @@ use std::{
 };
 
 use atomic_refcell::AtomicRefCell;
-use chunk_versions::{HotModuleReplacementChunkVersionsRuntimeModule, is_versioned};
+use chunk_versions::HotModuleReplacementChunkVersionsRuntimeModule;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -793,6 +793,19 @@ async fn generate_hot_update(
           .connect_chunk_and_runtime_module(ukey, *runtime_module);
       }
 
+      // Replacement factories and runtime modules have the same calling convention
+      // and bridge as the chunk that is already running.
+      if let Some(bridge) = current_chunk_ukey
+        .and_then(|original| compilation.runtime_proxy_metadata_artifact.get(&original))
+        .map(|metadata| metadata.runtime_module_bridge)
+        && bridge != Default::default()
+      {
+        compilation
+          .runtime_proxy_metadata_artifact
+          .entry(ukey)
+          .or_default()
+          .runtime_module_bridge = bridge;
+      }
       let mut manifest = Vec::new();
       let mut diagnostics = Vec::new();
       compilation
@@ -802,6 +815,7 @@ async fn generate_hot_update(
         .call(compilation, &ukey, &mut manifest, &mut diagnostics)
         .await?;
 
+      compilation.runtime_proxy_metadata_artifact.remove(&ukey);
       // Manually clean up ChunkGraph and chunks
       for module_identifier in new_modules {
         compilation
@@ -1061,6 +1075,21 @@ async fn additional_tree_runtime_requirements(
   );
 
   Ok(())
+}
+
+fn is_versioned(compilation: &Compilation, chunk: &Chunk) -> bool {
+  let graph = &compilation.build_chunk_graph_artifact;
+  !graph.is_runtime_chunk(chunk)
+    // A shared chunk can be initial in one runtime and async in another.
+    && chunk
+      .groups()
+      .iter()
+      .any(|group| !graph.chunk_group_by_ukey.expect_get(group).is_initial())
+    && graph.chunk_graph.has_chunk_module_by_source_type(
+      &chunk.ukey(),
+      SourceType::JavaScript,
+      compilation.get_module_graph(),
+    )
 }
 
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for HotModuleReplacementPlugin)]

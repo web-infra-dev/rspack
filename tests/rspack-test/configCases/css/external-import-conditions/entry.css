@@ -1,0 +1,17 @@
+@import url("https://example.com/shared.css");
+@import "./print.css" print;
+@import "./screen.css" screen;
+@import "./feature.css" (min-width: 600px);
+@import "./all.css" all;
+@import "./only-screen.css" (min-width: 600px);
+@import "./or-outer.css" (min-width: 600px) or (orientation: landscape);
+@import "./not-print.css" not print;
+@import "./not-screen.css" not screen;
+@import "./layered.css" layer(outer) supports(display: grid);
+@import "./escaped-not-print.css" \6e ot \70 rint;
+@import "./escaped-or.css" (min-width: 600px) \6f r (orientation: landscape);
+@import "./escaped-nonplain.css" \31 custom;
+
+.entry {
+	color: red;
+}

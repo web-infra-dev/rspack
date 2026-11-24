@@ -163,7 +163,7 @@ description: '了解 Rspack monorepo 的目录结构，查找 Rust crate、JavaS
 ### CLI 工具
 
 - **`@rspack/cli`**: 命令行接口，提供 build、serve 和 preview 命令，用于从终端运行 Rspack
-- **`create-rspack`**: 项目脚手架工具，用于创建新的 Rspack 项目，支持多种模板（vanilla、React、Vue），同时支持 JavaScript 和 TypeScript
+- **`create-rspack`**: 项目脚手架工具，支持通过多种模板创建 Rspack 项目
 
 ### 浏览器支持
 

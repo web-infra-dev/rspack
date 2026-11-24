@@ -1,0 +1,16 @@
+{
+  "version": 3,
+  "file": "item.js",
+  "sources": [
+    "item.ts",
+    "webpack://../lib/query.ts?path=a/../b#section",
+    "webpack://../lib/fragment.ts#section/a/../b"
+  ],
+  "sourcesContent": [
+    "export const n: number = 1;",
+    "export const withQuery: number = 2;",
+    "export const withFragment: number = 3;"
+  ],
+  "names": [],
+  "mappings": "AAAA;ACAA;ACAA"
+}

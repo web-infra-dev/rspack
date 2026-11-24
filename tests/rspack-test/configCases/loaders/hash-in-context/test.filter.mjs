@@ -1,1 +1,1 @@
-export default () => "TODO: support loaderContext.utils.createHash";
+export default () => "TODO: expose hashFunction, hashDigest, hashDigestLength and hashSalt on the loader context";

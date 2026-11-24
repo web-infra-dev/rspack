@@ -3,53 +3,8 @@ import path from "node:path";
 const excludes = {
 	normal: [],
 	config: [
-		// This case expects stateful loaders to build again on every compiler.
-		/^css-extract\/rebuild-module$/,
-
-		// Module cache misses after restarting the compiler.
-		/^asset-modules\/custom-encoder$/,
-		/^asset-modules\/keep-source-maps$/,
-		/^asset-modules\/query-and-custom-encoder$/,
-		/^asset-modules\/rule-generator-publicPath$/,
-		/^asset\/filename$/,
-		/^contenthash\/assets$/,
-		/^css\/import-filter$/,
-		/^custom-modules\/json-custom$/,
-		/^json\/top-level-json-parser$/,
-		/^loader-import-module\/execute-failed$/,
-		/^loader-parallel-import-module\/execute-failed$/,
-		/^module\/rspack-issue-8785$/,
-
-		// Independent shared fallback compilers write to the same cache database as their parent.
-		/^container-1-5\/tree-shaking-shared-infer-mode$/,
-		/^container-1-5\/tree-shaking-shared-pnpm-versions$/,
-		/^container-1-5\/tree-shaking-shared-provide-only$/,
-		/^container-1-5\/tree-shaking-shared-server-mode$/,
-		/^sharing\/reshake-share$/,
-		/^sharing\/tree-shaking-shared$/,
-
-		// Loader-emitted errors or warnings are not fully restored.
-		/^source-map\/extract-source-map$/,
-
 		// Existing bundle/compiler assertions fail in the compatibility suite.
-		/^context\/import-meta-glob-case-insensitive-pruning$/,
-		/^loader\/context-module$/,
-
-		// Shared extracted CSS can retain different producers' loader dependencies.
-		/^plugins\/mini-css-extract-plugin$/,
-		// Module cache entries are not fully reused after restarting the compiler.
-		/^rsc-plugin\/client-chunk-grouping$/,
-		/^rsc-plugin\/css-link-props$/,
-		/^rsc-plugin\/entry-with-multiple-modules$/,
-		/^rsc-plugin\/on-manifest$/,
-		/^rsc-plugin\/rsc-entry-debug-comments$/,
-		/^rsc-plugin\/server-css$/,
-		/^rsc-plugin\/server-css-async-chunks-false$/,
-		/^rsc-plugin\/server-entry$/,
-		/^rsc-plugin\/tree-shaking$/,
-		/^rsc-plugin\/tree-shaking-client-barrel$/,
-		/^rsc-plugin\/with-concatenated-module$/,
-		/^rsc-plugin\/worker$/
+		/^loader\/context-module$/
 	]
 };
 

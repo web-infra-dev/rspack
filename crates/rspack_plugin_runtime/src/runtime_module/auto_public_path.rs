@@ -109,7 +109,7 @@ fn auto_public_path_template(
     Some(serde_json::json!({
       "_script_type": output.script_type,
       "_import_meta_name": import_meta_name,
-      "_undo_path": undo_path
+      "_undo_path": (!undo_path.is_empty()).then(|| rspack_util::json_stringify_str(&undo_path))
     })),
   )
 }

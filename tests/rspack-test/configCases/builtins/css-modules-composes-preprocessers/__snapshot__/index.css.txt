@@ -1,5 +1,5 @@
 Object {
-  class: _XsYe5d r_gdk2,
+  class: _6sYe5d r_gdk2,
   ghi: _2JfWaB,
   other: vgErQ5 pbdjza,
   otherClassName: IvyQ2T globalClassName,

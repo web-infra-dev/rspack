@@ -2,8 +2,10 @@ use std::sync::Arc;
 
 use rspack_error::{Diagnostic, Result};
 use rspack_fs::ReadableFileSystem;
-use rspack_loader_runner::{Content, LoaderContext, LoaderRunnerPlugin, ResourceData};
-use rspack_paths::InternedPathSet;
+use rspack_loader_runner::{
+  Content, LoaderContext, LoaderDependencies, LoaderRunnerPlugin, ResourceData,
+};
+use rspack_paths::InternedPath;
 use rspack_sources::SourceMap;
 
 use crate::{
@@ -37,8 +39,10 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
   async fn process_resource(
     &self,
     resource_data: &ResourceData,
+    diagnostics: &mut Vec<Diagnostic>,
+    dependencies: &mut LoaderDependencies,
     fs: Arc<dyn ReadableFileSystem>,
-  ) -> Result<Option<(Content, Option<SourceMap>, InternedPathSet)>> {
+  ) -> Result<Option<(Content, Option<SourceMap>)>> {
     // First try the plugin's read_resource hook
     let result = self
       .plugin_driver
@@ -62,10 +66,11 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
 
         match extract_result {
           Ok(extract_result) => {
-            // Convert file dependencies to interned paths for reuse across cache contexts.
-            let file_deps = extract_result
-              .file_dependencies
-              .map_or_default(|deps| deps.into_iter().map(Into::into).collect());
+            if let Some(file_dependencies) = extract_result.file_dependencies {
+              dependencies
+                .file
+                .extend(file_dependencies.into_iter().map(InternedPath::from));
+            }
 
             // Preserve the input type: non-raw JS loaders strip a BOM only from buffers.
             let content = if content.is_buffer() {
@@ -74,23 +79,12 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
               Content::String(extract_result.source)
             };
 
-            return Ok(Some((content, extract_result.source_map, file_deps)));
+            return Ok(Some((content, extract_result.source_map)));
           }
-          Err(e) => {
-            // If extraction fails, return original content with empty dependencies
-            // Log the error as a warning
-            self
-              .plugin_driver
-              .diagnostics
-              .lock()
-              .expect("should get lock")
-              .push(Diagnostic::warn("extractSourceMap".into(), e));
-            return Ok(Some((content, None, InternedPathSet::default())));
-          }
+          Err(e) => diagnostics.push(Diagnostic::warn("extractSourceMap".into(), e)),
         }
       }
-      // Return original content with empty dependencies when extract_source_map is disabled
-      return Ok(Some((content, None, InternedPathSet::default())));
+      return Ok(Some((content, None)));
     }
 
     // If no plugin handled it, return None so the default logic can handle it

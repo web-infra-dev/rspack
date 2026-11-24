@@ -99,10 +99,13 @@ impl SwcLoader {
       swc_options.source_file_name = Some(resource_path.as_str().to_string());
 
       if swc_options.config.jsc.target.is_some() && swc_options.config.env.is_some() {
-        loader_context.emit_diagnostic(Diagnostic::warn(
-          SWC_LOADER_IDENTIFIER.to_string(),
-          "`env` and `jsc.target` cannot be used together".to_string(),
-        ));
+        loader_context.emit_diagnostic(
+          Diagnostic::warn(
+            SWC_LOADER_IDENTIFIER.to_string(),
+            "`env` and `jsc.target` cannot be set together. Remove one of them.".into(),
+          )
+          .with_title(SWC_LOADER_IDENTIFIER),
+        );
       }
 
       #[cfg(feature = "plugin")]
@@ -235,7 +238,10 @@ impl SwcLoader {
     )?;
 
     for diagnostic in diagnostics {
-      loader_context.emit_diagnostic(Error::warning(diagnostic).into());
+      loader_context.emit_diagnostic(
+        Diagnostic::from(Error::warning(format!("\n{}", diagnostic.trim_end())))
+          .with_title(SWC_LOADER_IDENTIFIER),
+      );
     }
 
     if let Some(isolated_dts) = isolated_dts? {

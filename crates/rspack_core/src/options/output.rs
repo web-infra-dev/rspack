@@ -634,6 +634,7 @@ pub struct Environment {
   pub optional_chaining: bool,
   pub logical_assignment: bool,
   pub spread: bool,
+  pub symbol: bool,
   pub template_literal: bool,
   pub dynamic_import_in_worker: bool,
   pub import_meta_dirname_and_filename: bool,
@@ -683,6 +684,10 @@ impl Environment {
 
   pub fn supports_spread(&self) -> bool {
     self.spread
+  }
+
+  pub fn supports_symbol(&self) -> bool {
+    self.symbol
   }
 
   pub fn supports_top_level_await(&self) -> bool {

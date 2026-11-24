@@ -140,7 +140,7 @@ pub async fn resolve_for_error_hints(
         .as_std_path()
         .relative(args.context)
         .assert_utf8();
-      let suggestion = if let Some((_, [prefix])) = CURRENT_DIR_REGEX
+      let suggested_path = if let Some((_, [prefix])) = CURRENT_DIR_REGEX
         .captures_iter(args.specifier)
         .next()
         .map(|c| c.extract())
@@ -157,14 +157,15 @@ pub async fn resolve_for_error_hints(
         // then we return the full path.
         resource.path.as_str().to_string()
       };
-      return Some(format!("Did you mean '{}'?
-
-The request '{}' failed to resolve only because it was resolved as fully specified,
-probably because the origin is strict ECMAScript Module,
-e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\"type\": \"module\"'.
-
-The extension in the request is mandatory for it to be fully specified.
-Add the extension to the request.", suggestion, args.specifier));
+      let suggestion =
+        format_resolved_resource(&suggested_path, &resource.query, &resource.fragment);
+      let resolution = match args.dependency_category {
+        DependencyCategory::Esm => "Strict ESM resolution",
+        _ => "`resolve.fullySpecified`",
+      };
+      return Some(format!(
+        "Did you mean '{suggestion}'? {resolution} requires an explicit filename and extension, even for a directory's index file."
+      ));
     }
   }
 
@@ -200,7 +201,7 @@ which tries to resolve these kind of requests in the current directory too.",
   }
 
   // try to resolve relative path with extension
-  if RELATIVE_PATH_REGEX.is_match(args.specifier) {
+  if !args.resolve_to_context && RELATIVE_PATH_REGEX.is_match(args.specifier) {
     let connected_path = base_dir.join(args.specifier);
     let normalized_path = connected_path.absolutize();
 

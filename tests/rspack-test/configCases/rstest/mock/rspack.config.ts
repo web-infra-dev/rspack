@@ -85,7 +85,8 @@ __webpack_require__.rstest_require_actual = __webpack_require__.rstest_import_ac
   const originalFactory = __webpack_require__.rstest_original_module_factories[id];
   if (originalFactory) {
     const moduleInstance = { exports: {} };
-    originalFactory(moduleInstance, moduleInstance.exports, __webpack_require__);
+    // Rstest invokes a native factory directly, using its native third argument.
+    originalFactory(moduleInstance, moduleInstance.exports, ${compiler.options.experiments.runtimeMode === 'rspack' ? '__rspack_context' : '__webpack_require__'});
     __webpack_require__.rstest_original_modules[id] = moduleInstance.exports;
     return moduleInstance.exports;
   }
@@ -269,6 +270,7 @@ export default defineConfig([
   rstestEntry('./importActualHoisted.js'),
   rstestEntry('./importActualTransitive.js'),
   rstestEntry('./importActualSpreadTransitive.js'),
+  rstestEntry('./importActualCjsDefault.js'),
   rstestEntry('./requireActual.js'),
   rstestEntry('./doMockRequire.js'),
   rstestEntry('./unmockRequire.js'),
@@ -315,6 +317,7 @@ export default defineConfig([
       'rstack/test': 'commonjs rstack/test',
     },
   },
+  rstestEntry('./hoisted-cjs-default.js'),
   {
     ...rstestEntry('./doMockExpression.js'),
     externals: {

@@ -225,7 +225,7 @@ type ExternalFunction = (
 ) => ExternalItemValue | void | Promise<ExternalItemValue | void>;
 ```
 
-如果需要根据模块请求或其他模块信息决定是否将依赖外部化，可以使用函数。函数可以直接返回结果、返回 Promise，或调用回调。
+如果需要根据模块请求或其他模块信息决定是否将依赖外部化，可以使用函数。函数可以直接返回结果、返回 Promise，或调用回调。建议在满足需求的前提下使用非函数形式，以减少[性能开销](#performance-overhead)。
 
 例如，下面的配置将 `react` 及其子路径保留为 ES 模块导入：
 
@@ -393,6 +393,13 @@ externals: {
 
 这些 external 可能在懒模块激活前加载，包括来自从未命中可达模块的规则的 external，因此必须在库加载时就可用。用于匹配请求的 externals 函数和 `RegExp` 分支无法枚举，不能提前预留；函数形式的 `byLayer` 选择器返回对象或字符串时可以枚举。
 :::
+
+## 性能开销 \{#performance-overhead}
+
+函数形式的 [`externals`](#function) 会在检查模块请求时触发跨语言调用，增加构建开销。
+
+- 在满足需求的前提下，建议使用非函数形式，让 Rspack 直接在 Rust 中完成匹配。
+- 使用函数时，尽量根据 `request` 等已有信息判断是否需要外部化，避免不必要的[请求解析](#resolving-requests)和文件读取。
 
 ## externalsType
 
@@ -585,95 +592,27 @@ async function foo() {
 
 ### externalsType['module-import']
 
-将 externals 的默认类型指定为 `'module-import'`。这将结合 [`'module'`](#externalstypemodule) 和 [`'import'`](#externalstypeimport)。Rspack 将自动检测导入语法的类型，对于静态导入设置为 `'module'`，对于动态导入设置为 `'import'`。
-
-**示例**
-
-```js
-import { attempt } from 'lodash';
-
-async function foo() {
-  const jq = await import('jquery');
-  attempt(() => jq('.my-element').animate(/* ... */));
-}
-```
+使用 `'module-import'` 时，Rspack 会在产物中保留对外部依赖的 ESM 导入。在下面的配置下，源码中的 `import { z } from 'zod'` 会在运行时加载 Zod。如果使用 `import()`，则会按需加载 Zod。
 
 ```js title="rspack.config.mjs"
 export default {
-  externalsType: 'module-import',
-  externals: {
-    jquery: 'jquery',
+  output: {
+    module: true,
   },
-};
-```
-
-将会转换为类似下面的代码：
-
-```js
-import * as __rspack_external_lodash from 'lodash';
-const lodash = __rspack_external_jquery;
-
-var __webpack_modules__ = {
-  jquery: (module) => {
-    module.exports = import('jquery');
-  },
-};
-
-// Rspack runtime...
-
-async function foo() {
-  const jq = await Promise.resolve(/* import() */).then(
-    __webpack_require__.bind(__webpack_require__, 'jquery'),
-  );
-  (0, lodash.attempt)(() => jq('.my-element').animate(/* ... */));
-}
-```
-
-请注意，在输出产物中将有 `import` 或 `import()` 语句。
-
-当一个模块没有通过 `import` 或 `import()` 导入时，Rspack 将使用 `"module"` externals type 作为回退。如果你想使用不同类型的 externals 作为回退，你可以在 `externals` 选项中指定一个函数。例如：
-
-```js title="rspack.config.mjs"
-export default {
   externalsType: 'module-import',
-  externals: [
-    function ({ request, dependencyType }, callback) {
-      if (dependencyType === 'commonjs') {
-        return callback(null, `node-commonjs ${request}`);
-      }
-      callback();
-    },
-  ],
+  externals: ['zod'],
 };
 ```
+
+:::tip
+当 `output.module` 为 `true` 且未配置 `output.library` 时，`externalsType` 默认为 `'module-import'`，可以省略。
+:::
+
+如果源码写的是 `require('zod')`，`'module-import'` 也会通过顶层 `import` 加载 Zod。要保留 CommonJS 的加载方式，可以使用 [`'modern-module'`](#externalstypemodern-module)。
 
 ### externalsType['modern-module']
 
-将 externals 的默认类型指定为 `'modern-module'`。
-
-出于兼容性考虑，Rspack 暂时不会在 [`output.library.type`](/config/output#outputlibrarytype) 为 `'modern-module'` 时自动启用它。请显式配置 `externalsType: 'modern-module'` 来开启。下一个 major 版本中，它会成为 `modern-module` library 的默认值。
-
-对于静态 ESM import，Rspack 会像 [`'module'`](#externalstypemodule) 一样渲染 external，生成静态 `import` 语句。对于动态 `import()`，Rspack 会像 [`'module-import'`](#externalstypemodule-import) 一样渲染 external，生成 `import()`。
-
-对于 CommonJS `require()`，Rspack 会根据 target 选择 CommonJS external 变体。Node-like target 会像 [`'node-commonjs'`](#externalstypenode-commonjs) 一样渲染 external，在生成的 ESM 产物中通过 `createRequire` 构造 `require` 函数。其他 target 会像 [`'commonjs'`](#externalstypecommonjs) 一样渲染 external，保留裸 `require()` 调用。
-
-**示例**
-
-```js title="src/index.js"
-import { readFile } from 'node:fs/promises';
-
-const path = require('node:path');
-
-export async function loadConfig(file) {
-  const os = await import('node:os');
-  const content = await readFile(file, 'utf-8');
-  return {
-    content,
-    dirname: path.dirname(file),
-    platform: os.platform(),
-  };
-}
-```
+如果你的 Node.js 库输出 ESM，并且需要通过 `require()` 加载外部依赖，可以使用 `'modern-module'`。下面以 `zod` 为例。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -684,26 +623,13 @@ export default {
     },
   },
   externalsType: 'modern-module',
-  externals: ['node:fs/promises', 'node:path', 'node:os'],
+  externals: ['zod'],
 };
 ```
 
-因为这个示例的 target 是 Node.js，生成的 ESM 产物会保留静态 import 为 `import` 语句，保留动态 import 为 `import()`，并通过 `createRequire` 渲染 `require()` external：
+使用 `'modern-module'` 时，产物会保留源码中导入外部依赖的 ESM 写法。如果源码调用 `require('zod')`，Rspack 会在产物中通过 `createRequire(import.meta.url)` 创建 `require` 函数，再用它加载 Zod。
 
-```js
-import { createRequire as __rspack_createRequire } from 'node:module';
-import { readFile } from 'node:fs/promises';
-
-const __rspack_createRequire_require = __rspack_createRequire(import.meta.url);
-const path = __rspack_createRequire_require('node:path');
-
-async function loadConfig(file) {
-  const os = await import('node:os');
-  // ...
-}
-
-export { loadConfig };
-```
+如果省略示例中的 `externalsType`，Rspack 会使用默认的 [`'module-import'`](#externalstypemodule-import)，将 `require('zod')` 转为顶层 `import`。
 
 ### externalsType['commonjs-import']
 

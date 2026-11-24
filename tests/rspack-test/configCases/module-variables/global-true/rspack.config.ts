@@ -5,6 +5,9 @@ export default defineConfig({
   entry: {
     main: './index',
   },
+  output: {
+    environment: { globalThis: true },
+  },
   node: {
     global: true,
   },

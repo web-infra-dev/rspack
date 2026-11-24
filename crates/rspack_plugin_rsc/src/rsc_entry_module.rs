@@ -12,8 +12,8 @@ use rspack_core::{
   BuildMetaExportsType, CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock,
   DependenciesBlockData, DependencyRange, FactoryMetaStore, FreezeLock, ImportPhase,
   LibIdentOptions, Module, ModuleCodeGenerationContext, ModuleGraph, ModuleIdentifier, ModuleLayer,
-  ModuleType, ReferencedSpecifier, RuntimeSpec, SourceType, contextify, impl_module_meta_info,
-  impl_source_map_config, module_update_hash,
+  ModuleType, NeedBuildContext, ReferencedSpecifier, RuntimeSpec, SourceType, contextify,
+  impl_module_meta_info, impl_source_map_config, module_update_hash,
   rspack_sources::{BoxSource, RawStringSource, SourceExt},
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
@@ -234,6 +234,11 @@ impl Module for RscEntryModule {
     self.layer.as_ref()
   }
 
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    // The identifier includes all inputs used to build this generated entry.
+    Ok(self.build_meta.frozen().is_none())
+  }
+
   async fn build(
     mut self: Box<Self>,
     _build_context: Arc<BuildContext>,
@@ -252,7 +257,7 @@ impl Module for RscEntryModule {
           ImportPhase::Evaluation,
         );
         if let Some(referenced_specifiers) = referenced_specifiers {
-          dep.set_referenced_specifiers(referenced_specifiers, true);
+          dep.set_referenced_specifiers(referenced_specifiers);
         }
         dependencies.push(BoxDependency::new(dep));
       }
@@ -429,8 +434,7 @@ fn create_identifier(
 }
 
 fn push_client_modules(identifier: &mut String, client_modules: &[ClientModuleImport]) {
-  let mut client_modules = client_modules.iter().collect::<Vec<_>>();
-  client_modules.sort_unstable_by(|a, b| a.request.cmp(&b.request));
+  // Module order can affect side effects, so it must also affect the identity.
   for client_module in client_modules {
     push_value(identifier, &client_module.request);
     identifier.push('[');
@@ -480,8 +484,6 @@ fn append_client_modules_debug_section(
     return;
   }
 
-  let mut client_modules = client_modules.iter().collect::<Vec<_>>();
-  client_modules.sort_unstable_by(|a, b| a.request.cmp(&b.request));
   append_debug_section_header(
     source,
     chunk_group,
@@ -531,8 +533,6 @@ fn append_server_entry_debug_section(
   }
 
   if let Some(client_modules) = client_modules {
-    let mut client_modules = client_modules.iter().collect::<Vec<_>>();
-    client_modules.sort_unstable_by(|a, b| a.request.cmp(&b.request));
     for client_module in client_modules {
       let request = contextify(
         compilation.options.context.as_path(),

@@ -862,7 +862,11 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   compilation
     .missing_dependencies
     .extend(missing_dependencies.into_iter().map(Into::into));
-  compilation.extend_diagnostics(diagnostics);
+  compilation.extend_diagnostics(
+    diagnostics
+      .into_iter()
+      .map(|diagnostic| diagnostic.with_title("CopyRspackPlugin")),
+  );
 
   let permission_copies = self.emit_pattern_results(compilation, results_by_pattern);
   logger.time_end(start);

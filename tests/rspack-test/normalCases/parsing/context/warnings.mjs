@@ -1,5 +1,5 @@
 export default [
-	[/Critical dependency/, { moduleName: /templateLoader\.js/ }],
+	[/Rspack cannot determine which modules to bundle/, { moduleName: /templateLoader\.js/ }],
 	[/Critical dependency/, { moduleName: /templateLoaderIndirect\.js/ }],
 	[/Critical dependency/, { moduleName: /templateLoaderIndirect\.js/ }]
 ];

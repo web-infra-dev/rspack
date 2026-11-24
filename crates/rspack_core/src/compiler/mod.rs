@@ -4,7 +4,7 @@ use std::sync::{Arc, atomic::AtomicU32};
 use arc_swap::ArcSwapOption;
 use futures::future::join_all;
 use rspack_cacheable::cacheable;
-use rspack_error::Result;
+use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
 use rspack_paths::{InternedPath, Utf8Path, Utf8PathBuf};
@@ -52,7 +52,7 @@ define_hook!(CompilerAfterEmit: Series(compilation: &mut Compilation));
 define_hook!(CompilerAssetEmitted: Series(compilation: &Compilation, filename: &str, info: &AssetEmittedInfo));
 define_hook!(CompilerClose: Series(compilation: &Compilation));
 define_hook!(CompilerDone: Series(compilation: &Compilation));
-define_hook!(CompilerFailed: Series(compilation: &Compilation));
+define_hook!(CompilerFailed: Series(compilation: &Compilation, error: &Error));
 
 #[derive(Debug, Default)]
 pub struct CompilerHooks {
@@ -266,7 +266,7 @@ impl Compiler {
           .plugin_driver
           .compiler_hooks
           .failed
-          .call(&self.compilation)
+          .call(&self.compilation, &e)
           .await;
         failed.and(Err(e))
       }
@@ -333,8 +333,6 @@ impl Compiler {
         self.compiler_context.clone(),
       ),
     );
-    self.cache.before_compile(&mut self.compilation).await;
-
     self.compile().await?;
     self
       .plugin_driver
@@ -377,6 +375,9 @@ impl Compiler {
       .compilation
       .call(&mut self.compilation, &mut compilation_params)
       .await?;
+
+    // Validate snapshots after the compilation hooks can write virtual files.
+    self.cache.before_compile(&mut self.compilation).await;
 
     let logger = self.compilation.get_logger("rspack.Compiler");
     let start = logger.time("seal compilation");

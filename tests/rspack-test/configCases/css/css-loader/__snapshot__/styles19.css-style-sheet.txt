@@ -19,7 +19,7 @@ Object {
   ?: prefix-./local-Ident-name.module.css?local-ident-name-9---?---ai35MS-postfix,
   @: prefix-./local-Ident-name.module.css?local-ident-name-9---@---aCi8pI-postfix,
   B&W?: prefix-./local-Ident-name.module.css?local-ident-name-9---B&W?---E3Nl3Y-postfix,
-  [attr=value]: prefix-./local-Ident-name.module.css?local-ident-name-9---[attr=value]---XsSHZ6-postfix,
+  [attr=value]: prefix-./local-Ident-name.module.css?local-ident-name-9---[attr=value]---5sSHZ6-postfix,
   _: prefix-./local-Ident-name.module.css?local-ident-name-9---_---GDSZLn-postfix,
   _test: prefix-./local-Ident-name.module.css?local-ident-name-9---_test---utht9q-postfix,
   className: prefix-./local-Ident-name.module.css?local-ident-name-9---className---0Xo17Z-postfix,

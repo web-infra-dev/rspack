@@ -190,8 +190,11 @@ impl LocalIdentRenderCache {
     let content_hash = if compiled_template.has_placeholder(PlaceholderKind::ContentHash) {
       let mut hasher = RspackHasher::new(&output.hash_function);
       hasher.write(options.source.as_bytes());
-      let hash = hasher.digest(&output.hash_digest);
-      non_numeric_only_hash(hash.encoded(), output.hash_digest_length)
+      hasher
+        .digest(&output.hash_digest)
+        .non_numeric_only(output.hash_digest_length)
+        .rendered(output.hash_digest_length)
+        .to_string()
     } else {
       String::new()
     };
@@ -437,24 +440,6 @@ struct LocalIdentNameRenderOptions<'a> {
   local_ident_hash: &'a str,
   unique_name: &'a str,
   folder: &'a str,
-}
-
-fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
-  if hash_length < 1 {
-    return String::new();
-  }
-  let len = hash_length.min(hash.len());
-  let slice = &hash[..len];
-  if slice.bytes().any(|b| !b.is_ascii_digit()) {
-    return slice.to_string();
-  }
-  let first = hash
-    .as_bytes()
-    .first()
-    .copied()
-    .filter(u8::is_ascii_digit)
-    .map_or(0, |b| b - b'0');
-  format!("{}{}", char::from(b'a' + (first % 6)), &slice[1..])
 }
 
 impl LocalIdentNameRenderOptions<'_> {

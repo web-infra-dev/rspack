@@ -1,10 +1,11 @@
-use std::sync::LazyLock;
+use std::{fmt::Write, sync::LazyLock};
 
 use rspack_core::{
   ChunkKind, ChunkUkey, Compilation, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
-  RuntimeProxyMetadata, RuntimeVariable, SourceType, property_access, render_lexical_declarations,
+  RuntimeModuleSourceKind, RuntimeProxyMetadata, RuntimeVariable, SourceType, property_access,
+  render_lexical_declarations,
   rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
-  runtime_module_owned_define_fields,
+  runtime_module_owned_define_fields, runtime_variable_name,
 };
 use rspack_error::Result;
 
@@ -180,12 +181,133 @@ pub fn render_runtime_context_require_assignment(runtime_template: &RuntimeCodeT
   )
 }
 
+fn append_runtime_bridge(
+  sources: &mut ConcatSource,
+  runtime_template: &RuntimeCodeTemplate,
+  bootstrap_fields: RuntimeGlobals,
+) {
+  let require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
+  let modules = runtime_template.render_runtime_variable(&RuntimeVariable::Modules);
+  let cache = runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache);
+  let webpack_require = runtime_variable_name(&RuntimeVariable::Require);
+  let webpack_modules = runtime_variable_name(&RuntimeVariable::Modules);
+  let webpack_cache = runtime_variable_name(&RuntimeVariable::ModuleCache);
+  let context = runtime_variable_name(&RuntimeVariable::Context);
+  let mut code = format!(
+    "// webpack runtime module bridge\nvar {webpack_require} = {require}, {webpack_modules} = {modules}, {webpack_cache} = {cache};\n"
+  );
+  if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
+    writeln!(code, "var {context} = {{}};").expect("write to string");
+  }
+  // Modules use the native context, including when a plugin adds fields to its loader.
+  write!(
+    code,
+    r#"Object.defineProperty({context}, "r", {{
+  configurable: true, enumerable: true,
+  get: function() {{ return {webpack_require}; }},
+  set: function(value) {{
+    if (this === {context}) {{ {webpack_require} = value; {require} = value; }}
+    else Object.defineProperty(this, "r", {{ configurable: true, writable: true, value: value }});
+  }}
+}});
+Object.setPrototypeOf({context}, typeof Proxy === "function" ? new Proxy({{}}, {{
+  get: function(_, key, receiver) {{
+    var loader = Object.prototype.hasOwnProperty.call(receiver, "r") ? receiver.r : {webpack_require};
+    return key in loader ? loader[key] : {webpack_require}[key];
+  }},
+  set: function(_, key, value, receiver) {{
+    var loader = Object.prototype.hasOwnProperty.call(receiver, "r") ? receiver.r : {webpack_require};
+    return Reflect.set(loader, key, value);
+  }}
+}}) : {webpack_require});
+"#,
+  )
+  .expect("write to string");
+  write_runtime_bridge_fields(&mut code, runtime_template, bootstrap_fields);
+  sources.add(RawStringSource::from(code));
+}
+
+fn write_runtime_bridge_fields(
+  code: &mut String,
+  runtime_template: &RuntimeCodeTemplate,
+  fields: RuntimeGlobals,
+) {
+  let context = runtime_variable_name(&RuntimeVariable::Context);
+  let webpack_require = runtime_variable_name(&RuntimeVariable::Require);
+  for (_, global) in fields.renderable_require_scope().iter_names() {
+    let (Some(key), Some(native_key), Some(lexical)) = (
+      global.property_name(),
+      global.rspack_context_property_name(),
+      global.to_lexical_name(),
+    ) else {
+      continue;
+    };
+    let binding = if global == RuntimeGlobals::MODULE_FACTORIES {
+      runtime_template.render_runtime_variable(&RuntimeVariable::Modules)
+    } else if global == RuntimeGlobals::MODULE_CACHE {
+      runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache)
+    } else {
+      lexical.to_owned()
+    };
+    let context_key = rspack_util::json_stringify(native_key);
+    let webpack_key = rspack_util::json_stringify(key);
+    let context_field = format!("{context}{}", property_access([native_key], 0));
+    // The loader reads the context accessor that the current hot update installed.
+    writeln!(
+      code,
+      "Object.defineProperty({context}, {context_key}, {{ configurable: true, enumerable: true, get: function() {{ return {binding}; }}, set: function(value) {{ {binding} = value; }} }});\nObject.defineProperty({webpack_require}, {webpack_key}, {{ configurable: true, enumerable: true, get: function() {{ return {context_field}; }}, set: function(value) {{ {context_field} = value; }} }});",
+    )
+    .expect("write to string");
+  }
+}
+
+fn append_runtime_module_bridge_fields(
+  sources: &mut ConcatSource,
+  runtime_template: &RuntimeCodeTemplate,
+  pending: &mut RuntimeGlobals,
+  provided: RuntimeGlobals,
+) {
+  let fields = pending.intersection(provided);
+  if !fields.is_empty() {
+    // Earlier modules can inspect or replace the loader before these helpers are installed.
+    let mut code = String::new();
+    write_runtime_bridge_fields(&mut code, runtime_template, fields);
+    sources.add(RawStringSource::from(code));
+    pending.remove(fields);
+  }
+}
+
+fn append_runtime_bridge_aliases(sources: &mut ConcatSource, template: &RuntimeCodeTemplate) {
+  let runtime_argument = template.render_runtime_argument();
+  let webpack_require = runtime_variable_name(&RuntimeVariable::Require);
+  let webpack_modules = runtime_variable_name(&RuntimeVariable::Modules);
+  let webpack_cache = runtime_variable_name(&RuntimeVariable::ModuleCache);
+  let mut code = String::new();
+  let loader = if template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
+    let context = runtime_variable_name(&RuntimeVariable::Context);
+    // ESM uses its exported loader as the runtime scope.
+    writeln!(code, "var {context} = {runtime_argument};").expect("write to string");
+    runtime_argument
+  } else {
+    format!("{runtime_argument}.r")
+  };
+  let factories = RuntimeGlobals::MODULE_FACTORIES
+    .property_name()
+    .expect("module factories");
+  let cache = RuntimeGlobals::MODULE_CACHE
+    .property_name()
+    .expect("module cache");
+  writeln!(code, "var {webpack_require} = {loader}, {webpack_modules} = {webpack_require}.{factories}, {webpack_cache} = {webpack_require}.{cache};")
+    .expect("write to string");
+  sources.add(RawStringSource::from(code));
+}
+
 pub async fn render_runtime_chunk_runtime_modules(
   compilation: &Compilation,
   chunk_ukey: &ChunkUkey,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
-  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
+  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey).await?;
   Ok(render_runtime_chunk_runtime_modules_sync(
     compilation,
     chunk_ukey,
@@ -202,13 +324,14 @@ fn render_runtime_chunk_runtime_modules_sync(
   runtime_module_sources: Vec<RuntimeModuleSourceItem>,
 ) -> BoxSource {
   let mut sources = ConcatSource::default();
-  if runtime_module_sources.is_empty() {
-    return sources.boxed();
-  }
   let metadata = compilation
     .runtime_proxy_metadata_artifact
     .get(chunk_ukey)
     .expect("should generate runtime metadata");
+  let bridged = metadata.runtime_module_bridge.owner;
+  if runtime_module_sources.is_empty() && !bridged {
+    return sources.boxed();
+  }
   let runtime_context = runtime_template.render_runtime_variable(&RuntimeVariable::Context);
   let module_graph = compilation.get_module_graph();
   let has_modules = !compilation
@@ -277,6 +400,25 @@ fn render_runtime_chunk_runtime_modules_sync(
     metadata.tree_runtime_requirements,
     bootstrap_runtime_requirements,
   );
+  let (bootstrap_bridge_fields, mut pending_bridge_fields) = if bridged {
+    let provided = runtime_module_sources
+      .iter()
+      .fold(RuntimeGlobals::default(), |fields, item| {
+        fields | item.requirements.define
+      });
+    // Only publish installed helpers, never an optional weak dependency.
+    let bootstrap_fields = lexical_fields
+      .intersection(bootstrap_runtime_requirements)
+      .difference(provided.difference(*BOOTSTRAP_EXPORT_GLOBALS));
+    (
+      bootstrap_fields,
+      lexical_fields
+        .intersection(provided)
+        .difference(bootstrap_fields),
+    )
+  } else {
+    (RuntimeGlobals::default(), RuntimeGlobals::default())
+  };
   if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackExport {
     sources.add(RawStringSource::from(render_lexical_declarations(
       lexical_fields
@@ -284,23 +426,33 @@ fn render_runtime_chunk_runtime_modules_sync(
         .difference(*BOOTSTRAP_EXPORT_GLOBALS),
       Some(&render_runtime_global),
     )));
+    if bridged {
+      append_runtime_bridge(&mut sources, runtime_template, bootstrap_bridge_fields);
+    }
     if is_hmr_runtime {
       let require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
       let modules = runtime_template.render_runtime_globals(&RuntimeGlobals::MODULE_FACTORIES);
       let module_cache = runtime_template.render_runtime_variable(&RuntimeVariable::ModuleCache);
-      sources.add(RawStringSource::from(format!(
+      if bridged {
+        let context = runtime_variable_name(&RuntimeVariable::Context);
+        sources.add(RawStringSource::from(format!(
+          "var {runtime_context}={context};\n"
+        )));
+      } else {
+        sources.add(RawStringSource::from(format!(
         "var {runtime_context}={require};{runtime_context}.r={require};{runtime_context}.m={modules};{runtime_context}.c={module_cache};\n"
       )));
-      sources.add(RawStringSource::from(render_runtime_context_accessors(
-        (metadata.context_fields() | metadata.context_setter_fields()).difference(
-          RuntimeGlobals::REQUIRE
-            | RuntimeGlobals::REQUIRE_SCOPE
-            | RuntimeGlobals::MODULE_FACTORIES
-            | RuntimeGlobals::MODULE_CACHE,
-        ),
-        &runtime_context,
-        runtime_template,
-      )));
+        sources.add(RawStringSource::from(render_runtime_context_accessors(
+          (metadata.context_fields() | metadata.context_setter_fields()).difference(
+            RuntimeGlobals::REQUIRE
+              | RuntimeGlobals::REQUIRE_SCOPE
+              | RuntimeGlobals::MODULE_FACTORIES
+              | RuntimeGlobals::MODULE_CACHE,
+          ),
+          &runtime_context,
+          runtime_template,
+        )));
+      }
     }
     if metadata
       .lexical_fields()
@@ -316,13 +468,24 @@ fn render_runtime_chunk_runtime_modules_sync(
     let mut emitted_setters = RuntimeGlobals::default();
     let setters = metadata.context_setter_fields();
     let mut remaining_setters = setters;
-    for (runtime_module_source, generated_requirements, context_requirements, _) in
-      runtime_module_sources
-    {
-      sources.add(runtime_module_source);
-      let mut context_fields = metadata.context_fields().intersection(context_requirements);
+    for item in runtime_module_sources {
+      append_runtime_module_bridge_fields(
+        &mut sources,
+        runtime_template,
+        &mut pending_bridge_fields,
+        item.requirements.define,
+      );
+      sources.add(item.source);
+      let mut context_fields = metadata
+        .context_fields()
+        .intersection(item.requirements.define | item.requirements.force_context);
       if is_hmr_runtime {
-        context_fields.insert(generated_requirements.renderable_require_scope());
+        context_fields.insert(
+          item
+            .requirements
+            .lexical_requirements()
+            .renderable_require_scope(),
+        );
         context_fields.remove(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
       }
       let context_setters = context_fields.intersection(setters);
@@ -345,12 +508,26 @@ fn render_runtime_chunk_runtime_modules_sync(
       &mut emitted_setters,
     )));
 
+    if bridged {
+      let require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
+      let webpack_require = runtime_variable_name(&RuntimeVariable::Require);
+      sources.add(RawStringSource::from(format!(
+        "{require} = {webpack_require};\n"
+      )));
+    }
     return sources.boxed();
   }
   wrapped_sources.add(RawStringSource::from(render_lexical_declarations(
     lexical_fields.difference(runtime_module_owned_define_fields(compilation, chunk_ukey)),
     Some(&render_runtime_global),
   )));
+  if bridged {
+    append_runtime_bridge(
+      &mut wrapped_sources,
+      runtime_template,
+      bootstrap_bridge_fields,
+    );
+  }
   if metadata
     .lexical_fields()
     .intersects(*HMR_RUNTIME_STATE_GLOBALS)
@@ -359,17 +536,31 @@ fn render_runtime_chunk_runtime_modules_sync(
       wrapped_sources.add(RawStringSource::from(format!("var hmrS_{key};\n")));
     }
   }
-  for (runtime_module_source, generated_requirements, context_requirements, needs_top_level) in
-    runtime_module_sources
-  {
-    if isolate && needs_top_level {
-      sources.add(runtime_module_source);
+  for item in runtime_module_sources {
+    append_runtime_module_bridge_fields(
+      &mut wrapped_sources,
+      runtime_template,
+      &mut pending_bridge_fields,
+      item.requirements.define,
+    );
+    if isolate && item.needs_top_level {
+      sources.add(item.source);
     } else {
-      wrapped_sources.add(runtime_module_source);
+      wrapped_sources.add(item.source);
     }
-    let mut context_fields = metadata.context_fields().intersection(context_requirements);
+    if bridged {
+      continue;
+    }
+    let mut context_fields = metadata
+      .context_fields()
+      .intersection(item.requirements.define | item.requirements.force_context);
     if is_hmr_runtime {
-      context_fields.insert(generated_requirements.renderable_require_scope());
+      context_fields.insert(
+        item
+          .requirements
+          .lexical_requirements()
+          .renderable_require_scope(),
+      );
       context_fields.remove(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
     }
     let setters = metadata.context_setter_fields();
@@ -403,6 +594,15 @@ fn render_runtime_chunk_runtime_modules_sync(
       }
     }
   }
+  // A runtime extension can wrap the loader itself. Native runtime modules and
+  // later chunks must observe the same callable as the extension after startup.
+  if bridged {
+    let require = runtime_template.render_runtime_variable(&RuntimeVariable::Require);
+    let webpack_require = runtime_variable_name(&RuntimeVariable::Require);
+    wrapped_sources.add(RawStringSource::from(format!(
+      "{require} = {webpack_require};\n"
+    )));
+  }
   if isolate {
     sources.add(RawStringSource::from_static("(function() {\n"));
     sources.add(wrapped_sources);
@@ -421,7 +621,7 @@ pub async fn render_chunk_runtime_modules(
   chunk_ukey: &ChunkUkey,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
-  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
+  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey).await?;
   let mut sources = ConcatSource::default();
   if runtime_module_sources.is_empty() {
     return Ok(sources.boxed());
@@ -436,6 +636,9 @@ pub async fn render_chunk_runtime_modules(
     .contains(RuntimeGlobals::HMR_DOWNLOAD_MANIFEST);
 
   sources.add(RawStringSource::from_static("(function() {\n"));
+  if metadata.runtime_module_bridge.source == RuntimeModuleSourceKind::NeedsBridge {
+    append_runtime_bridge_aliases(&mut sources, runtime_template);
+  }
   let render_context_field = |runtime_global: RuntimeGlobals| {
     runtime_global
       .rspack_context_property_name()
@@ -457,13 +660,18 @@ pub async fn render_chunk_runtime_modules(
     Some(&render_runtime_global),
   )));
 
-  for (runtime_module_source, generated_requirements, context_requirements, _) in
-    runtime_module_sources
-  {
-    sources.add(runtime_module_source);
-    let mut context_fields = metadata.context_fields().intersection(context_requirements);
+  for item in runtime_module_sources {
+    sources.add(item.source);
+    let mut context_fields = metadata
+      .context_fields()
+      .intersection(item.requirements.define | item.requirements.force_context);
     if is_hmr_runtime {
-      context_fields.insert(generated_requirements.renderable_require_scope());
+      context_fields.insert(
+        item
+          .requirements
+          .lexical_requirements()
+          .renderable_require_scope(),
+      );
       context_fields.remove(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
     }
 
@@ -508,7 +716,7 @@ pub async fn render_hot_update_chunk_runtime_modules(
   chunk_ukey: &ChunkUkey,
   runtime_template: &RuntimeCodeTemplate,
 ) -> Result<BoxSource> {
-  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey, true).await?;
+  let runtime_module_sources = render_runtime_module_sources(compilation, chunk_ukey).await?;
   let mut sources = ConcatSource::default();
   if runtime_module_sources.is_empty() {
     return Ok(sources.boxed());
@@ -516,6 +724,9 @@ pub async fn render_hot_update_chunk_runtime_modules(
   let metadata = runtime_context_current_chunk_metadata(compilation, chunk_ukey);
 
   let runtime_context = runtime_template.render_runtime_argument();
+  if metadata.runtime_module_bridge.source == RuntimeModuleSourceKind::NeedsBridge {
+    append_runtime_bridge_aliases(&mut sources, runtime_template);
+  }
   let mut hmr_state_keys = Vec::new();
   for runtime_module_id in compilation
     .build_chunk_graph_artifact
@@ -580,12 +791,17 @@ pub async fn render_hot_update_chunk_runtime_modules(
     "var {require}={runtime_context}.r,{modules}={runtime_context}.m,{module_cache}={runtime_context}.c;\n"
   )));
 
-  for (runtime_module_source, generated_requirements, _, _) in runtime_module_sources {
-    sources.add(runtime_module_source);
+  for item in runtime_module_sources {
+    sources.add(item.source);
     let mut context_fields = metadata
       .context_fields()
-      .intersection(generated_requirements);
-    context_fields.insert(generated_requirements.renderable_require_scope());
+      .intersection(item.requirements.lexical_requirements());
+    context_fields.insert(
+      item
+        .requirements
+        .lexical_requirements()
+        .renderable_require_scope(),
+    );
     context_fields.remove(RuntimeGlobals::REQUIRE | RuntimeGlobals::REQUIRE_SCOPE);
     if context_fields.is_empty() {
       continue;

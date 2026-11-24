@@ -8,7 +8,7 @@ Object {
   class-local-scope: hEbxEV,
   class-with-composes: X-AaD8 _2qNGmq global-class global-class-other _0QESIz,
   container: ULIwdV,
-  extend-thumbs: _XsAoSR,
+  extend-thumbs: _2sAoSR,
   foo: MuV03G,
   hash: G-wEV1,
   header: inePMa,

@@ -205,10 +205,7 @@ async fn render_chunk(
       }
       source.add(RawStringSource::from_static("\n}\n"));
     }
-    if ChunkGraph::get_chunk_runtime_requirements(compilation, chunk_ukey)
-      .contains(RuntimeGlobals::HMR_CHUNK_VERSIONS)
-      && let Some(version) = get_hmr_chunk_version(compilation, chunk)
-    {
+    if let Some(version) = get_hmr_chunk_version(compilation, chunk) {
       if !has_entry && !has_runtime_modules {
         source.add(RawStringSource::from_static(",0"));
       }

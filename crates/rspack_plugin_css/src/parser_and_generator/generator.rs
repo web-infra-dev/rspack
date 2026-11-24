@@ -3,9 +3,10 @@ use std::borrow::Cow;
 use concat_string::concat_string;
 use rspack_core::{
   ChunkGraph, Compilation, Context, CssBuildInfo, CssExportType, CssModuleRenderCondition,
-  Dependency, DependencyCodeGeneration, DependencyId, DependencyType, GenerateContext, Module,
-  ModuleArgument, ModuleIdentifier, ModuleInitFragments, RESERVED_IDENTIFIER, RuntimeGlobals,
-  SourceType, TemplateContext, UsageState, UsedNameItem, css_module_render_conditions_identifier,
+  Dependency, DependencyCodeGeneration, DependencyId, DependencyType, ExternalModule,
+  GenerateContext, Module, ModuleArgument, ModuleIdentifier, ModuleInitFragments,
+  RESERVED_IDENTIFIER, RuntimeGlobals, SourceType, TemplateContext, UsageState, UsedNameItem,
+  css_module_render_conditions_identifier,
   rspack_sources::{BoxSource, OriginalSource, RawStringSource, ReplaceSource, Source, SourceExt},
   to_identifier,
 };
@@ -17,11 +18,14 @@ use smol_str::SmolStr;
 
 use super::walker::{CssExportRequirements, CssModuleGraphSink, CssModuleGraphWalker};
 use crate::{
-  css_exports::{css_export_dependency, css_export_name, find_css_export_target, find_export},
+  css_exports::{
+    css_export_dependency, css_export_name, find_css_export_target, find_export,
+    resolve_imported_local_ident,
+  },
   css_syntax::{escape_identifier, unescape_identifier},
   dependency::{
-    CssIcssExportDependency, CssIcssImportDependency, CssIcssSymbolDependency, CssIcssSymbolKind,
-    CssImportDependency,
+    CssExportKind, CssIcssExportDependency, CssIcssImportDependency, CssIcssSymbolDependency,
+    CssIcssSymbolKind, CssImportDependency,
   },
   parser_and_generator::{
     CodeGenerationDataUnusedLocalIdent, CssExportsRef, CssSourceBuilder, get_used_exports,
@@ -326,8 +330,14 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
       {
         // Local symbols such as `animation: spin` keep their definitions alive
         // even though rendering the use only needs the generated identifier.
-        roots.entry(symbol.target).or_default().css |=
-          render_css && symbol.kind == CssIcssSymbolKind::IcssReference;
+        let needs_css_value = match symbol.kind {
+          CssIcssSymbolKind::IcssReference => true,
+          CssIcssSymbolKind::IcssSelectorReference => {
+            resolve_imported_local_ident(self.generate_context.compilation, symbol.target).is_none()
+          }
+          _ => false,
+        };
+        roots.entry(symbol.target).or_default().css |= render_css && needs_css_value;
       }
     }
     roots
@@ -375,10 +385,16 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     module: &dyn Module,
     definition: &CssIcssExportDependency,
   ) -> String {
+    let (target_module, target_definition) = match definition.kind {
+      CssExportKind::ImportedSelector { import } => {
+        resolve_imported_local_ident(compilation, import).unwrap_or((module, definition))
+      }
+      _ => (module, definition),
+    };
     escape_identifier(&replace_css_module_id_placeholder(
-      &definition.value,
+      &target_definition.value,
       compilation,
-      module,
+      target_module,
     ))
     .into_owned()
   }
@@ -415,6 +431,20 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
           CssIcssSymbolKind::IcssReference => {
             css_values.get(&symbol.target).and_then(Option::as_deref)
           }
+          CssIcssSymbolKind::IcssSelectorReference => {
+            if let Some((target_module, target_definition)) =
+              resolve_imported_local_ident(context.compilation, symbol.target)
+            {
+              let value = local_idents
+                .entry(*target_definition.id())
+                .or_insert_with(|| {
+                  Self::render_local_ident(context.compilation, target_module, target_definition)
+                });
+              Some(value.as_str())
+            } else {
+              css_values.get(&symbol.target).and_then(Option::as_deref)
+            }
+          }
         };
         if let Some(value) = value {
           let mut value = value.to_owned();
@@ -446,11 +476,20 @@ impl<'a, 'g> CssModuleGenerator<'a, 'g> {
     let Some(local_names) = self.css_build_info.local_names() else {
       return;
     };
-    let graph = self.generate_context.compilation.get_module_graph();
+    let compilation = self.generate_context.compilation;
+    let graph = compilation.get_module_graph();
     let idents = local_names
       .values()
       .filter(|id| !self.used_local_idents.contains(id))
-      .map(|id| css_export_dependency(graph, id).value.clone())
+      .filter_map(|id| {
+        let dep = css_export_dependency(graph, id);
+        if let CssExportKind::ImportedSelector { import } = dep.kind
+          && resolve_imported_local_ident(compilation, import).is_some()
+        {
+          return None;
+        }
+        Some(dep.value.clone())
+      })
       .collect();
     // Only the top-level generator publishes data; children share its context
     // but track identifiers belonging to their own module.
@@ -1244,6 +1283,21 @@ impl<'g> CssModuleGraphSink<'g> for CssStyleSink<'_, '_, 'g> {
       return Ok(None);
     }
     if module.source().is_none() {
+      // `css-import` external modules have no source or JavaScript output. Their
+      // generated `@import` rule is only emitted into the chunk CSS asset, which
+      // `exportType: "style"` never loads, so inject it as a style element here
+      // to keep the external import in the runtime, like style-loader does.
+      if let Some(external_module) = module.downcast_ref::<ExternalModule>()
+        && let Some(css) = external_module.css_import_source()
+        && self.visited.insert(identifier.as_str().to_string())
+      {
+        let css = json_stringify_str(&css);
+        self.code.push_str(
+          &self
+            .generator
+            .render_inject_style_call(json_stringify_str(module_id.as_str()), &css),
+        );
+      }
       return Ok(None);
     }
     let conditions: Vec<_> = dependency.render_conditions().cloned().collect();

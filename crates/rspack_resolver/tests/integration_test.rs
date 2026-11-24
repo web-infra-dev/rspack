@@ -19,6 +19,17 @@ async fn resolve(specifier: &str) -> Resolution {
 }
 
 #[tokio::test]
+async fn escaped_hash_in_path_and_query() {
+  let resolution = resolve("./fixtures/enhanced_resolve/test/fixtures/\0#/a.js?q\0#x#f").await;
+  assert_eq!(
+    resolution.path(),
+    dir().join("fixtures/enhanced_resolve/test/fixtures/#/a.js")
+  );
+  assert_eq!(resolution.query(), Some("?q\0#x"));
+  assert_eq!(resolution.fragment(), Some("#f"));
+}
+
+#[tokio::test]
 async fn clone() {
   let resolution = resolve("./tests/package.json").await;
   assert_eq!(resolution.clone(), resolution);

@@ -1,1 +1,3 @@
-export default [[/DataUrl can't be generated automatically/]];
+export default [
+  [/Cannot infer the MIME type for extension '\.opuuus'/, /generator\.dataUrl\.mimetype/],
+];
