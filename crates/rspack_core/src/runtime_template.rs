@@ -1911,6 +1911,23 @@ pub enum ConcatenationPart<'a> {
   Expression(Cow<'a, str>),
 }
 
+#[derive(Default)]
+pub struct Concatenation<'a> {
+  parts: Vec<ConcatenationPart<'a>>,
+}
+
+impl<'a> Concatenation<'a> {
+  pub fn push(&mut self, part: ConcatenationPart<'a>) {
+    use ConcatenationPart::Literal;
+
+    match (self.parts.last_mut(), part) {
+      (_, Literal(text)) if text.is_empty() => {}
+      (Some(Literal(previous)), Literal(text)) => previous.to_mut().push_str(&text),
+      (_, part) => self.parts.push(part),
+    }
+  }
+}
+
 impl RuntimeCodeTemplate {
   fn new(
     compiler_options: Arc<CompilerOptions>,
@@ -1983,8 +2000,10 @@ impl RuntimeCodeTemplate {
     }
   }
 
-  pub fn concatenation(&self, parts: &[ConcatenationPart<'_>]) -> String {
+  pub fn concatenation(&self, concatenation: &Concatenation<'_>) -> String {
     use ConcatenationPart::{Expression, Literal};
+
+    let parts = concatenation.parts.as_slice();
 
     if parts.is_empty() {
       return r#""""#.to_string();

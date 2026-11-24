@@ -4,9 +4,9 @@ use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
 use rspack_core::{
   Chunk, ChunkGraph, ChunkGroupByUkey, ChunkUkey, Compilation, CompiledStringTemplate,
-  ConcatenationPart, Filename, PathData, PlaceholderKind, RuntimeCodeTemplate, RuntimeGlobals,
-  RuntimeGlobalsRenderMode, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
-  SourceType, StringTemplatePlaceholder, impl_runtime_module,
+  Concatenation, ConcatenationPart, Filename, PathData, PlaceholderKind, RuntimeCodeTemplate,
+  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeTemplate, SourceType, StringTemplatePlaceholder, impl_runtime_module,
 };
 use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use rustc_hash::FxHashMap;
@@ -70,7 +70,7 @@ fn render_filename<'a>(
 ) -> String {
   use ConcatenationPart::{Expression, Literal};
 
-  let mut parts = Vec::new();
+  let mut concatenation = Concatenation::default();
   for (text, placeholder) in template.parts() {
     let part = placeholder
       .and_then(|placeholder| match placeholder.kind() {
@@ -91,12 +91,9 @@ fn render_filename<'a>(
         _ => resolve(placeholder),
       })
       .unwrap_or_else(|| Literal(text.into()));
-    match (parts.last_mut(), part) {
-      (Some(Literal(previous)), Literal(next)) => previous.to_mut().push_str(&next),
-      (_, part) => parts.push(part),
-    }
+    concatenation.push(part);
   }
-  runtime_template.concatenation(&parts)
+  runtime_template.concatenation(&concatenation)
 }
 
 #[impl_runtime_module]
