@@ -366,9 +366,9 @@ When persistent caching is enabled, Rspack saves this data as JSON. Use values t
 
 Loader caching stores a loader's transform results so Rspack can reuse them across builds or compilers when the inputs have not changed, helping avoid repeating expensive transformations. See [Loader cache](/guide/features/loader#loader-cache) for configuration and usage.
 
-Before reusing a cached result, Rspack checks the loader's input, options, and file dependencies. For JavaScript loaders, Rspack automatically detects changes to the loader's entry file, but not other files that the loader imports.
+Before reusing a cached result, Rspack checks the loader's input, options, and tracked dependencies. For JavaScript loaders, Rspack tracks the loader using the same build dependency resolution as top-level [`cache.buildDependencies`](/config/cache#builddependencies): local loaders track their entry file and statically imported files (stopping at `node_modules` packages), while loaders inside `node_modules` track their entry file and `package.json`.
 
-Top-level `cache.buildDependencies` does not invalidate loader caching. Add external files that affect the output (including helper files imported by the loader) with [`this.addDependency()`](/api/loader-api/context#thisadddependency) or [`this.addBuildDependency()`](/api/loader-api/context#thisaddbuilddependency).
+Top-level `cache.buildDependencies` does not invalidate loader caching. Add external files or directories that affect the output (such as dynamically loaded files or external configuration files) with [`this.addDependency()`](/api/loader-api/context#thisadddependency) or [`this.addBuildDependency()`](/api/loader-api/context#thisaddbuilddependency). `this.addBuildDependency()` also resolves directories and transitive JavaScript/TypeScript build dependencies.
 
 Because loader caching does not automatically track compiler settings such as `this.mode`, expose settings that affect the output as loader options. Ensure options can be losslessly serialized as JSON; otherwise, Rspack does not cache that loader's result (for example, when options contain functions, `Date`, or `RegExp` values).
 

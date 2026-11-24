@@ -1,6 +1,5 @@
 use std::path::Path;
 
-use bitflags::bitflags;
 use rspack_cacheable::{cacheable, with::AsMap};
 use rspack_collections::Identifiable;
 use rspack_error::Result;
@@ -41,12 +40,12 @@ fn sorted_dependency_paths(paths: &InternedPathSet) -> Vec<&Path> {
   paths
 }
 
-fn loader_cache_etag(
+async fn loader_cache_etag(
   content: &Content,
   existing: &LoaderDependencies,
   loaders: &[LoaderItem<RunnerContext>],
   context: &RunnerContext,
-) -> Etag {
+) -> Option<Etag> {
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
   // Context and missing dependencies intentionally invalidate the minimal cache: inherited values
   // disable lookup, and entries that add either kind are skipped at store time. This trade-off lets
@@ -61,31 +60,35 @@ fn loader_cache_etag(
     "source_map" => context.source_map_kind.source_map(),
   });
   for loader in loaders {
+    let loader_build_dependencies = loader.loader().build_dependencies();
+    let loader_build_dependencies_hash = if loader_build_dependencies.is_empty() {
+      None
+    } else {
+      Some(
+        context
+          .file_system_info
+          .build_dependencies_hash(loader_build_dependencies)
+          .await
+          .ok()?,
+      )
+    };
     rspack_hash::rspack_hash_object!(&mut hasher, {
       "rule_loader_options" => loader.options_cache_key(),
       "loader_version" => loader.loader_version(),
+      "has_loader_build_dependencies" => loader_build_dependencies_hash.is_some(),
+      "loader_build_dependencies_hash" => loader_build_dependencies_hash,
     });
     loader.loader().etag(context, &mut hasher);
   }
-  Etag::from(format!("{:016x}", hasher.finish()))
-}
-
-#[cacheable]
-#[derive(Clone, Copy)]
-struct LoaderCacheDependencyKind(u8);
-
-bitflags! {
-  impl LoaderCacheDependencyKind: u8 {
-    const FILE = 1 << 0;
-    const BUILD = 1 << 1;
-  }
+  Some(Etag::from(format!("{:016x}", hasher.finish())))
 }
 
 #[cacheable]
 struct LoaderCacheDependencySnapshot {
-  dependencies: Snapshot,
-  paths: Vec<InternedPath>,
-  kinds: Vec<LoaderCacheDependencyKind>,
+  file_dependencies: Snapshot,
+  file_paths: Vec<InternedPath>,
+  build_paths: Vec<InternedPath>,
+  build_dependencies_hash: Option<u64>,
 }
 
 async fn loader_cache_dependency_snapshot(
@@ -95,37 +98,35 @@ async fn loader_cache_dependency_snapshot(
   if !dependencies.context.is_empty() || !dependencies.missing.is_empty() {
     return None;
   }
-  let mut files = InternedPathSet::default();
-  let mut paths = Vec::with_capacity(dependencies.file.len() + dependencies.build.len());
-  let mut kinds = Vec::with_capacity(paths.capacity());
-  for path in dependencies.file.union(&dependencies.build) {
-    files.insert(path.clone());
-    paths.push(path.clone());
-    let mut kind = LoaderCacheDependencyKind::empty();
-    if dependencies.file.contains(path) {
-      kind.insert(LoaderCacheDependencyKind::FILE);
-    }
-    if dependencies.build.contains(path) {
-      kind.insert(LoaderCacheDependencyKind::BUILD);
-    }
-    debug_assert!(!kind.is_empty());
-    kinds.push(kind);
-  }
+  let file_paths = dependencies.file.iter().cloned().collect::<Vec<_>>();
   let empty = InternedPathSet::default();
-  let dependencies = file_system_info
+  let file_dependencies = file_system_info
     .create_snapshot(
       Some(current_time()),
-      &files,
+      &dependencies.file,
       &empty,
       &empty,
       file_system_info.module_strategy(),
     )
     .await
     .ok()?;
+  let mut build_paths = dependencies.build.iter().cloned().collect::<Vec<_>>();
+  build_paths.sort_unstable_by(|a, b| a.as_path().cmp(b.as_path()));
+  let build_dependencies_hash = if build_paths.is_empty() {
+    None
+  } else {
+    Some(
+      file_system_info
+        .build_dependencies_hash(&build_paths)
+        .await
+        .ok()?,
+    )
+  };
   Some(LoaderCacheDependencySnapshot {
-    dependencies,
-    paths,
-    kinds,
+    file_dependencies,
+    file_paths,
+    build_paths,
+    build_dependencies_hash,
   })
 }
 
@@ -133,27 +134,38 @@ async fn loader_cache_dependency_snapshot_is_valid(
   file_system_info: &FileSystemInfo,
   snapshot: &LoaderCacheDependencySnapshot,
 ) -> bool {
-  snapshot.paths.len() == snapshot.kinds.len()
-    && matches!(
-      file_system_info
-        .check_snapshot_valid(&snapshot.dependencies)
-        .await,
-      Ok(SnapshotValidationResult::Valid)
-    )
+  if !matches!(
+    file_system_info
+      .check_snapshot_valid(&snapshot.file_dependencies)
+      .await,
+    Ok(SnapshotValidationResult::Valid)
+  ) {
+    return false;
+  }
+  if snapshot.build_paths.is_empty() {
+    return snapshot.build_dependencies_hash.is_none();
+  }
+  let Some(expected_hash) = snapshot.build_dependencies_hash else {
+    return false;
+  };
+  matches!(
+    file_system_info
+      .build_dependencies_hash(&snapshot.build_paths)
+      .await,
+    Ok(current_hash) if current_hash == expected_hash
+  )
 }
 
 fn restore_loader_cache_dependencies(
   snapshot: &LoaderCacheDependencySnapshot,
   dependencies: &mut LoaderDependencies,
 ) {
-  for (path, kind) in snapshot.paths.iter().zip(&snapshot.kinds) {
-    if kind.contains(LoaderCacheDependencyKind::FILE) {
-      dependencies.file.insert(path.clone());
-    }
-    if kind.contains(LoaderCacheDependencyKind::BUILD) {
-      dependencies.build.insert(path.clone());
-    }
-  }
+  dependencies
+    .file
+    .extend(snapshot.file_paths.iter().cloned());
+  dependencies
+    .build
+    .extend(snapshot.build_paths.iter().cloned());
 }
 
 #[cacheable]
@@ -217,7 +229,11 @@ pub(crate) async fn before_normal_chain(
   ) else {
     return Ok(LoaderCacheAction::Disabled);
   };
-  let etag = loader_cache_etag(content, existing_dependencies, loaders, &context.context);
+  let Some(etag) =
+    loader_cache_etag(content, existing_dependencies, loaders, &context.context).await
+  else {
+    return Ok(LoaderCacheAction::Disabled);
+  };
   let cache_key = CacheKey::from(cache_key);
   let entry = loader_cache.get::<LoaderCacheEntry>(cache_key.clone(), Some(etag.clone()));
   context

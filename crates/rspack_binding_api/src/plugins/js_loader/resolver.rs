@@ -1,4 +1,4 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{borrow::Cow, ffi::OsStr, sync::Arc};
 
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
@@ -8,25 +8,55 @@ use rspack_collections::Identifier;
 use rspack_core::{
   BoxLoader, Context, Loader, LoaderExecutionKind, ModuleFactoryCreateData, ModuleRuleUseLoader,
   NormalModuleFactoryResolveLoader, ResolveResult, Resolver, Resource, RunnerContext,
+  cache::is_node_package_path,
 };
 use rspack_error::Result;
-use rspack_hash::{HashFunction, RspackHasher};
 use rspack_hook::plugin_hook;
-use rspack_paths::Utf8Path;
+use rspack_loader_runner::DescriptionData;
+use rspack_paths::{InternedPath, Utf8Path};
 use rspack_util::identifier::split_at_query_mark;
 
 use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
-pub(crate) async fn loader_cache_version(
+async fn loader_build_dependencies(
   resolver: &Resolver,
   path: &Utf8Path,
-) -> Result<Option<String>> {
-  // V1 fingerprints only the resolved loader entry file. Files that the
-  // loader imports or requires are intentionally not included yet.
-  let contents = resolver.inner_fs().read(path).await?;
-  let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
-  hasher.write(&contents);
-  Ok(Some(format!("file:{:016x}", hasher.finish())))
+  description_data: Option<&DescriptionData>,
+) -> Vec<InternedPath> {
+  let mut build_dependencies = vec![InternedPath::from(path.as_std_path())];
+  if let Some(data) = description_data {
+    let package_dir = data.path();
+    if is_node_package_path(package_dir) {
+      build_dependencies.push(InternedPath::from(package_dir.join("package.json")));
+      let has_package_name = data
+        .get(["name"])
+        .and_then(|value| value.as_str().map(|name| !name.is_empty()))
+        .unwrap_or(false);
+      if !has_package_name {
+        let mut current = package_dir.parent();
+        while let Some(dir) = current {
+          if dir.file_name() == Some(OsStr::new("node_modules")) || !is_node_package_path(dir) {
+            break;
+          }
+          let candidate = dir.join("package.json");
+          if let Some(candidate_utf8) = Utf8Path::from_path(&candidate)
+            && resolver
+              .inner_fs()
+              .metadata(candidate_utf8)
+              .await
+              .is_ok_and(|metadata| !metadata.is_directory)
+          {
+            build_dependencies.push(InternedPath::from(candidate));
+            break;
+          }
+          current = dir.parent();
+        }
+      }
+    }
+  }
+  build_dependencies.sort_unstable_by(|a, b| a.as_path().cmp(b.as_path()));
+  build_dependencies.dedup();
+  build_dependencies
 }
 
 #[cacheable]
@@ -34,7 +64,7 @@ pub(crate) async fn loader_cache_version(
 pub struct JsLoader(
   pub Identifier,
   /* LoaderType */ #[cacheable(with=AsOption<AsRefStr>)] pub Option<Cow<'static, str>>,
-  pub Option<String>,
+  pub Vec<InternedPath>,
 );
 
 #[cacheable_dyn]
@@ -47,8 +77,8 @@ impl Loader<RunnerContext> for JsLoader {
     self.1.as_deref()
   }
 
-  fn cache_version(&self) -> Option<&str> {
-    self.2.as_deref()
+  fn build_dependencies(&self) -> &[InternedPath] {
+    &self.2
   }
 
   fn execution_kind(&self) -> LoaderExecutionKind {
@@ -122,10 +152,10 @@ pub(crate) async fn resolve_loader(
       // Use `str::ends_with` instead of `Path::extension` to avoid unnecessary allocation
       let path = path.as_str();
 
-      let cache_version = if l.cache {
-        loader_cache_version(resolver, Utf8Path::new(path)).await?
+      let build_dependencies = if l.cache {
+        loader_build_dependencies(resolver, Utf8Path::new(path), description_data.as_ref()).await
       } else {
-        None
+        Vec::new()
       };
 
       let r#type = if path.ends_with(".mjs") {
@@ -158,7 +188,7 @@ pub(crate) async fn resolve_loader(
       Ok(Some(Arc::new(JsLoader(
         resource.into(),
         r#type,
-        cache_version,
+        build_dependencies,
       ))))
     }
     ResolveResult::Ignored => Ok(None),

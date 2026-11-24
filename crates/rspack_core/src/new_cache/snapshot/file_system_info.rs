@@ -11,7 +11,8 @@ use rspack_parallel::TryFutureConsumer;
 use rspack_paths::{
   AssertUtf8, InternedPath, InternedPathDashMap, InternedPathMap, InternedPathSet,
 };
-use rspack_util::{node_path::NodePath, time::mtime_accuracy};
+use rspack_util::{fx_hash::FxDashMap, node_path::NodePath, time::mtime_accuracy};
+use tokio::sync::OnceCell;
 
 use super::{
   ContextFileSystemInfoEntry, ContextTimestampAndHash, FileHash, FileSystemInfoEntry, Snapshot,
@@ -103,6 +104,19 @@ struct ContextValue {
   hash: Option<RspackHashDigest>,
 }
 
+#[derive(Debug, Clone, Copy)]
+enum BuildDependencyEntryKind {
+  File,
+  Context,
+  Missing,
+}
+
+#[derive(Debug, Clone)]
+struct ResolvedBuildDependencyEntry {
+  kind: BuildDependencyEntryKind,
+  children: Arc<[InternedPath]>,
+}
+
 /// Cached access to filesystem state and snapshot algorithms.
 ///
 /// The module follows webpack's `FileSystemInfo` seam: callers provide path
@@ -130,6 +144,8 @@ struct FileSystemInfoInner {
   context_timestamps: InternedPathDashMap<Option<ContextFileSystemInfoEntry>>,
   context_hashes: InternedPathDashMap<Option<RspackHashDigest>>,
   context_timestamp_hashes: InternedPathDashMap<Option<ContextTimestampAndHash>>,
+  build_dependency_entries: InternedPathDashMap<Arc<OnceCell<ResolvedBuildDependencyEntry>>>,
+  build_dependency_hashes: FxDashMap<Box<[InternedPath]>, Arc<OnceCell<u64>>>,
 }
 
 impl fmt::Debug for FileSystemInfo {
@@ -162,6 +178,8 @@ impl FileSystemInfo {
         context_timestamps: Default::default(),
         context_hashes: Default::default(),
         context_timestamp_hashes: Default::default(),
+        build_dependency_entries: Default::default(),
+        build_dependency_hashes: Default::default(),
       }),
     }
   }
@@ -293,7 +311,7 @@ impl FileSystemInfo {
     &self,
     paths: impl Iterator<Item = InternedPath>,
   ) -> ResolvedBuildDependencies {
-    let mut helper = BuildDependencyHelper::new(self.inner.fs.clone(), self.inner.logger.clone());
+    let mut helper: Option<BuildDependencyHelper<FileSystemInfoLogger>> = None;
     let mut resolved = ResolvedBuildDependencies::default();
     let mut visited = InternedPathSet::default();
     let mut queue = VecDeque::new();
@@ -303,30 +321,156 @@ impl FileSystemInfo {
       if !visited.insert(dependency.clone()) {
         continue;
       }
-      match self.inner.fs.metadata(dependency.assert_utf8()).await {
-        Ok(metadata) if metadata.is_directory => {
-          resolved.contexts.insert(dependency.clone());
+      let cell = {
+        if let Some(cell) = self.inner.build_dependency_entries.get(&dependency) {
+          Arc::clone(&cell)
+        } else {
+          Arc::clone(
+            &self
+              .inner
+              .build_dependency_entries
+              .entry(dependency.clone())
+              .or_insert_with(|| Arc::new(OnceCell::new())),
+          )
         }
-        Ok(_) => {
-          resolved.files.insert(dependency.clone());
+      };
+      let entry = cell
+        .get_or_init(|| self.resolve_build_dependency_entry(&dependency, &mut helper))
+        .await;
+      match entry.kind {
+        BuildDependencyEntryKind::Context => {
+          resolved.contexts.insert(dependency);
         }
-        Err(_) => {
-          resolved.missing.insert(dependency.clone());
+        BuildDependencyEntryKind::File => {
+          resolved.files.insert(dependency);
+        }
+        BuildDependencyEntryKind::Missing => {
+          resolved.missing.insert(dependency);
         }
       }
-      if is_node_package_path(&dependency) {
-        continue;
-      }
-      if let Some(children) = helper.resolve(dependency.assert_utf8()).await {
-        queue.extend(
-          children
-            .into_iter()
-            .map(|path| InternedPath::from(path.as_path())),
-        );
-      }
+      queue.extend(entry.children.iter().cloned());
     }
 
     resolved
+  }
+
+  async fn resolve_build_dependency_entry(
+    &self,
+    dependency: &InternedPath,
+    helper: &mut Option<BuildDependencyHelper<FileSystemInfoLogger>>,
+  ) -> ResolvedBuildDependencyEntry {
+    let kind = match self.inner.fs.metadata(dependency.assert_utf8()).await {
+      Ok(metadata) if metadata.is_directory => BuildDependencyEntryKind::Context,
+      Ok(_) => BuildDependencyEntryKind::File,
+      Err(_) => BuildDependencyEntryKind::Missing,
+    };
+    if matches!(kind, BuildDependencyEntryKind::Missing) || is_node_package_path(dependency) {
+      return ResolvedBuildDependencyEntry {
+        kind,
+        children: Vec::new().into(),
+      };
+    }
+    let helper = helper.get_or_insert_with(|| {
+      BuildDependencyHelper::new(self.inner.fs.clone(), self.inner.logger.clone())
+    });
+    let children = helper
+      .resolve(dependency.assert_utf8())
+      .await
+      .map(|children| {
+        children
+          .into_iter()
+          .map(|path| InternedPath::from(path.as_path()))
+          .collect::<Vec<_>>()
+      })
+      .unwrap_or_default()
+      .into();
+    ResolvedBuildDependencyEntry { kind, children }
+  }
+
+  /// Resolves and hashes the contents of build dependency paths once per compilation.
+  pub(crate) async fn build_dependencies_hash(&self, paths: &[InternedPath]) -> Result<u64> {
+    debug_assert!(
+      paths
+        .windows(2)
+        .all(|pair| pair[0].as_path() < pair[1].as_path()),
+      "build_dependencies_hash expects sorted, deduplicated paths"
+    );
+    let cell = {
+      if let Some(cell) = self.inner.build_dependency_hashes.get(paths) {
+        Arc::clone(&cell)
+      } else {
+        Arc::clone(
+          &self
+            .inner
+            .build_dependency_hashes
+            .entry(Box::<[InternedPath]>::from(paths))
+            .or_insert_with(|| Arc::new(OnceCell::new())),
+        )
+      }
+    };
+    cell
+      .get_or_try_init(|| self.compute_build_dependencies_hash(paths))
+      .await
+      .copied()
+  }
+
+  async fn compute_build_dependencies_hash(&self, paths: &[InternedPath]) -> Result<u64> {
+    let resolved = self.resolve_build_dependencies(paths.iter().cloned()).await;
+    let mut files = resolved.files.into_iter().collect::<Vec<_>>();
+    let mut contexts = resolved.contexts.into_iter().collect::<Vec<_>>();
+    let mut missing = resolved.missing.into_iter().collect::<Vec<_>>();
+    files.sort_unstable_by(|a, b| a.as_path().cmp(b.as_path()));
+    contexts.sort_unstable_by(|a, b| a.as_path().cmp(b.as_path()));
+    missing.sort_unstable_by(|a, b| a.as_path().cmp(b.as_path()));
+
+    let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+    rspack_hash::rspack_hash_object!(&mut hasher, {
+      "files_len" => files.len(),
+      "contexts_len" => contexts.len(),
+      "missing_len" => missing.len(),
+    });
+    for path in &files {
+      match self.file_hash(path).await? {
+        Some(FileHash::Digest(digest)) => {
+          rspack_hash::rspack_hash_object!(&mut hasher, {
+            "path" => path.as_path(),
+            "kind" => "file",
+            "hash" => digest.encoded(),
+          });
+        }
+        Some(FileHash::Directory) => {
+          let digest = self.context_hash(path).await?;
+          rspack_hash::rspack_hash_object!(&mut hasher, {
+            "path" => path.as_path(),
+            "kind" => "directory",
+            "has_hash" => digest.is_some(),
+            "hash" => digest.as_ref().map(|digest| digest.encoded()),
+          });
+        }
+        None => {
+          rspack_hash::rspack_hash_object!(&mut hasher, {
+            "path" => path.as_path(),
+            "kind" => "missing",
+          });
+        }
+      }
+    }
+    for path in &contexts {
+      let digest = self.context_hash(path).await?;
+      rspack_hash::rspack_hash_object!(&mut hasher, {
+        "path" => path.as_path(),
+        "kind" => "directory",
+        "has_hash" => digest.is_some(),
+        "hash" => digest.as_ref().map(|digest| digest.encoded()),
+      });
+    }
+    for path in &missing {
+      rspack_hash::rspack_hash_object!(&mut hasher, {
+        "path" => path.as_path(),
+        "kind" => "missing",
+      });
+    }
+    Ok(hasher.finish())
   }
 
   /// Use the legacy cache's path matching with webpack's precedence:

@@ -367,9 +367,9 @@ export default class MetadataPlugin {
 
 Loader 缓存会保存 loader 的转换结果，当输入未变化时，Rspack 可以在多次构建或多个 compiler 之间复用这些结果，避免重复执行耗时转换。配置和用法请参见 [Loader 缓存](/guide/features/loader#loader-cache)。
 
-复用缓存前，Rspack 会检查 loader 的输入、选项和文件依赖。对于 JavaScript loader，Rspack 只会自动检测其入口文件本身的变化，不会追踪该 loader 内部导入的其他文件。
+复用缓存前，Rspack 会检查 loader 的输入、选项和已追踪的依赖。对于 JavaScript loader，Rspack 会复用与顶层 [`cache.buildDependencies`](/config/cache#builddependencies) 相同的构建依赖解析逻辑：本地 loader 会追踪其入口文件及静态导入的文件（在 `node_modules` 包处停止递归），而位于 `node_modules` 中的 loader 会追踪其入口文件和 `package.json`。
 
-顶层 `cache.buildDependencies` 不会使 loader 缓存失效。请通过 [`this.addDependency()`](/api/loader-api/context#thisadddependency) 或 [`this.addBuildDependency()`](/api/loader-api/context#thisaddbuilddependency) 添加会影响输出的外部文件（包括该 loader 自身导入的辅助文件）。
+顶层 `cache.buildDependencies` 不会使 loader 缓存失效。请通过 [`this.addDependency()`](/api/loader-api/context#thisadddependency) 或 [`this.addBuildDependency()`](/api/loader-api/context#thisaddbuilddependency) 添加会影响输出的外部文件或目录（例如动态加载的文件或外部配置文件）。`this.addBuildDependency()` 同样支持递归追踪目录内容和 JavaScript/TypeScript 传递构建依赖。
 
 由于 loader 缓存不会自动追踪 `this.mode` 等 compiler 设置，请将影响输出的设置暴露为 loader 选项，并确保选项可无损 JSON 序列化；否则 Rspack 不会缓存该 loader 的结果（例如选项包含函数、`Date` 或 `RegExp` 时）。
 

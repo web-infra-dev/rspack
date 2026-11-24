@@ -14,7 +14,7 @@ use rspack_cacheable::cacheable_dyn;
 use rspack_collections::Identifier;
 use rspack_error::Result;
 use rspack_hash::RspackHasher;
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_paths::{InternedPath, Utf8Path, Utf8PathBuf};
 use rspack_util::identifier::strip_zero_width_space_for_fragment;
 
 use super::{Content, LoaderContext, LoaderFilter, LoaderRunnerOptions};
@@ -314,6 +314,11 @@ where
   /// Version identity used by loader caching.
   fn cache_version(&self) -> Option<&str> {
     None
+  }
+
+  /// Build dependency paths that fingerprint this loader implementation for caching.
+  fn build_dependencies(&self) -> &[InternedPath] {
+    &[]
   }
 
   /// Hashes loader-specific inputs into the cache etag before the chain runs.
