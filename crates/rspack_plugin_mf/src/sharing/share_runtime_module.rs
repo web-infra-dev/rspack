@@ -89,7 +89,6 @@ impl RuntimeModule for ShareRuntimeModule {
       String,
       FxLinkedHashMap<DataInitStage, FxLinkedHashSet<DataInitInfo>>,
     > = FxHashMap::default();
-    let mut additional_init_scopes = FxLinkedHashSet::default();
     for c in
       chunk.get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
     {
@@ -110,11 +109,6 @@ impl RuntimeModule for ShareRuntimeModule {
           continue;
         };
         for item in &data.items {
-          if let DataInitInfo::ProvideSharedInfo(info) = &item.init
-            && (matches!(item.share_scope, ShareScope::Multiple(_)) || info.layer.is_some())
-          {
-            additional_init_scopes.extend(item.share_scope.scopes().iter().cloned());
-          }
           for scope in item.share_scope.scopes() {
             let stages = init_per_scope.entry(scope.clone()).or_default();
             let list = stages
@@ -183,25 +177,16 @@ impl RuntimeModule for ShareRuntimeModule {
     } else {
       runtime_template.render(self.id().as_str(), None)?
     };
-    let additional_init_scopes = if self.enhanced && !additional_init_scopes.is_empty() {
-      format!(
-        ", additionalInitScopes: {}",
-        json_stringify(&additional_init_scopes.into_iter().collect::<Vec<_>>())
-      )
-    } else {
-      String::new()
-    };
     Ok(format!(
       r#"
 {share_scope_map} = {{}};
-{require_name}.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name}{additional_init_scopes} }};
+{require_name}.initializeSharingData = {{ scopeToSharingDataMapping: {{ {scope_to_data_init} }}, uniqueName: {unique_name} }};
 {initialize_sharing_impl}
 "#,
       require_name = runtime_require_scope_name(runtime_template),
       share_scope_map = runtime_template.render_runtime_globals(&RuntimeGlobals::SHARE_SCOPE_MAP),
       scope_to_data_init = scope_to_data_init,
       unique_name = json_stringify_str(&compilation.options.output.unique_name),
-      additional_init_scopes = additional_init_scopes,
       initialize_sharing_impl = initialize_sharing_impl,
     ))
   }
