@@ -1,3 +1,5 @@
+require('./layer-marker');
+
 require('./primary');
 require('./secondary');
 require('./isolated');

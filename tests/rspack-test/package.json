@@ -16,7 +16,7 @@
   "devDependencies": {
     "@babel/core": "catalog:",
     "@module-federation/runtime-tools": "catalog:",
-    "@module-federation/runtime-tools-layers": "https://pkg.pr.new/module-federation/core/@module-federation/runtime-tools@9e4f76fd7d99f2668cf68f16e94da887852fdf2b",
+    "@module-federation/runtime-tools-layers": "https://pkg.pr.new/module-federation/core/@module-federation/runtime-tools@46bebff880796b95939ee39b240187139543debe",
     "@prefresh/core": "catalog:",
     "@prefresh/utils": "catalog:",
     "@rspack/binding": "workspace:*",

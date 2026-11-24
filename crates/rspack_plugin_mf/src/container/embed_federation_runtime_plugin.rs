@@ -7,16 +7,15 @@
 use std::sync::{Arc, Mutex};
 
 use rspack_core::{
-  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements,
-  CompilationAfterOptimizeChunkModules, CompilationParams, CompilationRuntimeRequirementInTree,
-  CompilerCompilation, DependencyId, ModuleIdentifier, Plugin, RuntimeCodeTemplate, RuntimeGlobals,
-  RuntimeModule, SourceType,
+  ChunkUkey, Compilation, CompilationAdditionalChunkRuntimeRequirements, CompilationParams,
+  CompilationRuntimeRequirementInTree, CompilerCompilation, DependencyId, ModuleIdentifier, Plugin,
+  RuntimeCodeTemplate, RuntimeGlobals, RuntimeModule,
   rspack_sources::{ConcatSource, RawStringSource, SourceExt},
 };
 use rspack_error::Result;
 use rspack_hook::{plugin, plugin_hook};
 use rspack_plugin_javascript::{JavascriptModulesRenderStartup, JsPlugin, RenderSource};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashSet;
 
 use super::{
   embed_federation_runtime_module::{
@@ -26,7 +25,6 @@ use super::{
   federation_runtime_dependency::FederationRuntimeDependency,
   module_federation_runtime_plugin::ModuleFederationRuntimeExperimentsOptions,
 };
-use crate::{ShareScope, sharing::consume_shared_module::ConsumeSharedModule};
 
 struct FederationRuntimeDependencyCollector {
   collected_dependency_ids: Arc<Mutex<FxHashSet<DependencyId>>>,
@@ -55,56 +53,6 @@ impl EmbedFederationRuntimePlugin {
   pub fn new(experiments: ModuleFederationRuntimeExperimentsOptions) -> Self {
     Self::new_inner(experiments, Arc::new(Mutex::new(FxHashSet::default())))
   }
-
-  fn needs_async_startup(&self, compilation: &Compilation, runtime: &ChunkUkey) -> bool {
-    let artifact = &compilation.build_chunk_graph_artifact;
-    let module_graph = compilation.get_module_graph();
-    self.experiments.async_startup
-      || artifact
-        .chunk_by_ukey
-        .expect_get(runtime)
-        .get_all_initial_chunks(&artifact.chunk_group_by_ukey)
-        .into_iter()
-        .flat_map(|chunk| {
-          artifact
-            .chunk_graph
-            .get_chunk_modules_identifier_by_source_type(
-              &chunk,
-              SourceType::ConsumeShared,
-              module_graph,
-            )
-        })
-        .any(|id| {
-          module_graph
-            .module_by_identifier(&id)
-            .and_then(|module| module.as_any().downcast_ref::<ConsumeSharedModule>())
-            .is_some_and(|module| matches!(module.share_scope(), ShareScope::Multiple(_)))
-        })
-  }
-}
-
-#[plugin_hook(CompilationAfterOptimizeChunkModules for EmbedFederationRuntimePlugin)]
-async fn after_optimize_chunk_modules(&self, compilation: &mut Compilation) -> Result<()> {
-  let artifact = &compilation.build_chunk_graph_artifact;
-  let mut runtime_modes = FxHashMap::default();
-  for group_key in artifact
-    .entrypoints
-    .values()
-    .chain(&artifact.async_entrypoints)
-  {
-    let group = artifact.chunk_group_by_ukey.expect_get(group_key);
-    let runtime = group.get_runtime_chunk(&artifact.chunk_group_by_ukey);
-    let needs_async_startup = runtime_modes
-      .entry(runtime)
-      .or_insert_with(|| self.needs_async_startup(compilation, &runtime));
-    if *needs_async_startup {
-      compilation.async_startup_chunks.insert(runtime);
-      compilation
-        .async_startup_chunks
-        .insert(group.get_entrypoint_chunk());
-    }
-  }
-  Ok(())
 }
 
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for EmbedFederationRuntimePlugin)]
@@ -140,7 +88,7 @@ async fn additional_chunk_runtime_requirements_tree(
     // Add STARTUP (sync) so the runtime wrapper can always hook __rspack_require.x,
     // and STARTUP_ENTRYPOINT (async) when async startup is enabled.
     runtime_requirements.insert(RuntimeGlobals::STARTUP);
-    if compilation.async_startup_chunks.contains(chunk_ukey) {
+    if self.experiments.async_startup {
       runtime_requirements.insert(RuntimeGlobals::STARTUP_ENTRYPOINT);
       runtime_requirements.insert(RuntimeGlobals::ENSURE_CHUNK_HANDLERS);
     }
@@ -183,9 +131,7 @@ async fn runtime_requirement_in_tree(
 
     let emro = EmbedFederationRuntimeModuleOptions {
       collected_dependency_ids: collected_ids_snapshot,
-      experiments: ModuleFederationRuntimeExperimentsOptions {
-        async_startup: compilation.async_startup_chunks.contains(chunk_ukey),
-      },
+      experiments: self.experiments.clone(),
     };
 
     // Inject EmbedFederationRuntimeModule
@@ -279,7 +225,7 @@ async fn render_startup(
 
   // Entry chunks delegating to runtime need explicit startup calls (sync only)
   if !has_runtime && has_entry_modules {
-    if compilation.async_startup_chunks.contains(chunk_ukey) {
+    if self.experiments.async_startup {
       return Ok(());
     }
     let mut startup_with_call = ConcatSource::default();
@@ -305,10 +251,6 @@ impl Plugin for EmbedFederationRuntimePlugin {
 
   fn apply(&self, ctx: &mut rspack_core::ApplyContext<'_>) -> Result<()> {
     ctx.compiler_hooks.compilation.tap(compilation::new(self));
-    ctx
-      .compilation_hooks
-      .after_optimize_chunk_modules
-      .tap(after_optimize_chunk_modules::new(self));
     ctx
       .compilation_hooks
       .additional_chunk_runtime_requirements

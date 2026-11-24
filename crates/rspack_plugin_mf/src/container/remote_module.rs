@@ -51,15 +51,20 @@ impl RemoteModule {
     share_scope: ShareScope,
     remote_key: String,
     runtime_mode: RuntimeMode,
+    enhanced: bool,
   ) -> Self {
     let readable_identifier = format!("remote {request}");
     let namespace = module_identifier_namespace(runtime_mode);
     let lib_ident = format!("{namespace}/container/remote/{request}");
+    let scope_identifier = if enhanced {
+      share_scope.identifier_fragment()
+    } else {
+      format!("({})", share_scope.key())
+    };
     Self {
       dependencies_block: Default::default(),
       identifier: ModuleIdentifier::from(format!(
-        "remote {} {} {}",
-        share_scope.identifier_fragment(),
+        "remote {scope_identifier} {} {}",
         external_requests.join(" "),
         internal_request
       )),

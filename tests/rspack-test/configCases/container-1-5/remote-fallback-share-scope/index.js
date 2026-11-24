@@ -1,3 +1,5 @@
+require('./layer-marker');
+
 it('should initialize a fallback remote with each configured share scope', async () => {
   const shareScopeKeys = await import('remote/value');
 

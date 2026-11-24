@@ -110,13 +110,9 @@ impl RuntimeModule for ShareRuntimeModule {
           continue;
         };
         for item in &data.items {
-          if let ShareScope::Multiple(scopes) = &item.share_scope {
-            additional_init_scopes.extend(scopes.iter().cloned());
-          }
-          if matches!(
-            &item.init,
-            DataInitInfo::ProvideSharedInfo(info) if info.layer.is_some()
-          ) {
+          if let DataInitInfo::ProvideSharedInfo(info) = &item.init
+            && (matches!(item.share_scope, ShareScope::Multiple(_)) || info.layer.is_some())
+          {
             additional_init_scopes.extend(item.share_scope.scopes().iter().cloned());
           }
           for scope in item.share_scope.scopes() {
