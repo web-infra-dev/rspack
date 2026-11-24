@@ -8,14 +8,19 @@ use std::{
 
 use dashmap::{mapref::one::RefMut, setref::multiple::RefMulti};
 use rspack_error::Result;
-use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
+use rspack_paths::{
+  InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathIndexSet, InternedPathSet,
+};
 use rspack_util::{
   fx_hash::FxHashMap,
   time::{current_time, system_time_to_millis},
 };
 
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
-use crate::time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis};
+use crate::{
+  time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
+  watcher_manager::{MemberKind, WatcherManager},
+};
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
@@ -367,19 +372,13 @@ pub(crate) struct PathManager {
   /// and only events advance it; a context's safe time is the max of it and
   /// the safe times of the files below.
   last_watch_events: InternedPathDashMap<u64>,
-  /// watchpack's `DirectoryWatcher.files`: every file found below a registered
-  /// context by its initial scan or reported there by an event. Their records
-  /// live in `file_times`; this set is what `collect_time_info_entries` walks.
-  context_files: InternedPathDashSet,
-  /// watchpack's nested `DirectoryWatcher.directories`: every subdirectory
-  /// found below a registered context.
-  context_directories: InternedPathDashSet,
+  watchers: WatcherManager,
   /// Every directory above a registered path: a removal of one of them may
   /// have taken registered records, or a registered context, with it. Each
   /// counts the registrations directly in it plus its subdirectories here,
   /// and goes once that count is back to zero.
   registered_ancestors: InternedPathDashMap<usize>,
-  /// Every path holding time info (in `file_times`, the context sets or
+  /// Every path holding time info (in `file_times`, the directory watchers or
   /// `last_watch_events`) under its parent directory, ancestors included up
   /// to the first one already indexed: a removed directory's records are
   /// found by walking its subtree, not by scanning every map. A directory
@@ -408,8 +407,7 @@ impl PathManager {
       ignored: IgnoredMatcher::new(ignored),
       file_times: FileTimes::default(),
       last_watch_events: InternedPathDashMap::default(),
-      context_files: InternedPathDashSet::default(),
-      context_directories: InternedPathDashSet::default(),
+      watchers: WatcherManager::default(),
       registered_ancestors: InternedPathDashMap::default(),
       absent_directories: InternedPathDashSet::default(),
       recorded_children: InternedPathDashMap::default(),
@@ -482,8 +480,7 @@ impl PathManager {
   /// survives later removals until the path reappears or is unregistered.
   pub fn remove_file_time(&self, path: &InternedPath) {
     self.file_times.clear(path, FileRecord::clear_present);
-    self.context_files.remove(path);
-    if self.context_directories.remove(path).is_some() {
+    if self.watchers.remove_member(path).directory {
       self.last_watch_events.remove(path);
     }
     self.unindex_record(path);
@@ -499,8 +496,7 @@ impl PathManager {
         pending.extend(children);
       }
       self.file_times.clear(&path, FileRecord::clear_present);
-      self.context_files.remove(&path);
-      self.context_directories.remove(&path);
+      self.watchers.remove_member(&path);
       if !self.directories.all.contains(&path) {
         self.last_watch_events.remove(&path);
       }
@@ -577,8 +573,7 @@ impl PathManager {
 
   fn holds_record(&self, path: &InternedPath) -> bool {
     self.file_times.get(path).is_some()
-      || self.context_files.contains(path)
-      || self.context_directories.contains(path)
+      || self.watchers.member(path).is_some()
       || self.last_watch_events.contains_key(path)
   }
 
@@ -675,7 +670,9 @@ impl PathManager {
           continue;
         };
         if metadata.is_dir() {
-          self.record(&path, || self.context_directories.insert(path.clone()));
+          self.record(&path, || {
+            self.watchers.add_member(&path, MemberKind::Directory)
+          });
           if self.forget_if_orphaned(&path) {
             break;
           }
@@ -694,7 +691,7 @@ impl PathManager {
           pending.push((path, ancestry.clone(), false));
         } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
           self.record(&path, || {
-            self.context_files.insert(path.clone());
+            self.watchers.add_member(&path, MemberKind::File);
             self
               .file_times
               .record(&path)
@@ -722,8 +719,7 @@ impl PathManager {
     if self.is_below_context(path) {
       return false;
     }
-    self.context_files.remove(path);
-    self.context_directories.remove(path);
+    self.watchers.remove_member(path);
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       self.file_times.clear(path, |record| record.time = None);
     }
@@ -780,12 +776,14 @@ impl PathManager {
     if metadata.is_dir() {
       // Like watchpack's `setDirectory`, only a directory not known before is
       // scanned: an event on a known one, e.g. a `chmod`, changes nothing below.
-      if self.record(path, || self.context_directories.insert(path.clone())) {
+      if self.record(path, || {
+        self.watchers.add_member(path, MemberKind::Directory)
+      }) {
         self.scan_below(vec![path.clone()], false, None).await;
       }
       return true;
     }
-    self.record(path, || self.context_files.insert(path.clone()));
+    self.record(path, || self.watchers.add_member(path, MemberKind::File));
     let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
       return true;
     };
@@ -841,7 +839,7 @@ impl PathManager {
   /// path.
   pub fn may_contain_records(&self, path: &InternedPath) -> bool {
     self.directories.all.contains(path)
-      || self.context_directories.contains(path)
+      || self.watchers.is_directory_member(path)
       || self.registered_ancestors.contains_key(path)
   }
 
@@ -879,7 +877,7 @@ impl PathManager {
     let now = current_time();
     for ancestor in path.ancestors() {
       let ancestor = InternedPath::from(ancestor);
-      if self.directories.all.contains(&ancestor) || self.context_directories.contains(&ancestor) {
+      if self.directories.all.contains(&ancestor) || self.watchers.is_directory_member(&ancestor) {
         self.last_watch_events.insert(ancestor, now);
       }
     }
@@ -986,7 +984,7 @@ impl PathManager {
       // forgotten, so it is scanned as a new directory when it comes back.
       let absent = self.absent_directories.remove(dir).is_some();
       if !absent && self.is_below_context(dir) {
-        self.record(dir, || self.context_directories.insert(dir.clone()));
+        self.record(dir, || self.watchers.add_member(dir, MemberKind::Directory));
       } else {
         self.last_watch_events.remove(dir);
       }
@@ -1027,14 +1025,12 @@ impl PathManager {
       if self.is_below_context(path) || self.directories.all.contains(path) {
         continue;
       }
-      if self.context_files.remove(path).is_some()
-        && !self.files.all.contains(path)
-        && !self.missing.all.contains(path)
-      {
+      let member = self.watchers.remove_member(path);
+      if member.file && !self.files.all.contains(path) && !self.missing.all.contains(path) {
         self.file_times.clear(path, |record| record.time = None);
         self.unlink_unrecorded(path);
       }
-      if self.context_directories.remove(path).is_some() {
+      if member.directory {
         self.last_watch_events.remove(path);
         self.unlink_unrecorded(path);
       }
@@ -1054,6 +1050,19 @@ impl PathManager {
       None => false,
     }
   }
+}
+
+pub(super) struct RegisteredTimeInfo {
+  file_paths: InternedPathIndexSet,
+  dir_paths: InternedPathIndexSet,
+  file_timestamps: TimeInfoEntries,
+  file_safe_times: Vec<(InternedPath, u64)>,
+}
+
+fn path_to_string(path: &Path) -> String {
+  path
+    .to_str()
+    .map_or_else(|| path.to_string_lossy().into_owned(), str::to_owned)
 }
 
 impl PathManager {
@@ -1093,14 +1102,12 @@ impl PathManager {
   /// Absent on disk reads as `null` in both. Only a context known to be
   /// absent is stat'ed, to see whether it came back.
   pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
-    let accessor = self.access();
-    let path_to_string = |path: &Path| {
-      path
-        .to_str()
-        .map_or_else(|| path.to_string_lossy().into_owned(), str::to_owned)
-    };
+    self.collect_context_time_info(self.collect_registered_time_info())
+  }
 
-    let file_paths: Vec<InternedPath> = accessor.files().0.iter().map(|p| p.clone()).collect();
+  pub(super) fn collect_registered_time_info(&self) -> RegisteredTimeInfo {
+    let accessor = self.access();
+    let file_paths: InternedPathIndexSet = accessor.files().0.iter().map(|p| p.clone()).collect();
     let mut file_timestamps = TimeInfoEntries::with_capacity(file_paths.len());
     let mut file_safe_times: Vec<(InternedPath, u64)> = Vec::with_capacity(file_paths.len());
     for path in &file_paths {
@@ -1124,27 +1131,38 @@ impl PathManager {
       }
       file_timestamps.push((path_to_string(path.as_path()), entry));
     }
-    // Files found below contexts, like watchpack's `DirectoryWatcher.files`.
-    for path in self.context_files.iter() {
-      if accessor.files().0.contains(&path) {
-        continue;
-      }
-      let Some(time) = self.file_times.get(&path) else {
-        continue;
-      };
-      file_safe_times.push((path.clone(), time.narrowed().safe_time));
-      file_timestamps.push((path_to_string(path.as_path()), Self::entry(time)));
+    RegisteredTimeInfo {
+      file_paths,
+      dir_paths: accessor.directories().0.iter().map(|p| p.clone()).collect(),
+      file_timestamps,
+      file_safe_times,
     }
+  }
 
-    let mut dir_paths: Vec<InternedPath> =
-      accessor.directories().0.iter().map(|p| p.clone()).collect();
-    dir_paths.extend(
-      self
-        .context_directories
-        .iter()
-        .filter(|dir| !accessor.directories().0.contains(dir))
-        .map(|dir| dir.clone()),
-    );
+  pub(super) fn collect_context_time_info(
+    &self,
+    registered: RegisteredTimeInfo,
+  ) -> (TimeInfoEntries, TimeInfoEntries) {
+    let RegisteredTimeInfo {
+      file_paths,
+      mut dir_paths,
+      mut file_timestamps,
+      mut file_safe_times,
+    } = registered;
+    for watcher in &self.watchers.directories {
+      for (path, member) in &watcher.members {
+        if member.directory {
+          dir_paths.insert(path.clone());
+        }
+        if member.file
+          && !file_paths.contains(path)
+          && let Some(time) = self.file_times.get(path)
+        {
+          file_safe_times.push((path.clone(), time.narrowed().safe_time));
+          file_timestamps.push((path_to_string(path.as_path()), Self::entry(time)));
+        }
+      }
+    }
     let mut dir_safe_times: FxHashMap<InternedPath, Option<u64>> =
       FxHashMap::with_capacity_and_hasher(dir_paths.len(), Default::default());
     for dir in &dir_paths {

@@ -11,7 +11,7 @@ use rspack_util::fx_hash::FxHashSet;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
 use crate::{
-  EventBatch, FsEventKind, FsWatcher, ResolvedEvents, analyzer::Analyzer,
+  EventBatch, FsEventKind, FsWatcher, ResolvedEvents, TimeInfoEntries, analyzer::Analyzer,
   disk_watcher::handle_event, paths::PathManager, scanner::Scanner, trigger::Trigger,
 };
 
@@ -39,6 +39,14 @@ pub fn take_executor_events(watcher: &FsWatcher) -> Vec<ExecutorEvent> {
       .lock()
       .expect("executor trace poisoned"),
   )
+}
+
+/// Capture the explicit dependencies now and finish collecting their context members later.
+pub fn begin_time_info_snapshot(
+  watcher: &FsWatcher,
+) -> impl FnOnce() -> (TimeInfoEntries, TimeInfoEntries) + '_ {
+  let registered = watcher.path_manager.collect_registered_time_info();
+  move || watcher.path_manager.collect_context_time_info(registered)
 }
 
 pub struct DirectoryAnalyzer {
