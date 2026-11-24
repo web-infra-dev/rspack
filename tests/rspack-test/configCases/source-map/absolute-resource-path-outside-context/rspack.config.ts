@@ -1,18 +1,16 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
 import path from 'node:path';
 
+const libDir = path.join(import.meta.dirname, 'lib').replaceAll(path.sep, '/');
 const expectedSources = [
-  [
-    'export const n: number = 1;',
-    path.join(import.meta.dirname, 'lib/item.ts'),
-  ],
+  ['export const n: number = 1;', `${libDir}/item.ts`],
   [
     'export const withQuery: number = 2;',
-    path.join(import.meta.dirname, 'lib/query.ts') + '?path=a/../b#section',
+    `${libDir}/query.ts?path=a/../b#section`,
   ],
   [
     'export const withFragment: number = 3;',
-    path.join(import.meta.dirname, 'lib/fragment.ts') + '#section/a/../b',
+    `${libDir}/fragment.ts#section/a/../b`,
   ],
 ];
 
