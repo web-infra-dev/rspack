@@ -21,4 +21,14 @@ describe('createReadonlyMap', () => {
       ['empty', undefined],
     ]);
   });
+
+  it('should return false from has() when native getter returns null for missing keys', () => {
+    const map = createReadonlyMap({
+      keys: () => ['main'][Symbol.iterator](),
+      get: (key) => (key === 'main' ? { id: 1 } : (null as any)),
+    });
+
+    expect(map.has('main')).toBe(true);
+    expect(map.has('missing')).toBe(false);
+  });
 });

@@ -3,7 +3,7 @@ export function createReadonlyMap<T>(
 ) {
   return {
     has(key: string) {
-      if (this.get(key) !== undefined) {
+      if (this.get(key) != null) {
         return true;
       }
       for (const k of this.keys()) {
