@@ -620,8 +620,11 @@ const EXTRACT_ERROR: Record<
     factory: StatsFactory,
   ) => void
 > = {
-  _: (object, error) => {
-    object.message = error.message;
+  _: (object, error, _context, options) => {
+    object.message =
+      options.colors === false
+        ? util.stripVTControlCharacters(error.message)
+        : error.message;
     // `error.code` is rspack-specific
     if (error.code) {
       object.code = error.code;
