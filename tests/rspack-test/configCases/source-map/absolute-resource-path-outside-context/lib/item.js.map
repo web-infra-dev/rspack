@@ -4,13 +4,15 @@
   "sources": [
     "item.ts",
     "webpack://../lib/query.ts?path=a/../b#section",
-    "webpack://../lib/fragment.ts#section/a/../b"
+    "webpack://../lib/fragment.ts#section/a/../b",
+    "webpack://C:\\repo\\src\\unused\\..\\win.ts?variant=\\raw#part"
   ],
   "sourcesContent": [
     "export const n: number = 1;",
     "export const withQuery: number = 2;",
-    "export const withFragment: number = 3;"
+    "export const withFragment: number = 3;",
+    "export const windowsPath: number = 4;"
   ],
   "names": [],
-  "mappings": "AAAA;ACAA;ACAA"
+  "mappings": "AAAA;ACAA;ACAA;ACAA"
 }
