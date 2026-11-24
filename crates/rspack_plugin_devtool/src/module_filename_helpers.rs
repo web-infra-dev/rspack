@@ -109,7 +109,8 @@ fn normalize_source_path(path: &str) -> String {
     Utf8Path::new(path)
       .node_normalize_win32()
       .as_str()
-      .replace('\\', "/")
+      .cow_replace('\\', "/")
+      .into_owned()
   } else {
     Utf8Path::new(path).node_normalize_posix().into_string()
   }
@@ -286,7 +287,7 @@ impl<'a> ModuleFilenameTemplateCtx<'a> {
             panic!("failed to find a module for the given identifier '{identifier}'")
           }),
       ),
-      SourceReference::Source(_) => None,
+      SourceReference::Source(_) | SourceReference::LoaderRequest(_) => None,
     };
     let resolved_resource = module
       .and_then(|module| module.as_normal_module())
@@ -306,11 +307,13 @@ impl<'a> ModuleFilenameTemplateCtx<'a> {
           ],
         )
       }),
-      SourceReference::Source(source) if !source.starts_with("//") => {
-        let (path, suffix) = split_source_request(source);
-        Some((path, [suffix, ""]))
-      }
-      SourceReference::Source(_) => None,
+      _ => source_reference
+        .resource_request()
+        .filter(|source| !source.starts_with("//"))
+        .map(|source| {
+          let (path, suffix) = split_source_request(source);
+          (path, [suffix, ""])
+        }),
     }
     .filter(|(path, _)| !path.is_empty() && !is_source_url(path))
     .map(|(path, suffixes)| (normalize_source_path(path), suffixes));
@@ -330,7 +333,7 @@ impl<'a> ModuleFilenameTemplateCtx<'a> {
   }
 
   fn to_fn_ctx(&self) -> ModuleFilenameTemplateFnCtx {
-    let (resource, query) = if self.module.is_some() {
+    let (resource, query) = if !matches!(self.source_reference, SourceReference::Source(_)) {
       let identifier = self.resource_identifier();
       let resource = identifier.rsplit('!').next().unwrap_or_default();
       let query = resource.find('?').map_or("", |start| &resource[start..]);
@@ -378,6 +381,7 @@ impl<'a> ModuleFilenameTemplateCtx<'a> {
           .expect("module already resolved")
           .readable_identifier(context),
         SourceReference::Source(source) => shorten_source_path(context.as_str(), source),
+        SourceReference::LoaderRequest(request) => Cow::Owned(contextify(context, request)),
       }
     })
   }
@@ -390,7 +394,7 @@ impl<'a> ModuleFilenameTemplateCtx<'a> {
       SourceReference::Module(module_identifier) => self
         .identifier
         .get_or_init(|| Cow::Owned(contextify(context, module_identifier))),
-      SourceReference::Source(_) => {
+      SourceReference::Source(_) | SourceReference::LoaderRequest(_) => {
         // For Source, identifier is the same as short_identifier
         self.short_identifier()
       }
@@ -403,7 +407,7 @@ impl<'a> ModuleFilenameTemplateCtx<'a> {
         ChunkGraph::get_module_id(&self.compilation.module_ids_artifact, *module_identifier)
           .map_or_default(|s| s.as_str())
       }
-      SourceReference::Source(_) => "",
+      SourceReference::Source(_) | SourceReference::LoaderRequest(_) => "",
     }
   }
 
@@ -425,7 +429,7 @@ impl<'a> ModuleFilenameTemplateCtx<'a> {
         || identifier.rsplit('!').next().unwrap_or_default(),
         |(_, path)| path,
       ),
-      SourceReference::Source(source) => source,
+      _ => self.source_reference.resource_request().unwrap_or_default(),
     }
   }
 
@@ -464,8 +468,8 @@ impl<'a> ModuleFilenameTemplateCtx<'a> {
   fn resource_name(&self) -> &str {
     self.resolved_resource.map_or_else(
       || match self.source_reference {
-        SourceReference::Source(source) => source,
         SourceReference::Module(_) => self.short_identifier(),
+        _ => self.source_reference.resource_request().unwrap_or_default(),
       },
       |(data, _)| data.resource(),
     )
@@ -494,9 +498,10 @@ impl<'a> ModuleFilenameTemplateCtx<'a> {
   }
 
   pub fn loaders(&self) -> &str {
-    self
-      .module
-      .map_or("", |_| get_before(self.resource_identifier(), "!"))
+    match self.source_reference {
+      SourceReference::Source(_) => "",
+      _ => get_before(self.resource_identifier(), "!"),
+    }
   }
 
   /// Returns the request path without readable-identifier decorations such as `css `.
@@ -515,8 +520,8 @@ impl<'a> ModuleFilenameTemplateCtx<'a> {
 
   pub fn all_loaders(&self) -> &str {
     match self.source_reference {
-      SourceReference::Module(_) => get_before(self.identifier(), "!"),
       SourceReference::Source(_) => "",
+      _ => get_before(self.identifier(), "!"),
     }
   }
 

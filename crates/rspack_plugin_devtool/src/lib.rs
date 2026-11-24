@@ -79,7 +79,25 @@ pub struct ModuleFilenameTemplateFnCtx {
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum SourceReference {
   Source(Arc<str>),
+  LoaderRequest(Arc<str>),
   Module(ModuleIdentifier),
+}
+
+impl SourceReference {
+  fn as_str(&self) -> &str {
+    match self {
+      Self::Module(identifier) => identifier.as_str(),
+      Self::Source(source) | Self::LoaderRequest(source) => source.as_ref(),
+    }
+  }
+
+  fn resource_request(&self) -> Option<&str> {
+    match self {
+      Self::Module(_) => None,
+      Self::Source(source) => Some(source),
+      Self::LoaderRequest(request) => request.rsplit_once('!').map(|(_, resource)| resource),
+    }
+  }
 }
 
 fn resolve_source_reference(compilation: &Compilation, source: &str) -> SourceReference {
@@ -99,8 +117,16 @@ fn resolve_source_reference(compilation: &Compilation, source: &str) -> SourceRe
     return SourceReference::Module(module.identifier());
   }
 
-  // Only module lookup interprets identifier separators. An unmatched source
-  // is a single path or URL from the input map.
+  // Loader maps such as those from css-loader may name a loader request
+  // without a matching module. Keep its identity and resource separate.
+  if let Some((loader, resource)) = request.rsplit_once('!')
+    && is_filesystem_request(loader)
+    && is_filesystem_request(resource)
+  {
+    return SourceReference::LoaderRequest(Arc::from(identifier));
+  }
+
+  // Other unmatched sources are single paths or URLs from the input map.
   if request.starts_with("./") || request.starts_with("../") {
     let (path, suffix) = module_filename_helpers::split_source_request(request);
     let mut absolute = Utf8Path::new(context)
@@ -112,4 +138,10 @@ fn resolve_source_reference(compilation: &Compilation, source: &str) -> SourceRe
   } else {
     SourceReference::Source(Arc::from(request))
   }
+}
+
+fn is_filesystem_request(request: &str) -> bool {
+  request.starts_with("./")
+    || request.starts_with("../")
+    || Utf8Path::new(request).node_is_absolute_win32()
 }

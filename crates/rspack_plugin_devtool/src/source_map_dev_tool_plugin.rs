@@ -785,20 +785,9 @@ impl SourceMapDevToolPlugin {
     // `cssExtractLoader.js!css-loader!...!style.css`. Both can resolve to the same default source
     // name, so the shorter entry should claim it first and force the longer virtual module to use
     // the fallback template instead.
-    let sorted_iter =
-      reference_to_source_name_mapping
-        .iter_mut()
-        .sorted_by(|(key_a, _), (key_b, _)| {
-          let ident_a = match key_a {
-            SourceReference::Module(identifier) => identifier.as_str(),
-            SourceReference::Source(source) => source.as_ref(),
-          };
-          let ident_b = match key_b {
-            SourceReference::Module(identifier) => identifier.as_str(),
-            SourceReference::Source(source) => source.as_ref(),
-          };
-          ident_a.len().cmp(&ident_b.len())
-        });
+    let sorted_iter = reference_to_source_name_mapping
+      .iter_mut()
+      .sorted_by_key(|(key, _)| key.as_str().len());
 
     for (source_reference, source_name_entry) in sorted_iter {
       if used_names_set.insert(source_name_entry.source_name.clone()) {
