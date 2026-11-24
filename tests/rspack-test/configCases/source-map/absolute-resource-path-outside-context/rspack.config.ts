@@ -4,15 +4,17 @@ import path from 'node:path';
 const expectedSources = [
   [
     'export const n: number = 1;',
-    path.join(import.meta.dirname, 'lib/item.ts'),
+    path.join(import.meta.dirname, 'lib/item.ts').replaceAll('\\', '/'),
   ],
   [
     'export const withQuery: number = 2;',
-    path.join(import.meta.dirname, 'lib/query.ts') + '?path=a/../b#section',
+    path.join(import.meta.dirname, 'lib/query.ts').replaceAll('\\', '/') +
+      '?path=a/../b#section',
   ],
   [
     'export const withFragment: number = 3;',
-    path.join(import.meta.dirname, 'lib/fragment.ts') + '#section/a/../b',
+    path.join(import.meta.dirname, 'lib/fragment.ts').replaceAll('\\', '/') +
+      '#section/a/../b',
   ],
 ];
 

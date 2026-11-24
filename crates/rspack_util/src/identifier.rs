@@ -4,13 +4,11 @@ use concat_string::concat_string;
 use cow_utils::CowUtils;
 use memchr::{memchr, memchr2, memchr2_iter, memchr3};
 use regex::Regex;
-use rspack_paths::Utf8Path;
-#[cfg(windows)]
 use rspack_paths::dos_device_path_prefix_len;
 use smallvec::SmallVec;
 use sugar_path::SugarPath;
 
-use crate::node_path::NodePath;
+use crate::node_path;
 
 static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
 
@@ -159,7 +157,7 @@ pub fn push_absolute_to_request(context: &str, maybe_absolute_path: &str, out: &
 /// Splits a resource into borrowed path, query, and fragment slices, preserving escapes.
 /// The query and fragment include their leading delimiters when present.
 pub fn split_resource(input: &str) -> (&str, Option<&str>, Option<&str>) {
-  let (path, suffix) = split_resource_path(input);
+  let (path, suffix) = split_resource_path(input, cfg!(windows));
   let (query, suffix) = if let Some(query_body) = suffix.strip_prefix('?') {
     let (query, suffix) = suffix.split_at(1 + find_resource_delimiter(query_body, false));
     (Some(query), suffix)
@@ -169,11 +167,14 @@ pub fn split_resource(input: &str) -> (&str, Option<&str>, Option<&str>) {
   (path, query, suffix.starts_with('#').then_some(suffix))
 }
 
-fn split_resource_path(input: &str) -> (&str, &str) {
-  #[cfg(windows)]
-  let prefix_len = dos_device_path_prefix_len(input);
-  #[cfg(not(windows))]
-  let prefix_len = 0;
+/// Splits a request into its path and verbatim suffix. When `windows` is true,
+/// the question mark in a DOS device prefix is part of the path.
+pub fn split_resource_path(input: &str, windows: bool) -> (&str, &str) {
+  let prefix_len = if windows {
+    dos_device_path_prefix_len(input)
+  } else {
+    0
+  };
 
   input.split_at(prefix_len + find_resource_delimiter(&input[prefix_len..], true))
 }
@@ -209,9 +210,8 @@ fn find_resource_delimiter(input: &str, allow_query: bool) -> usize {
 
 fn push_request_to_absolute(context: &str, request: &str, out: &mut String) {
   if request.starts_with("./") || request.starts_with("../") {
-    let (path, suffix) = split_resource_path(request);
-    let absolute_path = Utf8Path::new(context).node_join(path).node_normalize();
-    out.push_str(absolute_path.as_str());
+    let (path, suffix) = split_resource_path(request, cfg!(windows));
+    out.push_str(&node_path::join(context, path));
     out.push_str(suffix);
   } else {
     out.push_str(request);

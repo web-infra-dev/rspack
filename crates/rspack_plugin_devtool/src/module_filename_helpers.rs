@@ -6,11 +6,17 @@ use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify, runtime_mo
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::Utf8Path;
-use rspack_util::identifier::split_at_query_mark;
+use rspack_util::{
+  identifier::{split_at_query_mark, split_resource_path},
+  node_path,
+};
 use rustc_hash::FxHashMap as HashMap;
 use sugar_path::SugarPath;
 
-use crate::{ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, SourceReference};
+use crate::{
+  ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, SourceReference,
+  source_map_dev_tool_plugin::starts_with_url_scheme,
+};
 
 fn get_before<'a>(s: &'a str, token: &str) -> &'a str {
   match s.rfind(token) {
@@ -49,43 +55,56 @@ fn default_resource_path_template_scheme(module_filename_template: &str) -> Opti
     .and_then(|captures| captures.get(1).map(|scheme| scheme.as_str()))
 }
 
-fn is_windows_path(path: &str) -> bool {
-  let bytes = path.as_bytes();
-  path.starts_with(r"\\")
-    || (bytes.len() >= 3
-      && bytes[0].is_ascii_alphabetic()
-      && bytes[1] == b':'
-      && matches!(bytes[2], b'/' | b'\\'))
+fn is_explicit_windows_path(path: &str) -> bool {
+  // A single leading backslash can be part of a POSIX file name.
+  path.starts_with(r"\\") || (!path.starts_with(['/', '\\']) && node_path::is_absolute_win32(path))
 }
 
 fn has_url_scheme(resource: &str) -> bool {
-  let Some((scheme, _)) = resource.split_once(':') else {
-    return false;
-  };
-  let mut chars = scheme.chars();
-  !is_windows_path(resource)
-    && matches!(chars.next(), Some(ch) if ch.is_ascii_alphabetic())
-    && chars.all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '+' | '-' | '.'))
+  starts_with_url_scheme(resource) && !node_path::is_absolute_win32(resource)
 }
 
-fn resource_path_end(resource: &str) -> usize {
-  // The question mark in a DOS device prefix is part of the path.
-  let prefix_len = if resource.starts_with(r"\\?\") || resource.starts_with(r"\\.\") {
-    4
-  } else {
-    0
-  };
-  let mut escaped = false;
-  for (offset, ch) in resource[prefix_len..].char_indices() {
-    if escaped {
-      escaped = false;
-    } else if ch == '\u{200b}' {
-      escaped = true;
-    } else if matches!(ch, '?' | '#') {
-      return prefix_len + offset;
+enum TemplateResource<'a> {
+  Path { path: &'a str, suffix: &'a str },
+  Opaque(&'a str),
+}
+
+impl<'a> TemplateResource<'a> {
+  fn from_request(request: &'a str, is_resource: bool) -> Self {
+    if !is_resource || has_url_scheme(request) {
+      return Self::Opaque(request);
+    }
+    let (path, suffix) =
+      split_resource_path(request, cfg!(windows) || is_explicit_windows_path(request));
+    Self::Path { path, suffix }
+  }
+
+  fn without_query(self) -> Self {
+    match self {
+      Self::Path { path, suffix } if suffix.starts_with('?') => Self::Path { path, suffix: "" },
+      Self::Opaque(value) => Self::Opaque(split_at_query_mark(value).0),
+      _ => self,
     }
   }
-  resource.len()
+
+  fn push_to(self, out: &mut String) {
+    match self {
+      Self::Path { path, suffix } => {
+        let windows = cfg!(windows) || is_explicit_windows_path(path);
+        push_path(out, path, suffix, windows);
+      }
+      Self::Opaque(value) => out.push_str(value),
+    }
+  }
+}
+
+fn push_path(out: &mut String, path: &str, suffix: &str, windows: bool) {
+  if windows {
+    out.push_str(&path.cow_replace('\\', "/"));
+  } else {
+    out.push_str(path);
+  }
+  out.push_str(suffix);
 }
 
 fn should_normalize_source_path(
@@ -104,73 +123,89 @@ fn should_normalize_source_path(
   }
 }
 
-fn push_normalized_resource(buf: &mut String, resource: &str) {
-  if !resource.contains('\\')
-    || (!cfg!(windows) && !is_windows_path(resource))
-    || has_url_scheme(resource)
-  {
-    buf.push_str(resource);
-    return;
+fn absolute_resource<'a>(
+  source_reference: &'a SourceReference,
+  compilation: &'a Compilation,
+) -> (&'a str, TemplateResource<'a>) {
+  match source_reference {
+    SourceReference::Module(identifier) => {
+      if let Some(path) = compilation
+        .get_module_graph()
+        .module_by_identifier(identifier)
+        .and_then(|module| module.as_normal_module())
+        .and_then(|module| module.resource_resolved_data().path())
+      {
+        let path = path.as_str();
+        let resource = if has_url_scheme(path) {
+          TemplateResource::Opaque(path)
+        } else {
+          // Resolved paths already have query and fragment stored separately.
+          TemplateResource::Path { path, suffix: "" }
+        };
+        return (path, resource);
+      }
+      let value = identifier.rsplit('!').next().unwrap_or_default();
+      (value, TemplateResource::Opaque(value))
+    }
+    SourceReference::Source(source) => {
+      let value = source.rsplit('!').next().unwrap_or_default();
+      (
+        value,
+        TemplateResource::from_request(value, !source.contains(['|', '!'])),
+      )
+    }
   }
-
-  let path_end = resource_path_end(resource);
-  buf.push_str(&resource[..path_end].cow_replace('\\', "/"));
-  buf.push_str(&resource[path_end..]);
 }
 
-// sources in a source map should be relative/URL-style (not absolute filesystem paths)
 fn resolve_relative_resource_path(
-  absolute_resource_path: &str,
+  absolute: &str,
+  resource: TemplateResource<'_>,
   source_map_path: Option<&Utf8Path>,
   runtime_mode: RuntimeMode,
-  normalize_path: bool,
-  has_suffix: bool,
 ) -> Option<String> {
-  if absolute_resource_path.starts_with("webpack/runtime")
-    || absolute_resource_path.starts_with("rspack/runtime")
+  if absolute.starts_with("webpack/runtime")
+    || absolute.starts_with("rspack/runtime")
     || matches!(
-      absolute_resource_path,
+      absolute,
       "webpack/bootstrap" | "webpack/startup" | "rspack/bootstrap" | "rspack/startup"
     )
   {
-    // Runtime modules, bootstrap, and startup are virtual.
     let scheme = match runtime_mode {
       RuntimeMode::Webpack => "webpack",
       RuntimeMode::Rspack => "rspack",
     };
-    return Some(format!("{scheme}://{absolute_resource_path}"));
+    return Some(format!("{scheme}://{absolute}"));
   }
 
-  if has_url_scheme(absolute_resource_path) {
-    return Some(absolute_resource_path.to_string());
+  if has_url_scheme(absolute) {
+    return Some(absolute.to_string());
   }
 
-  let Some(source_map_path) = source_map_path else {
-    // During the inline source map stage, the asset filename may not be available yet.
-    // In that case we cannot compute a relative path and must return None.
-    return None;
+  // Eval source maps may not have a map filename to resolve against.
+  let source_map_path = source_map_path?;
+  let relative = |path: &str| match source_map_path.parent() {
+    Some(parent) => Path::new(path)
+      .relative(parent)
+      .to_string_lossy()
+      .into_owned(),
+    None => node_path::normalize(path),
   };
 
-  // Keep existing identifier expansion; only resource paths opt into
-  // component-aware normalization.
-  let path_end = if normalize_path && has_suffix {
-    resource_path_end(absolute_resource_path)
-  } else {
-    absolute_resource_path.len()
-  };
-  let (resource_path, suffix) = absolute_resource_path.split_at(path_end);
-  let path = match source_map_path.parent() {
-    Some(parent) => Cow::Owned(Path::new(resource_path).relative(parent)),
-    None => resource_path.normalize(),
-  };
-  let path = path.to_string_lossy();
-  let mut result = if !normalize_path || cfg!(windows) || is_windows_path(resource_path) {
-    path.cow_replace('\\', "/").into_owned()
-  } else {
-    path.into_owned()
-  };
-  result.push_str(suffix);
-  Some(result)
+  match resource {
+    TemplateResource::Path { path, suffix } => {
+      let windows = cfg!(windows) || is_explicit_windows_path(path);
+      let relative = if windows && !cfg!(windows) {
+        // The POSIX map directory cannot serve as a base for a Windows path.
+        Cow::Borrowed(path)
+      } else {
+        Cow::Owned(relative(path))
+      };
+      let mut result = String::with_capacity(relative.len() + suffix.len());
+      push_path(&mut result, &relative, suffix, windows);
+      Some(result)
+    }
+    TemplateResource::Opaque(value) => Some(relative(value).cow_replace('\\', "/").into_owned()),
+  }
 }
 
 impl ModuleFilenameHelpers {
@@ -183,6 +218,15 @@ impl ModuleFilenameHelpers {
   ) -> ModuleFilenameTemplateFnCtx {
     let Compilation { options, .. } = compilation;
     let context = &options.context;
+
+    let (absolute, resource) = absolute_resource(source_reference, compilation);
+    let absolute_resource_path = absolute.to_string();
+    let relative_resource_path = resolve_relative_resource_path(
+      absolute,
+      resource,
+      unresolved_source_map_path,
+      options.experiments.runtime_mode,
+    );
 
     match source_reference {
       SourceReference::Module(module_identifier) => {
@@ -203,26 +247,6 @@ impl ModuleFilenameHelpers {
         let module_id =
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
             .map_or_default(|s| s.to_string());
-        let absolute_resource_path = match module.as_normal_module() {
-          Some(normal_module) => normal_module.resource_resolved_data().path().map_or_else(
-            || {
-              module
-                .identifier()
-                .split('!')
-                .next_back()
-                .unwrap_or("")
-                .to_string()
-            },
-            |p| p.to_string(),
-          ),
-          None => module
-            .identifier()
-            .split('!')
-            .next_back()
-            .unwrap_or("")
-            .to_string(),
-        };
-
         let hash = get_hash(&identifier, output_options);
 
         let resource = resource_identifier
@@ -230,14 +254,6 @@ impl ModuleFilenameHelpers {
           .next_back()
           .unwrap_or("")
           .to_string();
-        let relative_resource_path = resolve_relative_resource_path(
-          &absolute_resource_path,
-          unresolved_source_map_path,
-          options.experiments.runtime_mode,
-          should_normalize_source_path(source_reference, compilation),
-          false,
-        );
-
         let loaders = get_before(&resource_identifier, "!").to_string();
         let all_loaders = get_before(&identifier, "!").to_string();
         let query = get_after(&resource, "?").to_string();
@@ -286,15 +302,6 @@ impl ModuleFilenameHelpers {
         } else {
           resource[..resource.len().saturating_sub(q)].to_string()
         };
-
-        let absolute_resource_path = source.split('!').next_back().unwrap_or("").to_string();
-        let relative_resource_path = resolve_relative_resource_path(
-          &absolute_resource_path,
-          unresolved_source_map_path,
-          options.experiments.runtime_mode,
-          should_normalize_source_path(source_reference, compilation),
-          true,
-        );
 
         ModuleFilenameTemplateFnCtx {
           short_identifier,
@@ -433,17 +440,16 @@ fn create_default_module_filename(
   };
 
   let resource = short_identifier.split('!').next_back().unwrap_or("");
-  let resource_path = split_at_query_mark(resource).0;
-
-  let mut result = String::with_capacity(scheme.len() + namespace.len() + 1 + resource_path.len());
+  let mut result = String::with_capacity(scheme.len() + namespace.len() + 1 + resource.len());
   result.push_str(scheme);
   result.push_str(namespace);
   result.push('/');
-  if should_normalize_source_path(source_reference, compilation) {
-    push_normalized_resource(&mut result, resource_path);
-  } else {
-    result.push_str(resource_path);
-  }
+  TemplateResource::from_request(
+    resource,
+    should_normalize_source_path(source_reference, compilation),
+  )
+  .without_query()
+  .push_to(&mut result);
   result
 }
 
@@ -466,28 +472,6 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
     *self
       .normalize_path
       .get_or_init(|| should_normalize_source_path(self.source_reference, self.compilation))
-  }
-
-  fn push_resource_path(&self, buf: &mut String, resource: &str) {
-    if self.should_normalize_path() {
-      push_normalized_resource(buf, resource);
-    } else {
-      buf.push_str(resource);
-    }
-  }
-
-  fn push_absolute_resource_path(&self, buf: &mut String) {
-    let path = self.absolute_resource_path();
-    if self.should_normalize_path() && matches!(self.source_reference, SourceReference::Module(_)) {
-      // NormalModule stores a filesystem path separately from query/fragment.
-      if cfg!(windows) || is_windows_path(path) {
-        buf.push_str(&path.cow_replace('\\', "/"));
-      } else {
-        buf.push_str(path);
-      }
-    } else {
-      self.push_resource_path(buf, path);
-    }
   }
 
   pub fn short_identifier(&self) -> &str {
@@ -535,40 +519,21 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
     }
   }
 
-  pub fn absolute_resource_path(&self) -> &str {
-    match &self.source_reference {
-      SourceReference::Module(module_identifier) => {
-        let module_graph = self.compilation.get_module_graph();
-        if let Some(path) = module_graph
-          .module_by_identifier(module_identifier)
-          .and_then(|module| module.as_normal_module())
-          .and_then(|module| module.resource_resolved_data().path())
-        {
-          return path.as_str();
-        }
-        module_identifier.split('!').next_back().unwrap_or("")
-      }
-      SourceReference::Source(source) => source.split('!').next_back().unwrap_or(""),
-    }
-  }
-
-  pub fn relative_resource_path(&self) -> Option<Cow<'_, str>> {
-    let absolute_resource_path = self.absolute_resource_path();
+  pub fn relative_resource_path(&self) -> Option<String> {
+    let (absolute, resource) = absolute_resource(self.source_reference, self.compilation);
     let resolved = resolve_relative_resource_path(
-      absolute_resource_path,
+      absolute,
+      resource,
       self.unresolved_source_map_path,
       self.compilation.options.experiments.runtime_mode,
-      self.should_normalize_path(),
-      matches!(self.source_reference, SourceReference::Source(_)),
     );
-
-    match (resolved, &self.source_reference) {
-      (Some(path), _) => Some(Cow::Owned(path)),
+    match (resolved, self.source_reference) {
+      (Some(path), _) => Some(path),
+      // Eval devtool modes use the module's resource when there is no map filename.
       (None, SourceReference::Module(_)) => {
-        // Eval devtool modes have no source map file path to resolve against.
-        let resource_identifier = self.resource_identifier();
-        let resource = resource_identifier.split('!').next_back().unwrap_or("");
-        Some(Cow::Owned(resource.to_string()))
+        let mut result = String::new();
+        self.template_resource().push_to(&mut result);
+        Some(result)
       }
       (None, SourceReference::Source(_)) => None,
     }
@@ -623,15 +588,8 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
     get_after(resource, "?")
   }
 
-  pub fn resource_path(&self) -> &str {
-    let resource = self.resource();
-    let query = self.query();
-    let q = query.len();
-    if q == 0 {
-      resource
-    } else {
-      &resource[..resource.len().saturating_sub(q)]
-    }
+  fn template_resource(&self) -> TemplateResource<'_> {
+    TemplateResource::from_request(self.resource(), self.should_normalize_path())
   }
 
   pub fn namespace(&self) -> &str {
@@ -694,8 +652,8 @@ fn template_replace<'a>(s: &str, ctx: &ModuleFilenameTemplateStringCtx<'a>) -> S
         match_ignore_case!(&s[pos..next_pos];
             b"[identifier]" => buf.push_str(ctx.identifier()),
             b"[short-identifier]" => buf.push_str(ctx.short_identifier()),
-            b"[resource]" => ctx.push_resource_path(&mut buf, ctx.resource()),
-            b"[resource-path]" |  b"[resourcepath]" => ctx.push_resource_path(&mut buf, ctx.resource_path()),
+            b"[resource]" => ctx.template_resource().push_to(&mut buf),
+            b"[resource-path]" |  b"[resourcepath]" => ctx.template_resource().without_query().push_to(&mut buf),
 
             b"[absolute-resource-path]" |
             b"[abs-resource-path]" |
@@ -704,14 +662,14 @@ fn template_replace<'a>(s: &str, ctx: &ModuleFilenameTemplateStringCtx<'a>) -> S
             b"[absolute-resourcepath]" |
             b"[abs-resourcepath]" |
             b"[absoluteresourcepath]" |
-            b"[absresourcepath]" => ctx.push_absolute_resource_path(&mut buf),
+            b"[absresourcepath]" => absolute_resource(ctx.source_reference, ctx.compilation).1.push_to(&mut buf),
 
             b"[relative-resource-path]" |
             b"[relativeresource-path]" |
             b"[relative-resourcepath]" |
             b"[relativeresourcepath]" => {
               if let Some(relative_resource_path) = ctx.relative_resource_path() {
-                ctx.push_resource_path(&mut buf, relative_resource_path.as_ref())
+                buf.push_str(&relative_resource_path)
               } else {
                 buf.push_str(&sstr[pos..next_pos]);
               }

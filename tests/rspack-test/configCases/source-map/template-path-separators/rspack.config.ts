@@ -3,6 +3,9 @@ import { defineConfig, definePlugin } from '@rspack/cli';
 import type { Configuration } from '@rspack/core';
 import { fixtures } from './fixtures.mjs';
 
+const customPath = String.raw`custom://host/source\name.js`;
+const customRequest = `${customPath}${String.raw`?option=\value`}`;
+
 const variants = [
   'absolute',
   'literal',
@@ -31,6 +34,11 @@ export default defineConfig(
                 use: ['./loader.mjs'],
                 layer: String.raw`layer\value`,
               },
+              {
+                test: /^custom:/,
+                type: 'javascript/auto',
+                use: ['./loader.mjs'],
+              },
             ],
           },
           output: {
@@ -56,6 +64,17 @@ export default defineConfig(
           plugins: [
             definePlugin({
               apply(compiler) {
+                compiler.hooks.normalModuleFactory.tap(
+                  'ResolveCustomSource',
+                  (normalModuleFactory) => {
+                    normalModuleFactory.hooks.resolveForScheme
+                      .for('custom')
+                      .tap('ResolveCustomSource', (resource) => {
+                        expect(resource.path).toBe(customPath);
+                        return true;
+                      });
+                  },
+                );
                 compiler.hooks.done.tap('CheckTemplatePaths', (stats) => {
                   const compilation = stats.compilation;
                   const maps: {
@@ -86,8 +105,23 @@ export default defineConfig(
                   }
                   expect(maps.length).toBeGreaterThan(0);
                   let checked = 0;
+                  let checkedCustom = false;
                   for (const map of maps) {
                     map.sourcesContent.forEach((content, index) => {
+                      if (content === 'custom-source') {
+                        checkedCustom = true;
+                        const actual = map.sources[index];
+                        if (variant === 'absolute') {
+                          expect(actual).toBe(customPath);
+                        } else if (variant === 'fields') {
+                          const fields = actual
+                            .slice('fields:///'.length)
+                            .split(':::');
+                          expect(fields[0]).toBe(customRequest);
+                          expect(fields[1]).toBe(customPath);
+                          expect(fields[8]).toBe(customPath);
+                        }
+                      }
                       if (content === 'module-identifier') {
                         const actual = map.sources[index];
                         if (variant === 'fields') {
@@ -194,6 +228,7 @@ export default defineConfig(
                     });
                   }
                   expect(checked).toBeGreaterThanOrEqual(fixtures.length - 1);
+                  expect(checkedCustom).toBe(true);
                 });
               },
             }),

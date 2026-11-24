@@ -1,3 +1,14 @@
+export function pitch() {
+  if (!this.resourcePath.startsWith("custom:")) return;
+  this.callback(null, "module.exports = 42;", {
+    version: 3,
+    sources: [`webpack://${this._module.identifier()}`],
+    sourcesContent: ["custom-source"],
+    names: [],
+    mappings: "AAAA",
+  });
+}
+
 import { fixtures } from "./fixtures.mjs";
 
 export default function () {

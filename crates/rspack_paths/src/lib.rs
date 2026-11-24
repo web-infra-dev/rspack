@@ -27,7 +27,6 @@ pub use path_list::InternedPathList;
 /// (`\\\\?\\` or `\\\\.\\`), or zero when `path` has no such prefix.
 ///
 /// The prefix is ASCII, so the byte index is also a valid UTF-8 slice boundary.
-#[cfg(windows)]
 #[inline]
 pub fn dos_device_path_prefix_len(path: &str) -> usize {
   let bytes = path.as_bytes();

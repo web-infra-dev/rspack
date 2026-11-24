@@ -52,7 +52,7 @@ fn has_css_extension(s: &str) -> bool {
   s.ends_with(".css") || s.contains(".css?")
 }
 
-fn starts_with_url_scheme(s: &str) -> bool {
+pub(super) fn starts_with_url_scheme(s: &str) -> bool {
   let Some((scheme, _)) = s.split_once(':') else {
     return false;
   };
