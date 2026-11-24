@@ -6,8 +6,8 @@ use rspack_loader_runner::ResourceData;
 use rspack_paths::Utf8Path;
 
 use crate::{
-  DataRef, DependencyCategory, Filename, FilenameRenderValue, ImportAttributes, ImportPhase,
-  ModuleRule, ModuleRuleEffectIndices, PlaceholderKind, RuleSetConditionWithEmpty,
+  DataRef, DependencyCategory, Filename, ImportAttributes, ImportPhase, ModuleRule,
+  ModuleRuleEffectIndices, PlaceholderKind, RuleSetConditionWithEmpty,
 };
 
 pub struct MatchContext<'ctx> {
@@ -70,7 +70,7 @@ fn create_rule_as_resource(
   let path = template
     .compiled_template()?
     .render_with(|placeholder| match placeholder.kind() {
-      PlaceholderKind::ResourcePath => Some(FilenameRenderValue::Value(resource_path.into())),
+      PlaceholderKind::ResourcePath => Some(resource_path.into()),
       _ => None,
     });
   let mut resource = path.clone();

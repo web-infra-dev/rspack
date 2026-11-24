@@ -11,8 +11,8 @@ use regex::Regex;
 use rspack_core::{
   ChunkGraph, Compilation, CompiledStringTemplate, CompilerOptions, CssExportType,
   CssExportsConvention, CssModuleGeneratorOptions, CssModuleRenderCondition, Dependency,
-  FileReplacements, FilenameRenderValue, GeneratorOptions, ImportAttributes, LocalIdentName,
-  Module, NormalModuleCreateData, PathData, PlaceholderKind, ResourceData,
+  FileReplacements, GeneratorOptions, ImportAttributes, LocalIdentName, Module,
+  NormalModuleCreateData, PathData, PlaceholderKind, ResourceData,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
@@ -451,14 +451,10 @@ impl LocalIdentNameRenderOptions<'_> {
         self.file_replacements,
         None,
         |placeholder| match placeholder.kind() {
-          PlaceholderKind::FullHash => Some(FilenameRenderValue::Value(Cow::Borrowed(
-            self.local_ident_hash,
-          ))),
-          PlaceholderKind::UniqueName => {
-            Some(FilenameRenderValue::Value(Cow::Borrowed(self.unique_name)))
-          }
-          PlaceholderKind::Local => Some(FilenameRenderValue::Value(Cow::Borrowed(self.local))),
-          PlaceholderKind::Folder => Some(FilenameRenderValue::Value(Cow::Borrowed(self.folder))),
+          PlaceholderKind::FullHash => Some(Cow::Borrowed(self.local_ident_hash)),
+          PlaceholderKind::UniqueName => Some(Cow::Borrowed(self.unique_name)),
+          PlaceholderKind::Local => Some(Cow::Borrowed(self.local)),
+          PlaceholderKind::Folder => Some(Cow::Borrowed(self.folder)),
           _ => None,
         },
       )
