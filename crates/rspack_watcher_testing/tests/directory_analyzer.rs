@@ -543,3 +543,48 @@ mod symlinks {
     }
   }
 }
+
+#[tokio::test]
+async fn nested_contexts_route_unscanned_children_after_either_unsubscribes() {
+  let temp = TempDir::new().expect("create fixture");
+  let outer = InternedPath::from(temp.path().canonicalize().expect("resolve fixture"));
+  let inner = InternedPath::from(outer.join("inner"));
+  fs::create_dir(&inner).expect("create nested context");
+  let event = Event::new(EventKind::Remove(notify::event::RemoveKind::File))
+    .add_path(inner.join("unscanned/child.js"));
+
+  for (unregistered, remaining) in [(&inner, &outer), (&outer, &inner)] {
+    let mut analyzer = DirectoryAnalyzer::default();
+    analyzer
+      .update(empty(), added(&outer), empty())
+      .await
+      .expect("register outer context");
+    analyzer.on_scanned_change(&inner);
+    assert_eq!(
+      next_events(&mut analyzer).await,
+      vec![(outer.clone(), FsEventKind::Change)]
+    );
+    analyzer
+      .update(empty(), added(&inner), added(&inner))
+      .await
+      .expect("also register inner as a context and missing dependency");
+
+    analyzer.on_native_event(event.clone());
+    assert_eq!(
+      next_events(&mut analyzer).await,
+      vec![
+        (inner.clone(), FsEventKind::Change),
+        (outer.clone(), FsEventKind::Change)
+      ]
+    );
+    analyzer
+      .update(empty(), removed(unregistered), removed(&inner))
+      .await
+      .expect("unregister one context and the overlapping missing dependency");
+    analyzer.on_native_event(event.clone());
+    assert_eq!(
+      next_events(&mut analyzer).await,
+      vec![(remaining.clone(), FsEventKind::Change)]
+    );
+  }
+}

@@ -122,14 +122,14 @@ impl<'a> PathAccessor<'a> {
 /// by specifying which paths have been added and which have been removed. It holds vectors of paths to be
 /// added and removed, and provides functionality to apply these changes to a path tracker. This struct
 /// facilitates batch updates to the path sets, ensuring that additions and removals are processed efficiently.
-#[derive(Debug)]
-struct PathUpdater {
+struct PathUpdater<'a> {
   pub added: Vec<InternedPath>,
   pub removed: Vec<InternedPath>,
   base_dir: PathBuf,
+  contexts: Option<&'a WatcherManager>,
 }
 
-impl<Added, Removed> From<(Added, Removed)> for PathUpdater
+impl<Added, Removed> From<(Added, Removed)> for PathUpdater<'_>
 where
   Added: Iterator<Item = InternedPath>,
   Removed: Iterator<Item = InternedPath>,
@@ -139,11 +139,17 @@ where
       added: added.collect(),
       removed: removed.collect(),
       base_dir: std::env::current_dir().unwrap_or_default(),
+      contexts: None,
     }
   }
 }
 
-impl PathUpdater {
+impl<'a> PathUpdater<'a> {
+  fn with_contexts(mut self, contexts: &'a WatcherManager) -> Self {
+    self.contexts = Some(contexts);
+    self
+  }
+
   /// Update the paths in the given set. Returns the paths it newly holds and
   /// those it no longer does.
   async fn update(
@@ -174,6 +180,9 @@ impl PathUpdater {
       }
 
       if watch_tracker.add(added.clone()) {
+        if let Some(contexts) = self.contexts {
+          contexts.subscribe_context(&added);
+        }
         registered.push(added);
       }
     }
@@ -185,6 +194,9 @@ impl PathUpdater {
         InternedPath::from(self.base_dir.join(removed.as_ref()))
       };
       if watch_tracker.remove(removed.clone()) {
+        if let Some(contexts) = self.contexts {
+          contexts.unsubscribe_context(&removed);
+        }
         unregistered.push(removed);
       }
     }
@@ -372,7 +384,7 @@ pub(crate) struct PathManager {
   /// and only events advance it; a context's safe time is the max of it and
   /// the safe times of the files below.
   last_watch_events: InternedPathDashMap<u64>,
-  watchers: WatcherManager,
+  pub(super) watchers: WatcherManager,
   /// Every directory above a registered path: a removal of one of them may
   /// have taken registered records, or a registered context, with it. Each
   /// counts the registrations directly in it plus its subdirectories here,
@@ -479,11 +491,12 @@ impl PathManager {
   /// Drop a removed path's time info and present baseline. A reported absence
   /// survives later removals until the path reappears or is unregistered.
   pub fn remove_file_time(&self, path: &InternedPath) {
+    let _index = self.lock_index();
     self.file_times.clear(path, FileRecord::clear_present);
     if self.watchers.remove_member(path).directory {
       self.last_watch_events.remove(path);
     }
-    self.unindex_record(path);
+    self.unlink_unrecorded(path);
   }
 
   /// Drop the records of every path inside the directory `dir` (watchpack's
@@ -497,7 +510,7 @@ impl PathManager {
       }
       self.file_times.clear(&path, FileRecord::clear_present);
       self.watchers.remove_member(&path);
-      if !self.directories.all.contains(&path) {
+      if !self.watchers.is_explicit_context(&path) {
         self.last_watch_events.remove(&path);
       }
     }
@@ -719,14 +732,18 @@ impl PathManager {
     if self.is_below_context(path) {
       return false;
     }
+    let _index = self.lock_index();
+    if self.is_below_context(path) {
+      return false;
+    }
     self.watchers.remove_member(path);
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       self.file_times.clear(path, |record| record.time = None);
     }
-    if !self.directories.all.contains(path) {
+    if !self.watchers.is_explicit_context(path) {
       self.last_watch_events.remove(path);
     }
-    self.unindex_record(path);
+    self.unlink_unrecorded(path);
     true
   }
 
@@ -756,7 +773,7 @@ impl PathManager {
       self.scan_below(recovered, true, None).await;
     }
 
-    let registered_directory = self.directories.all.contains(path);
+    let registered_directory = self.watchers.is_explicit_context(path);
     if !registered_directory && !self.is_below_context(path) {
       return true;
     }
@@ -838,16 +855,15 @@ impl PathManager {
   /// registered or discovered context, or a directory above a registered
   /// path.
   pub fn may_contain_records(&self, path: &InternedPath) -> bool {
-    self.directories.all.contains(path)
-      || self.watchers.is_directory_member(path)
-      || self.registered_ancestors.contains_key(path)
+    self.watchers.is_watched_directory(path) || self.registered_ancestors.contains_key(path)
   }
 
   fn is_below_context(&self, path: &InternedPath) -> bool {
-    path
-      .ancestors()
-      .skip(1)
-      .any(|ancestor| self.directories.all.contains(&InternedPath::from(ancestor)))
+    path.ancestors().skip(1).any(|ancestor| {
+      self
+        .watchers
+        .is_explicit_context(&InternedPath::from(ancestor))
+    })
   }
 
   /// watchpack's `setFileTime(filePath, mtime, initial, ignoreWhenEqual)`:
@@ -877,7 +893,7 @@ impl PathManager {
     let now = current_time();
     for ancestor in path.ancestors() {
       let ancestor = InternedPath::from(ancestor);
-      if self.directories.all.contains(&ancestor) || self.watchers.is_directory_member(&ancestor) {
+      if self.watchers.is_watched_directory(&ancestor) {
         self.last_watch_events.insert(ancestor, now);
       }
     }
@@ -936,7 +952,10 @@ impl PathManager {
     let mut unregistered = Vec::new();
     for (paths, tracker) in [
       (PathUpdater::from(files), &self.files),
-      (PathUpdater::from(directories), &self.directories),
+      (
+        PathUpdater::from(directories).with_contexts(&self.watchers),
+        &self.directories,
+      ),
       (PathUpdater::from(missing), &self.missing),
     ] {
       let (added, removed) = paths.update(tracker, &self.ignored).await?;
@@ -1022,7 +1041,12 @@ impl PathManager {
       subtree.push(path);
     }
     for path in &subtree {
-      if self.is_below_context(path) || self.directories.all.contains(path) {
+      if self.is_below_context(path) {
+        continue;
+      }
+      if self.watchers.is_explicit_context(path) {
+        // A directory symlink can still export both its scanned file time and its own context.
+        self.watchers.unsubscribe_parent(path);
         continue;
       }
       let member = self.watchers.remove_member(path);
