@@ -1585,8 +1585,8 @@ impl ModuleCodeTemplate {
       if is_call && !call_context {
         if let Some(asi_safe) = asi_safe {
           match asi_safe {
-            true => format!("(0,{access})"),
-            false => format!(";(0,{access})"),
+            true => access,
+            false => format!(";{access}"),
           }
         } else {
           format!("Object({access})")
