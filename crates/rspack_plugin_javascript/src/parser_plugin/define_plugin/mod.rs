@@ -10,7 +10,7 @@ use rspack_core::{
   Compilation, CompilationParams, CompilerCompilation, ModuleType, NormalModuleFactoryParser,
   ParserAndGenerator, ParserOptions, Plugin,
 };
-use rspack_error::{Diagnostic, Error, Result};
+use rspack_error::{Diagnostic, Error, Result, cyan, yellow};
 use rspack_hash::RspackHasher;
 use rspack_hook::{plugin, plugin_hook};
 use rustc_hash::FxHashMap;
@@ -38,12 +38,16 @@ impl ConflictingValuesError {
       _ => (previous, current),
     };
     let mut warning = Error::warning(format!(
-      "DefinePlugin: Conflicting values for '{key}': {previous} and {current}."
+      "DefinePlugin: {} has conflicting values: {} and {}.",
+      yellow(&format_args!("'{key}'")),
+      cyan(&previous),
+      cyan(&current),
     ));
     if key == "process.env.NODE_ENV" {
-      warning.help = Some(
-        "Check 'optimization.nodeEnv' and any explicit DefinePlugin definitions for 'process.env.NODE_ENV'.".into(),
-      );
+      warning.help = Some(format!(
+        "Check {} and any DefinePlugin entries for this key. Remove the duplicate definition or make the values match.",
+        cyan(&"'optimization.nodeEnv'"),
+      ));
     }
     warning.into()
   }
