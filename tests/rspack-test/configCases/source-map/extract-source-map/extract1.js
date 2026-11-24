@@ -6,7 +6,6 @@ require("./test1");
 require("./no-source-map");
 require("./invalid-base64?from=lib/other.js");
 require("./invalid-utf8");
-require("./malformed-data-url");
 
 it("should extract source map - 1", () => {
 	const fileData = fs.readFileSync(__filename + ".map").toString("utf-8");

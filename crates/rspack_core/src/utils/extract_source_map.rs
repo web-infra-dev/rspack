@@ -153,13 +153,7 @@ fn is_absolute(path: &Utf8Path) -> bool {
 fn decode_data_uri(uri: &str) -> Result<String, &'static str> {
   // data URL scheme: "data:text/javascript;charset=utf-8;base64,some-string"
   // http://www.ietf.org/rfc/rfc2397.txt
-  let captures = URI_REGEX.captures(uri).ok_or_else(|| {
-    if uri.contains(',') {
-      "invalid data URL syntax"
-    } else {
-      "missing comma before the data"
-    }
-  })?;
+  let captures = URI_REGEX.captures(uri).ok_or("invalid data URL syntax")?;
   let body = &captures["body"];
 
   if captures.name("base64").is_some() {
