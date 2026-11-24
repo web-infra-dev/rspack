@@ -12,3 +12,10 @@ it('preserves the archived file timestamp', () => {
     expect(stat.mtimeMs).toBe(archivedTime);
     expect(stat.atimeMs).toBe(archivedTime);
 });
+
+it('preserves the archived file permissions', () => {
+    const stat = statSync(path.join(__dirname, 'copied-executable.txt'));
+    if (process.platform !== 'win32') {
+        expect(stat.mode & 0o777).toBe(0o751);
+    }
+});

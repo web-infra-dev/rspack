@@ -1,5 +1,5 @@
 #[cfg(not(target_family = "wasm"))]
-use std::{collections::HashMap, sync::OnceLock};
+use std::sync::OnceLock;
 use std::{
   fs::{self, File},
   io::{BufRead, BufReader, BufWriter, Read, Write},
@@ -13,7 +13,7 @@ use cow_utils::CowUtils;
 use pnp::fs::{FileType, LruZipCache, VPath, VPathInfo, ZipCache};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 #[cfg(not(target_family = "wasm"))]
-use rspack_util::node_path::NodePath;
+use rspack_util::{fx_hash::FxHashMap, node_path::NodePath};
 #[cfg(not(target_family = "wasm"))]
 use tokio::fs as tokio_fs;
 use tracing::instrument;
@@ -32,7 +32,7 @@ pub struct NativeFileSystem {
   options: NativeFileSystemOptions,
   pnp_lru: LruZipCache<Vec<u8>>,
   #[cfg(not(target_family = "wasm"))]
-  pnp_zip_timestamps: OnceLock<LruCache<PathBuf, HashMap<String, u64>>>,
+  pnp_zip_attributes: OnceLock<LruCache<PathBuf, FxHashMap<String, ZipFileAttributes>>>,
 }
 impl NativeFileSystem {
   pub fn new(pnp: bool) -> Self {
@@ -40,7 +40,7 @@ impl NativeFileSystem {
       options: NativeFileSystemOptions { pnp },
       pnp_lru: LruZipCache::new(50, pnp::fs::open_zip_via_read_p),
       #[cfg(not(target_family = "wasm"))]
-      pnp_zip_timestamps: OnceLock::new(),
+      pnp_zip_attributes: OnceLock::new(),
     }
   }
 }
@@ -178,24 +178,51 @@ impl From<FileType> for FileMetadata {
 }
 
 #[cfg(not(target_family = "wasm"))]
-fn read_zip_timestamps(path: &Path) -> std::io::Result<HashMap<String, u64>> {
-  let archive = zip::ZipArchive::new(BufReader::new(File::open(path)?))?;
-  Ok(
-    (0..archive.len())
-      .filter_map(|index| {
-        let entry = archive.by_index_data(index).ok()?;
-        let name = std::str::from_utf8(entry.name_raw())
-          .ok()?
-          .cow_replace('\\', "/");
-        let name = Utf8Path::new(&name).node_normalize_posix().into_string();
-        let mtime = chrono::NaiveDateTime::try_from(entry.last_modified()?).ok()?;
-        Some((
-          name,
-          u64::try_from(mtime.and_utc().timestamp_millis()).ok()?,
-        ))
-      })
-      .collect(),
-  )
+#[derive(Debug)]
+struct ZipFileAttributes {
+  mode: u16,
+  mtime_ms: Option<u64>,
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn read_zip_file_attributes(path: &Path) -> std::io::Result<FxHashMap<String, ZipFileAttributes>> {
+  let mut buffer = vec![0; rawzip::MAX_CENTRAL_DIRECTORY_RECORD_SIZE];
+  let archive =
+    rawzip::ZipArchive::from_file(File::open(path)?, &mut buffer).map_err(std::io::Error::other)?;
+  let mut records = archive.entries(&mut buffer);
+  let mut attributes = FxHashMap::default();
+  while let Some(entry) = records.next_entry().map_err(std::io::Error::other)? {
+    let entry_path = entry.file_path();
+    let Ok(name) = std::str::from_utf8(entry_path.as_ref()) else {
+      continue;
+    };
+    if name.ends_with('/') {
+      continue;
+    }
+    let name = name.cow_replace('\\', "/");
+    let name = Utf8Path::new(&name).node_normalize_posix().into_string();
+
+    // Match Yarn's ZipFS, which uses the DOS modification time and Unix mode.
+    let dos_time = entry.last_modified_dos();
+    let mtime_ms = rawzip::time::UtcDateTime::from_components(
+      dos_time.year(),
+      dos_time.month(),
+      dos_time.day(),
+      dos_time.hour(),
+      dos_time.minute(),
+      dos_time.second(),
+      0,
+    )
+    .and_then(|time| u64::try_from(time.to_unix()).ok())
+    .map(|time| time * 1000);
+    let mode = if entry.version_made_by().creator_system() == rawzip::CreatorSystem::UNIX {
+      ((entry.external_attributes() >> 16) & 0o777) as u16
+    } else {
+      0o644
+    };
+    attributes.insert(name, ZipFileAttributes { mode, mtime_ms });
+  }
+  Ok(attributes)
 }
 
 #[cfg(not(target_family = "wasm"))]
@@ -257,23 +284,26 @@ impl ReadableFileSystem for NativeFileSystem {
     meta.try_into()
   }
 
-  async fn metadata_with_timestamps(&self, path: &Utf8Path) -> Result<FileMetadata> {
+  async fn metadata_with_file_attributes(&self, path: &Utf8Path) -> Result<FileMetadata> {
     let mut metadata = self.metadata_sync(path)?;
     if self.options.pnp
       && metadata.is_file
       && metadata.atime_ms.is_none()
       && let VPath::Zip(info) = VPath::from(path.as_std_path())?
     {
-      let timestamps = self
-        .pnp_zip_timestamps
+      let attributes = self
+        .pnp_zip_attributes
         .get_or_init(|| LruCache::new(50))
         .get_or_try_init(info.physical_base_path(), 1, |path| {
-          read_zip_timestamps(path)
+          read_zip_file_attributes(path)
         })?;
-      if let Some(&mtime) = timestamps.value().get(&info.zip_path) {
+      if let Some(attributes) = attributes.value().get(&info.zip_path) {
+        metadata.mode = cfg!(unix).then_some(attributes.mode);
         // Yarn's ZipFS reports the entry's modification time for both fields.
-        metadata.atime_ms = Some(mtime);
-        metadata.mtime_ms = mtime;
+        if let Some(mtime) = attributes.mtime_ms {
+          metadata.atime_ms = Some(mtime);
+          metadata.mtime_ms = mtime;
+        }
       }
     }
     Ok(metadata)

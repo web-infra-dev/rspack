@@ -18,6 +18,11 @@ export default defineConfig({
           to: 'copied-package.json',
           preserveTimestamps: true,
         },
+        {
+          from: 'permissions.zip/executable.txt',
+          to: 'copied-executable.txt',
+          preservePermissions: true,
+        },
       ],
     }),
   ],

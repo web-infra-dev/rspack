@@ -445,6 +445,8 @@ export default {
 
 保留源文件在 Unix 上的读、写和执行权限。输出文件系统无法设置权限时，构建会报错。此选项在 Windows 上无效。
 
+复制 Yarn Plug'n'Play ZIP 归档内的文件时，Rspack 使用标记为 Unix 的条目记录的权限位。其他文件条目使用 `0644`。
+
 ### preserveTimestamps
 
 - **类型：** `boolean`

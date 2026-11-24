@@ -445,6 +445,8 @@ export default {
 
 Preserve the source file's Unix read, write, and execute permissions. If the output file system cannot apply the permissions, the build fails. This option has no effect on Windows.
 
+For files in Yarn Plug'n'Play ZIP archives, Rspack uses the stored mode for entries marked as Unix. Other file entries use `0644`.
+
 ### preserveTimestamps
 
 - **Type:** `boolean`

@@ -335,6 +335,38 @@ impl CopyRspackPlugin {
       }
     };
 
+    let copy_mode = pattern.copy_permissions || pattern.preserve_permissions;
+    let file_system = &compilation.input_filesystem;
+    let metadata = if pattern.preserve_permissions || pattern.preserve_timestamps {
+      file_system
+        .metadata_with_file_attributes(&absolute_filename)
+        .await
+        .ok()
+    } else if pattern.copy_permissions {
+      file_system.metadata(&absolute_filename).await.ok()
+    } else {
+      None
+    };
+    let file_attributes = if let Some(metadata) = metadata
+      && metadata.is_file
+    {
+      let mode = if copy_mode { metadata.mode } else { None };
+      let timestamps = if pattern.preserve_timestamps {
+        metadata.atime_ms.map(|atime| (atime, metadata.mtime_ms))
+      } else {
+        None
+      };
+      (mode.is_some() || timestamps.is_some()).then(|| {
+        Box::new(AssetFileAttributes {
+          mode,
+          permissions_required: pattern.preserve_permissions,
+          timestamps,
+        })
+      })
+    } else {
+      None
+    };
+
     let source = if let Some(transformer) = &pattern.transform_fn {
       let mut source = RawBufferSource::from(source_vec.clone()).boxed();
       logger.debug(format!("transforming content for '{absolute_filename}'..."));
@@ -382,38 +414,6 @@ impl CopyRspackPlugin {
       filename.as_str().normalize().to_string_lossy().to_string()
     };
     let filename = normalize_glob_path_separators(&filename).into_owned();
-
-    let copy_mode = pattern.copy_permissions || pattern.preserve_permissions;
-    let file_system = &compilation.input_filesystem;
-    let metadata = if pattern.preserve_timestamps {
-      file_system
-        .metadata_with_timestamps(&absolute_filename)
-        .await
-        .ok()
-    } else if copy_mode {
-      file_system.metadata(&absolute_filename).await.ok()
-    } else {
-      None
-    };
-    let file_attributes = if let Some(metadata) = metadata
-      && metadata.is_file
-    {
-      let mode = if copy_mode { metadata.mode } else { None };
-      let timestamps = if pattern.preserve_timestamps {
-        metadata.atime_ms.map(|atime| (atime, metadata.mtime_ms))
-      } else {
-        None
-      };
-      (mode.is_some() || timestamps.is_some()).then(|| {
-        Box::new(AssetFileAttributes {
-          mode,
-          permissions_required: pattern.preserve_permissions,
-          timestamps,
-        })
-      })
-    } else {
-      None
-    };
 
     Ok(Some(RunPatternResult {
       source_filename,

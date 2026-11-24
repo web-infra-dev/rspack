@@ -95,6 +95,53 @@ function preserveFileAttributes(useInputFileSystem) {
 	};
 }
 
+function preserveAttributesBeforeTransform() {
+	let source;
+	let target;
+
+	return {
+		description: "should read file attributes before running an async transform",
+		options(context) {
+			let updateSource = true;
+			const { root, options } = createProject(context, "transform", [
+				{
+					from: "assets/transformed.txt",
+					preservePermissions: true,
+					preserveTimestamps: true,
+					async transform(content) {
+						if (updateSource) {
+							updateSource = false;
+							await fs.promises.writeFile(source, "after!\n");
+							await fs.promises.utimes(source, atime, updatedMtime);
+							if (unix) await fs.promises.chmod(source, 0o711);
+						}
+						return content;
+					}
+				}
+			]);
+			source = write(root, "assets/transformed.txt", "before\n");
+			fs.utimesSync(source, atime, initialMtime);
+			if (unix) fs.chmodSync(source, 0o751);
+			target = path.join(root, "dist", "transformed.txt");
+			return options;
+		},
+		compiler: useRealOutputFileSystem,
+		async build(_context, compiler) {
+			await compile(compiler);
+			const initial = fs.statSync(target);
+			expect(fs.readFileSync(target, "utf8")).toBe("before\n");
+			expect(initial.mtimeMs).toBe(initialMtime.getTime());
+			if (unix) expect(initial.mode & 0o777).toBe(0o751);
+
+			await rebuild(compiler, [source]);
+			const updated = fs.statSync(target);
+			expect(fs.readFileSync(target, "utf8")).toBe("after!\n");
+			expect(updated.mtimeMs).toBe(updatedMtime.getTime());
+			if (unix) expect(updated.mode & 0o777).toBe(0o711);
+		}
+	};
+}
+
 const chmodError = "fixture chmod failed";
 
 function rejectChmod(_file, _mode, callback) {
@@ -203,6 +250,7 @@ function permissionFailureCase(option, chmod) {
 export default [
 	preserveFileAttributes(false),
 	preserveFileAttributes(true),
+	preserveAttributesBeforeTransform(),
 	preserveChildCompilerFileAttributes(),
 	...["copyPermissions", "preservePermissions"].flatMap(option => [
 		permissionFailureCase(option, undefined),

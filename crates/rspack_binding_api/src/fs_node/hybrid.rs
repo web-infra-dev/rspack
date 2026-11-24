@@ -54,10 +54,10 @@ impl ReadableFileSystem for HybridFileSystem {
     self.pick_fs_for_path(path).metadata_sync(path)
   }
 
-  async fn metadata_with_timestamps(&self, path: &Utf8Path) -> Result<FileMetadata> {
+  async fn metadata_with_file_attributes(&self, path: &Utf8Path) -> Result<FileMetadata> {
     self
       .pick_fs_for_path(path)
-      .metadata_with_timestamps(path)
+      .metadata_with_file_attributes(path)
       .await
   }
 

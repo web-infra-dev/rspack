@@ -18,12 +18,11 @@ tokio        = { workspace = true, features = ["rt", "macros", "sync", "time"] }
 tracing      = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-chrono         = { workspace = true }
 concurrent_lru = { workspace = true }
 cow-utils      = { workspace = true }
 filetime       = { workspace = true }
+rawzip         = { workspace = true, features = ["std"] }
 tokio          = { workspace = true, features = ["rt", "macros", "sync", "fs"] }
-zip            = { workspace = true, features = ["chrono"] }
 
 [dev-dependencies]
 tempfile = { workspace = true }

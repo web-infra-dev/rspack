@@ -91,6 +91,7 @@ pretty_assertions   = { version = "1.4.1", default-features = false, features = 
 proc-macro2         = { version = "1.0.107", default-features = false }
 prost               = { version = "0.13", default-features = false }
 quote               = { version = "1.0.47", default-features = false }
+rawzip              = { version = "0.5.3", default-features = false }
 rayon               = { version = "1.12.0", default-features = false }
 ref-cast            = { version = "1.0.27", default-features = false }
 regex               = { version = "1.13.2", default-features = false, features = ["perf"] }
@@ -136,7 +137,6 @@ ustr                = { package = "ustr-fxhash", version = "1.0.1", default-feat
 vfs                 = { version = "0.13.0", default-features = false }
 wasmparser          = { version = "0.236.1", default-features = false }
 xxhash-rust         = { version = "0.8.21", default-features = false }
-zip                 = { version = "9.8.2", default-features = false }
 
 # Pinned
 napi        = { version = "3.15.0", default-features = false }
