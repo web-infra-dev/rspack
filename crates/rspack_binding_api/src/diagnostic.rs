@@ -90,7 +90,7 @@ pub fn format_diagnostic(diagnostic: JsDiagnostic) -> Result<External<Diagnostic
   error.src = source_code.map(Into::into);
 
   let mut diagnostic = Diagnostic::from(error);
-  diagnostic.file = file.map(Into::into);
+  diagnostic.file = file;
   diagnostic.loc = real_dependency_location;
   diagnostic.module_identifier = module_identifier.map(Into::into);
   Ok(External::new(diagnostic))

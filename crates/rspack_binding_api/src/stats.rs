@@ -223,7 +223,7 @@ impl<'a> From<rspack_core::StatsError<'a>> for JsStatsError<'a> {
       message: stats.message,
       code: stats.code,
       loc: stats.loc,
-      file: stats.file.map(|f| f.as_str()),
+      file: stats.file,
       chunk_name: stats.chunk_name,
       chunk_entry: stats.chunk_entry,
       chunk_initial: stats.chunk_initial,

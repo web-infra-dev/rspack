@@ -136,9 +136,8 @@ pub(crate) async fn complete_isolated_dts_outputs(
         continue;
       }
 
-      let diagnostic_file = Utf8PathBuf::from(
-        absolute_to_request(compiler_root.as_str(), resource_path.as_str()).into_owned(),
-      );
+      let diagnostic_file =
+        absolute_to_request(compiler_root.as_str(), resource_path.as_str()).into_owned();
       let std_resource_path = resource_path.clone().into_std_path_buf();
       compilation
         .file_dependencies

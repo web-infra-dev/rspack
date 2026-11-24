@@ -1,18 +1,67 @@
 use std::{borrow::Cow, ops::Range, path::Path, sync::LazyLock};
 
+use camino::Utf8Path;
 use concat_string::concat_string;
 use cow_utils::CowUtils;
 use memchr::{memchr, memchr2, memchr2_iter, memchr3};
 use regex::Regex;
-use rspack_paths::Utf8Path;
-#[cfg(windows)]
-use rspack_paths::dos_device_path_prefix_len;
 use smallvec::SmallVec;
 use sugar_path::SugarPath;
 
 use crate::node_path::NodePath;
 
 static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
+
+/// Returns the byte index immediately after a DOS device path prefix
+/// (`\\?\` or `\\.\`), or zero when `path` has no such prefix.
+///
+/// The prefix is ASCII, so the byte index is also a valid UTF-8 slice boundary.
+#[inline]
+pub fn dos_device_path_prefix_len(path: &str) -> usize {
+  let bytes = path.as_bytes();
+  if bytes.len() >= 4
+    && bytes[0] == b'\\'
+    && bytes[1] == b'\\'
+    && matches!(bytes[2], b'?' | b'.')
+    && bytes[3] == b'\\'
+  {
+    4
+  } else {
+    0
+  }
+}
+
+/// Converts a DOS device drive or UNC path to its legacy Win32 spelling.
+/// Other DOS device namespaces are returned unchanged.
+#[inline]
+pub fn strip_dos_device_path_prefix(path: &str) -> Cow<'_, str> {
+  let prefix_len = dos_device_path_prefix_len(path);
+  if prefix_len == 0 {
+    return Cow::Borrowed(path);
+  }
+
+  let path_without_prefix = &path[prefix_len..];
+  let bytes = path_without_prefix.as_bytes();
+  if bytes.len() >= 3
+    && bytes[0].is_ascii_alphabetic()
+    && bytes[1] == b':'
+    && matches!(bytes[2], b'/' | b'\\')
+  {
+    return Cow::Borrowed(path_without_prefix);
+  }
+
+  if bytes
+    .get(..4)
+    .is_some_and(|prefix| prefix.eq_ignore_ascii_case(b"UNC\\"))
+  {
+    let mut legacy_path = String::with_capacity(path_without_prefix.len() - 2);
+    legacy_path.push_str(r"\\");
+    legacy_path.push_str(&path_without_prefix[4..]);
+    return Cow::Owned(legacy_path);
+  }
+
+  Cow::Borrowed(path)
+}
 
 /// # Example
 ///  ```ignore

@@ -362,7 +362,7 @@ impl RspackError {
       stack: diagnostic.stack.as_ref().cloned(),
       module,
       loc: diagnostic.loc.as_ref().map(Into::into),
-      file: diagnostic.file.as_ref().map(|f| f.as_str().to_string()),
+      file: diagnostic.file.clone(),
       hide_stack: diagnostic.hide_stack,
       error: source_error,
       parent_error_name: None,
@@ -382,7 +382,7 @@ impl RspackError {
     error.hide_stack = self.hide_stack;
     let mut diagnostic = Diagnostic::from(error);
     diagnostic.details = self.details;
-    diagnostic.file = self.file.map(Into::into);
+    diagnostic.file = self.file;
     diagnostic.loc = self.loc.as_ref().map(Into::into);
     diagnostic.module_identifier = self.module.map(|module| *module.identifier());
     diagnostic

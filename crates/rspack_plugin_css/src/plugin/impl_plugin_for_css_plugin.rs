@@ -140,7 +140,7 @@ impl CssPlugin {
             selected_module.readable_identifier(&compilation.options.context)
           ),
         );
-        diagnostic.file = Some(output_path.to_owned().into());
+        diagnostic.file = Some(output_path.to_owned());
         diagnostic.chunk = Some(chunk.ukey().as_u32());
         diagnostic
       }));

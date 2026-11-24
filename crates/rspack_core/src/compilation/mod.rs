@@ -856,7 +856,7 @@ impl Compilation {
         let mut diagnostic = Diagnostic::from(rspack_error::error!(
           "Multiple assets{source_info} produce different content for the same output file {filename:?}."
         ));
-        diagnostic.file = Some(filename.as_str().into());
+        diagnostic.file = Some(filename.clone());
         self.push_diagnostic(diagnostic);
         self.set_asset_info(&filename, Some(asset.get_info()), None);
         self.assets.insert(filename, asset);

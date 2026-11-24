@@ -12,6 +12,7 @@ version.workspace = true
 aho-corasick      = { workspace = true }
 base64-simd       = { workspace = true }
 bitflags          = { workspace = true }
+camino            = { workspace = true }
 concat-string     = { workspace = true }
 cow-utils         = { workspace = true }
 dashmap           = { workspace = true }
@@ -24,7 +25,6 @@ regex             = { workspace = true }
 rspack-allocative = { workspace = true, optional = true }
 rspack_cacheable  = { workspace = true }
 rspack_intern     = { workspace = true, features = ["atom"] }
-rspack_paths      = { workspace = true }
 rustc-hash        = { workspace = true }
 ryu-js            = { workspace = true }
 serde             = { workspace = true }

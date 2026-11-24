@@ -1,7 +1,6 @@
 use std::{borrow::Cow, fmt::Debug};
 
 use rspack_intern::Atom;
-use rspack_paths::Utf8Path;
 use rspack_sources::BoxSource;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -78,7 +77,7 @@ pub struct StatsError<'a> {
   pub module_name: Option<Cow<'a, str>>,
   pub module_id: Option<ModuleId>,
   pub loc: Option<String>,
-  pub file: Option<&'a Utf8Path>,
+  pub file: Option<&'a str>,
 
   pub chunk_name: Option<&'a str>,
   pub chunk_entry: Option<bool>,

@@ -401,7 +401,7 @@ despite it was not able to fulfill desired ordering with these modules:
               .join("\n")
           ),
         );
-        diagnostic.file = Some(filename.to_owned().into());
+        diagnostic.file = Some(filename.to_owned());
         diagnostic.chunk = Some(chunk.ukey().as_u32());
         diagnostic
       }));

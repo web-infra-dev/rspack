@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use camino::{Utf8Path, Utf8PathBuf};
 
 fn is_path_separator(byte: &u8) -> bool {
   *byte == b'/' || *byte == b'\\'

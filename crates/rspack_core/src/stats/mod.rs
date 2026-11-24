@@ -1019,7 +1019,7 @@ impl Stats<'_> {
           module_name,
           module_id: module_id.flatten(),
           loc: d.loc.as_ref().map(|loc| loc.to_string()),
-          file: d.file.as_ref().map(|file| file.as_path()),
+          file: d.file.as_deref(),
 
           chunk_name: chunk.and_then(|c| c.name()),
           chunk_entry: chunk
@@ -1103,7 +1103,7 @@ impl Stats<'_> {
           module_name,
           module_id: module_id.flatten(),
           loc: d.loc.as_ref().map(|loc| loc.to_string()),
-          file: d.file.as_ref().map(|file| file.as_path()),
+          file: d.file.as_deref(),
 
           chunk_name: chunk.and_then(|c| c.name()),
           chunk_entry: chunk
@@ -1815,7 +1815,7 @@ pub fn create_stats_errors<'a>(
         module_name,
         module_id: module_id.flatten(),
         loc: d.loc.as_ref().map(|loc| loc.to_string()),
-        file: d.file.as_ref().map(|file| file.as_path()),
+        file: d.file.as_deref(),
 
         chunk_name: chunk.and_then(|c| c.name()),
         chunk_entry: chunk

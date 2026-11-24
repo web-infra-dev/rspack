@@ -4294,7 +4294,6 @@ dependencies = [
  "rspack_cacheable",
  "rspack_collections",
  "rspack_location",
- "rspack_paths",
  "serde_json",
  "termcolor",
  "textwrap",
@@ -4590,6 +4589,21 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.119",
+]
+
+[[package]]
+name = "rspack_new_fs"
+version = "0.103.4"
+dependencies = [
+ "async-trait",
+ "rspack_cacheable",
+ "rspack_error",
+ "rspack_intern",
+ "rspack_util",
+ "rustc-hash",
+ "smallvec",
+ "tokio",
+ "ustr-fxhash",
 ]
 
 [[package]]
@@ -5678,6 +5692,7 @@ dependencies = [
  "anyhow",
  "base64-simd 0.8.0",
  "bitflags 2.13.2",
+ "camino",
  "concat-string",
  "cow-utils",
  "dashmap",
@@ -5691,7 +5706,6 @@ dependencies = [
  "rspack-allocative",
  "rspack_cacheable",
  "rspack_intern",
- "rspack_paths",
  "rspack_regex",
  "rustc-hash",
  "ryu-js",
