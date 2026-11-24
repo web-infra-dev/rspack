@@ -85,7 +85,9 @@ Define the output format of remote container entry. The default libraryType is "
 
 Define the namespace for shared dependencies in the current container. By configuring share scopes between different containers, the sharing behavior of modules can be controlled, including determining which modules are shared between different containers. The default share scope is `"default"`.
 
-Exposing or consuming a remote module requires a `shareScope` array to contain at least one entry. This also applies to `remotes[name].shareScope`. An array does not enable asynchronous startup. To opt in, set `experiments.asyncStartup` to `true`.
+The enhanced plugin accepts a non-empty array of scopes, including in `remotes[name].shareScope`. The first scope is the one a host passes to a container that does not receive a scope map.
+
+When a build uses layered sharing with a runtime that supports it, a remote declared with an array initializes once with its own scope list. When the host sends a scope map, the container also registers the shared modules it provides in other scopes. Builds without layers keep the existing behavior, including for arrays. An array does not enable asynchronous startup. To opt in, set `experiments.asyncStartup` to `true`.
 
 ### shareStrategy
 
