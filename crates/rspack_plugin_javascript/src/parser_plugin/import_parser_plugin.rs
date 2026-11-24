@@ -1,3 +1,4 @@
+use cow_utils::CowUtils;
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, ChunkGroupOptions, ContextDependency,
   ContextNameSpaceObject, ContextOptions, Dependency, DependencyCategory, DependencyRange,
@@ -752,7 +753,9 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
         && let Some(help) = critical.as_mut().and_then(|warning| warning.help.as_mut())
       {
         let pattern = "./locales/${name}.js";
-        *help = help.replace(pattern, &cyan(&pattern).to_string());
+        *help = help
+          .cow_replace(pattern, &cyan(&pattern).to_string())
+          .into_owned();
         help.push_str(&format!(
           "\nTo load the module at runtime, use `{}`.\n\
            For third-party code that needs native `{}`, set `{}` to `{}` in a rule matching that package.",
