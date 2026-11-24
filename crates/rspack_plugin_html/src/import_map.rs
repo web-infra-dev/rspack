@@ -1,5 +1,6 @@
-use std::collections::BTreeMap;
+use std::{borrow::Cow, collections::BTreeMap};
 
+use cow_utils::CowUtils;
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use serde_json::{Map, Value, json};
 use swc_core::common::DUMMY_SP;
@@ -149,10 +150,10 @@ fn insert_before_module_fetch(children: &mut Vec<Child>, contents: &str) -> bool
 }
 
 fn serialize_map(map: &Value) -> Result<String> {
+  let contents = serde_json::to_string(map).to_rspack_result()?;
   // A script element is raw text, so JSON string escaping alone does not protect its end tag.
-  Ok(
-    serde_json::to_string(map)
-      .to_rspack_result()?
-      .replace('<', "\\u003c"),
-  )
+  Ok(match contents.cow_replace('<', "\\u003c") {
+    Cow::Borrowed(_) => contents,
+    Cow::Owned(escaped) => escaped,
+  })
 }
