@@ -198,7 +198,9 @@ export default {
 
 ## Loader 缓存 \{#loader-cache}
 
-在 `module.rules[].use` 中为 loader 设置 `cache: true`，即可缓存其转换结果。使用 loader 缓存需要开启顶层 [`cache`](/config/cache) 和 [`experiments.newCache`](/config/experiments#experimentsnewcache) 的 `loader` 阶段（设置 `experiments.newCache: true` 时默认开启）。
+Rspack 支持缓存单个 loader 的转换结果，当输入未变化时，可在多次构建或多个 compiler 之间复用结果、避免重复执行，从而提升耗时 loader 的构建性能。
+
+要启用 loader 缓存，请在 `module.rules[].use` 中为 loader 设置 [`cache: true`](/config/module-rules#rulesusecache)，并开启顶层 [`cache`](/config/cache) 和 [`experiments.newCache`](/config/experiments#experimentsnewcache) 的 `loader` 阶段（设置 `experiments.newCache: true` 时默认开启）：
 
 ```js title="rspack.config.mjs"
 export default {

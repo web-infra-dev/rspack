@@ -196,7 +196,9 @@ For more details, see [rules[].use.parallel](/config/module-rules#rulesuseparall
 
 ## Loader cache
 
-Set `cache: true` on a loader in `module.rules[].use` to cache its transform results. Loader caching requires the top-level [`cache`](/config/cache) and the `loader` stage of [`experiments.newCache`](/config/experiments#experimentsnewcache) (enabled by default when `experiments.newCache: true`).
+Rspack supports caching the transform results of individual loaders so unchanged inputs can skip repeated execution across builds or compilers, improving build performance for expensive loaders.
+
+To enable loader caching, set [`cache: true`](/config/module-rules#rulesusecache) on a loader in `module.rules[].use`, along with the top-level [`cache`](/config/cache) and the `loader` stage of [`experiments.newCache`](/config/experiments#experimentsnewcache) (enabled by default when `experiments.newCache: true`):
 
 ```js title="rspack.config.mjs"
 export default {
