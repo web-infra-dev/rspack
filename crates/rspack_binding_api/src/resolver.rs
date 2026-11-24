@@ -95,10 +95,13 @@ impl JsResolver {
             })
           }
           Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(())),
-          Err(err) => Err(napi::Error::new(
-            ErrorCode::Napi(napi::Status::GenericFailure),
-            format!("{err:?}"),
-          )),
+          Err(err) => Err(
+            napi::Error::new(
+              ErrorCode::Napi(napi::Status::GenericFailure),
+              format!("{err:?}"),
+            )
+            .into(),
+          ),
         }
       },
       None::<fn(&napi::Env, &mut _)>,

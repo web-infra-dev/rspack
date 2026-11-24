@@ -2,28 +2,56 @@ use std::panic::AssertUnwindSafe;
 
 use futures::{Future, FutureExt};
 use rspack_napi::napi::{
-  Env, JsError, Result, bindgen_prelude::*, sys, threadsafe_function::ThreadsafeFunctionCallMode,
+  Env, JsError, bindgen_prelude::*, sys, threadsafe_function::ThreadsafeFunctionCallMode,
 };
 
-use crate::error::ErrorCode;
+use crate::{error::ErrorCode, print_error_diagnostic};
+
+pub(crate) type CallbackResult<R> = std::result::Result<R, CallbackError>;
+
+pub(crate) struct CallbackError {
+  error: napi::Error<ErrorCode>,
+  stack: Option<String>,
+}
+
+impl CallbackError {
+  pub(crate) fn from_diagnostic(error: rspack_error::Error, colored: bool) -> Self {
+    let stack = error
+      .stack
+      .as_ref()
+      .filter(|_| error.hide_stack != Some(true))
+      .cloned();
+    let code = ErrorCode::from(&error);
+    Self {
+      error: napi::Error::new(code, print_error_diagnostic(error, colored)),
+      stack,
+    }
+  }
+}
+
+impl From<napi::Error<ErrorCode>> for CallbackError {
+  fn from(error: napi::Error<ErrorCode>) -> Self {
+    Self { error, stack: None }
+  }
+}
 
 /// Run a future, then finalize its result on the JS thread before invoking the
 /// error-first callback. The finalizer runs for success, errors and caught panics,
 /// and may replace the result (for example, if JS-thread cleanup fails).
-pub fn callbackify<R, F>(
+pub(crate) fn callbackify<R, F>(
   js_callback: Function<'static>,
   fut: F,
-  finalizer: Option<impl FnOnce(&Env, &mut Result<R, ErrorCode>) + 'static>,
-) -> Result<(), ErrorCode>
+  finalizer: Option<impl FnOnce(&Env, &mut CallbackResult<R>) + 'static>,
+) -> napi::Result<(), ErrorCode>
 where
   R: 'static + ToNapiValue,
-  F: 'static + Send + Future<Output = Result<R, ErrorCode>>,
+  F: 'static + Send + Future<Output = CallbackResult<R>>,
 {
   let mut finalizer = finalizer;
   let tsfn = js_callback
     // Deliver errors as data: an outer TSFN Err bypasses the conversion callback
     // and would skip finalization before the user's callback.
-    .build_threadsafe_function::<Result<R, ErrorCode>>()
+    .build_threadsafe_function::<CallbackResult<R>>()
     .callee_handled::<false>()
     .max_queue_size::<1>()
     .weak::<false>()
@@ -42,7 +70,7 @@ where
       Err(payload) => {
         let mut error = rspack_napi::runtime::panic_to_napi_error(payload);
         let reason = std::mem::take(&mut error.reason);
-        Err(napi::Error::new(ErrorCode::Napi(error.status), reason))
+        Err(napi::Error::new(ErrorCode::Napi(error.status), reason).into())
       }
     };
     tsfn.call(res, ThreadsafeFunctionCallMode::NonBlocking);
@@ -53,7 +81,7 @@ where
 /// Preserve error-first arguments and custom error codes without TSFN's outer
 /// error handling. Conversion errors must also reach the callback, not become
 /// uncaught exceptions under `callee_handled(false)`.
-struct CallbackArgs<R>(Result<R, ErrorCode>);
+struct CallbackArgs<R>(CallbackResult<R>);
 
 impl<R: ToNapiValue> JsValuesTupleIntoVec for CallbackArgs<R> {
   #[allow(clippy::not_unsafe_ptr_arg_deref)]
@@ -62,7 +90,7 @@ impl<R: ToNapiValue> JsValuesTupleIntoVec for CallbackArgs<R> {
       // Match napi-rs argument conversion, including no value argument for ().
       value
         .into_vec(env)
-        .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason))
+        .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason).into())
     });
     match result {
       Ok(mut args) => {
@@ -70,9 +98,14 @@ impl<R: ToNapiValue> JsValuesTupleIntoVec for CallbackArgs<R> {
         args.insert(0, unsafe { Null::to_napi_value(env, Null)? });
         Ok(args)
       }
-      Err(error) => {
+      Err(CallbackError { error, stack }) => {
         // SAFETY: the error is materialized in the same active JS handle scope.
-        Ok(vec![unsafe { JsError::from(error).into_value(env) }])
+        let value = unsafe { JsError::from(error).into_value(env) };
+        if let Some(stack) = stack {
+          // SAFETY: `value` is the JS Error created in this handle scope.
+          unsafe { Object::from_raw(env, value) }.set("stack", stack)?;
+        }
+        Ok(vec![value])
       }
     }
   }

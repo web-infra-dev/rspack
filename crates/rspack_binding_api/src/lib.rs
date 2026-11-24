@@ -149,7 +149,7 @@ use crate::{
   raw_options::{BuiltinPlugin, RawOptions, WithFalse},
   resolver_factory::JsResolverFactory,
   trace_event::RawTraceEvent,
-  utils::callbackify,
+  utils::{CallbackError, CallbackResult, callbackify},
   virtual_modules::{
     JsVirtualFileStore, TrieVirtualFileStore, VirtualFileStore, VirtualFileSystem,
   },
@@ -469,10 +469,9 @@ impl JsCompiler {
         callbackify(
           f,
           async move {
-            let result = compiler.build().await.to_napi_result_with_message(|e| {
-              print_error_diagnostic(e, compiler.options.stats.colors)
-            });
-            result?;
+            compiler.build().await.map_err(|error| {
+              CallbackError::from_diagnostic(error, compiler.options.stats.colors)
+            })?;
             tracing::debug!("build ok");
             Ok(())
           },
@@ -499,16 +498,15 @@ impl JsCompiler {
         callbackify(
           f,
           async move {
-            let result = compiler
+            compiler
               .rebuild(
                 changed_files.into_iter().collect::<FxHashSet<_>>(),
                 removed_files.into_iter().collect::<FxHashSet<_>>(),
               )
               .await
-              .to_napi_result_with_message(|e| {
-                print_error_diagnostic(e, compiler.options.stats.colors)
-              });
-            result?;
+              .map_err(|error| {
+                CallbackError::from_diagnostic(error, compiler.options.stats.colors)
+              })?;
             tracing::debug!("rebuild ok");
             Ok(())
           },
@@ -583,12 +581,12 @@ struct RunGuard {
 }
 
 impl RunGuard {
-  fn finish(self, env: &Env, result: &mut Result<(), ErrorCode>) {
+  fn finish(self, env: &Env, result: &mut CallbackResult<()>) {
     if result.is_ok() {
       *result = self
         ._reference
         .prune_file_system_dependency_strings(env)
-        .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason));
+        .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason).into());
     }
     if result.is_err() {
       // Preserve the original error even if clearing the string pool fails.

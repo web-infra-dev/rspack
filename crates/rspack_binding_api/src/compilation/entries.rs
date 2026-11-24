@@ -1,9 +1,12 @@
 use napi_derive::napi;
-use rspack_core::{ChunkLoading, Compilation, EntryData, EntryOptions, EntryRuntime, internal};
+use rspack_core::{
+  ChunkLoading, Compilation, DependencyId, EntryData, EntryOptions, EntryRuntime, internal,
+};
 use rspack_napi::napi::bindgen_prelude::*;
 
 use crate::{
   dependency::{Dependency, DependencyWrapper},
+  module_graph::require_module_graph,
   options::{entry::JsEntryOptions, library::JsLibraryOptions},
   raw_options::{RawChunkLoading, WithFalse},
 };
@@ -188,36 +191,34 @@ pub struct EntryDataDTO {
   entry_data: EntryData,
 }
 
+impl EntryDataDTO {
+  fn dependency_wrappers(&self, ids: &[DependencyId]) -> Result<Vec<DependencyWrapper>> {
+    let module_graph = require_module_graph(self.compilation)?;
+    ids
+      .iter()
+      .map(|dependency_id| {
+        let dep =
+          internal::try_dependency_ref_by_id(module_graph, dependency_id).ok_or_else(|| {
+            Error::from_reason(format!(
+              "Entry dependency {dependency_id:?} is no longer in the module graph"
+            ))
+          })?;
+        Ok(DependencyWrapper::from_graph(dep, self.compilation.id()))
+      })
+      .collect()
+  }
+}
+
 #[napi]
 impl EntryDataDTO {
   #[napi(getter, ts_return_type = "Dependency[]")]
-  pub fn dependencies(&'static self) -> Vec<DependencyWrapper> {
-    let module_graph = self.compilation.get_module_graph();
-    self
-      .entry_data
-      .dependencies
-      .iter()
-      .map(|dependency_id| {
-        let dep = internal::try_dependency_ref_by_id(module_graph, dependency_id)
-          .expect("entry dependency should exist in the module graph");
-        DependencyWrapper::from_graph(dep, self.compilation.id())
-      })
-      .collect::<Vec<_>>()
+  pub fn dependencies(&self) -> Result<Vec<DependencyWrapper>> {
+    self.dependency_wrappers(&self.entry_data.dependencies)
   }
 
   #[napi(getter, ts_return_type = "Dependency[]")]
-  pub fn include_dependencies(&'static self) -> Vec<DependencyWrapper> {
-    let module_graph = self.compilation.get_module_graph();
-    self
-      .entry_data
-      .include_dependencies
-      .iter()
-      .map(|dependency_id| {
-        let dep = internal::try_dependency_ref_by_id(module_graph, dependency_id)
-          .expect("entry dependency should exist in the module graph");
-        DependencyWrapper::from_graph(dep, self.compilation.id())
-      })
-      .collect::<Vec<_>>()
+  pub fn include_dependencies(&self) -> Result<Vec<DependencyWrapper>> {
+    self.dependency_wrappers(&self.entry_data.include_dependencies)
   }
 
   #[napi(getter)]

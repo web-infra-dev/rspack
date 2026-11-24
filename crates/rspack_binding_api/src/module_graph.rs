@@ -4,11 +4,17 @@ use rspack_core::{Compilation, CompilationId, ModuleGraph, RuntimeSpec};
 
 use crate::{
   dependencies::DependencyObject,
-  exports_info::JsExportsInfo,
+  exports_info::{JsExportsInfo, get_exports_info_artifact},
   module::{ModuleObject, ModuleObjectRef},
   module_graph_connection::ModuleGraphConnectionWrapper,
   with_compilation,
 };
+
+pub(crate) fn require_module_graph(compilation: &Compilation) -> napi::Result<&ModuleGraph> {
+  compilation.try_get_module_graph().ok_or_else(|| {
+    napi::Error::from_reason("ModuleGraph is not available during module graph building phase")
+  })
+}
 
 #[napi]
 pub struct JsModuleGraph {
@@ -29,14 +35,7 @@ impl JsModuleGraph {
     f: impl FnOnce(&Compilation, &ModuleGraph) -> napi::Result<R>,
   ) -> napi::Result<R> {
     with_compilation(self.compilation_id, |compilation| {
-      if compilation.build_module_graph_artifact.is_stolen() {
-        return Err(napi::Error::from_reason(
-          "ModuleGraph is not available during module graph building phase".to_string(),
-        ));
-      }
-      let module_graph = compilation.get_module_graph();
-
-      f(compilation, module_graph)
+      f(compilation, require_module_graph(compilation)?)
     })
   }
 }
@@ -101,9 +100,8 @@ impl JsModuleGraph {
           runtime.extend(vec.iter().map(String::as_str).map(ustr::Ustr::from));
         }
       };
-      let exports_info = compilation
-        .exports_info_artifact
-        .get_exports_info_data(&js_module.identifier);
+      let exports_info =
+        get_exports_info_artifact(compilation)?.get_exports_info_data(&js_module.identifier);
       let used_exports = exports_info.get_used_exports(Some(&RuntimeSpec::new(runtime)));
       Ok(match used_exports {
         rspack_core::UsedExports::Unknown => None,
@@ -128,9 +126,8 @@ impl JsModuleGraph {
     js_module: ModuleObjectRef,
   ) -> napi::Result<Option<Either<bool, Vec<JsString<'a>>>>> {
     self.with_ref(|compilation, _| {
-      let exports_info = compilation
-        .exports_info_artifact
-        .get_exports_info_data(&js_module.identifier);
+      let exports_info =
+        get_exports_info_artifact(compilation)?.get_exports_info_data(&js_module.identifier);
       let provided = exports_info.get_provided_exports();
       Ok(match provided {
         rspack_core::ProvidedExports::Unknown => None,
@@ -156,9 +153,8 @@ impl JsModuleGraph {
   #[napi(ts_args_type = "module: Module")]
   pub fn get_exports_info(&self, module: ModuleObjectRef) -> napi::Result<JsExportsInfo> {
     self.with_ref(|compilation, _| {
-      let exports_info = compilation
-        .exports_info_artifact
-        .get_exports_info(&module.identifier);
+      let exports_info =
+        get_exports_info_artifact(compilation)?.get_exports_info(&module.identifier);
       Ok(JsExportsInfo::new(exports_info, compilation))
     })
   }
@@ -196,12 +192,7 @@ impl JsModuleGraph {
     let compilation_id = self.compilation_id;
     let vec = &mut self.connection_vec_buffer;
     with_compilation(compilation_id, |compilation| {
-      if compilation.build_module_graph_artifact.is_stolen() {
-        return Err(napi::Error::from_reason(
-          "ModuleGraph is not available during module graph building phase".to_string(),
-        ));
-      }
-      let module_graph = compilation.get_module_graph();
+      let module_graph = require_module_graph(compilation)?;
       for connection in module_graph.get_outgoing_connections(&module.identifier) {
         vec.push(ModuleGraphConnectionWrapper::new(connection, compilation));
       }
@@ -225,12 +216,7 @@ impl JsModuleGraph {
     let compilation_id = self.compilation_id;
     let vec = &mut self.connection_vec_buffer;
     with_compilation(compilation_id, |compilation| {
-      if compilation.build_module_graph_artifact.is_stolen() {
-        return Err(napi::Error::from_reason(
-          "ModuleGraph is not available during module graph building phase".to_string(),
-        ));
-      }
-      let module_graph = compilation.get_module_graph();
+      let module_graph = require_module_graph(compilation)?;
       for connection in module_graph.get_ordered_outgoing_connections(&module.identifier) {
         vec.push(ModuleGraphConnectionWrapper::new(connection, compilation));
       }
@@ -254,12 +240,7 @@ impl JsModuleGraph {
     let compilation_id = self.compilation_id;
     let vec = &mut self.connection_vec_buffer;
     with_compilation(compilation_id, |compilation| {
-      if compilation.build_module_graph_artifact.is_stolen() {
-        return Err(napi::Error::from_reason(
-          "ModuleGraph is not available during module graph building phase".to_string(),
-        ));
-      }
-      let module_graph = compilation.get_module_graph();
+      let module_graph = require_module_graph(compilation)?;
       for connection in module_graph.get_incoming_connections(&module.identifier) {
         vec.push(ModuleGraphConnectionWrapper::new(connection, compilation));
       }
@@ -310,10 +291,15 @@ impl JsModuleGraph {
   #[napi(ts_args_type = "module: Module")]
   pub fn is_async(&self, module: ModuleObjectRef) -> napi::Result<bool> {
     self.with_ref(|compilation, _| {
-      Ok(ModuleGraph::is_async(
-        &compilation.async_modules_artifact,
-        &module.identifier,
-      ))
+      let async_modules = compilation
+        .async_modules_artifact
+        .try_read()
+        .ok_or_else(|| {
+          napi::Error::from_reason(
+            "Module async state is not available while a compilation pass is updating it",
+          )
+        })?;
+      Ok(ModuleGraph::is_async(async_modules, &module.identifier))
     })
   }
 }

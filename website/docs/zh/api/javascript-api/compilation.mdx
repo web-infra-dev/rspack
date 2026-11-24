@@ -821,7 +821,9 @@ class EntryManifestPlugin {
 - `getOutgoingConnections(module)`：获取该模块对其他模块的引用，`connection.module` 是被引用的模块，可能为 `null`。
 - `getIncomingConnections(module)`：获取其他模块对该模块的引用，`connection.originModule` 是发起引用的模块，可能为 `null`。
 
-可以在模块构建完成后的 `finishModules` 钩子中查询这些依赖关系。例如，打印每个模块及其依赖的模块：
+可以在 `compiler.hooks.finishMake` 或 `compilation.hooks.finishModules` 中查询这些依赖关系。构建期间模块图不可用时，例如在 `compilation.hooks.buildModule` 中，查询模块图会抛出带有调用方堆栈的 JavaScript 异常。要在 `finishModules` 执行完毕后查询导出信息或模块的异步状态，可以使用 `compilation.hooks.afterOptimizeModules` 等后续钩子。
+
+例如，打印每个模块及其依赖的模块：
 
 ```js
 compiler.hooks.compilation.tap('InspectModules', (compilation) => {
