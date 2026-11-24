@@ -5,7 +5,7 @@ use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::{
   Content, LoaderContext, LoaderDependencies, LoaderRunnerPlugin, ResourceData,
 };
-use rspack_paths::InternedPath;
+use rspack_paths::{InternedPath, Utf8Path};
 use rspack_sources::SourceMap;
 
 use crate::{
@@ -53,14 +53,14 @@ impl LoaderRunnerPlugin for RspackLoaderRunnerPlugin {
 
     if let Some(content) = result {
       if let Some(true) = self.extract_source_map {
-        // Try to extract source map from the content
+        let resource_path = resource_data
+          .path()
+          .map_or_else(|| resource_data.resource(), Utf8Path::as_str);
         let extract_result = match &content {
-          Content::String(s) => extract_source_map(fs, s, resource_data.resource()).await,
+          Content::String(s) => extract_source_map(fs, s, resource_path).await,
           Content::Buffer(b) => match simdutf8::basic::from_utf8(b) {
-            Ok(s) => extract_source_map(fs, s, resource_data.resource()).await,
-            Err(_) => {
-              extract_source_map(fs, &String::from_utf8_lossy(b), resource_data.resource()).await
-            }
+            Ok(s) => extract_source_map(fs, s, resource_path).await,
+            Err(_) => extract_source_map(fs, &String::from_utf8_lossy(b), resource_path).await,
           },
         };
 

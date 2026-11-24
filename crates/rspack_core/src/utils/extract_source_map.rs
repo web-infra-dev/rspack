@@ -9,6 +9,7 @@ use futures::stream::{FuturesOrdered, StreamExt};
 use once_cell::sync::Lazy;
 use regex::Regex;
 use rspack_fs::ReadableFileSystem;
+use rspack_loader_runner::get_scheme;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_sources::SourceMap;
 use rspack_util::{base64, node_path::NodePath};
@@ -35,7 +36,8 @@ static SOURCE_MAPPING_URL_REGEX: Lazy<Regex> = Lazy::new(|| {
   Regex::new(r#"(?:/\*(?:\s*\r?\n(?://)?)?(?:\s*[#@]\s*sourceMappingURL\s*=\s*([^\s'"]*)\s*)\s*\*/|//(?:\s*[#@]\s*sourceMappingURL\s*=\s*([^\s'"]*)\s*))\s*"#).expect("Invalid regex pattern")
 });
 static URI_REGEX: Lazy<Regex> = Lazy::new(|| {
-  Regex::new(r"^data:([^;,]+)?((?:;[^;,]+)*?)(?:;(base64)?)?,(.*)$").expect("Invalid regex pattern")
+  Regex::new(r"^data:(?:[^;,]+)?(?:;[^;,]+)*?(?:;(?<base64>base64)?)?,(?<body>.*)$")
+    .expect("Invalid regex pattern")
 });
 
 /// Extract source mapping URL from code comments
@@ -148,36 +150,30 @@ fn is_absolute(path: &Utf8Path) -> bool {
 }
 
 /// Decode data URI
-fn decode_data_uri(uri: &str) -> Option<String> {
+fn decode_data_uri(uri: &str) -> Result<String, &'static str> {
   // data URL scheme: "data:text/javascript;charset=utf-8;base64,some-string"
   // http://www.ietf.org/rfc/rfc2397.txt
-  let captures = URI_REGEX.captures(uri)?;
-  let is_base64 = captures.get(3).is_some();
-  let body = captures.get(4)?.as_str();
+  let captures = URI_REGEX.captures(uri).ok_or_else(|| {
+    if uri.contains(',') {
+      "invalid data URL syntax"
+    } else {
+      "missing comma before the data"
+    }
+  })?;
+  let body = &captures["body"];
 
-  if is_base64 {
-    return base64::decode_to_vec(body)
-      .ok()
-      .and_then(|bytes| String::from_utf8(bytes).ok());
+  if captures.name("base64").is_some() {
+    let bytes = base64::decode_to_vec(body).map_err(|_| "invalid Base64 data")?;
+    return String::from_utf8(bytes).map_err(|_| "decoded content is not valid UTF-8");
   }
 
   // CSS allows to use `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"><rect width="100%" height="100%" style="stroke: rgb(223,224,225); stroke-width: 2px; fill: none; stroke-dasharray: 6px 3px" /></svg>`
   // so we return original body if we can't `decodeURIComponent`
-  match urlencoding::decode(body) {
-    Ok(decoded) => Some(decoded.to_string()),
-    Err(_) => Some(body.to_string()),
-  }
-}
-
-/// Fetch source content from data URL
-fn fetch_from_data_url(source_url: &str) -> Result<String, String> {
-  if let Some(content) = decode_data_uri(source_url) {
-    Ok(content)
-  } else {
-    Err(format!(
-      "Failed to parse source map from \"data\" URL: {source_url}"
-    ))
-  }
+  Ok(
+    urlencoding::decode(body)
+      .unwrap_or(Cow::Borrowed(body))
+      .into_owned(),
+  )
 }
 
 /// Get absolute path for source file using Node.js logic
@@ -238,6 +234,7 @@ async fn fetch_paths_from_filesystem(
 async fn fetch_from_url(
   fs: &Arc<dyn ReadableFileSystem>,
   context: &Utf8Path,
+  owner: &str,
   url: &str,
   source_root: Option<&str>,
   skip_reading: bool,
@@ -249,7 +246,14 @@ async fn fetch_from_url(
         return Ok((String::new(), None));
       }
 
-      let source_content = fetch_from_data_url(url)?;
+      let source_content = decode_data_uri(url).map_err(|reason| {
+        if get_scheme(owner).is_data() {
+          format!("Failed to decode source map data URL in an inline module: {reason}")
+        } else {
+          let name = Utf8Path::new(owner).file_name().unwrap_or(owner);
+          format!("Failed to decode source map data URL in '{name}': {reason}")
+        }
+      })?;
       return Ok((String::new(), Some(source_content)));
     }
 
@@ -326,8 +330,15 @@ pub async fn extract_source_map(
     .parent()
     .ok_or_else(|| "Invalid resource path".to_string())?;
 
-  let (source_url, source_content) =
-    fetch_from_url(&fs, base_context, &source_mapping_url, None, false).await?;
+  let (source_url, source_content) = fetch_from_url(
+    &fs,
+    base_context,
+    resource_path,
+    &source_mapping_url,
+    None,
+    false,
+  )
+  .await?;
 
   let content = match source_content.as_deref() {
     Some(c) => c.trim_start_matches(")]}'"),
@@ -355,11 +366,12 @@ pub async fn extract_source_map(
     }
   })?;
 
-  let context = if !source_url.is_empty() {
-    Utf8Path::new(&source_url).parent().unwrap_or(base_context)
+  let map_owner = if source_url.is_empty() {
+    resource_path
   } else {
-    base_context
+    &source_url
   };
+  let context = Utf8Path::new(map_owner).parent().unwrap_or(base_context);
 
   let mut resolved_sources = Vec::new();
   let mut file_dependencies = if source_url.is_empty() {
@@ -376,7 +388,7 @@ pub async fn extract_source_map(
     .iter()
     .map(|source| source.to_string())
     .collect::<Vec<_>>();
-  let source_root = source_map.source_root().map(|s| s.to_string());
+  let source_root = source_map.source_root().map(str::to_owned);
 
   // Pre-collect all source content to avoid borrowing issues
   let source_contents = (0..sources.len())
@@ -389,13 +401,10 @@ pub async fn extract_source_map(
   // Use zip to consume both vectors without extra cloning
   for (source, original_content) in sources.into_iter().zip(source_contents) {
     let skip_reading = original_content.is_some();
-    let source_root = source_root.clone();
-    let context = context.to_path_buf();
-
-    let fs = fs.clone();
+    let fs = &fs;
+    let source_root = source_root.as_deref();
     futures.push_back(async move {
-      let result =
-        fetch_from_url(&fs, &context, &source, source_root.as_deref(), skip_reading).await;
+      let result = fetch_from_url(fs, context, map_owner, &source, source_root, skip_reading).await;
       (original_content, skip_reading, result)
     });
   }
@@ -565,7 +574,7 @@ mod tests {
     // Test fetch_from_url normalization for absolute paths
     let fs: Arc<dyn ReadableFileSystem> = Arc::new(rspack_fs::MemoryFileSystem::default());
 
-    let (path, _) = fetch_from_url(&fs, context, "/a/b/../c.js", None, true)
+    let (path, _) = fetch_from_url(&fs, context, "index.js", "/a/b/../c.js", None, true)
       .await
       .unwrap();
     assert_eq!(path, "/a/c.js");
