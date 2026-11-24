@@ -69,7 +69,7 @@ pub struct NodeFsStats {
   pub is_symlink: bool,
   pub atime_ms: f64,
   pub mtime_ms: f64,
-  pub ctime_ms: u32,
+  pub ctime_ms: f64,
   pub birthtime_ms: u32,
   pub size: u32,
   pub mode: u32,
