@@ -224,7 +224,6 @@ export default {
 
 - Loader 缓存不会自动追踪 `mode`、`target` 等 compiler 配置。如果 loader 的输出依赖这类设置，应通过 `use.options` 显式传入，或不要为该 loader 开启 `cache: true`。
 - 确保 loader 选项可无损 JSON 序列化，否则 Rspack 不会缓存该 loader 的结果（例如选项包含函数、`Date` 或 `RegExp` 时）。
-- 由于 [`CssExtractRspackPlugin.loader`](/plugins/css-extract-rspack-plugin) 目前存在限制，当模块使用该 loader 时，处理该模块的所有 loader 都无法使用 loader 缓存。
 
 :::
 
