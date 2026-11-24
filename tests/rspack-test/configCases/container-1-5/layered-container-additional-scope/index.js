@@ -15,6 +15,7 @@ it('registers the additional layered provider only when the host sends a scope m
     await remote.init(primary, []);
 
   }
+  expect(Object.keys(scopes).sort()).toEqual(['default', 'extra']);
   const host = createInstance({ name: `host-${__PASS_SCOPE_MAP__}`, remotes: [] });
   host.initShareScopeMap('extra', extra);
   const factory = await host.loadShare('lib', {
