@@ -7,8 +7,8 @@ use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::Utf8Path;
 use rspack_util::{
-  identifier::{split_at_query_mark, split_resource_path},
-  node_path,
+  identifier::{split_at_query_mark, split_resource},
+  node_path::NodePath,
 };
 use rustc_hash::FxHashMap as HashMap;
 use sugar_path::SugarPath;
@@ -57,11 +57,13 @@ fn default_resource_path_template_scheme(module_filename_template: &str) -> Opti
 
 fn is_explicit_windows_path(path: &str) -> bool {
   // A single leading backslash can be part of a POSIX file name.
-  path.starts_with(r"\\") || (!path.starts_with(['/', '\\']) && node_path::is_absolute_win32(path))
+  path.starts_with(r"\\")
+    || (matches!(path.as_bytes(), [drive, b':', ..] if drive.is_ascii_alphabetic())
+      && Utf8Path::new(path).node_is_absolute_win32())
 }
 
 fn has_url_scheme(resource: &str) -> bool {
-  starts_with_url_scheme(resource) && !node_path::is_absolute_win32(resource)
+  starts_with_url_scheme(resource) && !is_explicit_windows_path(resource)
 }
 
 enum TemplateResource<'a> {
@@ -74,8 +76,15 @@ impl<'a> TemplateResource<'a> {
     if !is_resource || has_url_scheme(request) {
       return Self::Opaque(request);
     }
-    let (path, suffix) =
-      split_resource_path(request, cfg!(windows) || is_explicit_windows_path(request));
+    // The shared parser recognizes DOS device prefixes on Windows. Loader maps
+    // may also carry that spelling when the build runs on another platform.
+    let request_body = if cfg!(windows) {
+      request
+    } else {
+      request.strip_prefix(r"\\?\").unwrap_or(request)
+    };
+    let (path, _, _) = split_resource(request_body);
+    let (path, suffix) = request.split_at(request.len() - request_body.len() + path.len());
     Self::Path { path, suffix }
   }
 
@@ -188,7 +197,7 @@ fn resolve_relative_resource_path(
       .relative(parent)
       .to_string_lossy()
       .into_owned(),
-    None => node_path::normalize(path),
+    None => Utf8Path::new(path).node_normalize().into_string(),
   };
 
   match resource {

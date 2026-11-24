@@ -94,312 +94,6 @@ fn normalize_string(
   unsafe { String::from_utf8_unchecked(res) }
 }
 
-/// Joins two path strings using the host's Node.js path semantics.
-pub fn join(base: &str, path: &str) -> String {
-  if cfg!(windows) {
-    join_win32(base, path)
-  } else {
-    join_posix(base, path)
-  }
-}
-
-pub fn join_posix(base: &str, path: &str) -> String {
-  normalize_posix(&join_raw_posix(base, path))
-}
-
-pub fn join_win32(base: &str, path: &str) -> String {
-  normalize_win32(&join_raw_win32(base, path))
-}
-
-fn join_raw_posix(base: &str, path: &str) -> String {
-  if path.is_empty() {
-    return base.to_owned();
-  }
-
-  if base.is_empty() {
-    return path.to_owned();
-  }
-
-  // in general, a separator is needed if the rightmost byte is not a separator
-  let buf = base.as_bytes();
-  let need_sep = buf.last().is_some_and(|c| !is_posix_path_separator(c))
-    && path
-      .as_bytes()
-      .first()
-      .is_some_and(|c| !is_posix_path_separator(c));
-
-  let mut string = base.to_string();
-  if need_sep {
-    string.push('/');
-  }
-  string.push_str(path);
-  string
-}
-
-fn join_raw_win32(base: &str, path: &str) -> String {
-  if path.is_empty() {
-    return base.to_owned();
-  }
-
-  if base.is_empty() {
-    return path.to_owned();
-  }
-
-  // in general, a separator is needed if the rightmost byte is not a separator
-  let buf = base.as_bytes();
-  let need_sep = buf.last().is_some_and(|c| !is_path_separator(c))
-    && path
-      .as_bytes()
-      .first()
-      .is_some_and(|c| !is_path_separator(c));
-
-  let mut joined = base.to_owned();
-  if need_sep {
-    joined.push('\\');
-  }
-  joined.push_str(path);
-
-  let first_part = base.as_bytes();
-  // Make sure that the joined path doesn't start with two slashes, because
-  // normalize() will mistake it for a UNC path then.
-  //
-  // This step is skipped when it is very clear that the user actually
-  // intended to point at a UNC path. This is assumed when the first
-  // non-empty string arguments starts with exactly two slashes followed by
-  // at least one more non-slash character.
-  //
-  // Note that for normalize() to treat a path as a UNC path it needs to
-  // have at least 2 components, so we don't filter for that here.
-  // This means that the user can use join to construct UNC paths from
-  // a server name and a share name; for example:
-  //   path.join('//server', 'share') -> '\\\\server\\share\\')
-  let mut needs_replace = true;
-  let mut slash_count = 0;
-
-  if is_path_separator(&first_part[0]) {
-    slash_count += 1;
-    if first_part.len() > 1 && is_path_separator(&first_part[1]) {
-      slash_count += 1;
-      if first_part.len() > 2 {
-        if is_path_separator(&first_part[2]) {
-          slash_count += 1;
-        } else {
-          // We matched a UNC path in the first part
-          needs_replace = false;
-        }
-      }
-    }
-  }
-
-  if needs_replace {
-    // Find any more consecutive slashes we need to replace
-    while slash_count < joined.len()
-      && joined
-        .as_bytes()
-        .get(slash_count)
-        .is_some_and(is_path_separator)
-    {
-      slash_count += 1;
-    }
-
-    // Replace the slashes if needed
-    if slash_count >= 2 {
-      return format!("\\{}", &joined[slash_count..]);
-    }
-  }
-
-  joined
-}
-
-/// Normalizes a path string using the host's Node.js path semantics.
-pub fn normalize(path: &str) -> String {
-  if cfg!(windows) {
-    normalize_win32(path)
-  } else {
-    normalize_posix(path)
-  }
-}
-
-pub fn normalize_posix(path: &str) -> String {
-  let path = path.as_bytes();
-
-  if path.is_empty() {
-    return ".".to_string();
-  }
-
-  let is_absolute = path.first() == Some(&b'/');
-  let trailing_separator = path.last() == Some(&b'/');
-
-  // Normalize the path
-  let mut normalized_path = normalize_string(path, !is_absolute, b'/', &is_posix_path_separator);
-
-  if normalized_path.is_empty() {
-    if is_absolute {
-      return "/".to_string();
-    }
-    return if trailing_separator {
-      "./".to_string()
-    } else {
-      ".".to_string()
-    };
-  }
-
-  if trailing_separator {
-    normalized_path.push('/');
-  }
-
-  if is_absolute {
-    format!("/{normalized_path}")
-  } else {
-    normalized_path
-  }
-}
-
-pub fn normalize_win32(path: &str) -> String {
-  if path.is_empty() {
-    return ".".to_string();
-  }
-
-  let len = path.len();
-
-  let mut root_end = 0;
-  let mut device = None;
-  let mut is_absolute = false;
-  let code = &path.as_bytes()[0];
-
-  // Try to match a root
-  if len == 1 {
-    // `path` contains just a single char, exit early to avoid
-    // unnecessary work
-    if is_posix_path_separator(code) {
-      return "\\".to_string();
-    }
-  }
-  if is_path_separator(code) {
-    // Possible UNC root
-
-    // If we started with a separator, we know we at least have an absolute
-    // path of some kind (UNC or otherwise)
-    is_absolute = true;
-
-    if path.as_bytes().get(1).is_some_and(is_path_separator) {
-      // Matched double path separator at beginning
-      let mut j = 2;
-      let mut last = j;
-      // Match 1 or more non-path separators
-      while j < len && !is_path_separator(&path.as_bytes()[j]) {
-        j += 1;
-      }
-      if j < len && j != last {
-        let first_part = &path[last..j];
-        // Matched!
-        last = j;
-        // Match 1 or more path separators
-        while j < len && is_path_separator(&path.as_bytes()[j]) {
-          j += 1;
-        }
-        if j < len && j != last {
-          // Matched!
-          last = j;
-          // Match 1 or more non-path separators
-          while j < len && !is_path_separator(&path.as_bytes()[j]) {
-            j += 1;
-          }
-          if j < len || j != last {
-            if first_part == "." || first_part == "?" {
-              // We matched a device root (e.g. \\\\.\\PHYSICALDRIVE0)
-              device = Some(Cow::from(format!("\\\\{first_part}")));
-              root_end = 4;
-            } else if j == len {
-              // We matched a UNC root only
-              // Return the normalized version of the UNC root since there
-              // is nothing left to process
-              return format!("\\\\{}\\{}\\", first_part, &path[last..]);
-            } else {
-              // We matched a UNC root with leftovers
-              device = Some(Cow::from(format!("\\\\{}\\{}", first_part, &path[last..j])));
-              root_end = j;
-            }
-          }
-        }
-      }
-    } else {
-      root_end = 1;
-    }
-  } else if is_windows_device_root(&path.as_bytes()[0]) && path.as_bytes().get(1) == Some(&b':') {
-    // Possible device root
-    device = Some(Cow::from(&path[0..2]));
-    root_end = 2;
-    if path.len() > 2 && path.as_bytes().get(2).is_some_and(is_path_separator) {
-      // Treat separator following drive name as an absolute path indicator
-      is_absolute = true;
-      root_end = 3;
-    }
-  }
-
-  let mut tail = if root_end < path.len() {
-    normalize_string(&path[root_end..], !is_absolute, b'\\', &is_path_separator)
-  } else {
-    String::new()
-  };
-
-  if tail.is_empty() && !is_absolute {
-    tail = ".".to_string();
-  }
-
-  if !tail.is_empty() && path.as_bytes().last().is_some_and(is_path_separator) {
-    tail.push('\\');
-  }
-
-  if !is_absolute && device.is_none() && path.contains(':') {
-    // If the original path was not absolute and if we have not been able to
-    // resolve it relative to a particular device, we need to ensure that the
-    // `tail` has not become something that Windows might interpret as an
-    // absolute path. See CVE-2024-36139.
-    if tail.len() >= 2
-      && is_windows_device_root(&tail.as_bytes()[0])
-      && tail.as_bytes().get(1) == Some(&b':')
-    {
-      return format!(".\\{tail}");
-    }
-    let mut index = path.find(':');
-    while let Some(i) = index {
-      if i == path.len() - 1 || path.as_bytes().get(i + 1).is_some_and(is_path_separator) {
-        return format!(".\\{tail}");
-      }
-      index = path[i + 1..].find(':').map(|next| next + i + 1);
-    }
-  }
-
-  match device {
-    Some(device) if is_absolute => format!("{device}\\{tail}"),
-    Some(device) => format!("{device}{tail}"),
-    None if is_absolute => format!("\\{tail}"),
-    _ => tail,
-  }
-}
-
-/// Checks whether a path string is absolute using the host's Node.js path semantics.
-pub fn is_absolute(path: &str) -> bool {
-  if cfg!(windows) {
-    is_absolute_win32(path)
-  } else {
-    is_absolute_posix(path)
-  }
-}
-
-pub fn is_absolute_posix(path: &str) -> bool {
-  path.starts_with('/')
-}
-
-pub fn is_absolute_win32(path: &str) -> bool {
-  match path.as_bytes() {
-    [separator, ..] if is_path_separator(separator) => true,
-    [drive, b':', separator, ..] => is_windows_device_root(drive) && is_path_separator(separator),
-    _ => false,
-  }
-}
-
 pub trait NodePath {
   fn node_join(&self, path: impl AsRef<Utf8Path>) -> Utf8PathBuf;
 
@@ -459,32 +153,32 @@ impl NodePath for Utf8Path {
 
   #[inline]
   fn node_normalize(&self) -> Utf8PathBuf {
-    normalize(self.as_str()).into()
+    self.to_path_buf().node_normalize()
   }
 
   #[inline]
   fn node_normalize_posix(&self) -> Utf8PathBuf {
-    normalize_posix(self.as_str()).into()
+    self.to_path_buf().node_normalize_posix()
   }
 
   #[inline]
   fn node_normalize_win32(&self) -> Utf8PathBuf {
-    normalize_win32(self.as_str()).into()
+    self.to_path_buf().node_normalize_win32()
   }
 
   #[inline]
   fn node_is_absolute(&self) -> bool {
-    is_absolute(self.as_str())
+    self.to_path_buf().node_is_absolute()
   }
 
   #[inline]
   fn node_is_absolute_posix(&self) -> bool {
-    is_absolute_posix(self.as_str())
+    self.to_path_buf().node_is_absolute_posix()
   }
 
   #[inline]
   fn node_is_absolute_win32(&self) -> bool {
-    is_absolute_win32(self.as_str())
+    self.to_path_buf().node_is_absolute_win32()
   }
 }
 
@@ -521,46 +215,315 @@ impl NodePath for Utf8PathBuf {
 
   fn node_push_posix(&mut self, path: impl AsRef<Utf8Path>) {
     let path = path.as_ref().as_str();
-    if !path.is_empty() {
-      *self = join_raw_posix(self.as_str(), path).into();
+    if path.is_empty() {
+      return;
     }
+
+    if self.as_str().is_empty() {
+      self.push(path);
+      return;
+    }
+
+    // in general, a separator is needed if the rightmost byte is not a separator
+    let buf = self.as_os_str().as_encoded_bytes();
+    let need_sep = buf.last().is_some_and(|c| !is_posix_path_separator(c))
+      && path
+        .as_bytes()
+        .first()
+        .is_some_and(|c| !is_posix_path_separator(c));
+
+    let mut string = self.as_str().to_string();
+    if need_sep {
+      string.push('/');
+    }
+    string.push_str(path);
+    *self = Utf8PathBuf::from(string);
   }
 
   fn node_push_win32(&mut self, path: impl AsRef<Utf8Path>) {
     let path = path.as_ref().as_str();
-    if !path.is_empty() {
-      *self = join_raw_win32(self.as_str(), path).into();
+    if path.is_empty() {
+      return;
     }
+
+    if self.as_str().is_empty() {
+      self.push(path);
+      return;
+    }
+
+    // in general, a separator is needed if the rightmost byte is not a separator
+    let buf = self.as_os_str().as_encoded_bytes();
+    let need_sep = buf.last().is_some_and(|c| !is_path_separator(c))
+      && path
+        .as_bytes()
+        .first()
+        .is_some_and(|c| !is_path_separator(c));
+
+    let mut joined = self.to_string();
+    if need_sep {
+      joined.push('\\');
+    }
+    joined.push_str(path);
+
+    let first_part = self.as_str().as_bytes();
+    // Make sure that the joined path doesn't start with two slashes, because
+    // normalize() will mistake it for a UNC path then.
+    //
+    // This step is skipped when it is very clear that the user actually
+    // intended to point at a UNC path. This is assumed when the first
+    // non-empty string arguments starts with exactly two slashes followed by
+    // at least one more non-slash character.
+    //
+    // Note that for normalize() to treat a path as a UNC path it needs to
+    // have at least 2 components, so we don't filter for that here.
+    // This means that the user can use join to construct UNC paths from
+    // a server name and a share name; for example:
+    //   path.join('//server', 'share') -> '\\\\server\\share\\')
+    let mut needs_replace = true;
+    let mut slash_count = 0;
+
+    if is_path_separator(&first_part[0]) {
+      slash_count += 1;
+      if first_part.len() > 1 && is_path_separator(&first_part[1]) {
+        slash_count += 1;
+        if first_part.len() > 2 {
+          if is_path_separator(&first_part[2]) {
+            slash_count += 1;
+          } else {
+            // We matched a UNC path in the first part
+            needs_replace = false;
+          }
+        }
+      }
+    }
+
+    if needs_replace {
+      // Find any more consecutive slashes we need to replace
+      while slash_count < joined.len()
+        && joined
+          .as_bytes()
+          .get(slash_count)
+          .is_some_and(is_path_separator)
+      {
+        slash_count += 1;
+      }
+
+      // Replace the slashes if needed
+      if slash_count >= 2 {
+        *self = Utf8PathBuf::from(format!("\\{}", &joined[slash_count..]));
+        return;
+      }
+    }
+
+    *self = Utf8PathBuf::from(joined);
   }
 
   #[inline]
   fn node_normalize(&self) -> Utf8PathBuf {
-    normalize(self.as_str()).into()
+    if cfg!(windows) {
+      self.node_normalize_win32()
+    } else {
+      self.node_normalize_posix()
+    }
   }
 
-  #[inline]
   fn node_normalize_posix(&self) -> Utf8PathBuf {
-    normalize_posix(self.as_str()).into()
+    let path = self.as_str().as_bytes();
+
+    if path.is_empty() {
+      return Utf8PathBuf::from(".");
+    }
+
+    let is_absolute = path.first() == Some(&b'/');
+    let trailing_separator = path.last() == Some(&b'/');
+
+    // Normalize the path
+    let mut normalized_path = normalize_string(path, !is_absolute, b'/', &is_posix_path_separator);
+
+    if normalized_path.is_empty() {
+      if is_absolute {
+        return Utf8PathBuf::from("/");
+      }
+      return if trailing_separator {
+        Utf8PathBuf::from("./")
+      } else {
+        Utf8PathBuf::from(".")
+      };
+    }
+
+    if trailing_separator {
+      normalized_path.push('/');
+    }
+
+    if is_absolute {
+      Utf8PathBuf::from(format!("/{normalized_path}"))
+    } else {
+      Utf8PathBuf::from(normalized_path)
+    }
   }
 
-  #[inline]
   fn node_normalize_win32(&self) -> Utf8PathBuf {
-    normalize_win32(self.as_str()).into()
+    let path = self.as_str();
+    if path.is_empty() {
+      return Utf8PathBuf::from(".");
+    }
+
+    let len = path.len();
+
+    let mut root_end = 0;
+    let mut device = None;
+    let mut is_absolute = false;
+    let code = &path.as_bytes()[0];
+
+    // Try to match a root
+    if len == 1 {
+      // `path` contains just a single char, exit early to avoid
+      // unnecessary work
+      if is_posix_path_separator(code) {
+        return Utf8PathBuf::from("\\");
+      }
+    }
+    if is_path_separator(code) {
+      // Possible UNC root
+
+      // If we started with a separator, we know we at least have an absolute
+      // path of some kind (UNC or otherwise)
+      is_absolute = true;
+
+      if path.as_bytes().get(1).is_some_and(is_path_separator) {
+        // Matched double path separator at beginning
+        let mut j = 2;
+        let mut last = j;
+        // Match 1 or more non-path separators
+        while j < len && !is_path_separator(&path.as_bytes()[j]) {
+          j += 1;
+        }
+        if j < len && j != last {
+          let first_part = &path[last..j];
+          // Matched!
+          last = j;
+          // Match 1 or more path separators
+          while j < len && is_path_separator(&path.as_bytes()[j]) {
+            j += 1;
+          }
+          if j < len && j != last {
+            // Matched!
+            last = j;
+            // Match 1 or more non-path separators
+            while j < len && !is_path_separator(&path.as_bytes()[j]) {
+              j += 1;
+            }
+            if j < len || j != last {
+              if first_part == "." || first_part == "?" {
+                // We matched a device root (e.g. \\\\.\\PHYSICALDRIVE0)
+                device = Some(Cow::from(format!("\\\\{first_part}")));
+                root_end = 4;
+              } else if j == len {
+                // We matched a UNC root only
+                // Return the normalized version of the UNC root since there
+                // is nothing left to process
+                return Utf8PathBuf::from(format!("\\\\{}\\{}\\", first_part, &path[last..]));
+              } else {
+                // We matched a UNC root with leftovers
+                device = Some(Cow::from(format!("\\\\{}\\{}", first_part, &path[last..j])));
+                root_end = j;
+              }
+            }
+          }
+        }
+      } else {
+        root_end = 1;
+      }
+    } else if is_windows_device_root(&path.as_bytes()[0]) && path.as_bytes().get(1) == Some(&b':') {
+      // Possible device root
+      device = Some(Cow::from(&path[0..2]));
+      root_end = 2;
+      if path.len() > 2 && path.as_bytes().get(2).is_some_and(is_path_separator) {
+        // Treat separator following drive name as an absolute path indicator
+        is_absolute = true;
+        root_end = 3;
+      }
+    }
+
+    let mut tail = if root_end < path.len() {
+      normalize_string(&path[root_end..], !is_absolute, b'\\', &is_path_separator)
+    } else {
+      String::new()
+    };
+
+    if tail.is_empty() && !is_absolute {
+      tail = ".".to_string();
+    }
+
+    if !tail.is_empty() && path.as_bytes().last().is_some_and(is_path_separator) {
+      tail.push('\\');
+    }
+
+    if !is_absolute && device.is_none() && path.contains(':') {
+      // If the original path was not absolute and if we have not been able to
+      // resolve it relative to a particular device, we need to ensure that the
+      // `tail` has not become something that Windows might interpret as an
+      // absolute path. See CVE-2024-36139.
+      if tail.len() >= 2
+        && is_windows_device_root(&tail.as_bytes()[0])
+        && tail.as_bytes().get(1) == Some(&b':')
+      {
+        return Utf8PathBuf::from(format!(".\\{tail}"));
+      }
+      let mut index = path.find(':');
+      while let Some(i) = index {
+        if i == path.len() - 1 || path.as_bytes().get(i + 1).is_some_and(is_path_separator) {
+          return Utf8PathBuf::from(format!(".\\{tail}"));
+        }
+        index = path[i + 1..].find(':').map(|next| next + i + 1);
+      }
+    }
+
+    match device {
+      Some(device) if is_absolute => Utf8PathBuf::from(format!("{device}\\{tail}")),
+      Some(device) => Utf8PathBuf::from(format!("{device}{tail}")),
+      None if is_absolute => Utf8PathBuf::from(format!("\\{tail}")),
+      _ => Utf8PathBuf::from(tail),
+    }
   }
 
   #[inline]
   fn node_is_absolute(&self) -> bool {
-    is_absolute(self.as_str())
+    if cfg!(windows) {
+      self.node_is_absolute_win32()
+    } else {
+      self.node_is_absolute_posix()
+    }
   }
 
-  #[inline]
   fn node_is_absolute_posix(&self) -> bool {
-    is_absolute_posix(self.as_str())
+    // POSIX absolute path starts with '/'
+    self.as_str().starts_with('/')
   }
 
-  #[inline]
   fn node_is_absolute_win32(&self) -> bool {
-    is_absolute_win32(self.as_str())
+    let path = self.as_str();
+
+    if path.is_empty() {
+      return false;
+    }
+
+    let bytes = path.as_bytes();
+
+    // Mirrors Node.js `path.win32.isAbsolute`: first separator is absolute.
+    if is_path_separator(&bytes[0]) {
+      return true;
+    }
+
+    if path.len() > 2
+      && is_windows_device_root(&bytes[0])
+      && bytes[1] == b':'
+      && is_path_separator(&bytes[2])
+    {
+      return true;
+    }
+
+    false
   }
 }
 
