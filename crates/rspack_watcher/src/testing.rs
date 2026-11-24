@@ -11,8 +11,9 @@ use rspack_util::fx_hash::FxHashSet;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
 use crate::{
-  EventBatch, FsEventKind, FsWatcher, ResolvedEvents, TimeInfoEntries, analyzer::Analyzer,
-  disk_watcher::handle_event, paths::PathManager, scanner::Scanner, trigger::Trigger,
+  EventBatch, FsEventKind, FsWatcher, FsWatcherIgnored, ResolvedEvents, TimeInfoEntries,
+  analyzer::Analyzer, disk_watcher::handle_event, paths::PathManager, scanner::Scanner,
+  trigger::Trigger,
 };
 
 /// Recorded under the aggregate-set lock to preserve acceptance and snapshot order.
@@ -58,7 +59,13 @@ pub struct DirectoryAnalyzer {
 
 impl Default for DirectoryAnalyzer {
   fn default() -> Self {
-    let paths = Arc::new(PathManager::default().with_follow_symlinks(true));
+    Self::with_ignored(FsWatcherIgnored::default())
+  }
+}
+
+impl DirectoryAnalyzer {
+  pub fn with_ignored(ignored: FsWatcherIgnored) -> Self {
+    let paths = Arc::new(PathManager::new(ignored).with_follow_symlinks(true));
     let (tx, events) = unbounded_channel();
     let trigger = Arc::new(Trigger::new(Arc::clone(&paths), tx));
     let scan_tx = trigger.backfill_sender();
@@ -69,9 +76,29 @@ impl Default for DirectoryAnalyzer {
       events,
     }
   }
-}
 
-impl DirectoryAnalyzer {
+  pub fn scan_contexts(&self) -> tokio::task::JoinHandle<Vec<InternedPath>> {
+    let paths = Arc::clone(&self.paths);
+    tokio::spawn(async move {
+      paths
+        .scan_contexts(SystemTime::UNIX_EPOCH)
+        .await
+        .into_iter()
+        .map(|(path, _)| path)
+        .collect()
+    })
+  }
+
+  pub async fn queue_context_changes(&self) {
+    for (path, scan) in self.paths.scan_contexts(SystemTime::UNIX_EPOCH).await {
+      self.trigger.on_scan_event(path, FsEventKind::Change, scan);
+    }
+  }
+
+  pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
+    self.paths.collect_time_info_entries()
+  }
+
   pub async fn update(
     &self,
     files: (Vec<InternedPath>, Vec<InternedPath>),

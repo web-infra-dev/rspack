@@ -2,6 +2,7 @@ mod analyzer;
 mod disk_watcher;
 mod executor;
 mod ignored;
+mod observation;
 mod paths;
 mod scanner;
 mod time;
@@ -461,8 +462,8 @@ impl FsWatcherInner {
     }
     let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
     if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
-      for path in &changed_in_contexts {
-        trigger.on_scanned_change(path);
+      for (path, scan) in changed_in_contexts {
+        trigger.on_scan_event(path, FsEventKind::Change, scan);
       }
     }
 
