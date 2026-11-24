@@ -102,7 +102,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       attributes,
       resource_identifier,
       loc,
-      statement.is_star_export(ast),
     );
     parser.add_dependency(BoxDependency::new(side_effect_dep));
     Some(true)

@@ -2,10 +2,9 @@ use std::sync::Arc;
 
 use rspack_error::Result;
 
-use super::{TaskContext, build::BuildTask, lazy::process_unlazy_dependencies};
+use super::{TaskContext, build::BuildTask, lazy::request_lazy_dependencies};
 use crate::{
-  BoxModule, BuildContext, DependencyRef, ModuleIdentifier,
-  compilation::build_module_graph::ForwardedIdSet,
+  BoxModule, BuildContext, DependencyRef, ModuleIdentifier, module_declared_side_effect_free,
   module_graph::{ModuleGraph, ModuleGraphModule},
   utils::task_loop::{Task, TaskResult, TaskType},
 };
@@ -53,7 +52,7 @@ impl Task<TaskContext> for AddTask {
       return Ok(vec![]);
     }
 
-    let forwarded_ids = ForwardedIdSet::from_dependencies(&dependencies);
+    let side_effect_free = module_declared_side_effect_free(module.as_ref()) == Some(true);
 
     // reuse module if module is already added by other dependency
     if context
@@ -62,6 +61,14 @@ impl Task<TaskContext> for AddTask {
       .module_graph_module_by_identifier(&module_identifier)
       .is_some()
     {
+      let tasks = request_lazy_dependencies(
+        &mut context.artifact.module_to_lazy_make,
+        &mut context.artifact.module_graph,
+        module_identifier,
+        side_effect_free,
+        &dependencies,
+      );
+
       set_resolved_module(
         &mut context.artifact.module_graph,
         original_module_identifier,
@@ -76,37 +83,7 @@ impl Task<TaskContext> for AddTask {
           .mark_as_add(&module_identifier);
       }
 
-      if context
-        .artifact
-        .module_graph
-        .module_by_identifier(&module_identifier)
-        .is_some()
-      {
-        if context
-          .artifact
-          .module_to_lazy_make
-          .has_lazy_dependencies(&module_identifier)
-          && !forwarded_ids.is_empty()
-        {
-          if let Some(task) = process_unlazy_dependencies(
-            &context.artifact.module_to_lazy_make,
-            &mut context.artifact.module_graph,
-            forwarded_ids,
-            module_identifier,
-          ) {
-            return Ok(vec![Box::new(task)]);
-          }
-          return Ok(vec![]);
-        }
-      } else {
-        let pending_forwarded_ids = context
-          .artifact
-          .module_to_lazy_make
-          .pending_forwarded_ids(module_identifier);
-        pending_forwarded_ids.append(forwarded_ids);
-      }
-
-      return Ok(vec![]);
+      return Ok(tasks);
     }
 
     context
@@ -117,6 +94,14 @@ impl Task<TaskContext> for AddTask {
     context
       .exports_info_artifact
       .new_exports_info(module_identifier);
+
+    let mut tasks = request_lazy_dependencies(
+      &mut context.artifact.module_to_lazy_make,
+      &mut context.artifact.module_graph,
+      module_identifier,
+      side_effect_free,
+      &dependencies,
+    );
 
     set_resolved_module(
       &mut context.artifact.module_graph,
@@ -131,13 +116,13 @@ impl Task<TaskContext> for AddTask {
       .affected_modules
       .mark_as_add(&module_identifier);
 
-    Ok(vec![Box::new(BuildTask {
+    tasks.push(Box::new(BuildTask {
       build_context,
       module,
-      forwarded_ids,
       module_build_cache: context.module_build_cache.clone(),
       force_build: context.force_build_modules.contains(&module_identifier),
-    })])
+    }));
+    Ok(tasks)
   }
 }
 

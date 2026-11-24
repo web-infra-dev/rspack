@@ -8,7 +8,7 @@ use rspack_core::{
   DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided, ExportsInfoArtifact,
   ExportsType, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
-  InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  InitFragmentStage, LazyRole, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleIdentifier, ProvidedExports, ReferencedExport, ResourceIdentifier, RuntimeCondition,
   RuntimeSpec, SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource,
   TypeReexportPresenceMode, filter_runtime,
@@ -70,7 +70,6 @@ pub struct ESMImportSideEffectDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: ResourceIdentifier,
   loc: Option<DependencyLocation>,
-  star_export: bool,
 }
 
 impl ESMImportSideEffectDependency {
@@ -84,7 +83,6 @@ impl ESMImportSideEffectDependency {
     attributes: Option<ImportAttributes>,
     resource_identifier: ResourceIdentifier,
     loc: Option<DependencyLocation>,
-    star_export: bool,
   ) -> Self {
     Self {
       id: DependencyId::new(),
@@ -96,7 +94,6 @@ impl ESMImportSideEffectDependency {
       attributes,
       resource_identifier,
       loc,
-      star_export,
     }
   }
 
@@ -621,12 +618,12 @@ impl Dependency for ESMImportSideEffectDependency {
     ForwardId::Empty
   }
 
-  fn lazy_until(&self) -> Option<LazyUntil> {
-    (self.dependency_type == DependencyType::EsmExportImport).then_some(if self.star_export {
-      LazyUntil::Fallback
-    } else {
-      LazyUntil::NoUntil
-    })
+  fn lazy_role(&self) -> Option<LazyRole> {
+    match self.dependency_type {
+      DependencyType::EsmImport => Some(LazyRole::ImportDeclaration),
+      DependencyType::EsmExportImport => Some(LazyRole::ReexportSideEffect),
+      _ => None,
+    }
   }
 }
 

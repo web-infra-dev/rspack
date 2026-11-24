@@ -194,6 +194,29 @@ export { Card, CardHeader, CardBody } from './Card';
 export { Modal, ModalDialog } from './Modal';
 ```
 
+## barrel 文件中的 import
+
+无副作用的 barrel 文件也可以有自己的 `import` 语句：
+
+```js title="components/index.js"
+import { animate } from './heavy-animation';
+
+export { Button } from './Button';
+export const Dialog = () => animate();
+```
+
+当只从 barrel 文件导入它重导出的名称时，Rspack 不会构建它的 `import` 语句引用的模块：
+
+```js title="src/index.js"
+import { Button } from './components';
+```
+
+- ✅ `heavy-animation.js` 不会被构建。`Button` 会直接从 `./Button` 导入，barrel 文件不会执行，因此不需要它的 import。
+
+当 barrel 文件需要执行时，这些 import 才会被构建：即导入了它自身的导出（这里的 `Dialog`），或者导入了它从 `import defer` 命名空间重导出的名称。
+
+该优化依赖 [`optimization.providedExports`](/config/optimization#optimizationprovidedexports)，它默认开启。关闭后，barrel 文件的 import 总会被构建。
+
 ## 常见问题
 
 ### 1. Lazy barrel 是否支持 CommonJS？

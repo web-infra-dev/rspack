@@ -13,7 +13,7 @@ use crate::{
   ModuleGraph, ModuleGraphConnection, ModuleGraphModule, ModuleIdentifier, ModuleRef,
   RayonConsumer,
   cache::CacheCodec,
-  compilation::build_module_graph::{LazyDependencies, ModuleToLazyMake},
+  compilation::build_module_graph::{LazyMakeState, ModuleToLazyMake},
   legacy_cache::persistent::storage::Storage,
 };
 
@@ -34,7 +34,7 @@ struct Node<'a> {
   pub dependencies: Vec<CachedDependency<'a>>,
   pub connections: Vec<OwnedOrRef<'a, ModuleGraphConnection>>,
   pub blocks: Vec<OwnedOrRef<'a, AsyncDependenciesBlockRef>>,
-  pub lazy_info: Option<OwnedOrRef<'a, LazyDependencies>>,
+  pub lazy_state: Option<OwnedOrRef<'a, LazyMakeState>>,
 }
 
 #[tracing::instrument("Cache::Occasion::Make::ModuleGraph::save", skip_all)]
@@ -92,16 +92,14 @@ pub fn save_module_graph(
             .into()
         })
         .collect::<Vec<_>>();
-      let lazy_info = module_to_lazy_make
-        .get_lazy_dependencies(identifier)
-        .map(|lazy_deps| lazy_deps.into());
+      let lazy_state = module_to_lazy_make.get(identifier).map(Into::into);
       let mut node = Node {
         mgm: mgm.into(),
         module: module.into(),
         dependencies,
         connections,
         blocks,
-        lazy_info,
+        lazy_state,
       };
       match codec.encode(&node) {
         Ok(bytes) => (identifier.as_bytes().to_vec(), bytes),
@@ -202,9 +200,8 @@ pub async fn recovery_module_graph(
         blocks.extend(block.get_block_refs().iter().cloned());
         mg.add_block(block);
       }
-      if let Some(lazy_info) = node.lazy_info {
-        module_to_lazy_make
-          .update_module_lazy_dependencies(module.identifier(), Some(lazy_info.into_owned()));
+      if let Some(lazy_state) = node.lazy_state {
+        module_to_lazy_make.restore(module.identifier(), lazy_state.into_owned());
       }
       mg.add_module_graph_module(mgm);
       mg.add_module(module);

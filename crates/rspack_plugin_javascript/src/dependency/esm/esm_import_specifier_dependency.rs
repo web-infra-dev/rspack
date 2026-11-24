@@ -10,7 +10,7 @@ use rspack_core::{
   DependencyCondition, DependencyConditionFn, DependencyDiagnosticsContext, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
   ExportPresenceMode, ExportProvided, ExportsInfoArtifact, ExportsType, ForwardId,
-  ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency, ModuleGraph,
+  ImportAttributes, ImportPhase, JavascriptParserOptions, LazyRole, ModuleDependency, ModuleGraph,
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
   ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
   TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
@@ -333,11 +333,18 @@ impl Dependency for ESMImportSpecifierDependency {
   }
 
   fn forward_id(&self) -> ForwardId {
+    if self.namespace_object_as_context {
+      return ForwardId::All;
+    }
     if let Some(id) = self.ids.first() {
       ForwardId::Id(id.clone())
     } else {
       ForwardId::All
     }
+  }
+
+  fn lazy_role(&self) -> Option<LazyRole> {
+    Some(LazyRole::ImportDeclaration)
   }
 }
 
@@ -378,6 +385,9 @@ impl DependencyCodeGeneration for ESMImportSpecifierDependency {
     // get_used_name(...), so hash it here to avoid reusing stale generated code
     // when the target const value changes.
     let module_graph = compilation.get_module_graph();
+    if module_graph.is_lazy_dependency(&self.id) {
+      "lazy".hash(hasher);
+    }
     let ids = self.get_ids(module_graph);
     let Some(module) = module_graph.get_module_by_dependency_id(&self.id) else {
       return;

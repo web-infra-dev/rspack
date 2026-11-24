@@ -104,7 +104,6 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       attributes,
       resource_identifier,
       parser.to_dependency_location(DependencyRange::from(import_span)),
-      false,
     );
     parser.last_import_resource_identifier = Some((import_decl.node_id(), resource_identifier));
 

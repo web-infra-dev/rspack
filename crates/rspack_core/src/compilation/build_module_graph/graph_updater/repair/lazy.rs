@@ -1,33 +1,28 @@
-use super::process_dependencies::ProcessDependenciesTask;
+use super::{TaskContext, process_dependencies::ProcessDependenciesTask};
 use crate::{
-  DependencyId, ModuleIdentifier,
-  compilation::build_module_graph::{ForwardedIdSet, ModuleToLazyMake},
-  module_graph::ModuleGraph,
+  DependencyRef, ModuleIdentifier, compilation::build_module_graph::ModuleToLazyMake,
+  module_graph::ModuleGraph, utils::task_loop::Task,
 };
 
-pub fn process_unlazy_dependencies(
-  module_to_lazy_make: &ModuleToLazyMake,
+pub fn request_lazy_dependencies(
+  module_to_lazy_make: &mut ModuleToLazyMake,
   module_graph: &mut ModuleGraph,
-  forwarded_ids: ForwardedIdSet,
-  original_module_identifier: ModuleIdentifier,
-) -> Option<ProcessDependenciesTask> {
-  let lazy_dependencies = module_to_lazy_make
-    .get_lazy_dependencies(&original_module_identifier)
-    .expect("only module has lazy dependencies should run into process_unlazy_dependencies");
-
-  let dependencies_to_process: Vec<DependencyId> = lazy_dependencies
-    .requested_lazy_dependencies(&forwarded_ids, module_to_lazy_make.eager_on_local_reference)
-    .into_iter()
-    .filter(|dep| module_graph.remove_lazy_dependency(dep))
-    .collect();
-
-  if dependencies_to_process.is_empty() {
-    return None;
+  module_identifier: ModuleIdentifier,
+  side_effect_free: bool,
+  dependencies: &[DependencyRef],
+) -> Vec<Box<dyn Task<TaskContext>>> {
+  let dependencies = module_to_lazy_make.request(
+    module_identifier,
+    side_effect_free,
+    dependencies,
+    module_graph,
+  );
+  if dependencies.is_empty() {
+    return vec![];
   }
-
-  Some(ProcessDependenciesTask {
-    dependencies: dependencies_to_process,
-    original_module_identifier,
+  vec![Box::new(ProcessDependenciesTask {
+    dependencies,
+    original_module_identifier: module_identifier,
     from_unlazy: true,
-  })
+  })]
 }
