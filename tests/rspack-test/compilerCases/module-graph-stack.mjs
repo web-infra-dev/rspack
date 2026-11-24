@@ -10,7 +10,10 @@ function stackThroughPluginCall(error) {
   return lines
     .slice(0, pluginFrame + 1)
     .map((line) =>
-      line.replace(/\(.*[/\\]([^/\\]+):\d+:\d+\)$/, '($1:<line>:<column>)'),
+      line
+        // Node 22 displays the receiver of this static method as Function.
+        .replace('at Function.__from_binding (', 'at EntryData.__from_binding (')
+        .replace(/\(.*[/\\]([^/\\]+):\d+:\d+\)$/, '($1:<line>:<column>)'),
     )
     .join('\n');
 }
@@ -50,7 +53,7 @@ export default [
           ).toMatchInlineSnapshot(`
             Error: ModuleGraph is not available during module graph building phase
                 at new EntryData (index.js:<line>:<column>)
-                at Function.__from_binding (index.js:<line>:<column>)
+                at EntryData.__from_binding (index.js:<line>:<column>)
                 at Entries.get (index.js:<line>:<column>)
                 at readEntryDuringMake (module-graph-stack.mjs:<line>:<column>)
           `);
