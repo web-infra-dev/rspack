@@ -1,4 +1,5 @@
-it('should load the component from container and verify correct layer sources', () => {
+it('should load the component from container and verify correct layer sources', async () => {
+  await import('containerA/ComponentA');
   return import('./App').then(({ default: App }) => {
     const rendered = App();
 

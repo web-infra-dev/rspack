@@ -1,4 +1,5 @@
 it('should load App with React and remote component', async () => {
+  await import('containerA/ComponentA');
   const App = (await import('./App')).default;
   const upgrade = (await import('./upgrade-react')).default;
   upgrade();

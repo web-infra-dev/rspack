@@ -1,4 +1,5 @@
-it('should load App with React and remote component', () => {
+it('should load App with React and remote component', async () => {
+  await import('containerA/ComponentA');
   return import('./App').then(({ default: App }) => {
     const rendered = App();
     expect(rendered).toBe(

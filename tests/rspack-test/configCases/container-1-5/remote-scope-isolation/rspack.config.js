@@ -9,11 +9,14 @@ const external = `Promise.resolve({
 })`;
 
 module.exports = {
+  experiments: { layers: true },
+  module: { rules: [{ test: /layer-marker\.js$/, layer: 'test' }] },
   target: 'async-node',
   plugins: [
-    new container.ModuleFederationPlugin({ name: 'remote-scope-isolation' }),
-    new container.ContainerReferencePlugin({
-      enhanced: true,
+    new container.ModuleFederationPlugin({
+      name: 'remote-scope-isolation',
+      implementation:
+        require.resolve('@module-federation/runtime-tools-layers'),
       remoteType: 'promise',
       remotes: {
         ordered: { external, shareScope: ['secondary', 'primary'] },
@@ -23,6 +26,12 @@ module.exports = {
     new sharing.ProvideSharedPlugin({
       enhanced: true,
       provides: {
+        // This provider opts the build into declared scope dispatch.
+        './layer-marker.js': {
+          shareKey: 'layer-marker',
+          layer: 'test',
+          version: '1.0.0',
+        },
         './primary.js': {
           shareScope: 'primary',
           shareKey: 'value',
