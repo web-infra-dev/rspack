@@ -194,3 +194,53 @@ async fn removing_a_context_subdirectory_forgets_its_scanned_and_live_members() 
   .expect("removed subtree disappears from the snapshot");
   watcher.close().await.expect("close watcher");
 }
+
+#[tokio::test]
+async fn promoting_context_members_during_a_snapshot_keeps_their_timestamps() {
+  let temp = tempfile::tempdir().expect("create fixture");
+  let root = temp.path().canonicalize().expect("resolve fixture");
+  let directory = root.join("pages");
+  let file = directory.join("route.js");
+  fs::create_dir(&directory).expect("create directory member");
+  fs::write(&file, "").expect("create file member");
+  let watcher = FsWatcher::new(Default::default(), Default::default());
+  let register = |files: Vec<InternedPath>, directories: Vec<InternedPath>| {
+    watcher.watch(
+      (files.into_iter(), std::iter::empty()),
+      (directories.into_iter(), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
+      SystemTime::now(),
+      Box::new(Handler),
+      Box::new(Handler),
+    )
+  };
+  register(vec![], vec![InternedPath::from(&root)]).await;
+  let (initial_files, initial_directories) = watcher.collect_time_info_entries();
+  let Some(TimeInfoEntry::Entry { timestamp, .. }) = entry(&initial_files, &file) else {
+    panic!("expected the initial context scan to record the file timestamp");
+  };
+  assert!(matches!(
+    entry(&initial_directories, &directory),
+    Some(TimeInfoEntry::OnlySafeTimeEntry { .. })
+  ));
+  let finish = rspack_watcher::testing::begin_time_info_snapshot(&watcher);
+  register(
+    vec![InternedPath::from(&file)],
+    vec![InternedPath::from(&directory)],
+  )
+  .await;
+  let (files, directories) = finish();
+  watcher.close().await.expect("close watcher");
+
+  let file_entry = entry(&files, &file);
+  let dir_entry = entry(&directories, &directory);
+  assert!(
+    matches!(file_entry, Some(TimeInfoEntry::Entry { timestamp: actual, .. }) if actual == timestamp)
+      && matches!(dir_entry, Some(TimeInfoEntry::OnlySafeTimeEntry { safe_time }) if safe_time >= timestamp),
+    "file {file_entry:?}, directory {dir_entry:?}"
+  );
+  assert_eq!(
+    entry(&files, &directory),
+    Some(&TimeInfoEntry::ExistenceOnlyTimeEntry)
+  );
+}

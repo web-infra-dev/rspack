@@ -8,7 +8,9 @@ use std::{
 
 use dashmap::{mapref::one::RefMut, setref::multiple::RefMulti};
 use rspack_error::Result;
-use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
+use rspack_paths::{
+  InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathIndexSet, InternedPathSet,
+};
 use rspack_util::{
   fx_hash::FxHashMap,
   time::{current_time, system_time_to_millis},
@@ -1050,6 +1052,19 @@ impl PathManager {
   }
 }
 
+pub(super) struct RegisteredTimeInfo {
+  file_paths: InternedPathIndexSet,
+  dir_paths: InternedPathIndexSet,
+  file_timestamps: TimeInfoEntries,
+  file_safe_times: Vec<(InternedPath, u64)>,
+}
+
+fn path_to_string(path: &Path) -> String {
+  path
+    .to_str()
+    .map_or_else(|| path.to_string_lossy().into_owned(), str::to_owned)
+}
+
 impl PathManager {
   /// A file's `file_times` record (no syscall), falling back to a fresh stat
   /// for a registered file with no record yet (e.g. one whose record was
@@ -1087,14 +1102,12 @@ impl PathManager {
   /// Absent on disk reads as `null` in both. Only a context known to be
   /// absent is stat'ed, to see whether it came back.
   pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
-    let accessor = self.access();
-    let path_to_string = |path: &Path| {
-      path
-        .to_str()
-        .map_or_else(|| path.to_string_lossy().into_owned(), str::to_owned)
-    };
+    self.collect_context_time_info(self.collect_registered_time_info())
+  }
 
-    let file_paths: Vec<InternedPath> = accessor.files().0.iter().map(|p| p.clone()).collect();
+  pub(super) fn collect_registered_time_info(&self) -> RegisteredTimeInfo {
+    let accessor = self.access();
+    let file_paths: InternedPathIndexSet = accessor.files().0.iter().map(|p| p.clone()).collect();
     let mut file_timestamps = TimeInfoEntries::with_capacity(file_paths.len());
     let mut file_safe_times: Vec<(InternedPath, u64)> = Vec::with_capacity(file_paths.len());
     for path in &file_paths {
@@ -1118,15 +1131,31 @@ impl PathManager {
       }
       file_timestamps.push((path_to_string(path.as_path()), entry));
     }
-    let mut dir_paths: Vec<InternedPath> =
-      accessor.directories().0.iter().map(|p| p.clone()).collect();
+    RegisteredTimeInfo {
+      file_paths,
+      dir_paths: accessor.directories().0.iter().map(|p| p.clone()).collect(),
+      file_timestamps,
+      file_safe_times,
+    }
+  }
+
+  pub(super) fn collect_context_time_info(
+    &self,
+    registered: RegisteredTimeInfo,
+  ) -> (TimeInfoEntries, TimeInfoEntries) {
+    let RegisteredTimeInfo {
+      file_paths,
+      mut dir_paths,
+      mut file_timestamps,
+      mut file_safe_times,
+    } = registered;
     for watcher in &self.watchers.directories {
       for (path, member) in &watcher.members {
-        if member.directory && !accessor.directories().0.contains(path) {
-          dir_paths.push(path.clone());
+        if member.directory {
+          dir_paths.insert(path.clone());
         }
         if member.file
-          && !accessor.files().0.contains(path)
+          && !file_paths.contains(path)
           && let Some(time) = self.file_times.get(path)
         {
           file_safe_times.push((path.clone(), time.narrowed().safe_time));
