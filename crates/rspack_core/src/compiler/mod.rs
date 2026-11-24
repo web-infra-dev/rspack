@@ -5,7 +5,7 @@ use arc_swap::ArcSwapOption;
 use futures::future::join_all;
 use rspack_cacheable::cacheable;
 use rspack_error::{Error, Result};
-use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
+use rspack_fs::{FilePermissions, IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
 use rspack_paths::{InternedPath, Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
@@ -475,6 +475,7 @@ impl Compiler {
           }
 
           if emit_assets_incremental
+            && asset.file_attributes.is_none()
             && let Some(old_version) = self.emitted_asset_versions.get(filename)
             && old_version.as_str() == asset.info.version
             && !old_version.is_empty()
@@ -575,6 +576,39 @@ impl Compiler {
 
       if need_write {
         self.output_filesystem.write(&file_path, &content).await?;
+      }
+
+      // Access times can change during the content comparison.
+      if let Some(attributes) = &asset.file_attributes
+        && (need_write
+          || stat.as_ref().is_none_or(|stat| {
+            attributes.mode.is_some_and(|mode| stat.mode != Some(mode))
+              || attributes
+                .timestamps
+                .is_some_and(|(_, mtime)| stat.mtime_ms != mtime)
+          }))
+      {
+        if let Some(mode) = attributes.mode {
+          self
+            .output_filesystem
+            .set_permissions(&file_path, FilePermissions::from_mode(u32::from(mode)))
+            .await
+            .map_err(|error| {
+              rspack_error::error!("Failed to set permissions for {file_path}: {error}")
+            })?;
+        }
+        if let Some((atime, mtime)) = attributes.timestamps {
+          self
+            .output_filesystem
+            .set_times(&file_path, atime, mtime)
+            .await
+            .map_err(|error| {
+              rspack_error::error!("Failed to set timestamps for {file_path}: {error}")
+            })?;
+        }
+      }
+
+      if need_write {
         self.compilation.emitted_assets.insert(filename.to_string());
       }
 

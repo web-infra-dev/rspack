@@ -35,6 +35,7 @@ impl FileType {
       is_file: false,
       is_directory: true,
       is_symlink: false,
+      mode: None,
       atime_ms: now,
       mtime_ms: now,
       ctime_ms: now,
@@ -49,6 +50,7 @@ impl FileType {
         is_file: true,
         is_directory: false,
         is_symlink: false,
+        mode: None,
         atime_ms: now,
         mtime_ms: now,
         ctime_ms: now,
@@ -271,6 +273,22 @@ impl WritableFileSystem for MemoryFileSystem {
   }
 
   async fn set_permissions(&self, _path: &Utf8Path, _perm: FilePermissions) -> Result<()> {
+    Ok(())
+  }
+
+  async fn set_times(&self, path: &Utf8Path, atime_ms: u64, mtime_ms: u64) -> Result<()> {
+    let mut files = self.files.lock().expect("should get lock");
+    let metadata = match files.get_mut(path) {
+      Some(FileType::Dir(metadata) | FileType::File { metadata, .. }) => metadata,
+      None => {
+        return Err(Error::new(
+          std::io::ErrorKind::NotFound,
+          "file does not exist",
+        ));
+      }
+    };
+    metadata.atime_ms = atime_ms;
+    metadata.mtime_ms = mtime_ms;
     Ok(())
   }
 }

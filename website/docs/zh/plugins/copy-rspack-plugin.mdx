@@ -438,12 +438,19 @@ export default {
 };
 ```
 
-### copyPermissions
+### preservePermissions
 
 - **类型：** `boolean`
 - **默认值：** `false`
 
-是否将源文件的权限复制到目标文件。
+保留源文件在 Unix 上的读、写和执行权限。此选项在 Windows 上无效。
+
+### preserveTimestamps
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+保留源文件的访问时间（`atime`）和修改时间（`mtime`）。文件内容相同时，Rspack 可以跳过内容写入，仅更新时间戳。自定义输出文件系统需要支持 `utimes`。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -452,7 +459,8 @@ export default {
       patterns: [
         {
           from: 'src/executable.sh',
-          copyPermissions: true, // 保留可执行权限
+          preservePermissions: true,
+          preserveTimestamps: true,
         },
       ],
     }),
@@ -460,7 +468,9 @@ export default {
 };
 ```
 
-这对于复制可执行文件、脚本或任何权限重要的文件特别有用。当设置为 `true` 时，插件将尝试在目标文件上设置与源文件相同的权限。
+### copyPermissions
+
+[`preservePermissions`](#preservepermissions) 的别名。两项同时设置时，以 `preservePermissions` 为准。
 
 ### info
 

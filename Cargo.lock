@@ -4308,6 +4308,7 @@ dependencies = [
  "async-trait",
  "cfg-if",
  "dunce",
+ "filetime",
  "pnp",
  "rspack_error",
  "rspack_paths",

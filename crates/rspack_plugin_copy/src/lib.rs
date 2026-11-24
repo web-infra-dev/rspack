@@ -13,9 +13,9 @@ use fast_glob::glob_match;
 use futures::{StreamExt, future::BoxFuture, stream::FuturesOrdered};
 use regex::Regex;
 use rspack_core::{
-  AssetInfo, AssetInfoRelated, CacheOptions, Compilation, CompilationAsset, CompilationLogger,
-  CompilationProcessAssets, Filename, GlobMatchOptions, Logger, PathData, Plugin,
-  escape_glob_pattern, extract_glob_base_dir, find_files_by_glob,
+  AssetFileAttributes, AssetInfo, AssetInfoRelated, CacheOptions, Compilation, CompilationAsset,
+  CompilationLogger, CompilationProcessAssets, Filename, GlobMatchOptions, Logger, PathData,
+  Plugin, escape_glob_pattern, extract_glob_base_dir, find_files_by_glob,
   rspack_sources::{BoxSource, RawBufferSource, SourceExt},
   unescape_glob_path,
 };
@@ -103,7 +103,8 @@ pub struct CopyPattern {
   pub force: bool,
   pub priority: i32,
   pub glob_options: CopyGlobOptions,
-  pub copy_permissions: Option<bool>,
+  pub preserve_permissions: bool,
+  pub preserve_timestamps: bool,
   #[debug(skip)]
   pub transform_fn: Option<TransformerFn>,
   pub cache: Option<bool>,
@@ -119,9 +120,9 @@ pub struct CopyGlobOptions {
 #[derive(Debug, Clone)]
 pub struct RunPatternResult {
   pub source_filename: Utf8PathBuf,
-  pub absolute_filename: Utf8PathBuf,
   pub filename: String,
   pub source: BoxSource,
+  pub file_attributes: Option<Box<AssetFileAttributes>>,
   pub info: Option<Info>,
   pub force: bool,
   pub priority: i32,
@@ -182,7 +183,8 @@ impl CopyRspackPlugin {
   fn is_cacheable(pattern: &CopyPattern) -> bool {
     pattern.transform_fn.is_none()
       && !matches!(pattern.to, Some(ToOption::Fn(_)))
-      && !pattern.copy_permissions.unwrap_or(false)
+      && !pattern.preserve_permissions
+      && !pattern.preserve_timestamps
       && !matches!(pattern.to_type, Some(ToType::Template))
       && !matches!(pattern.to, Some(ToOption::String(ref to)) if TEMPLATE_RE.is_match(to))
   }
@@ -379,11 +381,32 @@ impl CopyRspackPlugin {
     };
     let filename = normalize_glob_path_separators(&filename).into_owned();
 
+    let file_attributes = if (pattern.preserve_permissions || pattern.preserve_timestamps)
+      && let Ok(metadata) = compilation
+        .input_filesystem
+        .metadata(&absolute_filename)
+        .await
+      && metadata.is_file
+    {
+      let mode = if pattern.preserve_permissions {
+        metadata.mode
+      } else {
+        None
+      };
+      let timestamps = pattern
+        .preserve_timestamps
+        .then_some((metadata.atime_ms, metadata.mtime_ms));
+      (mode.is_some() || timestamps.is_some())
+        .then(|| Box::new(AssetFileAttributes { mode, timestamps }))
+    } else {
+      None
+    };
+
     Ok(Some(RunPatternResult {
       source_filename,
-      absolute_filename,
       filename,
       source,
+      file_attributes,
       info: pattern.info.clone(),
       force: pattern.force,
       priority: pattern.priority,
@@ -680,24 +703,16 @@ impl CopyRspackPlugin {
     &self,
     compilation: &mut Compilation,
     results_by_pattern: Vec<Option<Vec<RunPatternResult>>>,
-  ) -> Vec<(Utf8PathBuf, Utf8PathBuf)> {
-    let mut permission_copies = Vec::new();
-    for (index, result) in
+  ) {
+    for (_, result) in
       order_pattern_results(results_by_pattern, |index| self.patterns[index].priority)
     {
-      let copy_permissions = self.patterns[index].copy_permissions.unwrap_or(false);
-      let permission_copy = copy_permissions.then(|| {
-        (
-          result.absolute_filename.clone(),
-          compilation.options.output.path.join(&result.filename),
-        )
-      });
-
       if let Some(exist_asset) = compilation.assets_mut().get_mut(&result.filename) {
         if !result.force {
           continue;
         }
         exist_asset.set_source(Some(Arc::new(result.source)));
+        exist_asset.file_attributes = result.file_attributes;
         if let Some(info) = result.info {
           set_info(&mut exist_asset.info, info);
         }
@@ -714,18 +729,11 @@ impl CopyRspackPlugin {
           set_info(&mut asset_info, info);
         }
 
-        compilation.emit_asset(
-          result.filename,
-          CompilationAsset::new(Some(Arc::new(result.source)), asset_info),
-        );
-      }
-
-      if let Some(permission_copy) = permission_copy {
-        permission_copies.push(permission_copy);
+        let mut asset = CompilationAsset::new(Some(Arc::new(result.source)), asset_info);
+        asset.file_attributes = result.file_attributes;
+        compilation.emit_asset(result.filename, asset);
       }
     }
-
-    permission_copies
   }
 }
 
@@ -868,46 +876,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .map(|diagnostic| diagnostic.with_title("CopyRspackPlugin")),
   );
 
-  let permission_copies = self.emit_pattern_results(compilation, results_by_pattern);
+  self.emit_pattern_results(compilation, results_by_pattern);
   logger.time_end(start);
-
-  // Handle permission copying after all assets are emitted
-  for (source_path, dest_path) in permission_copies.iter() {
-    if let Ok(Some(permissions)) = compilation.input_filesystem.permissions(source_path).await {
-      // Make sure the output directory exists
-      if let Some(parent) = dest_path.parent() {
-        compilation
-          .output_filesystem
-          .create_dir_all(parent)
-          .await
-          .unwrap_or_else(|e| {
-            logger.warn(format!("Failed to create directory {parent:?}: {e}"));
-          });
-      }
-
-      // Make sure the file exists before trying to set permissions
-      if !dest_path.exists() {
-        logger.warn(format!(
-          "Destination file {dest_path:?} does not exist, cannot copy permissions"
-        ));
-        continue;
-      }
-
-      if let Err(e) = compilation
-        .output_filesystem
-        .set_permissions(dest_path, permissions)
-        .await
-      {
-        logger.warn(format!(
-          "Failed to copy permissions from {source_path:?} to {dest_path:?}: {e}"
-        ));
-      } else {
-        logger.log(format!(
-          "Successfully copied permissions from {source_path:?} to {dest_path:?}"
-        ));
-      }
-    }
-  }
 
   Ok(())
 }

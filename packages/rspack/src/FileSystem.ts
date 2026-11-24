@@ -172,6 +172,7 @@ class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
   lstat!: (name: string) => Promise<NodeFsStats | void>;
   readlink!: (name: string) => Promise<string | void>;
   chmod?: (name: string, mode: number) => Promise<void>;
+  utimes?: (name: string, atime: number, mtime: number) => Promise<void>;
   realpath!: (name: string) => Promise<string | void>;
   open!: (name: string, flags: string) => Promise<number | void>;
   rename!: (from: string, to: string) => Promise<void>;
@@ -226,7 +227,12 @@ class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
         return res && __to_binding_stat(res);
       };
     });
-    this.chmod = memoizeFn(() => util.promisify(fs.chmod.bind(fs)));
+    const chmod = fs.chmod;
+    this.chmod = chmod && memoizeFn(() => util.promisify(chmod.bind(fs)));
+    const utimes = fs.utimes;
+    if (utimes) {
+      this.utimes = memoizeFn(() => util.promisify(utimes.bind(fs)));
+    }
   }
 
   static __to_binding(fs?: OutputFileSystem) {

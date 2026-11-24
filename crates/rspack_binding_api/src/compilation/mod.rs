@@ -427,6 +427,7 @@ impl JsCompilation {
       rspack_core::CompilationAsset {
         source: Some(source.try_into()?),
         info: asset_info,
+        file_attributes: None,
       },
     );
     Ok(())

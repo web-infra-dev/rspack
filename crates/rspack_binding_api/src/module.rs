@@ -544,6 +544,7 @@ impl ModuleHandle {
       rspack_core::CompilationAsset {
         source: Some(source),
         info: asset_info,
+        file_attributes: None,
       },
     );
     Ok(())

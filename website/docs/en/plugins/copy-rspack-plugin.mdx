@@ -438,12 +438,19 @@ export default {
 };
 ```
 
-### copyPermissions
+### preservePermissions
 
 - **Type:** `boolean`
 - **Default:** `false`
 
-Whether to copy the file permissions from the source to the destination.
+Preserve the source file's Unix read, write, and execute permissions. This option has no effect on Windows.
+
+### preserveTimestamps
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Preserve the source file's access time (`atime`) and modification time (`mtime`). Rspack can update the timestamps without rewriting the file when its contents match. A custom output file system needs to support `utimes`.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -452,7 +459,8 @@ export default {
       patterns: [
         {
           from: 'src/executable.sh',
-          copyPermissions: true, // Preserves the executable permission
+          preservePermissions: true,
+          preserveTimestamps: true,
         },
       ],
     }),
@@ -460,7 +468,9 @@ export default {
 };
 ```
 
-This is particularly useful when copying executable files, scripts, or any files where permissions are important. When set to `true`, the plugin will attempt to set the same permissions on the destination file as the source file has.
+### copyPermissions
+
+Alias for [`preservePermissions`](#preservepermissions). If both options are set, `preservePermissions` takes precedence.
 
 ### info
 
