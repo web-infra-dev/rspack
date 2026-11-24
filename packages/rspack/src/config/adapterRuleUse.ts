@@ -1,4 +1,5 @@
 import type { AssetInfo, RawModuleRuleUse, RawOptions } from '@rspack/binding';
+import type { LoaderMetadata } from '../RuleSetCompiler';
 import { getLightningcssLoaderOptions } from '../builtin-loader/lightningcss';
 import { getSwcLoaderOptions } from '../builtin-loader/swc';
 import type { Compilation } from '../Compilation';
@@ -595,6 +596,18 @@ function createRawModuleRuleUsesImpl(
     const optionsCacheKey = use.cache
       ? serializeLoaderOptionsForCache(fingerprintOptions)
       : undefined;
+    const cache = optionsCacheKey !== undefined;
+    const normalizedOptionsCacheKey = optionsCacheKey ?? '';
+    const codeFilter = createRawLoaderCodeFilter(
+      use.codeFilter,
+      `${path}[${index}].codeFilter`,
+    );
+    const loaderMetadata: LoaderMetadata = {
+      cache,
+      optionsCacheKey: normalizedOptionsCacheKey,
+      codeFilter,
+      parallelism: use.parallel,
+    };
     return {
       loader: resolveStringifyLoaders(
         use,
@@ -602,14 +615,12 @@ function createRawModuleRuleUsesImpl(
         options.compiler,
         isBuiltin,
         fingerprintOptions,
+        loaderMetadata,
       ),
       options: o,
-      cache: optionsCacheKey !== undefined,
-      optionsCacheKey: optionsCacheKey ?? '',
-      codeFilter: createRawLoaderCodeFilter(
-        use.codeFilter,
-        `${path}[${index}].codeFilter`,
-      ),
+      cache,
+      optionsCacheKey: normalizedOptionsCacheKey,
+      codeFilter,
     };
   });
 }
@@ -631,12 +642,19 @@ function resolveStringifyLoaders(
   compiler: Compiler,
   isBuiltin: boolean,
   normalizedOptions: RuleSetLoaderWithOptions['options'],
+  loaderMetadata: LoaderMetadata,
 ) {
   const obj = parseResource(use.loader);
   let ident = use.ident;
+  const hasLoaderMetadata =
+    loaderMetadata.cache ||
+    loaderMetadata.codeFilter !== undefined ||
+    Boolean(use.parallel);
 
-  if (use.options === null) {
-  } else if (use.options === undefined) {
+  if (use.options === null || use.options === undefined) {
+    if (!obj.query && hasLoaderMetadata) {
+      obj.query = `??${(ident = use.ident ?? path)}`;
+    }
   } else if (typeof use.options === 'string') obj.query = `?${use.options}`;
   else if (use.ident) obj.query = `??${(ident = use.ident)}`;
   else if (typeof use.options === 'object' && use.options.ident)
@@ -655,16 +673,34 @@ function resolveStringifyLoaders(
   if (use.options && typeof use.options === 'object') {
     if (!ident) ident = '[[missing ident]]';
     compiler.__internal__ruleSet.references.set(ident, use.options);
-    compiler.__internal__ruleSet.references.set(
-      `${ident}$$parallelism`,
-      parallelism,
-    );
+    if (hasLoaderMetadata) {
+      compiler.__internal__ruleSet.loaderMetadata.set(ident, loaderMetadata);
+    } else {
+      compiler.__internal__ruleSet.loaderMetadata.delete(ident);
+    }
     if (isBuiltin) {
       // Inline builtin loaders resolve their options from this native map.
       compiler.__internal__ruleSet.builtinReferences.set(
         ident,
         normalizedOptions,
       );
+    }
+  } else if (
+    (use.options === null || use.options === undefined) &&
+    ident &&
+    hasLoaderMetadata &&
+    obj.query === `??${ident}`
+  ) {
+    // Avoid keeping stale object options when functional Rule.use reuses a path ident.
+    compiler.__internal__ruleSet.references.delete(ident);
+    compiler.__internal__ruleSet.loaderMetadata.set(ident, loaderMetadata);
+    if (isBuiltin && normalizedOptions !== undefined) {
+      compiler.__internal__ruleSet.builtinReferences.set(
+        ident,
+        normalizedOptions,
+      );
+    } else {
+      compiler.__internal__ruleSet.builtinReferences.delete(ident);
     }
   }
 

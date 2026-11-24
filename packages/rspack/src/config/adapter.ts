@@ -123,6 +123,7 @@ export const getRawOptions = (
     amd: options.amd ? JSON.stringify(options.amd || {}) : undefined,
     bail: options.bail!,
     __references: {},
+    __loader_metadata: {},
   };
 };
 

@@ -2728,6 +2728,12 @@ export interface RawLimitChunkCountPluginOptions {
   maxChunks: number
 }
 
+export interface RawLoaderMetadata {
+  cache: boolean
+  optionsCacheKey: string
+  codeFilter?: string | RegExp
+}
+
 export interface RawManifestExposeOption {
   path: string
   name: string
@@ -2912,6 +2918,7 @@ export interface RawOptions {
   amd?: string
   bail: boolean
   __references: Record<string, any>
+  __loader_metadata: Record<string, RawLoaderMetadata>
   __virtual_files?: Array<JsVirtualFile>
 }
 

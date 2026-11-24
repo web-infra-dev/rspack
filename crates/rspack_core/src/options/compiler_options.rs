@@ -1,7 +1,14 @@
+use std::sync::Arc;
+
+use rspack_loader_runner::LoaderMetadata;
+use rustc_hash::FxHashMap;
+
 use crate::{
   CacheOptions, Context, Experiments, Mode, ModuleOptions, NodeOption, Optimization, OutputOptions,
   Resolve, SnapshotOptions, StatsOptions, incremental::IncrementalOptions,
 };
+
+pub type LoaderMetadataMap = FxHashMap<String, Arc<LoaderMetadata>>;
 
 #[derive(Debug)]
 pub struct CompilerOptions {
@@ -22,6 +29,7 @@ pub struct CompilerOptions {
   pub amd: Option<String>,
   pub bail: bool,
   pub __references: References,
+  pub __loader_metadata: LoaderMetadataMap,
 }
 
 pub type References = serde_json::Map<String, serde_json::Value>;

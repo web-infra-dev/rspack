@@ -121,9 +121,12 @@ export class LoaderObject {
             "provide an 'ident' property for referenced loader options.",
         );
       }
-      this.options = compiler.__internal__ruleSet.references.get(ident) as
-        LoaderObjectOptions | undefined;
-      if (this.options === undefined) {
+      if (compiler.__internal__ruleSet.references.has(ident)) {
+        this.options = compiler.__internal__ruleSet.references.get(ident) as
+          LoaderObjectOptions | undefined;
+      } else if (compiler.__internal__ruleSet.loaderMetadata.has(ident)) {
+        this.options = undefined;
+      } else {
         throw new Error('Invalid ident is provided by referenced loader');
       }
       this.ident = ident;
@@ -135,19 +138,19 @@ export class LoaderObject {
       loaderItem.type === ''
         ? undefined
         : (loaderItem.type as LoaderObject['type']);
-    if (this.options === null) this.query = '';
+    if (this.ident) this.query = `??${this.ident}`;
+    else if (this.options === null) this.query = '';
     else if (this.options === undefined) this.query = '';
     else if (typeof this.options === 'string') this.query = `?${this.options}`;
-    else if (this.ident) this.query = `??${this.ident}`;
     else if (this.options.ident) this.query = `??${this.options.ident}`;
     else this.query = `?${JSON.stringify(this.options)}`;
 
     this.request = stringifyLoaderRequest(this.path, this.query, this.fragment);
-    this.parallel = this.ident
-      ? (compiler.__internal__ruleSet.references.get(
-          `${this.ident}$$parallelism`,
-        ) as LoaderObject['parallel'])
-      : false;
+    this.parallel =
+      (this.ident
+        ? compiler.__internal__ruleSet.loaderMetadata.get(this.ident)
+            ?.parallelism
+        : undefined) ?? false;
     this.loaderItem = loaderItem;
     this.loaderItem.data = this.loaderItem.data ?? {};
   }
@@ -502,7 +505,9 @@ export async function runLoaders(
       const entry = loaderContext.loaders[loaderContext.loaderIndex];
       return entry.options && typeof entry.options === 'object'
         ? entry.options
-        : entry.query;
+        : entry.ident && entry.options === undefined
+          ? ''
+          : entry.query;
     },
   });
   loaderContext.version = 2;

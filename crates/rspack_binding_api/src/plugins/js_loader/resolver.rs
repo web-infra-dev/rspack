@@ -122,7 +122,7 @@ pub(crate) async fn resolve_loader(
       // Use `str::ends_with` instead of `Path::extension` to avoid unnecessary allocation
       let path = path.as_str();
 
-      let cache_version = if l.cache {
+      let cache_version = if l.cache() {
         loader_cache_version(resolver, Utf8Path::new(path)).await?
       } else {
         None

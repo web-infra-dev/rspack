@@ -23,10 +23,10 @@ use rspack_core::{
   JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
   JavascriptParserCreateRequire, JavascriptParserOptions, JavascriptParserOrder,
   JavascriptParserUrl, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
-  JsonGeneratorOptions, JsonParserOptions, LoaderFilter, ModuleNoParseRule, ModuleNoParseRules,
-  ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleEnforce,
-  ModuleRuleMatcher, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption,
-  ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
+  JsonGeneratorOptions, JsonParserOptions, LoaderFilter, LoaderMetadata, ModuleNoParseRule,
+  ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect,
+  ModuleRuleEnforce, ModuleRuleMatcher, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict,
+  ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
 use rspack_regex::RspackRegex;
@@ -55,12 +55,47 @@ pub struct RawModuleRuleUse {
   pub code_filter: Option<Either<String, RspackRegex>>,
 }
 
-fn into_loader_filter(value: Either<String, RspackRegex>) -> Arc<LoaderFilter> {
+#[napi(object, object_to_js = false)]
+#[derive(Debug)]
+pub struct RawLoaderMetadata {
+  pub cache: bool,
+  pub options_cache_key: String,
+  #[napi(ts_type = "string | RegExp")]
+  pub code_filter: Option<Either<String, RspackRegex>>,
+}
+
+impl From<RawLoaderMetadata> for LoaderMetadata {
+  fn from(value: RawLoaderMetadata) -> Self {
+    Self {
+      cache: value.cache,
+      options_cache_key: value.options_cache_key,
+      filter: value.code_filter.map(into_loader_filter),
+    }
+  }
+}
+
+pub(crate) fn into_loader_filter(value: Either<String, RspackRegex>) -> LoaderFilter {
   let code = match value {
     Either::A(value) => CodeFilter::String(value),
     Either::B(value) => CodeFilter::Regexp(value),
   };
-  Arc::new(LoaderFilter::new(Some(code)))
+  LoaderFilter::new(Some(code))
+}
+
+fn into_loader_metadata(
+  cache: bool,
+  options_cache_key: String,
+  code_filter: Option<Either<String, RspackRegex>>,
+) -> Option<Arc<LoaderMetadata>> {
+  let filter = code_filter.map(into_loader_filter);
+  if !cache && options_cache_key.is_empty() && filter.is_none() {
+    return None;
+  }
+  Some(Arc::new(LoaderMetadata {
+    cache,
+    options_cache_key,
+    filter,
+  }))
 }
 
 #[rspack_napi_macros::tagged_union]
@@ -1048,9 +1083,11 @@ impl RawModuleRule {
           .map(|rule_use| ModuleRuleUseLoader {
             loader: rule_use.loader,
             options: rule_use.options,
-            cache: rule_use.cache,
-            options_cache_key: rule_use.options_cache_key,
-            filter: rule_use.code_filter.map(into_loader_filter),
+            metadata: into_loader_metadata(
+              rule_use.cache,
+              rule_use.options_cache_key,
+              rule_use.code_filter,
+            ),
           })
           .collect::<Vec<_>>();
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
@@ -1065,9 +1102,11 @@ impl RawModuleRule {
                 .map(|rule_use| ModuleRuleUseLoader {
                   loader: rule_use.loader,
                   options: rule_use.options,
-                  cache: rule_use.cache,
-                  options_cache_key: rule_use.options_cache_key,
-                  filter: rule_use.code_filter.map(into_loader_filter),
+                  metadata: into_loader_metadata(
+                    rule_use.cache,
+                    rule_use.options_cache_key,
+                    rule_use.code_filter,
+                  ),
                 })
                 .collect::<Vec<_>>()
             })

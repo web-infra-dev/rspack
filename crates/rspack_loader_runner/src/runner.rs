@@ -7,16 +7,13 @@ use rspack_sources::SourceMap;
 use tracing::{Instrument, info_span};
 
 use crate::{
-  LoaderExecutionKind, LoaderFilter, LoaderRunnerOptions, ParseMeta,
+  LoaderExecutionKind, LoaderMetadataList, LoaderRunnerOptions, ParseMeta,
   chain::LoaderChains,
   content::{AdditionalData, Content, ResourceData},
   context::{LoaderContext, LoaderDependencies, State},
   loader::{Loader, LoaderItem},
   plugin::LoaderRunnerPlugin,
 };
-
-/// Normal-stage preconditions aligned with the loaders in the chain.
-pub type LoaderFilters = Box<[Option<Arc<LoaderFilter>>]>;
 
 impl<Context: Send> LoaderContext<Context> {
   async fn start_yielding(&mut self) -> Result<bool> {
@@ -215,7 +212,7 @@ fn create_loader_context<Context: Send>(
 pub async fn run_loaders<Context: Send>(
   loaders: Vec<Arc<dyn Loader<Context>>>,
   loader_options: Option<Vec<LoaderRunnerOptions>>,
-  loader_filters: Option<LoaderFilters>,
+  loader_metadata: Option<LoaderMetadataList>,
   resource_data: Arc<ResourceData>,
   plugin: Option<Arc<dyn LoaderRunnerPlugin<Context = Context>>>,
   context: Context,
@@ -228,15 +225,15 @@ pub async fn run_loaders<Context: Send>(
       "loader options must stay aligned with loaders"
     );
   }
-  if let Some(loader_filters) = &loader_filters {
+  if let Some(loader_metadata) = &loader_metadata {
     assert_eq!(
       loaders.len(),
-      loader_filters.len(),
-      "loader filters must stay aligned with loaders"
+      loader_metadata.len(),
+      "loader metadata must stay aligned with loaders"
     );
   }
   let mut loader_options = loader_options.map(Vec::into_iter);
-  let mut loader_filters = loader_filters.map(|filters| filters.into_vec().into_iter());
+  let mut loader_metadata = loader_metadata.map(|metadata| metadata.into_vec().into_iter());
   let loaders = loaders
     .into_iter()
     .map(|loader| {
@@ -247,8 +244,8 @@ pub async fn run_loaders<Context: Send>(
             .next()
             .expect("loader options must stay aligned with loaders")
         });
-      let filter = loader_filters.as_mut().and_then(Iterator::next).flatten();
-      LoaderItem::new(loader, options, filter)
+      let metadata = loader_metadata.as_mut().and_then(Iterator::next).flatten();
+      LoaderItem::new(loader, options, metadata)
     })
     .collect::<Vec<LoaderItem<Context>>>();
   let mut cx = create_loader_context(loaders, resource_data, plugin, context);

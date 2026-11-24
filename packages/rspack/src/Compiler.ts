@@ -965,6 +965,9 @@ class Compiler {
     this.#rawOptions.__references = Object.fromEntries(
       this.#ruleSet.builtinReferences.entries(),
     );
+    this.#rawOptions.__loader_metadata = Object.fromEntries(
+      this.#ruleSet.loaderMetadata.entries(),
+    );
 
     this.#rawOptions.__virtual_files =
       VirtualModulesPlugin.__internal__take_virtual_files(this);

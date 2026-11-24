@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use napi::{
   Either,
   bindgen_prelude::{FromNapiValue, TypeName, ValidateNapiValue},
@@ -8,6 +10,7 @@ use rspack_core::{
   NodeGlobalOption, NodeOption, OutputOptions, References, incremental::IncrementalOptions,
 };
 use rspack_error::error;
+use rustc_hash::FxHashMap as HashMap;
 
 mod raw_builtins;
 mod raw_cache;
@@ -69,6 +72,11 @@ pub struct RawOptions {
   pub bail: bool,
   #[napi(js_name = "__references", ts_type = "Record<string, any>")]
   pub __references: References,
+  #[napi(
+    js_name = "__loader_metadata",
+    ts_type = "Record<string, RawLoaderMetadata>"
+  )]
+  pub __loader_metadata: HashMap<String, RawLoaderMetadata>,
   #[napi(js_name = "__virtual_files")]
   pub __virtual_files: Option<Vec<JsVirtualFile>>,
 }
@@ -147,6 +155,11 @@ impl TryFrom<RawOptions> for CompilerOptions {
       amd: value.amd,
       bail: value.bail,
       __references: value.__references,
+      __loader_metadata: value
+        .__loader_metadata
+        .into_iter()
+        .map(|(k, v)| (k, Arc::new(v.into())))
+        .collect(),
     })
   }
 }

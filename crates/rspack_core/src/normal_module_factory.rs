@@ -6,7 +6,9 @@ use std::{
 use memchr::{memchr, memmem, memrchr};
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
-use rspack_loader_runner::{Loader, LoaderFilter, LoaderRunnerOptions, Scheme, get_scheme};
+use rspack_loader_runner::{
+  Loader, LoaderMetadata, LoaderMetadataList, LoaderRunnerOptions, Scheme, get_scheme,
+};
 use sugar_path::SugarPath;
 
 use crate::{
@@ -17,7 +19,7 @@ use crate::{
   ParserAndGenerator, ParserOptions, RawModule, ResolveArgs, ResolveOptionsWithDependencyType,
   ResolveResult, Resolver, ResolverFactory, ResourceData, ResourceParsedData, RunnerContext,
   RuntimeGlobals, SharedPluginDriver, diagnostics::EmptyDependency, module_rules_matcher,
-  parse_resource, resolve, stringify_loaders_and_resource,
+  parse_resource, resolve,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -262,6 +264,14 @@ impl NormalModuleFactory {
               .as_ref()
               .and_then(|q| q.starts_with("??").then(|| &q[2..]))
           });
+          let metadata = ident.and_then(|ident| {
+            data
+              .build_context
+              .compiler_options
+              .__loader_metadata
+              .get(ident)
+              .cloned()
+          });
           ModuleRuleUseLoader {
             loader: r.to_owned(),
             options: ident.and_then(|ident| {
@@ -272,9 +282,7 @@ impl NormalModuleFactory {
                 .get(ident)
                 .map(|object| object.to_string())
             }),
-            cache: false,
-            options_cache_key: String::new(),
-            filter: None,
+            metadata,
           }
         }));
         scheme = get_scheme(unresolved_resource);
@@ -404,13 +412,22 @@ module.exports = "data:,";
     };
     let mut resolved_inline_loaders = vec![];
     for l in inline_loaders {
-      resolved_inline_loaders
-        .push(resolve_each(plugin_driver, &context, &loader_resolver, &l, data).await?)
+      resolved_inline_loaders.push(
+        resolve_each_with_options(
+          plugin_driver,
+          &self.options,
+          &context,
+          &loader_resolver,
+          &l,
+          data,
+        )
+        .await?,
+      )
     }
 
     let user_request = {
       let suffix =
-        stringify_loaders_and_resource(&resolved_inline_loaders, resource_data.resource());
+        stringify_resolved_loaders_and_resource(&resolved_inline_loaders, resource_data.resource());
       if let Some(match_resource_data) = &match_resource_data {
         let mut resource = match_resource_data.resource().to_owned();
         resource += "!=!";
@@ -473,39 +490,52 @@ module.exports = "data:,";
 
       for l in post_loaders {
         all_loaders.push(
-          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l, data)
-            .await?,
+          resolve_each_with_options(
+            plugin_driver,
+            &self.options,
+            &self.options.context,
+            &loader_resolver,
+            &l,
+            data,
+          )
+          .await?,
         )
       }
 
       let mut resolved_normal_loaders = vec![];
       for l in normal_loaders {
         resolved_normal_loaders.push(
-          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l, data)
-            .await?,
+          resolve_each_with_options(
+            plugin_driver,
+            &self.options,
+            &self.options.context,
+            &loader_resolver,
+            &l,
+            data,
+          )
+          .await?,
         )
       }
 
       if match_resource_data.is_some() {
         all_loaders.extend(resolved_normal_loaders);
-        all_loaders.extend(
-          resolved_inline_loaders
-            .into_iter()
-            .map(ResolvedLoader::uncached),
-        );
+        all_loaders.extend(resolved_inline_loaders);
       } else {
-        all_loaders.extend(
-          resolved_inline_loaders
-            .into_iter()
-            .map(ResolvedLoader::uncached),
-        );
+        all_loaders.extend(resolved_inline_loaders);
         all_loaders.extend(resolved_normal_loaders);
       }
 
       for l in pre_loaders {
         all_loaders.push(
-          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l, data)
-            .await?,
+          resolve_each_with_options(
+            plugin_driver,
+            &self.options,
+            &self.options.context,
+            &loader_resolver,
+            &l,
+            data,
+          )
+          .await?,
         )
       }
 
@@ -523,15 +553,15 @@ module.exports = "data:,";
       resource_data.resource().to_owned()
     };
     let mut has_cached_loader = false;
-    let mut has_filter = false;
+    let mut has_metadata = false;
     for resolved in &resolved_loaders {
       has_cached_loader |= resolved.options.cache;
-      has_filter |= resolved.filter.is_some();
+      has_metadata |= resolved.metadata.is_some();
     }
-    let loader_filters = has_filter.then(|| {
+    let loader_metadata: Option<LoaderMetadataList> = has_metadata.then(|| {
       resolved_loaders
         .iter()
-        .map(|resolved| resolved.filter.clone())
+        .map(|resolved| resolved.metadata.clone())
         .collect::<Vec<_>>()
         .into_boxed_slice()
     });
@@ -649,7 +679,7 @@ module.exports = "data:,";
         Arc::clone(&create_data.resource_resolve_data),
         loaders,
         loader_options,
-        loader_filters,
+        loader_metadata,
         create_data.context.clone().map(|x| x.into()),
         resolved_extract_source_map,
         dependency_phase,
@@ -737,49 +767,69 @@ async fn resolve_each(
 struct ResolvedLoader {
   loader: BoxLoader,
   options: LoaderRunnerOptions,
-  filter: Option<Arc<LoaderFilter>>,
+  metadata: Option<Arc<LoaderMetadata>>,
 }
 
-impl ResolvedLoader {
-  fn uncached(loader: BoxLoader) -> Self {
-    Self {
-      loader,
-      options: LoaderRunnerOptions::default(),
-      filter: None,
+fn stringify_resolved_loaders_and_resource<'a>(
+  loaders: &[ResolvedLoader],
+  resource: &'a str,
+) -> Cow<'a, str> {
+  if !loaders.is_empty() {
+    let mut s = String::new();
+    for resolved in loaders {
+      let identifier = resolved.loader.identifier();
+      if let Some((_type, ident)) = identifier.split_once('|') {
+        s.push_str(ident);
+      } else {
+        s.push_str(identifier.as_str());
+      }
+      s.push('!');
     }
+    s.push_str(resource);
+    Cow::Owned(s)
+  } else {
+    Cow::Borrowed(resource)
   }
 }
 
 async fn resolve_each_with_options(
   plugin_driver: &SharedPluginDriver,
   options: &CompilerOptions,
+  context: &Context,
   loader_resolver: &Resolver,
   loader: &ModuleRuleUseLoader,
   data: &mut ModuleFactoryCreateData,
 ) -> Result<ResolvedLoader> {
+  let cache_enabled = options.experiments.new_cache.loader && loader.cache();
   let uncached_loader;
-  let loader = if options.experiments.new_cache.loader {
-    loader
-  } else {
+  let resolve_loader = if !options.experiments.new_cache.loader && loader.cache() {
     uncached_loader = ModuleRuleUseLoader {
-      cache: false,
-      ..loader.clone()
+      loader: loader.loader.clone(),
+      options: loader.options.clone(),
+      metadata: None,
     };
     &uncached_loader
+  } else {
+    loader
   };
   let resolved = resolve_each(
     plugin_driver,
-    &options.context,
+    context,
     loader_resolver,
-    loader,
+    resolve_loader,
     data,
   )
   .await?;
-  if !loader.cache {
+  let metadata = if cache_enabled || loader.filter().is_some() {
+    loader.metadata.clone()
+  } else {
+    None
+  };
+  if !cache_enabled {
     return Ok(ResolvedLoader {
       loader: resolved,
       options: LoaderRunnerOptions::default(),
-      filter: loader.filter.clone(),
+      metadata,
     });
   }
   let loader_name = parse_resource(&loader.loader).map_or_else(
@@ -795,10 +845,9 @@ async fn resolve_each_with_options(
     options: LoaderRunnerOptions {
       cache: true,
       loader_name,
-      options_cache_key: loader.options_cache_key.clone(),
       loader_version,
     },
-    filter: loader.filter.clone(),
+    metadata,
   })
 }
 

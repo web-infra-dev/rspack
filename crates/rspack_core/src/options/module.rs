@@ -1698,12 +1698,31 @@ pub struct ModuleRuleUseLoader {
   /// Loader options
   /// This only exists if the loader is a built-in loader.
   pub options: Option<String>,
-  /// Cache this loader.
-  pub cache: bool,
-  /// Stable serialization of the public loader options.
-  pub options_cache_key: String,
-  /// Preconditions for running the normal loader handler.
-  pub filter: Option<Arc<rspack_loader_runner::LoaderFilter>>,
+  /// Shared per-rule metadata for caching and normal-stage filtering.
+  pub metadata: Option<Arc<rspack_loader_runner::LoaderMetadata>>,
+}
+
+impl ModuleRuleUseLoader {
+  #[inline]
+  pub fn cache(&self) -> bool {
+    self.metadata.as_deref().is_some_and(|meta| meta.cache)
+  }
+
+  #[inline]
+  pub fn options_cache_key(&self) -> &str {
+    self
+      .metadata
+      .as_deref()
+      .map_or("", |meta| meta.options_cache_key.as_str())
+  }
+
+  #[inline]
+  pub fn filter(&self) -> Option<&rspack_loader_runner::LoaderFilter> {
+    self
+      .metadata
+      .as_deref()
+      .and_then(|meta| meta.filter.as_ref())
+  }
 }
 
 pub type FnUse =

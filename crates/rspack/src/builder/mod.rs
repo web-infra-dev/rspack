@@ -1351,6 +1351,7 @@ impl CompilerOptionsBuilder {
       amd,
       bail,
       __references: Default::default(),
+      __loader_metadata: Default::default(),
     })
   }
 }

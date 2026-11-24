@@ -5,6 +5,7 @@ mod content;
 mod context;
 mod filter;
 mod loader;
+mod metadata;
 mod plugin;
 mod runner;
 mod scheme;
@@ -18,9 +19,10 @@ pub use filter::LoaderFilter;
 pub use loader::{
   DisplayWithSuffix, Loader, LoaderExecutionKind, LoaderItem, ResourceParsedData, parse_resource,
 };
+pub use metadata::{LoaderMetadata, LoaderMetadataList};
 pub use plugin::LoaderRunnerPlugin;
 pub use rspack_collections::{Identifiable, Identifier};
-pub use runner::{LoaderFilters, LoaderResult, run_loaders};
+pub use runner::{LoaderResult, run_loaders};
 pub use scheme::{Scheme, get_scheme};
 
 pub const BUILTIN_LOADER_PREFIX: &str = "builtin:";

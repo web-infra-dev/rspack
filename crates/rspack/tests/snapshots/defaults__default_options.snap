@@ -1867,4 +1867,5 @@ CompilerOptions {
     amd: None,
     bail: false,
     __references: {},
+    __loader_metadata: {},
 }
