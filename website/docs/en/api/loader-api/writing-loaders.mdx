@@ -377,7 +377,7 @@ The following actions prevent Rspack from caching a loader's output. Except for 
 - Calling [`this.cacheable(false)`](/api/loader-api/context#thiscacheable).
 - Calling [`this.addContextDependency()`](/api/loader-api/context#thisaddcontextdependency) or [`this.addMissingDependency()`](/api/loader-api/context#thisaddmissingdependency).
 - Calling [`this.emitFile()`](/api/loader-api/context#thisemitfile) or writing custom fields to `this._module.buildInfo`.
-- Calling [`this.emitWarning()`](/api/loader-api/context#thisemitwarning) or [`this.emitError()`](/api/loader-api/context#thisemiterror) during the normal phase (only affects the current loader).
+- Calling [`this.emitWarning()`](/api/loader-api/context#thisemitwarning) or [`this.emitError()`](/api/loader-api/context#thisemiterror) during the normal phase.
 
 Rspack also does not cache a loader's result when it receives or outputs [`additionalData`](/api/loader-api/context#thiscallback).
 

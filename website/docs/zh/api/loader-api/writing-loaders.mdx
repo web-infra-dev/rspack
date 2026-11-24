@@ -378,7 +378,7 @@ export default class MetadataPlugin {
 - 调用 [`this.cacheable(false)`](/api/loader-api/context#thiscacheable)。
 - 调用 [`this.addContextDependency()`](/api/loader-api/context#thisaddcontextdependency) 或 [`this.addMissingDependency()`](/api/loader-api/context#thisaddmissingdependency)。
 - 调用 [`this.emitFile()`](/api/loader-api/context#thisemitfile)，或向 `this._module.buildInfo` 写入自定义字段。
-- 在 normal 阶段调用 [`this.emitWarning()`](/api/loader-api/context#thisemitwarning) 或 [`this.emitError()`](/api/loader-api/context#thisemiterror)（仅影响当前 loader）。
+- 在 normal 阶段调用 [`this.emitWarning()`](/api/loader-api/context#thisemitwarning) 或 [`this.emitError()`](/api/loader-api/context#thisemiterror)。
 
 当 loader 接收或输出 [`additionalData`](/api/loader-api/context#thiscallback) 时，Rspack 也不会缓存其结果。
 
