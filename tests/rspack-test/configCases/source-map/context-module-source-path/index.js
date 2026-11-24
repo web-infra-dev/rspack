@@ -1,7 +1,7 @@
 const foo = Math.random() > 0.5 ? "a" : "b";
 require(`./foo/${foo}.js`);
 
-it("preserves context module identifiers in source map templates", () => {
+it("context module should use relative path in source map file", () => {
 	var fs = require("fs");
 	var source = fs.readFileSync(__filename + ".map", "utf-8");
 	var map = JSON.parse(source);
@@ -10,7 +10,5 @@ it("preserves context module identifiers in source map templates", () => {
 		sourceUrl = source => `rspack:///${source}`;
 	}
 
-	expect(map.sources).toContain(
-		EXPECTED_CONTEXT_SOURCE ?? sourceUrl("./foo|sync|/^\\.\\/.*\\.js$/")
-	);
+	expect(map.sources).toContain(sourceUrl("./foo|sync|/^\\.\\/.*\\.js$/"));
 });

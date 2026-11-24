@@ -425,8 +425,6 @@ export default {
 | [resource-path]          | 不带任何查询参数，用于解析文件的路径                                                            |
 | [namespace]              | 模块命名空间。在构建成为一个 library 之后，通常也是 library 名称，否则为空                      |
 
-使用字符串模板时，`[resource]`、`[resource-path]`、`[absolute-resource-path]` 和 `[relative-resource-path]` 中的文件系统资源路径分隔符会统一为 `/`。默认模板和备用模板也使用相同规则。模块标识符、复合 source 标识符和 loader 标识符不做额外归一化。已有 URL、查询字符串、片段、模板文本和模板函数的返回值会保留原样。这是与 webpack 绝对路径行为的有意差异。
-
 当使用一个函数，同样的选项要通过 `info` 参数并使用驼峰式：
 
 ```js title="rspack.config.mjs"
