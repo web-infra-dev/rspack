@@ -222,6 +222,7 @@ With memory caching, compilers in the same process can share loader results. Wit
 
 - Loader caching does not automatically track compiler settings such as `mode` or `target`. If a loader's output depends on them, pass them explicitly in `use.options`, or avoid enabling `cache: true` on that loader.
 - Ensure loader options can be losslessly serialized as JSON; otherwise, Rspack does not cache that loader's result (for example, when options contain functions, `Date`, or `RegExp` values).
+- Due to current limitations of [`CssExtractRspackPlugin.loader`](/plugins/css-extract-rspack-plugin), when a module uses this loader, none of the loaders applied to that module can use loader caching.
 
 :::
 
