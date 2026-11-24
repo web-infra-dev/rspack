@@ -72,11 +72,27 @@ async fn loader_cache_etag(
           .ok()?,
       )
     };
+    let cache_build_dependencies = loader.cache_build_dependencies();
+    let cache_build_dependencies_hash = if cache_build_dependencies.is_empty() {
+      None
+    } else {
+      Some(
+        context
+          .file_system_info
+          .build_dependencies_hash(cache_build_dependencies)
+          .await
+          .ok()?,
+      )
+    };
     rspack_hash::rspack_hash_object!(&mut hasher, {
       "rule_loader_options" => loader.options_cache_key(),
       "loader_version" => loader.loader_version(),
       "has_loader_build_dependencies" => loader_build_dependencies_hash.is_some(),
       "loader_build_dependencies_hash" => loader_build_dependencies_hash,
+      "has_cache_identifier" => loader.cache_identifier().is_some(),
+      "cache_identifier" => loader.cache_identifier(),
+      "has_cache_build_dependencies" => cache_build_dependencies_hash.is_some(),
+      "cache_build_dependencies_hash" => cache_build_dependencies_hash,
     });
     loader.loader().etag(context, &mut hasher);
   }

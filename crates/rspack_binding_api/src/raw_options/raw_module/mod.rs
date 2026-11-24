@@ -1,5 +1,6 @@
 use std::{
   fmt::Formatter,
+  path::Path,
   ptr::NonNull,
   sync::{Arc, LazyLock},
 };
@@ -25,10 +26,11 @@ use rspack_core::{
   JavascriptParserUrl, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
   JsonGeneratorOptions, JsonParserOptions, LoaderFilter, ModuleNoParseRule, ModuleNoParseRules,
   ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect, ModuleRuleEnforce,
-  ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap,
-  TypeReexportPresenceMode,
+  ModuleRuleUse, ModuleRuleUseLoader, ModuleRuleUseLoaderCache, OverrideStrict, ParseOption,
+  ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
+use rspack_paths::InternedPath;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -36,6 +38,14 @@ use crate::{
   compiler_scoped_tsfn::CompilerScopedTsFnHandle as ThreadsafeFunction, filename::JsFilename,
   module::ModuleObject, options::raw_resolve::RawResolveOptions,
 };
+
+#[napi(object)]
+#[derive(Debug)]
+pub struct RawModuleRuleUseCache {
+  pub options_cache_key: String,
+  pub identifier: Option<String>,
+  pub build_dependencies: Option<Vec<String>>,
+}
 
 /// `loader` is for both JS and Rust loaders.
 /// `options` is
@@ -49,10 +59,33 @@ use crate::{
 pub struct RawModuleRuleUse {
   pub loader: String,
   pub options: Option<String>,
-  pub cache: bool,
-  pub options_cache_key: String,
+  pub cache: Option<RawModuleRuleUseCache>,
   #[napi(ts_type = "string | RegExp")]
   pub code_filter: Option<Either<String, RspackRegex>>,
+}
+
+fn into_module_rule_use_loader(rule_use: RawModuleRuleUse) -> ModuleRuleUseLoader {
+  let cache = rule_use.cache.map(|cache| {
+    let mut build_dependencies = cache
+      .build_dependencies
+      .unwrap_or_default()
+      .into_iter()
+      .map(|dep| InternedPath::from(Path::new(&dep)))
+      .collect::<Vec<_>>();
+    build_dependencies.sort_unstable_by(|a, b| a.as_path().cmp(b.as_path()));
+    build_dependencies.dedup();
+    ModuleRuleUseLoaderCache {
+      options_cache_key: cache.options_cache_key,
+      identifier: cache.identifier,
+      build_dependencies,
+    }
+  });
+  ModuleRuleUseLoader {
+    loader: rule_use.loader,
+    options: rule_use.options,
+    cache,
+    filter: rule_use.code_filter.map(into_loader_filter),
+  }
 }
 
 fn into_loader_filter(value: Either<String, RspackRegex>) -> Arc<LoaderFilter> {
@@ -1037,13 +1070,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
       Either::A(array) => {
         let uses = array
           .into_iter()
-          .map(|rule_use| ModuleRuleUseLoader {
-            loader: rule_use.loader,
-            options: rule_use.options,
-            cache: rule_use.cache,
-            options_cache_key: rule_use.options_cache_key,
-            filter: rule_use.code_filter.map(into_loader_filter),
-          })
+          .map(into_module_rule_use_loader)
           .collect::<Vec<_>>();
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
       }
@@ -1054,13 +1081,7 @@ impl TryFrom<RawModuleRule> for ModuleRule {
             tsfn.call_with_sync(ctx.into()).await.map(|uses| {
               uses
                 .into_iter()
-                .map(|rule_use| ModuleRuleUseLoader {
-                  loader: rule_use.loader,
-                  options: rule_use.options,
-                  cache: rule_use.cache,
-                  options_cache_key: rule_use.options_cache_key,
-                  filter: rule_use.code_filter.map(into_loader_filter),
-                })
+                .map(into_module_rule_use_loader)
                 .collect::<Vec<_>>()
             })
           })

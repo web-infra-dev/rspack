@@ -1,3 +1,4 @@
+import nodePath from 'node:path';
 import type { AssetInfo, RawModuleRuleUse, RawOptions } from '@rspack/binding';
 import { getLightningcssLoaderOptions } from '../builtin-loader/lightningcss';
 import { getSwcLoaderOptions } from '../builtin-loader/swc';
@@ -592,7 +593,12 @@ function createRawModuleRuleUsesImpl(
       isBuiltin = true;
     }
 
-    const optionsCacheKey = use.cache
+    const cacheConfig = normalizeLoaderCacheOptions(
+      use.cache,
+      `${path}[${index}].cache`,
+      options.context,
+    );
+    const optionsCacheKey = cacheConfig
       ? serializeLoaderOptionsForCache(fingerprintOptions)
       : undefined;
     return {
@@ -604,14 +610,51 @@ function createRawModuleRuleUsesImpl(
         fingerprintOptions,
       ),
       options: o,
-      cache: optionsCacheKey !== undefined,
-      optionsCacheKey: optionsCacheKey ?? '',
+      cache:
+        cacheConfig && optionsCacheKey !== undefined
+          ? {
+              optionsCacheKey,
+              identifier: cacheConfig.identifier,
+              buildDependencies: cacheConfig.buildDependencies,
+            }
+          : undefined,
       codeFilter: createRawLoaderCodeFilter(
         use.codeFilter,
         `${path}[${index}].codeFilter`,
       ),
     };
   });
+}
+
+function normalizeLoaderCacheOptions(
+  cache: RuleSetLoaderWithOptions['cache'],
+  configPath: string,
+  context: string,
+): { identifier?: string; buildDependencies?: string[] } | undefined {
+  if (cache === undefined || cache === false) return undefined;
+  if (cache === true) return {};
+  if (typeof cache !== 'object' || cache === null || Array.isArray(cache)) {
+    throw new Error(`Expected a boolean or object at \`${configPath}\`.`);
+  }
+  if (cache.identifier !== undefined && typeof cache.identifier !== 'string') {
+    throw new Error(`Expected a string at \`${configPath}.identifier\`.`);
+  }
+  if (cache.buildDependencies !== undefined) {
+    if (
+      !Array.isArray(cache.buildDependencies) ||
+      cache.buildDependencies.some((dep) => typeof dep !== 'string')
+    ) {
+      throw new Error(
+        `Expected a string array at \`${configPath}.buildDependencies\`.`,
+      );
+    }
+  }
+  return {
+    identifier: cache.identifier,
+    buildDependencies: cache.buildDependencies?.map((dep) =>
+      nodePath.resolve(context, dep),
+    ),
+  };
 }
 
 function createRawLoaderCodeFilter(

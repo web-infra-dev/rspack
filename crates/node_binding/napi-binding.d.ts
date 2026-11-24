@@ -2839,9 +2839,14 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
-  cache: boolean
-  optionsCacheKey: string
+  cache?: RawModuleRuleUseCache
   codeFilter?: string | RegExp
+}
+
+export interface RawModuleRuleUseCache {
+  optionsCacheKey: string
+  identifier?: string
+  buildDependencies?: Array<string>
 }
 
 export interface RawNewCache {
