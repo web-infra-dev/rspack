@@ -229,12 +229,16 @@ export default {
 
 ### drafts
 
-- **Type:** `{ customMedia?: boolean }`
+Use `drafts` to choose which CSS draft features Lightning CSS recognizes when it processes a stylesheet. Each feature is disabled by default.
+
+- **Type:** `{ customMedia?: boolean; scrollNavigationControls?: boolean }`
 - **Default:** `undefined`
 
-Enable parsing of draft CSS syntax.
+#### customMedia
 
-Set `drafts.customMedia` to `true` to parse `@custom-media` rules. The loader expands custom media references and removes their definitions when `include.customMediaQueries` is set or when browser targets are configured. Lightning CSS treats custom media as unsupported in every browser, so any browser targets enable this transform, including targets derived from Rspack's [`target`](/config/target). Set `exclude.customMediaQueries` to keep custom media unchanged. Because `include` takes precedence over `exclude` and `include.mediaQueries` already contains `include.customMediaQueries`, this only works when both `include.customMediaQueries` and `include.mediaQueries` are disabled.
+Set `drafts.customMedia` to `true` to let the loader resolve named media queries defined with `@custom-media`. When this option is disabled, it keeps both the definitions and references such as `@media (--wide)` in the output.
+
+With the option enabled, the loader expands each reference and removes its definition when `include.customMediaQueries` is enabled or a browser target is configured. Lightning CSS treats custom media as unsupported in all browsers, so any browser target triggers expansion, including one inherited from Rspack's [`target`](/config/target).
 
 For example, with `drafts: { customMedia: true }` and `include: { customMediaQueries: true }`, the following CSS:
 
@@ -258,9 +262,11 @@ is transformed into:
 }
 ```
 
+To preserve custom media when browser targets are configured, enable `exclude.customMediaQueries`. Leave both `include.customMediaQueries` and `include.mediaQueries` disabled because an explicit inclusion takes precedence.
+
 Custom media is resolved within each CSS file. If a file uses a name that it doesn't define, the loader emits a warning and leaves all custom media in that file unchanged. A circular definition causes a build error. Lightning CSS does not expand custom media in `@import` conditions, so in a file that uses custom media there, the loader also leaves all custom media unchanged.
 
-#### Sharing custom media between files
+##### Sharing custom media between files
 
 To use the same definitions in several files, add them to each file before this loader runs. For example, with a small loader that appends a shared file:
 
@@ -302,3 +308,9 @@ export default {
 `this.addDependency()` rebuilds each file when the shared definitions change. Definitions can come after the queries that use them, so appending keeps `@import` rules first and source map positions unchanged. Appended definitions override definitions with the same name in the file.
 
 Alternatively, leave custom media to [`LightningCssMinimizerRspackPlugin`](/plugins/lightning-css-minimizer-rspack-plugin), which resolves it across each output CSS file. Enable `minimizerOptions.drafts.customMedia` in the plugin, and leave `drafts.customMedia` disabled in this loader, or set `exclude.customMediaQueries` with both `include.customMediaQueries` and `include.mediaQueries` disabled, so that the loader keeps the definitions. Custom media is then only expanded in minimized output, and each name must be defined in the same output file as the queries that use it.
+
+#### scrollNavigationControls
+
+Set `drafts.scrollNavigationControls` to `true` to let Lightning CSS recognize the scroll marker pseudo-classes `:target-current`, `:target-before`, and `:target-after`. It then uses the configured browser targets to decide how to write selectors that contain them. When this option is disabled, it treats these pseudo-classes as unknown.
+
+For example, when targeting Chrome 150, enabling this option preserves the selector list `a:target-before, a:target-after`. With the option disabled, Lightning CSS writes `:is(a:target-before, a:target-after)`.

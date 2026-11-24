@@ -8,10 +8,11 @@ use rspack_error::ToStringResultToRspackResultExt;
 use serde::Deserialize;
 
 #[cacheable]
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Debug, Default, Deserialize)]
+#[serde(rename_all = "camelCase", default)]
 pub struct Draft {
   pub custom_media: bool,
+  pub scroll_navigation_controls: bool,
 }
 
 #[cacheable]
