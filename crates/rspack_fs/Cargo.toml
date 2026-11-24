@@ -18,11 +18,12 @@ tokio        = { workspace = true, features = ["rt", "macros", "sync", "time"] }
 tracing      = { workspace = true }
 
 [target.'cfg(not(target_family = "wasm"))'.dependencies]
-concurrent_lru = { workspace = true }
-cow-utils      = { workspace = true }
-filetime       = { workspace = true }
-rawzip         = { workspace = true, features = ["std"] }
-tokio          = { workspace = true, features = ["rt", "macros", "sync", "fs"] }
+cow-utils   = { workspace = true }
+filetime    = { workspace = true }
+once_cell   = { workspace = true, features = ["std"] }
+parking_lot = { workspace = true }
+rawzip      = { workspace = true, features = ["std"] }
+tokio       = { workspace = true, features = ["rt", "macros", "sync", "fs"] }
 
 [dev-dependencies]
 tempfile = { workspace = true }

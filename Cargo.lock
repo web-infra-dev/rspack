@@ -4313,10 +4313,11 @@ version = "0.103.4"
 dependencies = [
  "async-trait",
  "cfg-if",
- "concurrent_lru",
  "cow-utils",
  "dunce",
  "filetime",
+ "once_cell",
+ "parking_lot",
  "pnp",
  "rawzip",
  "rspack_error",

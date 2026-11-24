@@ -35,7 +35,6 @@ cfg-if          = { version = "1.0.5", default-features = false }
 chrono          = { version = "0.4.45", default-features = false }
 clap            = { version = "4.6.9", default-features = false }
 concat-string   = { version = "1.0.1", default-features = false }
-concurrent_lru  = { version = "0.2.0", default-features = false }
 cow-utils       = { version = "0.1.3", default-features = false }
 
 criterion = { package = "codspeed-criterion-compat", default-features = false, version = "4.7.0", features = ["async_tokio"] }
@@ -380,6 +379,12 @@ opt-level = "s"
 opt-level = "s"
 
 [profile.release.package.pnp]
+opt-level = "s"
+
+[profile.release.package.rawzip]
+opt-level = "z"
+
+[profile.release.package.rspack_plugin_copy]
 opt-level = "s"
 
 [profile.release.package.swc_ecma_loader]
