@@ -63,6 +63,8 @@ export default function () {
     };
     const optInForLayer = (shareKey, kind, layer) => {
       runtimeRequire.federation.shareScopeDispatch = 'declared';
+      runtimeRequire.federation.additionalShareScopeKeys =
+        runtimeRequire.initializeSharingData?.additionalInitScopes;
       if (!supportsSharedIdentity) {
         unsupportedIdentity(shareKey, `uses ${kind} layer "${layer}"`);
       }
@@ -392,8 +394,6 @@ export default function () {
           initScope,
           remoteEntryInitOptions,
           shareScopeKey: containerShareScope,
-          additionalShareScopeKeys:
-            runtimeRequire.initializeSharingData?.additionalInitScopes,
           webpackRequire: runtimeRequire,
         }),
     );
