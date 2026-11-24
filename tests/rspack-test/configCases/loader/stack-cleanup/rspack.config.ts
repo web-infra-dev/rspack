@@ -21,6 +21,15 @@ export default defineConfig({
           compilation.errors[1].details,
           '    at customLoader (/project/LOADER_EXECUTION.js:1:1)\n    at caller (/project/caller.js:2:1)',
         );
+        assert.equal(compilation.errors[2].details, '');
+        assert.equal(
+          compilation.errors[3].details,
+          '    at parse (/loader.js:10:5)',
+        );
+        assert.equal(
+          compilation.errors[4].details,
+          '    at run (/loader.js:10:5)',
+        );
       });
     }),
   ],
