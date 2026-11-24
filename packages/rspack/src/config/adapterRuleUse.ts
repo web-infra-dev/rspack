@@ -606,7 +606,7 @@ function createRawModuleRuleUsesImpl(
       cache,
       optionsCacheKey: normalizedOptionsCacheKey,
       codeFilter,
-      parallelism: use.parallel,
+      parallel: use.parallel,
     };
     return {
       loader: resolveStringifyLoaders(
@@ -649,7 +649,7 @@ function resolveStringifyLoaders(
   const hasLoaderMetadata =
     loaderMetadata.cache ||
     loaderMetadata.codeFilter !== undefined ||
-    Boolean(use.parallel);
+    Boolean(loaderMetadata.parallel);
 
   if (use.options === null || use.options === undefined) {
     if (!obj.query && hasLoaderMetadata) {

@@ -4,7 +4,7 @@ export interface LoaderMetadata {
   cache: boolean;
   optionsCacheKey: string;
   codeFilter?: string | RegExp;
-  parallelism?: RuleSetLoaderWithOptions['parallel'];
+  parallel?: RuleSetLoaderWithOptions['parallel'];
 }
 
 class RuleSetCompiler {

@@ -148,8 +148,7 @@ export class LoaderObject {
     this.request = stringifyLoaderRequest(this.path, this.query, this.fragment);
     this.parallel =
       (this.ident
-        ? compiler.__internal__ruleSet.loaderMetadata.get(this.ident)
-            ?.parallelism
+        ? compiler.__internal__ruleSet.loaderMetadata.get(this.ident)?.parallel
         : undefined) ?? false;
     this.loaderItem = loaderItem;
     this.loaderItem.data = this.loaderItem.data ?? {};
