@@ -2186,6 +2186,7 @@ export interface RawCopyPattern {
   info?: RawInfo
   /**
    * Legacy alias for `preservePermissions`, used when that option is unset.
+   * @deprecated Use `preservePermissions` instead.
    * @default false
    */
   copyPermissions?: boolean

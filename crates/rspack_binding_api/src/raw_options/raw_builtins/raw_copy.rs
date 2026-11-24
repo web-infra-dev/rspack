@@ -86,6 +86,7 @@ pub struct RawCopyPattern {
   /// @default undefined
   pub info: Option<RawInfo>,
   /// Legacy alias for `preservePermissions`, used when that option is unset.
+  /// @deprecated Use `preservePermissions` instead.
   /// @default false
   pub copy_permissions: Option<bool>,
   /// Preserve the source file's Unix permission bits, including executable permissions.
