@@ -11,8 +11,6 @@ import PropertyType from '@components/PropertyType';
 
 The `cache` option controls Rspack's caching strategy and lets Rspack reuse cached data across builds to improve build performance.
 
-Rspack can also cache loader transforms. See [loader caching](/guide/features/loader#loader-cache).
-
 When Cache is enabled, Rspack supports two storage modes: process-local Memory Cache and
 filesystem-backed Persistent Cache. Both store fine-grained computation results and are independent
 from [`incremental`](/config/incremental).
@@ -20,6 +18,8 @@ from [`incremental`](/config/incremental).
 :::tip
 We are developing a faster and more stable cache implementation that will replace the existing one in the future. To try it early, enable [`experiments.newCache`](/config/experiments#experimentsnewcache).
 :::
+
+Rspack can also cache loader transforms. See [loader caching](/guide/features/loader#loader-cache).
 
 - **Type:**
 

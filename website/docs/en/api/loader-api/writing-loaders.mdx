@@ -368,7 +368,7 @@ When persistent caching is enabled, Rspack saves this data as JSON. Use values t
 
 Before reusing a cached result, Rspack checks the loader's input, options, and file dependencies. For JavaScript loaders, Rspack automatically detects changes to the loader's entry file, but not other files that the loader imports.
 
-Top-level `cache.buildDependencies` does not invalidate loader caching. Register external files that affect the output—including helper files imported by the loader—with [`this.addDependency()`](/api/loader-api/context#thisadddependency) or [`this.addBuildDependency()`](/api/loader-api/context#thisaddbuilddependency) during the normal phase. Even if the pitch function already added a dependency, add it again in the normal phase, as only dependencies added in the normal phase invalidate loader caching when their contents change.
+Top-level `cache.buildDependencies` does not invalidate loader caching. Add external files that affect the output—including helper files imported by the loader—with [`this.addDependency()`](/api/loader-api/context#thisadddependency) or [`this.addBuildDependency()`](/api/loader-api/context#thisaddbuilddependency) during the normal phase. Even if the pitch function already added a dependency, add it again in the normal phase, as only dependencies added in the normal phase invalidate loader caching when their contents change.
 
 Because loader caching does not automatically track compiler settings such as `this.mode`, expose settings that affect the output as loader options. Ensure options can be losslessly serialized as JSON; otherwise, Rspack does not cache that loader's result (for example, when options contain functions, `Date`, or `RegExp` values).
 

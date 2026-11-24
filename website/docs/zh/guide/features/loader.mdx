@@ -225,13 +225,15 @@ export default {
 
 :::
 
-如果你在编写 loader，请参见 [让 loader 支持缓存](/api/loader-api/writing-loaders#loader-cache-compatibility)。
-
 ### 何时使用 loader 缓存 \{#when-to-use-loader-caching}
 
-Compiler 的持久化缓存命中时，Rspack 会直接复用模块的完整构建结果，同时跳过 loader 转换和模块解析。但在以下场景中，compiler 的持久化缓存会失效或无法共享，此时 loader 缓存仍可复用转换结果：
+Compiler 的持久化缓存已经按 compiler 粒度保存了完整的模块构建结果（包括 loader 转换和模块解析），并在 [`cache.buildDependencies`](/config/cache#builddependencies) 变化时整体失效。Loader 缓存则独立缓存单个 loader 的转换结果，仅在该 loader 的输入、选项、文件依赖或 [`cache.version`](/config/cache#version) 变化时失效。
 
-- **配置变更导致模块重建**：Rspack CLI 会将配置文件加入 [`cache.buildDependencies`](/config/cache#builddependencies)，因此即使只修改 `output.filename` 这类无关选项，也会使 compiler 的持久化缓存失效。由于 loader 缓存不受 `cache.buildDependencies` 影响，模块重建时 Rspack 仍可复用已缓存的 loader 转换结果。
+建议优先为转换开销较大的 loader（如 `babel-loader`、`less-loader` 或 `sass-loader`）开启 `cache: true`。常规热构建本身就会命中 compiler 的持久化缓存，轻量 loader 通常收益不大。对于自带缓存的 loader（如 `babel-loader` 的 `cacheDirectory`），建议关闭其内置缓存，改用 Rspack 的 loader 缓存以获得更好的性能，并避免重复缓存。
+
+在以下 compiler 持久化缓存失效或无法共享的场景中，loader 缓存最能发挥作用：
+
+- **配置变更导致模块重建**：Rspack CLI 会将配置文件加入 `cache.buildDependencies`，因此即使只修改 `output.filename` 这类无关选项，也会使 compiler 的持久化缓存失效。由于 loader 缓存不受 `cache.buildDependencies` 影响，模块重建时 Rspack 仍可复用已缓存的 loader 转换结果。
 - **多 compiler 构建（如 SSR）**：SSR 场景下不同 compiler 实例的配置不同（例如 `target` 不同），即使使用同一个缓存存储目录，也无法互相复用持久化缓存。但 loader 缓存不受此影响：客户端构建完成后，只要输入、选项和依赖一致，服务端构建仍可复用共享源文件的 loader 转换结果。
 
 ```js title="rspack.config.mjs"
@@ -272,3 +274,5 @@ export default [
   },
 ];
 ```
+
+如果你在编写 loader，请参见 [让 loader 支持缓存](/api/loader-api/writing-loaders#loader-cache-compatibility)。

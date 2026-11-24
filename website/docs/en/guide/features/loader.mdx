@@ -223,13 +223,15 @@ With memory caching, compilers in the same process can share loader results. Wit
 
 :::
 
-For loader authors, see [loader cache compatibility](/api/loader-api/writing-loaders#loader-cache-compatibility).
-
 ### When to use loader caching
 
-When a compiler's persistent cache hits, Rspack reuses the module's full build result and skips both loader transforms and module parsing. However, when the compiler's persistent cache is invalidated or cannot be shared, loader caching can still reuse cached transforms:
+A compiler's persistent cache already stores full module build results (including loader transforms and parsing) per compiler, and invalidates as a whole when [`cache.buildDependencies`](/config/cache#builddependencies) changes. Loader caching instead caches individual loader transforms independently, invalidating only when that loader's input, options, file dependencies, or [`cache.version`](/config/cache#version) change.
 
-- **Configuration changes**: Rspack CLI adds the configuration file to [`cache.buildDependencies`](/config/cache#builddependencies), so changing even an unrelated option such as `output.filename` invalidates the compiler's persistent cache and forces modules to rebuild. Because loader caching does not depend on `cache.buildDependencies`, Rspack can still reuse cached loader transforms.
+Enable `cache: true` mainly for expensive loaders such as `babel-loader`, `less-loader`, or `sass-loader`. Normal warm rebuilds already hit the compiler's persistent cache, so lightweight loaders rarely benefit. For loaders with their own built-in cache (such as `babel-loader`'s `cacheDirectory`), disable that cache and use Rspack's loader caching instead for better performance and to avoid redundant caching.
+
+Loader caching helps most when the compiler's persistent cache is invalidated or cannot be shared:
+
+- **Configuration changes**: Rspack CLI adds the configuration file to `cache.buildDependencies`, so changing even an unrelated option such as `output.filename` invalidates the compiler's persistent cache and forces modules to rebuild. Because loader caching does not depend on `cache.buildDependencies`, Rspack can still reuse cached loader transforms.
 - **Multi-compiler builds (such as SSR)**: Different compiler instances in an SSR setup have different configurations (such as `target`), so they cannot reuse each other's persistent cache even when using the same cache storage directory. Loader caching is not affected by this—once the client build finishes, the server build can reuse cached loader transforms for shared source files as long as the inputs, options, and dependencies match.
 
 ```js title="rspack.config.mjs"
@@ -270,3 +272,5 @@ export default [
   },
 ];
 ```
+
+For loader authors, see [loader cache compatibility](/api/loader-api/writing-loaders#loader-cache-compatibility).
