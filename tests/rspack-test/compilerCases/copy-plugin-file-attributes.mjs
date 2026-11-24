@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { Stats } from "@rspack/core";
 import { compile, createProject, rebuild, write } from "./_copy-plugin-cache.mjs";
 
 const initialMtime = new Date("2020-01-02T03:04:05Z");
@@ -88,4 +89,67 @@ function preserveFileAttributes(useInputFileSystem) {
 	};
 }
 
-export default [preserveFileAttributes(false), preserveFileAttributes(true)];
+const chmodError = "fixture chmod failed";
+
+function rejectChmod(_file, _mode, callback) {
+	callback(new Error(chmodError));
+}
+
+function permissionFailureCase(option, chmod) {
+	const required = option === "preservePermissions";
+	const failure = chmod ? "failing chmod" : "missing chmod";
+	let target;
+
+	return {
+		description: `should ${required ? "fail" : "continue"} when using ${option} with ${failure}`,
+		skip: !unix,
+		options(context) {
+			const { root, options } = createProject(
+				context,
+				`${option}-${chmod ? "chmod-error" : "no-chmod"}`,
+				[{ from: "assets/copy.txt", [option]: true }]
+			);
+			const source = write(root, "assets/copy.txt", "copied\n");
+			fs.chmodSync(source, 0o751);
+			target = path.join(root, "dist", "copy.txt");
+			return options;
+		},
+		compiler(_context, compiler) {
+			compiler.outputFileSystem = { ...fs, chmod };
+		},
+		async build(_context, compiler) {
+			if (required) {
+				await expect(compile(compiler)).rejects.toThrow(
+					chmod ? chmodError : "output file system cannot set file permissions"
+				);
+				return;
+			}
+			const compilation = await compile(compiler);
+			expect(fs.readFileSync(target, "utf8")).toBe("copied\n");
+			const { logging } = new Stats(compilation).toJson({
+				all: false,
+				logging: "warn"
+			});
+			const entries = logging?.["rspack.Compiler"]?.entries ?? [];
+			const warnings = entries
+				.filter(
+					entry =>
+						entry.type === "warn" &&
+						entry.message.includes("Failed to set permissions")
+				)
+				.map(entry => entry.message);
+			expect(warnings).toEqual(
+				chmod ? [expect.stringContaining(chmodError)] : []
+			);
+		}
+	};
+}
+
+export default [
+	preserveFileAttributes(false),
+	preserveFileAttributes(true),
+	...["copyPermissions", "preservePermissions"].flatMap(option => [
+		permissionFailureCase(option, undefined),
+		permissionFailureCase(option, rejectChmod)
+	])
+];

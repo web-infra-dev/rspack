@@ -443,7 +443,7 @@ export default {
 - **Type:** `boolean`
 - **Default:** `false`
 
-Preserve the source file's Unix read, write, and execute permissions. This option has no effect on Windows.
+Preserve the source file's Unix read, write, and execute permissions. If the output file system cannot apply the permissions, the build fails. This option has no effect on Windows.
 
 ### preserveTimestamps
 
@@ -470,7 +470,7 @@ export default {
 
 ### copyPermissions
 
-Deprecated alias for [`preservePermissions`](#preservepermissions). If both options are set, `preservePermissions` takes precedence.
+Deprecated alias for [`preservePermissions`](#preservepermissions). This option skips the update if the output file system lacks `chmod`. If a `chmod` call fails, Rspack logs a warning and continues the build. If both options are set, `preservePermissions` takes precedence.
 
 ### info
 

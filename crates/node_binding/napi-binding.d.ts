@@ -2186,12 +2186,14 @@ export interface RawCopyPattern {
   info?: RawInfo
   /**
    * Legacy alias for `preservePermissions`, used when that option is unset.
+   * A failed permission update is logged and the build continues.
    * @deprecated Use `preservePermissions` instead.
    * @default false
    */
   copyPermissions?: boolean
   /**
    * Preserve the source file's Unix permission bits, including executable permissions.
+   * A failed permission update fails the build.
    * @default false
    */
   preservePermissions?: boolean

@@ -126,14 +126,14 @@ impl WritableFileSystem for NodeFileSystem {
     }
   }
 
+  fn supports_set_permissions(&self) -> bool {
+    cfg!(unix) && self.0.chmod.is_some()
+  }
+
   async fn set_permissions(&self, path: &Utf8Path, perm: FilePermissions) -> Result<()> {
-    if let Some(mode) = perm.into_mode() {
-      let chmod = self.0.chmod.as_ref().ok_or_else(|| {
-        Error::new(
-          std::io::ErrorKind::Unsupported,
-          "output file system cannot set file permissions",
-        )
-      })?;
+    if let Some(mode) = perm.into_mode()
+      && let Some(chmod) = &self.0.chmod
+    {
       let file = path.as_str().to_string();
       return chmod
         .call_with_promise((file, mode).into())

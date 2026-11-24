@@ -589,13 +589,22 @@ impl Compiler {
           }))
       {
         if let Some(mode) = attributes.mode {
-          self
+          if attributes.permissions_required && !self.output_filesystem.supports_set_permissions() {
+            return Err(rspack_error::error!(
+              "Failed to set permissions for {file_path}: output file system cannot set file permissions"
+            ));
+          }
+          if let Err(error) = self
             .output_filesystem
             .set_permissions(&file_path, FilePermissions::from_mode(u32::from(mode)))
             .await
-            .map_err(|error| {
-              rspack_error::error!("Failed to set permissions for {file_path}: {error}")
-            })?;
+          {
+            let message = format!("Failed to set permissions for {file_path}: {error}");
+            if attributes.permissions_required {
+              return Err(rspack_error::error!("{message}"));
+            }
+            self.compilation.get_logger("rspack.Compiler").warn(message);
+          }
         }
         if let Some((atime, mtime)) = attributes.timestamps {
           self

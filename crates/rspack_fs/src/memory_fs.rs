@@ -272,6 +272,10 @@ impl WritableFileSystem for MemoryFileSystem {
     ReadableFileSystem::metadata(self, file).await
   }
 
+  fn supports_set_permissions(&self) -> bool {
+    false
+  }
+
   async fn set_permissions(&self, _path: &Utf8Path, _perm: FilePermissions) -> Result<()> {
     Ok(())
   }

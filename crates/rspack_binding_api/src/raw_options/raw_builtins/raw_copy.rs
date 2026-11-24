@@ -86,10 +86,12 @@ pub struct RawCopyPattern {
   /// @default undefined
   pub info: Option<RawInfo>,
   /// Legacy alias for `preservePermissions`, used when that option is unset.
+  /// A failed permission update is logged and the build continues.
   /// @deprecated Use `preservePermissions` instead.
   /// @default false
   pub copy_permissions: Option<bool>,
   /// Preserve the source file's Unix permission bits, including executable permissions.
+  /// A failed permission update fails the build.
   /// @default false
   pub preserve_permissions: Option<bool>,
   /// Preserve the source file's access and modification timestamps.
@@ -202,9 +204,8 @@ impl From<RawCopyPattern> for CopyPattern {
         dot: glob_options.dot,
         ignore: glob_options.ignore,
       },
-      preserve_permissions: preserve_permissions
-        .or(copy_permissions)
-        .unwrap_or_default(),
+      copy_permissions: preserve_permissions.is_none() && copy_permissions.unwrap_or_default(),
+      preserve_permissions: preserve_permissions.unwrap_or_default(),
       preserve_timestamps: preserve_timestamps.unwrap_or_default(),
       transform_fn: transform.map(|transformer| -> TransformerFn {
         Box::new(move |input, absolute_filename| {

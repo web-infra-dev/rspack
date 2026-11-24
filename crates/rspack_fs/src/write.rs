@@ -40,6 +40,11 @@ pub trait WritableFileSystem: Debug + Send + Sync {
 
   async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata>;
 
+  /// Whether the filesystem can set Unix permission bits.
+  fn supports_set_permissions(&self) -> bool {
+    cfg!(unix)
+  }
+
   /// See [std::fs::set_permissions]
   async fn set_permissions(&self, _path: &Utf8Path, _perm: FilePermissions) -> Result<()>;
 

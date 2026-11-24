@@ -443,7 +443,7 @@ export default {
 - **类型：** `boolean`
 - **默认值：** `false`
 
-保留源文件在 Unix 上的读、写和执行权限。此选项在 Windows 上无效。
+保留源文件在 Unix 上的读、写和执行权限。输出文件系统无法设置权限时，构建会报错。此选项在 Windows 上无效。
 
 ### preserveTimestamps
 
@@ -470,7 +470,7 @@ export default {
 
 ### copyPermissions
 
-此选项已弃用，请改用 [`preservePermissions`](#preservepermissions)。两项同时设置时，以 `preservePermissions` 为准。
+此选项已弃用，请改用 [`preservePermissions`](#preservepermissions)。输出文件系统缺少 `chmod` 时会跳过权限更新。调用 `chmod` 失败时会记录警告，构建继续。两项同时设置时，以 `preservePermissions` 为准。
 
 ### info
 

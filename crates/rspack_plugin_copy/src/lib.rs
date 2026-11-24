@@ -103,6 +103,7 @@ pub struct CopyPattern {
   pub force: bool,
   pub priority: i32,
   pub glob_options: CopyGlobOptions,
+  pub copy_permissions: bool,
   pub preserve_permissions: bool,
   pub preserve_timestamps: bool,
   #[debug(skip)]
@@ -183,6 +184,7 @@ impl CopyRspackPlugin {
   fn is_cacheable(pattern: &CopyPattern) -> bool {
     pattern.transform_fn.is_none()
       && !matches!(pattern.to, Some(ToOption::Fn(_)))
+      && !pattern.copy_permissions
       && !pattern.preserve_permissions
       && !pattern.preserve_timestamps
       && !matches!(pattern.to_type, Some(ToType::Template))
@@ -381,23 +383,25 @@ impl CopyRspackPlugin {
     };
     let filename = normalize_glob_path_separators(&filename).into_owned();
 
-    let file_attributes = if (pattern.preserve_permissions || pattern.preserve_timestamps)
+    let copy_mode = pattern.copy_permissions || pattern.preserve_permissions;
+    let file_attributes = if (copy_mode || pattern.preserve_timestamps)
       && let Ok(metadata) = compilation
         .input_filesystem
         .metadata(&absolute_filename)
         .await
       && metadata.is_file
     {
-      let mode = if pattern.preserve_permissions {
-        metadata.mode
-      } else {
-        None
-      };
+      let mode = if copy_mode { metadata.mode } else { None };
       let timestamps = pattern
         .preserve_timestamps
         .then_some((metadata.atime_ms, metadata.mtime_ms));
-      (mode.is_some() || timestamps.is_some())
-        .then(|| Box::new(AssetFileAttributes { mode, timestamps }))
+      (mode.is_some() || timestamps.is_some()).then(|| {
+        Box::new(AssetFileAttributes {
+          mode,
+          permissions_required: pattern.preserve_permissions,
+          timestamps,
+        })
+      })
     } else {
       None
     };
