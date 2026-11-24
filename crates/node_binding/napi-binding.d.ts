@@ -240,7 +240,7 @@ export declare class JsCompilation {
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
   hasAsset(name: string): boolean
-  emitAsset(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
+  emitAsset(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null, childCompilation?: JsCompilation): void
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
   get entrypoints(): ChunkGroup[]

@@ -41,6 +41,11 @@ pub trait ReadableFileSystem: Debug + Send + Sync {
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata>;
   fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata>;
 
+  /// Read file metadata, including timestamps that require extra work to obtain.
+  async fn metadata_with_timestamps(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    self.metadata(path).await
+  }
+
   /// See [std::fs::symlink_metadata]
   async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata>;
 

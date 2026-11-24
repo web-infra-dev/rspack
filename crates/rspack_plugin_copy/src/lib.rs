@@ -384,17 +384,26 @@ impl CopyRspackPlugin {
     let filename = normalize_glob_path_separators(&filename).into_owned();
 
     let copy_mode = pattern.copy_permissions || pattern.preserve_permissions;
-    let file_attributes = if (copy_mode || pattern.preserve_timestamps)
-      && let Ok(metadata) = compilation
-        .input_filesystem
-        .metadata(&absolute_filename)
+    let file_system = &compilation.input_filesystem;
+    let metadata = if pattern.preserve_timestamps {
+      file_system
+        .metadata_with_timestamps(&absolute_filename)
         .await
+        .ok()
+    } else if copy_mode {
+      file_system.metadata(&absolute_filename).await.ok()
+    } else {
+      None
+    };
+    let file_attributes = if let Some(metadata) = metadata
       && metadata.is_file
     {
       let mode = if copy_mode { metadata.mode } else { None };
-      let timestamps = pattern
-        .preserve_timestamps
-        .then_some((metadata.atime_ms, metadata.mtime_ms));
+      let timestamps = if pattern.preserve_timestamps {
+        metadata.atime_ms.map(|atime| (atime, metadata.mtime_ms))
+      } else {
+        None
+      };
       (mode.is_some() || timestamps.is_some()).then(|| {
         Box::new(AssetFileAttributes {
           mode,

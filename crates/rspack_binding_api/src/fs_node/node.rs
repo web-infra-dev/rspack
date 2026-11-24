@@ -82,7 +82,7 @@ impl From<NodeFsStats> for FileMetadata {
       is_directory: value.is_directory,
       is_symlink: value.is_symlink,
       mode: cfg!(unix).then_some((value.mode & 0o777) as u16),
-      atime_ms: value.atime_ms as u64,
+      atime_ms: Some(value.atime_ms as u64),
       mtime_ms: value.mtime_ms as u64,
       ctime_ms: value.ctime_ms as u64,
       size: value.size as u64,

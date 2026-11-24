@@ -452,6 +452,8 @@ Preserve the source file's Unix read, write, and execute permissions. If the out
 
 Preserve the source file's access time (`atime`) and modification time (`mtime`). Rspack can update the timestamps without rewriting the file when its contents match. A custom output file system needs to support `utimes`.
 
+For files inside Yarn Plug'n'Play ZIP archives, Rspack uses the archive entry's modification time for both timestamps, matching Yarn's file system.
+
 ```js title="rspack.config.mjs"
 export default {
   plugins: [

@@ -27,6 +27,7 @@ const NOOP_FILESYSTEM: ThreadsafeNodeFS = {
   lstat: ASYNC_NOOP,
   readlink: ASYNC_NOOP,
   chmod: ASYNC_NOOP,
+  utimes: ASYNC_NOOP,
   realpath: ASYNC_NOOP,
   open: ASYNC_NOOP,
   rename: ASYNC_NOOP,
@@ -230,9 +231,7 @@ class ThreadsafeOutputNodeFS implements ThreadsafeNodeFS {
     const chmod = fs.chmod;
     this.chmod = chmod && memoizeFn(() => util.promisify(chmod.bind(fs)));
     const utimes = fs.utimes;
-    if (utimes) {
-      this.utimes = memoizeFn(() => util.promisify(utimes.bind(fs)));
-    }
+    this.utimes = utimes && memoizeFn(() => util.promisify(utimes.bind(fs)));
   }
 
   static __to_binding(fs?: OutputFileSystem) {

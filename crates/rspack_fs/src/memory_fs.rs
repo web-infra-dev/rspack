@@ -36,7 +36,7 @@ impl FileType {
       is_directory: true,
       is_symlink: false,
       mode: None,
-      atime_ms: now,
+      atime_ms: Some(now),
       mtime_ms: now,
       ctime_ms: now,
       size: 0,
@@ -51,7 +51,7 @@ impl FileType {
         is_directory: false,
         is_symlink: false,
         mode: None,
-        atime_ms: now,
+        atime_ms: Some(now),
         mtime_ms: now,
         ctime_ms: now,
         size: content.len() as u64,
@@ -232,7 +232,7 @@ impl WritableFileSystem for MemoryFileSystem {
           let now = current_time();
           *content = data.to_vec();
           metadata.mtime_ms = now;
-          metadata.atime_ms = now;
+          metadata.atime_ms = Some(now);
           metadata.size = data.len() as u64;
           return Ok(());
         } else {
@@ -291,7 +291,7 @@ impl WritableFileSystem for MemoryFileSystem {
         ));
       }
     };
-    metadata.atime_ms = atime_ms;
+    metadata.atime_ms = Some(atime_ms);
     metadata.mtime_ms = mtime_ms;
     Ok(())
   }

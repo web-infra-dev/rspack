@@ -452,6 +452,8 @@ export default {
 
 保留源文件的访问时间（`atime`）和修改时间（`mtime`）。文件内容相同时，Rspack 可以跳过内容写入，仅更新时间戳。自定义输出文件系统需要支持 `utimes`。
 
+复制 Yarn Plug'n'Play ZIP 归档内的文件时，访问时间和修改时间都取自归档条目的修改时间，与 Yarn 文件系统一致。
+
 ```js title="rspack.config.mjs"
 export default {
   plugins: [

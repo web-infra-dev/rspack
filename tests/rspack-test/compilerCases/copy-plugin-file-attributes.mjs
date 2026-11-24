@@ -1,7 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
-import { Stats } from "@rspack/core";
-import { compile, createProject, rebuild, write } from "./_copy-plugin-cache.mjs";
+import { CopyRspackPlugin, Stats } from "@rspack/core";
+import {
+	compile,
+	createProject,
+	rebuild,
+	useRealOutputFileSystem,
+	write
+} from "./_copy-plugin-cache.mjs";
 
 const initialMtime = new Date("2020-01-02T03:04:05Z");
 const updatedMtime = new Date("2021-02-03T04:05:06Z");
@@ -95,6 +101,55 @@ function rejectChmod(_file, _mode, callback) {
 	callback(new Error(chmodError));
 }
 
+function preserveChildCompilerFileAttributes() {
+	let root;
+
+	return {
+		description:
+			"should preserve file attributes when a child compiler copies an asset",
+		options(context) {
+			const project = createProject(context, "child-compiler", []);
+			root = project.root;
+			const source = write(root, "assets/child.txt", "copied by a child\n");
+			fs.utimesSync(source, atime, initialMtime);
+			if (unix) fs.chmodSync(source, 0o751);
+			project.options.plugins = [
+				{
+					apply(compiler) {
+						compiler.hooks.make.tapAsync(
+							"CopyInChildCompiler",
+							(compilation, callback) => {
+								const child = compilation.createChildCompiler("copy", {}, [
+									new CopyRspackPlugin({
+										patterns: [
+											{
+												from: source,
+												preservePermissions: true,
+												preserveTimestamps: true
+											}
+										]
+									})
+								]);
+								child.runAsChild(error => callback(error));
+							}
+						);
+					}
+				}
+			];
+			return project.options;
+		},
+		compiler: useRealOutputFileSystem,
+		async build(_context, compiler) {
+			await compile(compiler);
+			const target = path.join(root, "dist", "child.txt");
+			const stat = fs.statSync(target);
+			expect(stat.mtimeMs).toBe(initialMtime.getTime());
+			if (unix) expect(stat.mode & 0o777).toBe(0o751);
+			expect(fs.readFileSync(target, "utf8")).toBe("copied by a child\n");
+		}
+	};
+}
+
 function permissionFailureCase(option, chmod) {
 	const required = option === "preservePermissions";
 	const failure = chmod ? "failing chmod" : "missing chmod";
@@ -148,6 +203,7 @@ function permissionFailureCase(option, chmod) {
 export default [
 	preserveFileAttributes(false),
 	preserveFileAttributes(true),
+	preserveChildCompilerFileAttributes(),
 	...["copyPermissions", "preservePermissions"].flatMap(option => [
 		permissionFailureCase(option, undefined),
 		permissionFailureCase(option, rejectChmod)

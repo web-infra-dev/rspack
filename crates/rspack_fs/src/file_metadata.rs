@@ -11,7 +11,8 @@ pub struct FileMetadata {
   pub is_symlink: bool,
   /// Unix read, write, and execute permission bits, when available.
   pub mode: Option<u16>,
-  pub atime_ms: u64,
+  /// Access time in milliseconds since the Unix epoch, when available.
+  pub atime_ms: Option<u64>,
   pub mtime_ms: u64,
   pub ctime_ms: u64,
   pub size: u64,
@@ -63,7 +64,7 @@ impl TryFrom<Metadata> for FileMetadata {
       size: metadata.len(),
       mtime_ms,
       ctime_ms,
-      atime_ms,
+      atime_ms: Some(atime_ms),
     })
   }
 }

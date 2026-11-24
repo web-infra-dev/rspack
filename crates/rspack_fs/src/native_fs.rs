@@ -1,11 +1,19 @@
+#[cfg(not(target_family = "wasm"))]
+use std::{collections::HashMap, sync::OnceLock};
 use std::{
   fs::{self, File},
   io::{BufRead, BufReader, BufWriter, Read, Write},
   path::{Path, PathBuf},
 };
 
+#[cfg(not(target_family = "wasm"))]
+use concurrent_lru::sharded::LruCache;
+#[cfg(not(target_family = "wasm"))]
+use cow_utils::CowUtils;
 use pnp::fs::{FileType, LruZipCache, VPath, VPathInfo, ZipCache};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+#[cfg(not(target_family = "wasm"))]
+use rspack_util::node_path::NodePath;
 #[cfg(not(target_family = "wasm"))]
 use tokio::fs as tokio_fs;
 use tracing::instrument;
@@ -23,12 +31,16 @@ struct NativeFileSystemOptions {
 pub struct NativeFileSystem {
   options: NativeFileSystemOptions,
   pnp_lru: LruZipCache<Vec<u8>>,
+  #[cfg(not(target_family = "wasm"))]
+  pnp_zip_timestamps: OnceLock<LruCache<PathBuf, HashMap<String, u64>>>,
 }
 impl NativeFileSystem {
   pub fn new(pnp: bool) -> Self {
     Self {
       options: NativeFileSystemOptions { pnp },
       pnp_lru: LruZipCache::new(50, pnp::fs::open_zip_via_read_p),
+      #[cfg(not(target_family = "wasm"))]
+      pnp_zip_timestamps: OnceLock::new(),
     }
   }
 }
@@ -156,13 +168,34 @@ impl From<FileType> for FileMetadata {
       is_file: value == FileType::File,
       is_symlink: false,
       mode: None,
-      // yarn pnp don'ts have following info
-      atime_ms: 0,
+      // The PnP reader only reports the file type.
+      atime_ms: None,
       mtime_ms: 0,
       ctime_ms: 0,
       size: 0,
     }
   }
+}
+
+#[cfg(not(target_family = "wasm"))]
+fn read_zip_timestamps(path: &Path) -> std::io::Result<HashMap<String, u64>> {
+  let archive = zip::ZipArchive::new(BufReader::new(File::open(path)?))?;
+  Ok(
+    (0..archive.len())
+      .filter_map(|index| {
+        let entry = archive.by_index_data(index).ok()?;
+        let name = std::str::from_utf8(entry.name_raw())
+          .ok()?
+          .cow_replace('\\', "/");
+        let name = Utf8Path::new(&name).node_normalize_posix().into_string();
+        let mtime = chrono::NaiveDateTime::try_from(entry.last_modified()?).ok()?;
+        Some((
+          name,
+          u64::try_from(mtime.and_utc().timestamp_millis()).ok()?,
+        ))
+      })
+      .collect(),
+  )
 }
 
 #[cfg(not(target_family = "wasm"))]
@@ -223,6 +256,29 @@ impl ReadableFileSystem for NativeFileSystem {
     let meta = fs::metadata(path)?;
     meta.try_into()
   }
+
+  async fn metadata_with_timestamps(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    let mut metadata = self.metadata_sync(path)?;
+    if self.options.pnp
+      && metadata.is_file
+      && metadata.atime_ms.is_none()
+      && let VPath::Zip(info) = VPath::from(path.as_std_path())?
+    {
+      let timestamps = self
+        .pnp_zip_timestamps
+        .get_or_init(|| LruCache::new(50))
+        .get_or_try_init(info.physical_base_path(), 1, |path| {
+          read_zip_timestamps(path)
+        })?;
+      if let Some(&mtime) = timestamps.value().get(&info.zip_path) {
+        // Yarn's ZipFS reports the entry's modification time for both fields.
+        metadata.atime_ms = Some(mtime);
+        metadata.mtime_ms = mtime;
+      }
+    }
+    Ok(metadata)
+  }
+
   #[instrument(skip(self), level = "debug")]
   async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
     let meta = fs::symlink_metadata(path)?;

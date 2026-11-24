@@ -84,6 +84,16 @@ impl ReadableFileSystem for VirtualFileSystem {
     self.real_fs.metadata_sync(path)
   }
 
+  async fn metadata_with_timestamps(&self, path: &Utf8Path) -> Result<FileMetadata> {
+    if let Ok(store) = self.virtual_file_store.read()
+      && let Some(metadata) = store.get_file_metadata(path)
+    {
+      return Ok(metadata);
+    }
+
+    self.real_fs.metadata_with_timestamps(path).await
+  }
+
   async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
     if let Ok(store) = self.virtual_file_store.read()
       && let Some(metadata) = store.get_file_metadata(path)
