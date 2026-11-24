@@ -4,7 +4,7 @@ use rspack_core::{
   DependencyType, DynamicImportFetchPriority, DynamicImportMode, GroupOptions, ImportAttributes,
   ReferencedSpecifier, get_context,
 };
-use rspack_error::{Error, Severity};
+use rspack_error::{Error, Severity, cyan};
 use rspack_util::{
   SpanExt,
   swc::{AstSubRangeExt, get_swc_next_comments},
@@ -751,8 +751,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ImportParserPlugin {
       if reg.is_empty()
         && let Some(help) = critical.as_mut().and_then(|warning| warning.help.as_mut())
       {
-        help.push_str("\nTo load the module at runtime, use `import(/* rspackIgnore: true */ path)`.\n\
-                       For third-party code that needs native `import()`, set `parser.importDynamic` to `false` in a rule matching that package.");
+        let pattern = "./locales/${name}.js";
+        *help = help.replace(pattern, &cyan(&pattern).to_string());
+        help.push_str(&format!(
+          "\nTo load the module at runtime, use `{}`.\n\
+           For third-party code that needs native `{}`, set `{}` to `{}` in a rule matching that package.",
+          cyan(&"import(/* rspackIgnore: true */ path)"),
+          cyan(&"import()"),
+          cyan(&"parser.importDynamic"),
+          cyan(&"false"),
+        ));
       }
 
       let reg_exp = context_reg_exp(&reg, "", Some(dyn_imported_span.into()), parser);
