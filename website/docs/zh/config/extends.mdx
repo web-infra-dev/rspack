@@ -1,5 +1,5 @@
 ---
-description: '通过仅限 @rspack/cli 使用的 extends 选项，继承和合并其他配置文件或包中的配置。'
+description: '使用 @rspack/cli 的 extends 选项复用配置，了解多个配置的合并顺序，以及如何避免重复注册插件。'
 ---
 
 import Attribution from '@components/Attribution';
@@ -7,16 +7,16 @@ import { Tabs, Tab } from '@theme';
 
 # Extends
 
-使用 `extends` 可以在多个项目或环境之间复用 Rspack 配置。把通用选项放在基础配置中，再在当前配置中覆盖需要调整的选项。
+使用 `extends` 可以在不同项目或环境中复用 Rspack 配置。把通用选项放在基础配置里，再按需添加或覆盖选项。
 
 - **类型：** `string | string[]`
 - **默认值：** `undefined`
 
-`extends` 仅在 [`@rspack/cli`](/api/cli) 中生效。如果使用 JavaScript API，可以通过 [rspack-merge](/config#rspack-merge) 手动合并配置。
+`extends` 仅在 [`@rspack/cli`](/api/cli) 中生效。如果你使用 JavaScript API 或其他基于 Rspack 的工具，可以用 [rspack-merge](/config#rspack-merge) 合并配置。
 
 ## 基本用法
 
-将 `extends` 设为配置文件的路径。可以使用绝对路径。使用相对路径时，以声明 `extends` 的配置文件所在目录为准。基础配置也可以是 JSON 文件，例如 `./base.rspack.config.json`。
+将 `extends` 设为基础配置文件的路径，可以是绝对路径，也可以是相对路径。相对路径以声明 `extends` 的文件所在目录为准。基础配置也支持 JSON 格式，例如 `./base.rspack.config.json`。
 
 <Tabs>
   <Tab label="ESM">
@@ -47,7 +47,7 @@ module.exports = {
 
 ## 多个配置
 
-要继承多个配置，可以将它们写在一个数组中。对于 `mode` 这样的选项，当前配置的值优先。如果当前配置没有设置该选项，则按数组顺序查找，采用第一个找到的值。
+要继承多个配置，可以把它们列在 `extends` 数组中。CLI 使用 [rspack-merge](https://github.com/rstackjs/rspack-merge) 从右往左合并这些配置，最后合并当前配置。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -58,14 +58,15 @@ export default {
 };
 ```
 
-如果两个文件都设置了 `mode`，这个例子会使用 `dev.config.mjs` 中的值。对象和数组则按各自的规则合并。
+上例的合并顺序是 `web.config.mjs`、`dev.config.mjs`、`rspack.config.mjs`。
 
-- 对象按属性合并。例子中的 `output.filename` 会覆盖继承的文件名，同时保留基础配置中的 `output.publicPath`。
-- `plugins` 和 `module.rules` 等数组会拼接在一起。在这个例子中，`web.config.mjs` 中的插件排在最前面，其次是 `dev.config.mjs` 中的插件，最后是你在 `rspack.config.mjs` 中添加的插件。
+- **简单值**会被后合并的值覆盖。如果两个基础配置都设置了 `mode`，就采用 `dev.config.mjs` 的值。如果当前配置也设置了 `mode`，则以当前配置为准。
+- **对象**按属性递归合并。上例覆盖了 `output.filename`，同时保留了从基础配置继承的其他属性，如 `output.publicPath`。
+- **数组**按合并顺序拼接。例如，合并后的 `plugins` 数组中，`web.config.mjs` 的插件排在最前，接下来是 `dev.config.mjs` 的插件，最后是当前配置的插件。`module.rules` 也遵循这个顺序。
 
 ## Node 模块
 
-要使用已安装的 npm 包提供的配置，可以将 `extends` 设为包名。该包需要导出一份 Rspack 配置。
+如果已安装的 npm 包导出了 Rspack 配置，可以直接用包名继承这份配置。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -75,10 +76,17 @@ export default {
 
 ## 嵌套扩展
 
-基础配置也可以使用 `extends`。例如，如果 `dev.config.mjs` 继承了 `./shared.mjs`，CLI 会在 `dev.config.mjs` 所在的目录查找 `shared.mjs`。
+基础配置也可以继承其他配置。例如，上例中的 `dev.config.mjs` 可以继承通用配置，再设置开发模式。
 
-如果 `dev.config.mjs` 和 `web.config.mjs` 都继承了 `shared.mjs`，两份配置就会各自继承一份 `shared.mjs` 的设置。这样一来，`shared.mjs` 中注册的插件会执行两次。如果只需要执行一次，可以把插件移到 `rspack.config.mjs` 中注册。
+```js title="dev.config.mjs"
+export default {
+  extends: './shared.mjs',
+  mode: 'development',
+};
+```
 
-如果 CLI 报错 `Circular extends chain: dev.config.mjs -> shared.mjs -> dev.config.mjs`，说明这两个文件互相继承。删除任意一方对另一方的 `extends` 引用，即可解除循环。
+如果 `web.config.mjs` 也继承了 `shared.mjs`，合并时两份配置都会带上 `shared.mjs` 中的插件，同一个插件就会注册两次。只需注册一次的插件可以从 `shared.mjs` 移到 `rspack.config.mjs`。
+
+如果一个文件直接或间接继承自身，CLI 会列出构成循环的文件。例如，`Circular extends chain: dev.config.mjs -> shared.mjs -> dev.config.mjs` 表示这两个文件互相继承。移除其中一处 `extends` 引用即可打破循环。
 
 <Attribution url="https://webpack.js.org/configuration/configuration-types/#exporting-multiple-configurations" />

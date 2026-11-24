@@ -1,5 +1,5 @@
 ---
-description: 'Extend and merge configuration files or packages with the extends option, available only in @rspack/cli.'
+description: 'Reuse configurations with the extends option in @rspack/cli, understand merge order, and avoid registering plugins twice.'
 ---
 
 import Attribution from '@components/Attribution';
@@ -7,16 +7,16 @@ import { Tabs, Tab } from '@theme';
 
 # Extends
 
-Use `extends` to share Rspack settings across projects or environments. Keep common settings in a base configuration and override individual options in the configuration that extends it.
+Use `extends` to share Rspack settings across projects or environments. Put common options in a base configuration, then add or override options in each project.
 
 - **Type:** `string | string[]`
 - **Default:** `undefined`
 
-`extends` is available only in [`@rspack/cli`](/api/cli). If you use the JavaScript API, you can merge them explicitly with [rspack-merge](/config#rspack-merge).
+`extends` is available only in [`@rspack/cli`](/api/cli). If you use the JavaScript API or another Rspack-based tool, you can merge your configurations with [rspack-merge](/config#rspack-merge).
 
 ## Basic usage
 
-Set `extends` to the path of a configuration file. You can use an absolute path or a path relative to the file that declares `extends`. The base configuration can also be a JSON file, such as `./base.rspack.config.json`.
+Set `extends` to an absolute or relative path. The CLI resolves relative paths from the directory of the file that declares `extends`. Your base configuration can also be a JSON file, such as `./base.rspack.config.json`.
 
 <Tabs>
   <Tab label="ESM">
@@ -47,7 +47,7 @@ module.exports = {
 
 ## Multiple configurations
 
-List the configurations you want to extend in an array. For options such as `mode`, a value in the current configuration takes precedence. Otherwise, the first configuration in the list that sets the option wins.
+To extend several configurations, list them in an array. The CLI uses [rspack-merge](https://github.com/rstackjs/rspack-merge) to combine them from right to left, with the current configuration applied last.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -58,10 +58,11 @@ export default {
 };
 ```
 
-If both files set `mode`, this example uses the value from `dev.config.mjs`. Objects and arrays have their own merge rules.
+In this example, the merge order is `web.config.mjs`, then `dev.config.mjs`, then `rspack.config.mjs`.
 
-- Objects merge by property. The example overrides `output.filename` and keeps an inherited `output.publicPath`.
-- Arrays such as `plugins` and `module.rules` are concatenated. In this example, plugins from `web.config.mjs` come first, followed by those from `dev.config.mjs`, then any plugins you add to `rspack.config.mjs`.
+- **Simple values.** If both base files set `mode`, the value from `dev.config.mjs` wins. Set `mode` in `rspack.config.mjs` to override both.
+- **Objects.** Properties merge recursively. Setting `output.filename` overrides the inherited filename while preserving other properties such as `output.publicPath`.
+- **Arrays.** Entries in arrays such as `plugins` and `module.rules` are concatenated in merge order. Plugins from `web.config.mjs` come first, followed by those from `dev.config.mjs` and then `rspack.config.mjs`.
 
 ## Node modules
 
@@ -75,10 +76,17 @@ export default {
 
 ## Nested extends
 
-A base configuration can have its own `extends`. For example, if `dev.config.mjs` extends `./shared.mjs`, the CLI looks for `shared.mjs` in the same directory as `dev.config.mjs`.
+A base configuration can extend another configuration. In the example above, `dev.config.mjs` can inherit shared settings and add its own development options.
 
-If both `dev.config.mjs` and `web.config.mjs` extend `shared.mjs`, its settings are merged twice, once through each file. A plugin registered in `shared.mjs` is applied twice. To apply it once, move it from `shared.mjs` to `rspack.config.mjs`.
+```js title="dev.config.mjs"
+export default {
+  extends: './shared.mjs',
+  mode: 'development',
+};
+```
 
-If the CLI reports `Circular extends chain: dev.config.mjs -> shared.mjs -> dev.config.mjs`, each file extends the other. Remove one of those `extends` references to break the cycle.
+If `web.config.mjs` also extends `shared.mjs`, the final configuration inherits the shared settings through both files. This registers each plugin from `shared.mjs` twice. To register a plugin once, move it from `shared.mjs` to `rspack.config.mjs`.
+
+The CLI reports a cycle if a file extends itself, directly or through other files. For example, `Circular extends chain: dev.config.mjs -> shared.mjs -> dev.config.mjs` means the two files extend each other. Remove one of those references to break the cycle.
 
 <Attribution url="https://webpack.js.org/configuration/configuration-types/#exporting-multiple-configurations" />
