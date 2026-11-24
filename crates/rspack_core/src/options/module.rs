@@ -12,6 +12,7 @@ use rspack_cacheable::{cacheable, with::Unsupported};
 use rspack_error::{Result, error};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHasher};
 use rspack_macros::MergeFrom;
+use rspack_paths::InternedPath;
 use rspack_regex::RspackRegex;
 use rspack_util::{MergeFrom, try_all, try_any};
 use rustc_hash::FxHashMap as HashMap;
@@ -1682,6 +1683,16 @@ pub struct FuncUseCtx {
   pub issuer_layer: Option<String>,
 }
 
+#[derive(Debug, Clone, Default)]
+pub struct ModuleRuleUseLoaderCache {
+  /// Stable serialization of the public loader options.
+  pub options_cache_key: String,
+  /// Additional cache identifier configured on the loader rule.
+  pub identifier: Option<String>,
+  /// Sorted, deduplicated build dependency paths tracked in the loader cache etag.
+  pub build_dependencies: Vec<InternedPath>,
+}
+
 #[derive(Debug, Clone)]
 pub struct ModuleRuleUseLoader {
   /// Loader identifier with query and fragments
@@ -1690,10 +1701,8 @@ pub struct ModuleRuleUseLoader {
   /// Loader options
   /// This only exists if the loader is a built-in loader.
   pub options: Option<String>,
-  /// Cache this loader.
-  pub cache: bool,
-  /// Stable serialization of the public loader options.
-  pub options_cache_key: String,
+  /// Cache configuration for this loader, if enabled.
+  pub cache: Option<ModuleRuleUseLoaderCache>,
   /// Preconditions for running the normal loader handler.
   pub filter: Option<Arc<rspack_loader_runner::LoaderFilter>>,
 }

@@ -127,7 +127,7 @@ export default {
 - **Type:** `string[]`
 - **Default:** `[]`
 
-`cache.buildDependencies` is an array of file or directory paths treated as build dependencies. Rspack tracks these paths and invalidates the compiler's persistent cache when any tracked build dependency changes or is removed. It does not invalidate [loader caching](/guide/features/loader#loader-cache).
+`cache.buildDependencies` is an array of file or directory paths treated as build dependencies. Rspack tracks these paths and invalidates the compiler's persistent cache when any tracked build dependency changes or is removed. It does not invalidate [loader caching](/guide/features/loader#loader-cache); to invalidate a cached loader when external files change, configure `buildDependencies` in [`rules[].use.cache`](/config/module-rules#rulesusecache).
 
 ```js title="rspack.config.mjs"
 import { join } from 'node:path';

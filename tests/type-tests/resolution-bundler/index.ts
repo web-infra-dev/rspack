@@ -37,7 +37,45 @@ const config: RspackOptions = {
       },
     ],
   },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: 'my-loader',
+            cache: true,
+          },
+          {
+            loader: 'my-loader',
+            cache: {
+              identifier: JSON.stringify({ mode: 'development' }),
+              buildDependencies: ['./config.js'],
+            },
+          },
+        ],
+      },
+    ],
+  },
 };
+
+const invalidLoaderCache: RspackOptions = {
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: 'my-loader',
+            // @ts-expect-error cache.identifier must be a string.
+            cache: { identifier: 123 },
+          },
+        ],
+      },
+    ],
+  },
+};
+void invalidLoaderCache;
 
 const invalidInterop: RspackOptions = {
   // @ts-expect-error interop only accepts 'default' or 'esModule'.

@@ -124,7 +124,7 @@ export default {
 - **类型：** `string[]`
 - **默认值：** `[]`
 
-`cache.buildDependencies` 是构建依赖的文件或目录路径数组。Rspack 会追踪这些路径，并在任意被追踪的构建依赖发生变化或被删除时使 compiler 的持久化缓存失效。它不会使 [loader 缓存](/guide/features/loader#loader-cache)失效。
+`cache.buildDependencies` 是构建依赖的文件或目录路径数组。Rspack 会追踪这些路径，并在任意被追踪的构建依赖发生变化或被删除时使 compiler 的持久化缓存失效。它不会使 [loader 缓存](/guide/features/loader#loader-cache)失效；如需在外部文件变化时使指定 loader 的缓存失效，请在 [`rules[].use.cache`](/config/module-rules#rulesusecache) 中配置 `buildDependencies`。
 
 ```js title="rspack.config.mjs"
 import { join } from 'node:path';

@@ -885,6 +885,22 @@ export type RuleSetLoaderOptions = string | Record<string, any>;
 
 export type RuleSetLoaderCodeFilter = string | RegExp;
 
+export type RuleSetLoaderCacheOptions = {
+  /**
+   * Additional string identifier included in the loader cache etag.
+   * Use this to include external values that affect the loader's output
+   * (such as `mode` or environment variables) without passing them in `options`.
+   */
+  identifier?: string;
+  /**
+   * File or directory paths whose contents are tracked in the loader cache etag.
+   * Relative paths are resolved from `context`.
+   */
+  buildDependencies?: string[];
+};
+
+export type RuleSetLoaderCache = boolean | RuleSetLoaderCacheOptions;
+
 export type RuleSetLoaderWithOptions = {
   /**
    * Stable identifier used to reference object-form loader options.
@@ -910,7 +926,7 @@ export type RuleSetLoaderWithOptions = {
    * This is an experimental API and may change or be removed in the future.
    * @experimental
    */
-  cache?: boolean;
+  cache?: RuleSetLoaderCache;
 
   /**
    * Filters the current input before calling the normal loader handler.

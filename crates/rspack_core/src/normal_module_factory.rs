@@ -787,8 +787,7 @@ impl NormalModuleFactory {
                 .get(ident)
                 .map(|object| object.to_string())
             }),
-            cache: false,
-            options_cache_key: String::new(),
+            cache: None,
             filter: None,
           }
         }));
@@ -1346,7 +1345,7 @@ async fn resolve_each_with_options(
     loader
   } else {
     uncached_loader = ModuleRuleUseLoader {
-      cache: false,
+      cache: None,
       ..loader.clone()
     };
     &uncached_loader
@@ -1359,13 +1358,13 @@ async fn resolve_each_with_options(
     data,
   )
   .await?;
-  if !loader.cache {
+  let Some(cache) = &loader.cache else {
     return Ok(ResolvedLoader {
       loader: resolved,
       options: LoaderRunnerOptions::default(),
       filter: loader.filter.clone(),
     });
-  }
+  };
   let loader_name = parse_resource(&loader.loader).map_or_else(
     || loader.loader.clone(),
     |resource| resource.path.to_string(),
@@ -1379,8 +1378,10 @@ async fn resolve_each_with_options(
     options: LoaderRunnerOptions {
       cache: true,
       loader_name,
-      options_cache_key: loader.options_cache_key.clone(),
+      options_cache_key: cache.options_cache_key.clone(),
       loader_version,
+      cache_identifier: cache.identifier.clone(),
+      cache_build_dependencies: cache.build_dependencies.clone(),
     },
     filter: loader.filter.clone(),
   })

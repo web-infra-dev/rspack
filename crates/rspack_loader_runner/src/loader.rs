@@ -136,6 +136,22 @@ impl<C: Send> LoaderItem<C> {
   }
 
   #[inline]
+  pub fn cache_identifier(&self) -> Option<&str> {
+    self
+      .cache_options
+      .as_deref()
+      .and_then(|options| options.cache_identifier.as_deref())
+  }
+
+  #[inline]
+  pub fn cache_build_dependencies(&self) -> &[InternedPath] {
+    self
+      .cache_options
+      .as_deref()
+      .map_or(&[], |options| options.cache_build_dependencies.as_slice())
+  }
+
+  #[inline]
   pub fn cache_options(&self) -> Option<&LoaderRunnerOptions> {
     self.cache_options.as_deref()
   }

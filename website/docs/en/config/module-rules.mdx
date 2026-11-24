@@ -946,10 +946,49 @@ export default {
 
 <ApiMeta stability={Stability.Experimental} addedVersion="2.2.0" />
 
-- **Type:** `boolean`
+- **Type:**
+
+```ts
+type RuleSetLoaderCache =
+  | boolean
+  | {
+      identifier?: string;
+      buildDependencies?: string[];
+    };
+```
+
 - **Default:** `false`
 
-Set this option to `true` to cache the loader's transform results. The top-level `cache` and `experiments.newCache.loader` must also be enabled. See [loader caching](/guide/features/loader#loader-cache) for a configuration example and reuse conditions.
+Enable caching for the loader's transform results. The top-level `cache` and `experiments.newCache.loader` must also be enabled. See [loader caching](/guide/features/loader#loader-cache) for configuration details and reuse conditions.
+
+- `boolean`: Set to `true` to enable loader caching with default behavior, or `false` to disable it.
+- `object`: Enable loader caching with extra cache invalidation controls:
+  - `identifier`: An extra string mixed into the loader cache etag. Use this for external values (such as `mode` or environment variables) that affect the loader's output without passing them in `use.options`.
+  - `buildDependencies`: An array of file or directory paths whose contents are tracked in the loader cache etag. Relative paths are resolved from [`context`](/config/context). Like top-level [`cache.buildDependencies`](/config/cache#builddependencies), directories and transitive JS/TS imports are resolved recursively (stopping at `node_modules`, where `package.json` is tracked when available).
+
+```js title="rspack.config.mjs"
+const mode = process.env.NODE_ENV || 'development';
+
+export default {
+  mode,
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: 'babel-loader',
+            cache: {
+              identifier: JSON.stringify({ mode }),
+              buildDependencies: ['./babel.config.mjs'],
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
 
 ## rules[].use.codeFilter
 

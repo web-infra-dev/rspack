@@ -944,10 +944,49 @@ export default {
 
 <ApiMeta stability={Stability.Experimental} addedVersion="2.2.0" />
 
-- **类型：** `boolean`
+- **类型：**
+
+```ts
+type RuleSetLoaderCache =
+  | boolean
+  | {
+      identifier?: string;
+      buildDependencies?: string[];
+    };
+```
+
 - **默认值：** `false`
 
-设为 `true` 可缓存该 loader 的转换结果，同时需要开启顶层 `cache` 和 `experiments.newCache.loader`。配置示例和复用条件请参见 [loader 缓存](/guide/features/loader#loader-cache)。
+为 loader 启用转换结果缓存，同时需要开启顶层 `cache` 和 `experiments.newCache.loader`。配置方法和复用条件请参见 [loader 缓存](/guide/features/loader#loader-cache)。
+
+- `boolean`：设为 `true` 启用默认行为的 loader 缓存，设为 `false` 禁用。
+- `object`：启用 loader 缓存并提供额外的缓存失效控制：
+  - `identifier`：写入 loader 缓存 etag 的额外标识字符串。当输出依赖 `mode` 或环境变量等外部值时，可用于区分缓存而无需将其放入 `use.options`。
+  - `buildDependencies`：文件路径或目录路径数组，Rspack 会追踪这些路径的内容并计入 loader 缓存 etag。相对路径会基于 [`context`](/config/context) 解析，且与顶层 [`cache.buildDependencies`](/config/cache#builddependencies) 一样会递归解析目录和 JS/TS 传递依赖（遇到 `node_modules` 时停止递归并追踪其 `package.json`）。
+
+```js title="rspack.config.mjs"
+const mode = process.env.NODE_ENV || 'development';
+
+export default {
+  mode,
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: 'babel-loader',
+            cache: {
+              identifier: JSON.stringify({ mode }),
+              buildDependencies: ['./babel.config.mjs'],
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
 
 ## rules[].use.codeFilter
 

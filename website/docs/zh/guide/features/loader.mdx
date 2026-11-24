@@ -200,7 +200,7 @@ export default {
 
 Rspack 支持缓存单个 loader 的转换结果，当输入未变化时，可在多次构建或多个 compiler 之间复用结果、避免重复执行，从而提升耗时 loader 的构建性能。
 
-要启用 loader 缓存，请在 `module.rules[].use` 中为 loader 设置 [`cache: true`](/config/module-rules#rulesusecache)，并开启顶层 [`cache`](/config/cache) 和 [`experiments.newCache`](/config/experiments#experimentsnewcache) 的 `loader` 阶段（设置 `experiments.newCache: true` 时默认开启）：
+要启用 loader 缓存，请在 `module.rules[].use` 中为 loader 设置 [`cache: true`](/config/module-rules#rulesusecache) 或传入 `{ identifier, buildDependencies }` 对象，并开启顶层 [`cache`](/config/cache) 和 [`experiments.newCache`](/config/experiments#experimentsnewcache) 的 `loader` 阶段（设置 `experiments.newCache: true` 时默认开启）：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -218,18 +218,46 @@ export default {
 };
 ```
 
+如果 loader 的输出依赖外部设置（如 `mode`）或外部配置文件（如 `babel.config.mjs`），可以通过 `cache.identifier` 和 `cache.buildDependencies` 将它们计入 loader 缓存 etag：
+
+```js title="rspack.config.mjs"
+const mode = process.env.NODE_ENV || 'development';
+
+export default {
+  mode,
+  cache: { type: 'persistent' },
+  experiments: { newCache: true },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: 'babel-loader',
+            cache: {
+              identifier: JSON.stringify({ mode }),
+              buildDependencies: ['./babel.config.mjs'],
+            },
+          },
+        ],
+      },
+    ],
+  },
+};
+```
+
 使用内存缓存时，同一进程内的多个 compiler 可以共享 loader 转换结果。使用持久化缓存时，只要 [`cache.storage.directory`](/config/cache#storagedirectory) 和 [`cache.version`](/config/cache#version) 一致，同一进程内的多个 compiler 可以共享，后续构建也可以跨进程复用这些结果。
 
 :::tip
 
-- Loader 缓存不会自动追踪 `mode`、`target` 等 compiler 配置。如果 loader 的输出依赖这类设置，应通过 `use.options` 显式传入，或不要为该 loader 开启 `cache: true`。
+- Loader 缓存不会自动追踪 `mode`、`target` 等 compiler 配置，也不会自动追踪 loader 读取的外部配置文件。可以通过 [`cache.identifier`](/config/module-rules#rulesusecache)（例如 `JSON.stringify({ mode })`）将外部设置写入缓存 etag，通过 `cache.buildDependencies` 追踪会影响输出的外部文件或目录内容（采用与顶层 [`cache.buildDependencies`](/config/cache#builddependencies) 一致的目录和 JS/TS 传递依赖递归解析）。
 - 确保 loader 选项可无损 JSON 序列化，否则 Rspack 不会缓存该 loader 的结果（例如选项包含函数、`Date` 或 `RegExp` 时）。
 
 :::
 
 ### 何时使用 loader 缓存 \{#when-to-use-loader-caching}
 
-Compiler 的持久化缓存已经按 compiler 粒度保存了完整的模块构建结果（包括 loader 转换和模块解析），并在 [`cache.buildDependencies`](/config/cache#builddependencies) 变化时整体失效。Loader 缓存则独立缓存单个 loader 的转换结果，仅在该 loader 的输入、选项、文件依赖或 [`cache.version`](/config/cache#version) 变化时失效。
+Compiler 的持久化缓存已经按 compiler 粒度保存了完整的模块构建结果（包括 loader 转换和模块解析），并在 [`cache.buildDependencies`](/config/cache#builddependencies) 变化时整体失效。Loader 缓存则独立缓存单个 loader 的转换结果，仅在该 loader 的输入、选项、`cache.identifier`、追踪的依赖或 [`cache.version`](/config/cache#version) 变化时失效。
 
 建议优先为转换开销较大的 loader（如 `babel-loader`、`less-loader` 或 `sass-loader`）开启 `cache: true`。常规热构建本身就会命中 compiler 的持久化缓存，轻量 loader 通常收益不大。对于自带缓存的 loader（如 `babel-loader` 的 `cacheDirectory`），建议关闭其内置缓存，改用 Rspack 的 loader 缓存以获得更好的性能，并避免重复缓存。
 
