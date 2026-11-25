@@ -1,5 +1,8 @@
 import { HtmlRspackPlugin, SubresourceIntegrityPlugin } from '@rspack/core';
 
+const preload =
+  '<link rel="modulepreload" href="/unrelated.mjs" nonce="preload-nonce">';
+
 const baseURLs = {
   'absolute.html': 'https://cdn.example.test/assets/',
   'relative.html': '../assets/nested/..',
@@ -7,6 +10,8 @@ const baseURLs = {
   'scheme-relative.html': '//cdn.example.test:443/assets/',
   'collision.html': './assets/',
   'normalized-collision.html': './assets/a/..',
+  'preload-before-base.html': '/assets/',
+  'preload-before-colliding-base.html': './assets/',
 };
 
 export default {
@@ -30,10 +35,29 @@ export default {
               "scopes": {"./scope/": {"external": "./scoped.mjs"}},
               "integrity": {"./external.mjs": "sha384-external"}
             }</script>
+            ${filename.startsWith('preload-') ? preload : ''}
             <base href="${baseURL}">
           </head><body></body></html>`,
         }),
     ),
+    new HtmlRspackPlugin({
+      filename: 'generated-before-base.html',
+      scriptLoading: 'module',
+      templateContent: `<!DOCTYPE html><html><head>
+        ${preload}
+        <base href="/assets/">
+      </head><body></body></html>`,
+    }),
+    new HtmlRspackPlugin({
+      filename: 'base-after-module.html',
+      scriptLoading: 'module',
+      inject: false,
+      templateContent: `<!DOCTYPE html><html><head>
+        <script type="importmap">{}</script>
+        <script src="./assets/bundle.mjs" type="module"></script>
+        <base href="/assets/">
+      </head><body></body></html>`,
+    }),
     new HtmlRspackPlugin({
       filename: 'authored.html',
       publicPath: '/',

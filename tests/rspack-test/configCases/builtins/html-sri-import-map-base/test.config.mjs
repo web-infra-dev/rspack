@@ -25,13 +25,17 @@ export default {
 				])
 			);
 
-		for (const [page, baseURL] of [
+		for (const [page, baseURL, authored = true] of [
 			["absolute.html", "https://cdn.example.test/assets/"],
 			["relative.html", "http://page.example.test/site/assets/"],
 			["root-relative.html", "http://page.example.test/assets/"],
 			["scheme-relative.html", "http://cdn.example.test:443/assets/"],
 			["collision.html", "http://page.example.test/site/pages/assets/"],
-			["normalized-collision.html", "http://page.example.test/site/pages/assets/"]
+			["normalized-collision.html", "http://page.example.test/site/pages/assets/"],
+			["preload-before-base.html", "http://page.example.test/assets/"],
+			["preload-before-colliding-base.html", "http://page.example.test/site/pages/assets/"],
+			["generated-before-base.html", "http://page.example.test/assets/", false],
+			["base-after-module.html", "http://page.example.test/site/pages/", false]
 		]) {
 			const pageURL = new URL(page, "http://page.example.test/site/pages/");
 			const html = read(page);
@@ -39,11 +43,21 @@ export default {
 			expect(mapScripts).toHaveLength(1);
 			expect(mapScripts[0].index).toBeLessThan(html.indexOf("<base"));
 			const map = JSON.parse(mapScripts[0][1]);
-			expect(map.imports).toEqual({ external: "./external.mjs" });
-			expect(map.scopes).toEqual({ "./scope/": { external: "./scoped.mjs" } });
+			if (authored) {
+				expect(map.imports).toEqual({ external: "./external.mjs" });
+				expect(map.scopes).toEqual({ "./scope/": { external: "./scoped.mjs" } });
+			}
+			if (html.includes("modulepreload")) {
+				expect(mapScripts[0].index).toBeLessThan(html.indexOf("modulepreload"));
+			}
+			if (page === "generated-before-base.html") {
+				expect(mapScripts[0][0]).toContain("preload-nonce");
+			}
 
 			expect(resolveIntegrity(map, pageURL)).toEqual({
-				[new URL("./external.mjs", pageURL).href]: "sha384-external",
+				...(authored && {
+					[new URL("./external.mjs", pageURL).href]: "sha384-external"
+				}),
 				...Object.fromEntries(
 					[pageURL, baseURL].flatMap(base =>
 						hashes.map(([file, hash]) => [new URL(file, base).href, hash])

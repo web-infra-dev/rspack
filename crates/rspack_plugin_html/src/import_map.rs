@@ -39,7 +39,9 @@ pub(crate) fn add_integrity_to_import_map(
     return Ok(());
   }
 
-  let contents = serialize_map(&json!({ "integrity": integrity }))?;
+  let mut entries = Map::new();
+  merge_integrity(&mut entries, &integrity, &base_integrity);
+  let contents = serialize_map(&json!({ "integrity": entries }))?;
   insert_before_module_fetch(children, &contents, nonce.as_deref());
   Ok(())
 }
@@ -73,10 +75,12 @@ fn is_active_html_element(element: &Element) -> bool {
 
 fn find_import_map_context(children: &[Child]) -> (Option<&str>, Option<&str>) {
   let mut pending = vec![children.iter()];
+  let mut nonce = None;
   let mut preload_nonce = None;
   let mut seen_import_map = false;
   let mut seen_module_fetch = false;
   let mut base_href = None;
+  let mut base_after_map = None;
   let mut late_base = None;
 
   while let Some(children) = pending.last_mut() {
@@ -92,32 +96,44 @@ fn find_import_map_context(children: &[Child]) -> (Option<&str>, Option<&str>) {
     }
     pending.push(element.children.iter());
 
+    if base_href.is_none() && element.tag_name == "base" {
+      // The first base with an href wins, including an empty href.
+      base_href = element
+        .attributes
+        .iter()
+        .find(|attribute| attribute.name == "href")
+        .map(|attribute| attribute.value.as_deref().unwrap_or_default());
+      if seen_import_map || seen_module_fetch {
+        // A generated map is inserted before the first module fetch.
+        base_after_map = base_href;
+      }
+    }
+    seen_import_map |= is_script(element, "importmap");
+
     if starts_module_fetch(element) {
-      let first_module_fetch = !seen_module_fetch;
+      let module_script = is_script(element, "module");
+      let url = attribute(element, if module_script { "src" } else { "href" });
+      if let Some(base) = base_after_map
+        && url.map_or(module_script, |url| {
+          matches!(Url::parse(url), Err(ParseError::RelativeUrlWithoutBase))
+        })
+      {
+        // A preload before the base does not affect later module URLs.
+        late_base = Some(base);
+      }
+
+      if let Some(value) = attribute(element, "nonce").filter(|value| !value.is_empty()) {
+        if !seen_module_fetch || module_script {
+          nonce.get_or_insert(value);
+        } else {
+          preload_nonce.get_or_insert(value);
+        }
+      }
       seen_module_fetch = true;
-      if let Some(nonce) = attribute(element, "nonce").filter(|nonce| !nonce.is_empty()) {
-        if first_module_fetch || is_script(element, "module") {
-          return (Some(nonce), late_base);
-        }
-        preload_nonce.get_or_insert(nonce);
-      }
-    } else if !seen_module_fetch {
-      if base_href.is_none() && element.tag_name == "base" {
-        // The first base with an href wins, including an empty href.
-        base_href = element
-          .attributes
-          .iter()
-          .find(|attribute| attribute.name == "href")
-          .map(|attribute| attribute.value.as_deref().unwrap_or_default());
-        if seen_import_map {
-          late_base = base_href;
-        }
-      }
-      seen_import_map |= is_script(element, "importmap");
     }
   }
 
-  (preload_nonce, late_base)
+  (nonce.or(preload_nonce), late_base)
 }
 
 // Preserve the authored map's base URL. Only its generated integrity keys
@@ -237,19 +253,7 @@ fn merge_existing_map(
         .or_insert_with(|| Value::Object(Map::new()))
         .as_object_mut()
         .ok_or_else(|| error!("The import map integrity field must be an object."))?;
-      let authored = std::mem::take(entries);
-      // The browser applies the last entry for a resolved URL. Keep the
-      // fallback URLs first, the URLs using the late base next, and the
-      // authored entries last in their original order.
-      entries.extend(
-        integrity
-          .iter()
-          .filter(|(url, _)| !base_integrity.contains_key(*url))
-          .chain(base_integrity)
-          .filter(|(url, _)| !authored.contains_key(*url))
-          .map(|(url, hash)| (url.clone(), Value::String(hash.clone()))),
-      );
-      entries.extend(authored);
+      merge_integrity(entries, integrity, base_integrity);
       element.children = vec![Child::Text(Text {
         span: DUMMY_SP,
         data: serialize_map(&Value::Object(map))?.into(),
@@ -268,6 +272,26 @@ fn merge_existing_map(
     }
   }
   Ok(false)
+}
+
+fn merge_integrity(
+  entries: &mut Map<String, Value>,
+  integrity: &BTreeMap<String, String>,
+  base_integrity: &BTreeMap<String, String>,
+) {
+  let authored = std::mem::take(entries);
+  // The browser applies the last entry for a resolved URL. Keep the
+  // fallback URLs first, the URLs using the late base next, and the
+  // authored entries last in their original order.
+  entries.extend(
+    integrity
+      .iter()
+      .filter(|(url, _)| !base_integrity.contains_key(*url))
+      .chain(base_integrity)
+      .filter(|(url, _)| !authored.contains_key(*url))
+      .map(|(url, hash)| (url.clone(), Value::String(hash.clone()))),
+  );
+  entries.extend(authored);
 }
 
 fn insert_before_module_fetch(
