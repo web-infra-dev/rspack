@@ -17,7 +17,8 @@ export default {
 
 		for (const [page, nonce] of [
 			["pages/nonce.html", "module-nonce"],
-			["pages/nonce-precedence.html", "preload-nonce"]
+			["pages/nonce-unrelated-preload.html", "module-nonce"],
+			["pages/nonce-bundled-preload.html", "preload-nonce"]
 		]) {
 			const html = readFileSync(path.join(outputPath, page), "utf-8");
 			const nonceMap = html.match(/<script\b[^>]*type=["']?importmap["']?[^>]*>/);

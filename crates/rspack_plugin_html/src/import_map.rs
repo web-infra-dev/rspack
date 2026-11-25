@@ -194,7 +194,14 @@ fn path_matches(path: &str, other: &str, allow_suffix: bool) -> bool {
   }) && (allow_suffix || other_segments.next().is_none())
 }
 
-fn inline_module_may_import(element: &Element) -> bool {
+#[derive(PartialEq)]
+enum InlineModuleImports {
+  None,
+  Deferred,
+  Immediate,
+}
+
+fn inline_module_imports(element: &Element) -> InlineModuleImports {
   let mut source = String::new();
   for child in &element.children {
     if let Child::Text(text) = child {
@@ -202,7 +209,7 @@ fn inline_module_may_import(element: &Element) -> bool {
     }
   }
   if !source.contains("import") && !source.contains("export") {
-    return false;
+    return InlineModuleImports::None;
   }
   let allocator = Allocator::new();
   let parsed = Parser::init(
@@ -218,19 +225,32 @@ fn inline_module_may_import(element: &Element) -> bool {
   )
   .parse();
   if !parsed.diagnostics.is_empty() {
-    return true;
+    return InlineModuleImports::Immediate;
   }
   // SAFETY: The scan only reads nodes from this unmodified parser output.
   let ast = unsafe { parsed.ast.ast() };
-  (0..ast.node_count()).any(
-    |index| match ast.kind_data(NodeId::from_raw_unchecked(index as u32)) {
-      NodeKindData::ImportDeclaration(_)
-      | NodeKindData::ImportExpression(_)
-      | NodeKindData::ExportAllDeclaration(_) => true,
-      NodeKindData::ExportNamedDeclaration(export) => export.source(ast).is_some(),
-      _ => false,
-    },
-  )
+  // Non-async inline modules run after parsing. Static dependencies can fetch
+  // during parsing, while import() starts fetching when the module executes.
+  let is_async = element.attributes.iter().any(|attr| attr.name == "async");
+  let mut imports = InlineModuleImports::None;
+  for index in 0..ast.node_count() {
+    match ast.kind_data(NodeId::from_raw_unchecked(index as u32)) {
+      NodeKindData::ImportDeclaration(_) | NodeKindData::ExportAllDeclaration(_) => {
+        return InlineModuleImports::Immediate;
+      }
+      NodeKindData::ExportNamedDeclaration(export) if export.source(ast).is_some() => {
+        return InlineModuleImports::Immediate;
+      }
+      NodeKindData::ImportExpression(_) => {
+        if is_async {
+          return InlineModuleImports::Immediate;
+        }
+        imports = InlineModuleImports::Deferred;
+      }
+      _ => {}
+    }
+  }
+  imports
 }
 
 fn find_placement<'a>(
@@ -248,9 +268,11 @@ fn find_placement<'a>(
   let mut first_bundled_fetch = None;
   let mut first_fetch_after_map = None;
   let mut nonce = None;
+  let mut bundled_nonce = None;
   let mut preload_nonce = None;
   let mut first_fetch_after_base = None;
   let mut bundled_fetch_after_base = false;
+  let mut deferred_import_before_base = false;
   let root = Url::parse("https://rspack.invalid/").expect("valid URL");
   let document = root.join("document/").expect("valid URL");
   let urls = integrity
@@ -327,22 +349,31 @@ fn find_placement<'a>(
       .and_then(|attribute| attribute.value.as_deref())
       .map(str::trim)
       .filter(|url| !url.is_empty());
+    let inline_imports = if module_script && source.is_none() {
+      inline_module_imports(element)
+    } else {
+      InlineModuleImports::None
+    };
     let bundled = if let Some(url) = url {
       ModuleUrl::parse(url, &root, &document)
         .is_some_and(|url| urls.iter().any(|key| url.could_match(key)))
     } else {
-      module_script && source.is_none() && inline_module_may_import(element)
+      inline_imports == InlineModuleImports::Immediate
     };
     if bundled {
       first_bundled_fetch.get_or_insert(index);
+      bundled_nonce = bundled_nonce.or(element_nonce);
     }
     if base.is_some() {
       first_fetch_after_base.get_or_insert(index);
-      bundled_fetch_after_base |= bundled;
+      bundled_fetch_after_base |= bundled || inline_imports == InlineModuleImports::Deferred;
+    } else {
+      // Deferred imports still resolve against the base captured by the inline module.
+      deferred_import_before_base |= inline_imports == InlineModuleImports::Deferred;
     }
   }
 
-  let generated_nonce = map_nonce.or(nonce).or(preload_nonce);
+  let generated_nonce = map_nonce.or(bundled_nonce).or(nonce).or(preload_nonce);
   // Register the integrity-only map under the browser's effective base. One
   // earlier map cannot describe both outcomes if CSP rejects a later base.
   if let (Some((base_index, base)), Some(after_base)) = (base, first_fetch_after_base)
@@ -352,7 +383,7 @@ fn find_placement<'a>(
     && bundled_fetch_after_base
     && urls.iter().any(|url| base.changes_base_for(url))
   {
-    if first_bundled_fetch.is_some_and(|index| index < base_index) {
+    if deferred_import_before_base || first_bundled_fetch.is_some_and(|index| index < base_index) {
       return Err(error!(
         "Place the base element before module scripts and preloads of bundled modules to enable Subresource Integrity."
       ));

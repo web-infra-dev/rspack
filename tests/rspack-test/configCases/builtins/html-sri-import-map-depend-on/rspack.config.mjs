@@ -11,7 +11,7 @@ export default {
   },
   output: {
     module: true,
-    filename: '[name].mjs',
+    filename: 'chunks+v1/[name].mjs',
     chunkFilename: '[name].mjs',
     publicPath: '/',
     crossOriginLoading: 'anonymous',

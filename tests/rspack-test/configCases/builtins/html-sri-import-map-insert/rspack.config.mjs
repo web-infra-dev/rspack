@@ -15,15 +15,24 @@ export default {
         '<!DOCTYPE html><html><head><link rel="modulepreload" href="/vendor/external.mjs" nonce="test-nonce"></head><body></body></html>',
     }),
     ...[
-      ['pages/nonce.html', ''],
-      ['pages/nonce-precedence.html', ' nonce="preload-nonce"'],
+      ['pages/nonce.html', '/vendor/external.mjs', ''],
+      [
+        'pages/nonce-unrelated-preload.html',
+        '/vendor/external.mjs',
+        ' nonce="preload-nonce"',
+      ],
+      [
+        'pages/nonce-bundled-preload.html',
+        '../main.mjs',
+        ' nonce="preload-nonce"',
+      ],
     ].map(
-      ([filename, attributes]) =>
+      ([filename, href, attributes]) =>
         new HtmlRspackPlugin({
           filename,
           inject: false,
           templateContent: `<!DOCTYPE html><html><head>
-            <link rel="modulepreload" href="/vendor/external.mjs"${attributes}>
+            <link rel="modulepreload" href="${href}"${attributes}>
           </head><body>
             <script type="module" src="../main.mjs" nonce="module-nonce"></script>
           </body></html>`,

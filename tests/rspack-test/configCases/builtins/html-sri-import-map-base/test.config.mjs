@@ -86,6 +86,15 @@ export default {
 			integrityFor(pageURL)
 		);
 
+		const deferred = read("deferred-import-before-map.html");
+		const deferredMaps = maps(deferred);
+		expect(deferredMaps).toHaveLength(1);
+		const inlineModule = deferred.indexOf('id="deferred-module"');
+		expect(inlineModule).toBeGreaterThanOrEqual(0);
+		expect(deferredMaps[0].index).toBeGreaterThan(inlineModule);
+		expect(deferredMaps[0].index).toBeLessThan(deferred.indexOf('src="./main%2Bentry.mjs"'));
+		expect(resolveIntegrity(JSON.parse(deferredMaps[0][1]), pageURL)).toEqual(integrityFor(pageURL));
+
 		const authored = JSON.parse(maps(read("authored.html"))[0][1]);
 		const authoredURL = "http://page.example.test/authored.html";
 		expect(resolveIntegrity(authored, authoredURL)).toEqual({

@@ -315,6 +315,7 @@ pub async fn alter_asset_tag_groups(
 fn collect_import_map_chunks(
   entry: &ChunkGroup,
   chunk_groups: &ChunkGroupByUkey,
+  include_async: bool,
 ) -> FxHashSet<ChunkUkey> {
   let mut pending_groups = vec![entry.ukey];
   // dependOn entries are ancestors of the page's entrypoint.
@@ -333,13 +334,15 @@ fn collect_import_map_chunks(
     }
     let group = chunk_groups.expect_get(&group);
     chunks.extend(group.chunks.iter().copied());
-    // An initial child can be another page that depends on the same entry.
-    pending_groups.extend(
-      group
-        .children_iterable()
-        .filter(|child| !chunk_groups.expect_get(child).is_initial())
-        .copied(),
-    );
+    if include_async {
+      // An initial child can be another page that depends on the same entry.
+      pending_groups.extend(
+        group
+          .children_iterable()
+          .filter(|child| !chunk_groups.expect_get(child).is_initial())
+          .copied(),
+      );
+    }
   }
   chunks
 }
@@ -352,10 +355,8 @@ pub async fn collect_import_map_integrity(
   public_path: &str,
   integrity: &mut BTreeMap<String, String>,
 ) -> Result<()> {
-  if compilation.options.output.import_function_name != "import" {
-    return Ok(());
-  }
-
+  // The configured function name only affects dynamic imports.
+  let include_async = compilation.options.output.import_function_name == "import";
   let graph = &compilation.build_chunk_graph_artifact;
   let import_loading = ChunkLoading::Enable(ChunkLoadingType::Import);
   let mut imported_files = std::collections::BTreeSet::new();
@@ -366,7 +367,7 @@ pub async fn collect_import_map_integrity(
       continue;
     }
 
-    let mut chunks = collect_import_map_chunks(entry, &graph.chunk_group_by_ukey);
+    let mut chunks = collect_import_map_chunks(entry, &graph.chunk_group_by_ukey, include_async);
     chunks.insert(runtime_chunk);
     let files = chunks
       .iter()
@@ -390,6 +391,7 @@ pub async fn collect_import_map_integrity(
 
   let integrities = SubresourceIntegrityPlugin::get_compilation_integrities(compilation.id());
   let integrities = integrities.read().await;
+  let mut aliases = Vec::new();
   for file in imported_files {
     if let Some(hash) = integrities.get(file) {
       let mut url = format!("{public_path}{file}");
@@ -400,8 +402,34 @@ pub async fn collect_import_map_integrity(
       {
         url.insert_str(0, "./");
       }
+
+      // Module tags encode their asset paths. A relative static import can inherit
+      // the encoded part of its parent's directory and use a raw path for the rest.
+      let pathname = file.split_once('?').map_or(file.as_str(), |(path, _)| path);
+      let prefix = &url[..url.len() - file.len()];
+      let mut encoded_dir = String::new();
+      let mut start = 0;
+      for (end, _) in pathname.match_indices('/') {
+        let segment = &file[start..end];
+        let encoded = urlencoding::encode(segment);
+        let changed = encoded != segment;
+        if changed && encoded_dir.is_empty() {
+          encoded_dir.push_str(&file[..start]);
+        }
+        if !encoded_dir.is_empty() || changed {
+          encoded_dir.push_str(&encoded);
+          encoded_dir.push('/');
+        }
+        start = end + 1;
+        if changed {
+          aliases.push((format!("{prefix}{encoded_dir}{}", &file[start..]), hash));
+        }
+      }
       integrity.insert(url, hash.clone());
     }
+  }
+  for (url, hash) in aliases {
+    integrity.entry(url).or_insert_with(|| hash.clone());
   }
   Ok(())
 }

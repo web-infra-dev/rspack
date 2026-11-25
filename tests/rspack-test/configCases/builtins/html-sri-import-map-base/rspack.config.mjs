@@ -73,6 +73,14 @@ export default {
       </head><body></body></html>`,
     }),
     new HtmlRspackPlugin({
+      filename: 'deferred-import-before-map.html',
+      scriptLoading: 'module',
+      templateContent: `<!DOCTYPE html><html><head>
+        <script type="module" id="deferred-module">import('./bundle.mjs');</script>
+        <script type="importmap">{}</script>
+      </head><body></body></html>`,
+    }),
+    new HtmlRspackPlugin({
       filename: 'authored.html',
       publicPath: '/',
       scriptLoading: 'module',

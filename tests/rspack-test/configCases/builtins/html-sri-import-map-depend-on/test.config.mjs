@@ -7,30 +7,34 @@ export default {
 	validate(_stats, _stderr, options) {
 		const config = Array.isArray(options) ? options[0] : options;
 		const outputPath = config.output.path;
-		expect(readdirSync(outputPath)).toEqual(
-			expect.arrayContaining(["other.mjs", "other-lazy.mjs"])
-		);
+		expect(readdirSync(path.join(outputPath, "chunks+v1"))).toContain("other.mjs");
+		expect(readdirSync(outputPath)).toContain("other-lazy.mjs");
 
 		for (const [page, files] of [
 			[
 				"index.html",
-				["app.mjs", "runtime.mjs", "shared.mjs", "vendor.mjs", "vendor-lazy.mjs"]
+				["app.mjs", "runtime.mjs", "shared.mjs", "vendor.mjs"]
 			],
 			["sync.html", ["sync.mjs", "runtime.mjs", "shared.mjs"]]
 		]) {
 			const html = readFileSync(path.join(outputPath, page), "utf-8");
+			expect(html).toContain(`src="/chunks%2Bv1/${files[0]}"`);
 			const map = html.match(
 				/<script\b[^>]*type=["']?importmap["']?[^>]*>([\s\S]*?)<\/script>/
 			);
 			expect(map).toBeTruthy();
 
-			const expectedIntegrity = Object.fromEntries(
-				files.map(file => {
-					const content = readFileSync(path.join(outputPath, file));
-					const hash = createHash("sha384").update(content).digest("base64");
-					return [`/${file}`, `sha384-${hash}`];
-				})
-			);
+			const digest = file => {
+				const content = readFileSync(path.join(outputPath, file));
+				return `sha384-${createHash("sha384").update(content).digest("base64")}`;
+			};
+			const expectedIntegrity = Object.fromEntries(files.flatMap(file => {
+				const hash = digest(`chunks+v1/${file}`);
+				return [[`/chunks+v1/${file}`, hash], [`/chunks%2Bv1/${file}`, hash]];
+			}));
+			if (page === "index.html") {
+				expectedIntegrity["/vendor-lazy.mjs"] = digest("vendor-lazy.mjs");
+			}
 			expect(JSON.parse(map[1]).integrity).toEqual(expectedIntegrity);
 		}
 	}
