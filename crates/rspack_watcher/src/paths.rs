@@ -818,32 +818,34 @@ impl PathManager {
       };
       for entry in entries.flatten() {
         let path = InternedPath::from(entry.path());
-        if self.is_ignored_path(path.as_ref()).await {
-          continue;
-        }
-        let Ok((metadata, symlink)) = Self::scan_metadata(ancestry.last(), &path) else {
-          continue;
-        };
-        let Some((_, change)) = self.observe_member(
-          &path,
-          &metadata,
-          symlink,
-          Some(&scan),
-          ContextObservation::Scan {
-            initial: !observed,
-            changed_since,
-          },
-        ) else {
-          if metadata.is_dir() && self.watchers.has_member(&path, |member| member.directory) {
-            pending.push((path, ancestry.clone(), false, scan.clone()));
+        if !self.is_ignored_path(path.as_ref()).await
+          && let Ok((metadata, symlink)) = Self::scan_metadata(ancestry.last(), &path)
+        {
+          let observation = self.observe_member(
+            &path,
+            &metadata,
+            symlink,
+            Some(&scan),
+            ContextObservation::Scan {
+              initial: !observed,
+              changed_since,
+            },
+          );
+          if metadata.is_dir()
+            && (observation.is_some() || self.watchers.has_member(&path, |member| member.directory))
+          {
+            pending.push((path.clone(), ancestry.clone(), false, scan.clone()));
           }
-          continue;
-        };
-        if let Some(change) = change {
-          changed.push((path.clone(), change));
+          if let Some((_, change)) = observation {
+            if let Some(change) = change {
+              changed.push((path, change));
+            }
+            continue;
+          }
         }
-        if metadata.is_dir() {
-          pending.push((path, ancestry.clone(), false, scan.clone()));
+        // A stale child can have live siblings. Losing coverage of the directory retires the walk.
+        if !self.can_scan_children(&scan, &dir) {
+          break;
         }
       }
     }

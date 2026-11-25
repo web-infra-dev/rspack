@@ -146,6 +146,73 @@ async fn a_paused_scan_cannot_write_into_a_new_subscription_to_the_same_context(
 }
 
 #[tokio::test]
+async fn retiring_the_last_context_stops_visiting_siblings_in_a_moved_directory() {
+  use std::sync::atomic::{AtomicUsize, Ordering};
+
+  for ignore_first in [false, true] {
+    let fixture = tempfile::tempdir().unwrap();
+    let dir = fixture.path().canonicalize().unwrap();
+    let root = dir.join("src");
+    let staged = dir.join("staged");
+    let moved = root.join("generated");
+    let marker = InternedPath::from(dir.join("retained.js"));
+    fs::create_dir(&root).unwrap();
+    fs::create_dir(&staged).unwrap();
+    fs::write(&marker, "before").unwrap();
+    for i in 0..8 {
+      fs::write(staged.join(format!("{i}.js")), "").unwrap();
+    }
+    let visits = Arc::new(AtomicUsize::new(0));
+    let (entered, waiting) = oneshot::channel();
+    let (release, resume) = oneshot::channel();
+    let gate = Mutex::new(Some((entered, resume)));
+    let ignored = FsWatcherIgnored::Function(Arc::new({
+      let moved = moved.clone();
+      let visits = Arc::clone(&visits);
+      move |path| {
+        let first = if Path::new(&path).parent() == Some(&moved) {
+          visits.fetch_add(1, Ordering::Relaxed);
+          gate.lock().unwrap().take()
+        } else {
+          None
+        };
+        Box::pin(async move {
+          if let Some((entered, resume)) = first {
+            entered.send(()).unwrap();
+            resume.await.unwrap();
+            return ignore_first;
+          }
+          false
+        })
+      }
+    }));
+    let mut analyzer = DirectoryAnalyzer::with_ignored(ignored);
+    update(&analyzer, added(&marker), added(&root), empty()).await;
+    analyzer.scan_contexts().await.unwrap();
+    fs::rename(staged, &moved).unwrap();
+    analyzer.on_native_event(
+      Event::new(EventKind::Create(notify::event::CreateKind::Folder)).add_path(moved),
+    );
+    timeout(Duration::from_secs(5), waiting)
+      .await
+      .unwrap()
+      .unwrap();
+    update(&analyzer, empty(), removed(&root), empty()).await;
+    fs::write(&marker, "after").unwrap();
+    analyzer.on_native_event(
+      Event::new(EventKind::Modify(ModifyKind::Any)).add_path(marker.to_path_buf()),
+    );
+    release.send(()).unwrap();
+    deliveries_until(&mut analyzer, &marker).await;
+    assert_eq!(
+      visits.load(Ordering::Relaxed),
+      1,
+      "ignore_first={ignore_first}"
+    );
+  }
+}
+
+#[tokio::test]
 async fn a_moved_subtree_remains_indexed_when_one_of_its_contexts_is_removed() {
   for remove_inner in [true, false] {
     let fixture = tempfile::tempdir().unwrap();
