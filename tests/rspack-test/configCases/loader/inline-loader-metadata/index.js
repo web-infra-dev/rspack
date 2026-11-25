@@ -41,10 +41,12 @@ it("should preserve alias query options when rule attaches metadata-only ident",
 		value: "from-options",
 		parallel: false
 	});
+});
+
+it("should apply metadata and override alias query for explicit ??ident inline requests", () => {
 	expect(
 		require("!!aliased-transform-loader??alias-meta-only!./alias-inline-hit.js")
 	).toEqual({
-		value: "from-alias",
 		parallel: false
 	});
 	expect(

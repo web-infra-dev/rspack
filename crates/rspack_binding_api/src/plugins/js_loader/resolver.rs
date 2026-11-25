@@ -154,17 +154,17 @@ pub(crate) async fn resolve_loader(
         rspack_paths::strip_dos_device_path_prefix(path)
       };
 
-      let is_metadata_only_ident =
-        rest.is_some_and(|rest| rest.starts_with("??")) && l.metadata_only_ident();
-      // favor explicit loader query over aliased query, see webpack issue-3320,
-      // but preserve alias-supplied queries over synthetic metadata-only idents
+      // favor explicit loader query over aliased query, see webpack issue-3320
       let resource = if let Some(rest) = rest
         && !rest.is_empty()
-        && (!is_metadata_only_ident || query.is_empty())
       {
         format!("{path}{rest}")
-      } else {
+      } else if !query.is_empty() {
         format!("{path}{query}")
+      } else if let Some(ident) = &l.ident {
+        format!("{path}??{ident}")
+      } else {
+        path.to_owned()
       };
       Ok(Some(Arc::new(JsLoader(
         resource.into(),

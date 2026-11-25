@@ -2732,7 +2732,6 @@ export interface RawLoaderMetadata {
   cache: boolean
   optionsCacheKey: string
   codeFilter?: string | RegExp
-  metadataOnlyIdent?: boolean
 }
 
 export interface RawManifestExposeOption {
@@ -2850,10 +2849,10 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
+  ident?: string
   cache: boolean
   optionsCacheKey: string
   codeFilter?: string | RegExp
-  metadataOnlyIdent?: boolean
 }
 
 export interface RawNewCache {

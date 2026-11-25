@@ -5,7 +5,6 @@ export interface LoaderMetadata {
   optionsCacheKey: string;
   codeFilter?: string | RegExp;
   parallel?: RuleSetLoaderWithOptions['parallel'];
-  metadataOnlyIdent?: boolean;
 }
 
 class RuleSetCompiler {

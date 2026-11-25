@@ -49,11 +49,11 @@ use crate::{
 pub struct RawModuleRuleUse {
   pub loader: String,
   pub options: Option<String>,
+  pub ident: Option<String>,
   pub cache: bool,
   pub options_cache_key: String,
   #[napi(ts_type = "string | RegExp")]
   pub code_filter: Option<Either<String, RspackRegex>>,
-  pub metadata_only_ident: Option<bool>,
 }
 
 #[napi(object, object_to_js = false)]
@@ -63,7 +63,6 @@ pub struct RawLoaderMetadata {
   pub options_cache_key: String,
   #[napi(ts_type = "string | RegExp")]
   pub code_filter: Option<Either<String, RspackRegex>>,
-  pub metadata_only_ident: Option<bool>,
 }
 
 impl From<RawLoaderMetadata> for LoaderMetadata {
@@ -72,7 +71,6 @@ impl From<RawLoaderMetadata> for LoaderMetadata {
       cache: value.cache,
       options_cache_key: value.options_cache_key,
       filter: value.code_filter.map(into_loader_filter),
-      metadata_only_ident: value.metadata_only_ident.unwrap_or(false),
     }
   }
 }
@@ -89,18 +87,15 @@ fn into_loader_metadata(
   cache: bool,
   options_cache_key: String,
   code_filter: Option<Either<String, RspackRegex>>,
-  metadata_only_ident: Option<bool>,
 ) -> Option<Arc<LoaderMetadata>> {
   let filter = code_filter.map(into_loader_filter);
-  let metadata_only_ident = metadata_only_ident.unwrap_or(false);
-  if !cache && options_cache_key.is_empty() && filter.is_none() && !metadata_only_ident {
+  if !cache && options_cache_key.is_empty() && filter.is_none() {
     return None;
   }
   Some(Arc::new(LoaderMetadata {
     cache,
     options_cache_key,
     filter,
-    metadata_only_ident,
   }))
 }
 
@@ -1089,11 +1084,11 @@ impl RawModuleRule {
           .map(|rule_use| ModuleRuleUseLoader {
             loader: rule_use.loader,
             options: rule_use.options,
+            ident: rule_use.ident,
             metadata: into_loader_metadata(
               rule_use.cache,
               rule_use.options_cache_key,
               rule_use.code_filter,
-              rule_use.metadata_only_ident,
             ),
           })
           .collect::<Vec<_>>();
@@ -1109,11 +1104,11 @@ impl RawModuleRule {
                 .map(|rule_use| ModuleRuleUseLoader {
                   loader: rule_use.loader,
                   options: rule_use.options,
+                  ident: rule_use.ident,
                   metadata: into_loader_metadata(
                     rule_use.cache,
                     rule_use.options_cache_key,
                     rule_use.code_filter,
-                    rule_use.metadata_only_ident,
                   ),
                 })
                 .collect::<Vec<_>>()

@@ -10,7 +10,6 @@ pub struct LoaderMetadata {
   pub cache: bool,
   pub options_cache_key: String,
   pub filter: Option<LoaderFilter>,
-  pub metadata_only_ident: bool,
 }
 
 /// Shared loader metadata aligned with the loaders in the chain.

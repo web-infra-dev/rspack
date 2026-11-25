@@ -608,7 +608,7 @@ function createRawModuleRuleUsesImpl(
       codeFilter,
       parallel: use.parallel,
     };
-    const loader = resolveStringifyLoaders(
+    const { loader, ident } = resolveStringifyLoaders(
       use,
       `${path}[${index}]`,
       options.compiler,
@@ -619,10 +619,10 @@ function createRawModuleRuleUsesImpl(
     return {
       loader,
       options: o,
+      ident,
       cache,
       optionsCacheKey: normalizedOptionsCacheKey,
       codeFilter,
-      metadataOnlyIdent: loaderMetadata.metadataOnlyIdent,
     };
   });
 }
@@ -645,9 +645,10 @@ function resolveStringifyLoaders(
   isBuiltin: boolean,
   normalizedOptions: RuleSetLoaderWithOptions['options'],
   loaderMetadata: LoaderMetadata,
-) {
+): { loader: string; ident?: string } {
   const obj = parseResource(use.loader);
   let ident = use.ident;
+  let fallbackIdent: string | undefined;
   const hasLoaderMetadata =
     loaderMetadata.cache ||
     loaderMetadata.codeFilter !== undefined ||
@@ -655,8 +656,8 @@ function resolveStringifyLoaders(
 
   if (use.options === null || use.options === undefined) {
     if (!obj.query && hasLoaderMetadata) {
-      obj.query = `??${(ident = use.ident ?? path)}`;
-      loaderMetadata.metadataOnlyIdent = true;
+      ident = use.ident ?? path;
+      fallbackIdent = ident;
     }
   } else if (typeof use.options === 'string') obj.query = `?${use.options}`;
   else if (use.ident) obj.query = `??${(ident = use.ident)}`;
@@ -688,26 +689,27 @@ function resolveStringifyLoaders(
         normalizedOptions,
       );
     }
-  } else if (
-    (use.options === null || use.options === undefined) &&
-    ident &&
-    hasLoaderMetadata &&
-    obj.query === `??${ident}`
-  ) {
+  } else if (fallbackIdent) {
     // Avoid keeping stale object options when functional Rule.use reuses a path ident.
-    compiler.__internal__ruleSet.references.delete(ident);
-    compiler.__internal__ruleSet.loaderMetadata.set(ident, loaderMetadata);
+    compiler.__internal__ruleSet.references.delete(fallbackIdent);
+    compiler.__internal__ruleSet.loaderMetadata.set(
+      fallbackIdent,
+      loaderMetadata,
+    );
     if (isBuiltin && normalizedOptions !== undefined) {
       compiler.__internal__ruleSet.builtinReferences.set(
-        ident,
+        fallbackIdent,
         normalizedOptions,
       );
     } else {
-      compiler.__internal__ruleSet.builtinReferences.delete(ident);
+      compiler.__internal__ruleSet.builtinReferences.delete(fallbackIdent);
     }
   }
 
-  return obj.path + obj.query + obj.fragment;
+  return {
+    loader: obj.path + obj.query + obj.fragment,
+    ident: fallbackIdent,
+  };
 }
 
 export function isUseSourceMap(

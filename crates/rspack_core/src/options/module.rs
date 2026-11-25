@@ -1,4 +1,5 @@
 use std::{
+  borrow::Cow,
   fmt,
   ops::{Deref, DerefMut},
   sync::Arc,
@@ -13,7 +14,7 @@ use rspack_error::Result;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHasher};
 use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
-use rspack_util::{MergeFrom, try_all, try_any};
+use rspack_util::{MergeFrom, identifier::split_at_query_mark, try_all, try_any};
 use rustc_hash::FxHashMap as HashMap;
 use smallvec::SmallVec;
 use tokio::sync::OnceCell;
@@ -1698,6 +1699,8 @@ pub struct ModuleRuleUseLoader {
   /// Loader options
   /// This only exists if the loader is a built-in loader.
   pub options: Option<String>,
+  /// Fallback rule ident appended as `??{ident}` when neither `loader` nor a resolved alias supplies a query.
+  pub ident: Option<String>,
   /// Shared per-rule metadata for caching and normal-stage filtering.
   pub metadata: Option<Arc<rspack_loader_runner::LoaderMetadata>>,
 }
@@ -1724,12 +1727,14 @@ impl ModuleRuleUseLoader {
       .and_then(|meta| meta.filter.as_ref())
   }
 
-  #[inline]
-  pub fn metadata_only_ident(&self) -> bool {
-    self
-      .metadata
-      .as_deref()
-      .is_some_and(|meta| meta.metadata_only_ident)
+  pub fn loader_with_ident(&self) -> Cow<'_, str> {
+    if let Some(ident) = &self.ident
+      && split_at_query_mark(&self.loader).1.is_none()
+    {
+      Cow::Owned(format!("{}??{ident}", self.loader))
+    } else {
+      Cow::Borrowed(self.loader.as_str())
+    }
   }
 }
 

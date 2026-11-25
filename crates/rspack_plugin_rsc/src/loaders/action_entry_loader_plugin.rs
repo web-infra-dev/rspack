@@ -47,9 +47,9 @@ pub(crate) async fn resolve_loader(
   l: &ModuleRuleUseLoader,
   _data: &mut ModuleFactoryCreateData,
 ) -> Result<Option<BoxLoader>> {
-  let loader_request = &l.loader;
-  if loader_request.starts_with(ACTION_ENTRY_LOADER_IDENTIFIER) {
-    let loader = Arc::new(ActionEntryLoader::new().with_identifier(loader_request.clone()));
+  if l.loader.starts_with(ACTION_ENTRY_LOADER_IDENTIFIER) {
+    let loader_request = l.loader_with_ident();
+    let loader = Arc::new(ActionEntryLoader::new().with_identifier(loader_request.into_owned()));
     return Ok(Some(loader));
   }
   Ok(None)

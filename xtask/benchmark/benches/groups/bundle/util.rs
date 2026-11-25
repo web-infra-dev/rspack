@@ -80,6 +80,7 @@ pub fn basic_compiler_builder(options: BuilderOptions) -> CompilerBuilder {
               })
               .to_string(),
             ),
+            ident: None,
             metadata: None,
           }]),
           ..Default::default()

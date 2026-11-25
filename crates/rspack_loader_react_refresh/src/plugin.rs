@@ -47,11 +47,10 @@ pub(crate) async fn resolve_loader(
   l: &ModuleRuleUseLoader,
   _data: &mut ModuleFactoryCreateData,
 ) -> Result<Option<BoxLoader>> {
-  let loader_request = &l.loader;
-
-  if loader_request.starts_with(REACT_REFRESH_LOADER_IDENTIFIER) {
+  if l.loader.starts_with(REACT_REFRESH_LOADER_IDENTIFIER) {
+    let loader_request = l.loader_with_ident();
     return Ok(Some(Arc::new(
-      crate::ReactRefreshLoader::default().with_identifier(loader_request.as_str().into()),
+      crate::ReactRefreshLoader::default().with_identifier(loader_request.as_ref().into()),
     )));
   }
 
