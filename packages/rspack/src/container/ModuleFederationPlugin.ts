@@ -179,10 +179,12 @@ export function getRemoteInfos(
     return {};
   }
 
-  function extractUrlAndGlobal(urlAndGlobal: string) {
+  function extractUrlAndGlobal(key: string, urlAndGlobal: string) {
     const index = urlAndGlobal.indexOf('@');
     if (index <= 0 || index === urlAndGlobal.length - 1) {
-      return null;
+      throw new Error(
+        `[ModuleFederationPlugin] remotes[${JSON.stringify(key)}] must use the format "<global>@<url>" for a script remote. Received ${JSON.stringify(urlAndGlobal)}.`,
+      );
     }
     return [
       urlAndGlobal.substring(index + 1),
@@ -231,7 +233,7 @@ export function getRemoteInfos(
       const [externalType, externalRequest] = getExternal(external);
       remoteInfos[key] ??= [];
       if (externalType === 'script') {
-        const [url, global] = extractUrlAndGlobal(externalRequest)!;
+        const [url, global] = extractUrlAndGlobal(key, externalRequest);
         remoteInfos[key].push({
           alias: key,
           name: global,
