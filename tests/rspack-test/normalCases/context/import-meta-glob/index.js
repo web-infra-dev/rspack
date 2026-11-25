@@ -401,10 +401,31 @@ it('should expose module objects directly in eager mode', () => {
   expect(eagerModules['./dir/foo.js'].default).toBe('foo')
 })
 
+it('should match brace branches sharing a literal directory prefix', () => {
+  const modules = import.meta.glob('./{dir/foo,dir/bar}.js', {
+    eager: true,
+    import: 'default',
+  })
+  expect(modules).toEqual({ './dir/bar.js': 'bar', './dir/foo.js': 'foo' })
+
+  const joinedModules = import.meta.glob('./{dir,dir}/*.js', {
+    eager: true,
+    import: 'default',
+  })
+  expect(joinedModules).toEqual(modules)
+})
+
 it('should expose selected exports in eager mode', () => {
   expectDirKeys(eagerDefaultModules)
   expectDirKeys(eagerNamedModules)
 
   expect(eagerDefaultModules['./dir/foo.js']).toBe('foo')
   expect(eagerNamedModules['./dir/bar.js']).toBe('bar named')
+})
+
+it('returns no matches when a directory inside brace alternatives is missing', () => {
+  const modules = import.meta.glob('./{missing/a,missing/b}.js', {
+    eager: true,
+  })
+  expect(modules).toEqual({})
 })

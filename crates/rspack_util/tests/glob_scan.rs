@@ -1,0 +1,709 @@
+use std::{
+  borrow::Cow,
+  sync::{
+    Arc, Mutex,
+    atomic::{AtomicUsize, Ordering},
+  },
+};
+
+use rspack_fs::{
+  FileMetadata, FilePermissions, MemoryFileSystem, ReadableFileSystem, WalkMatcher,
+  WritableFileSystem,
+};
+use rspack_paths::{
+  Utf8Path, Utf8PathBuf, normalize_native_path_separators, normalize_path_separators,
+};
+use rspack_util::glob::{GlobOptions, GlobPattern, normalize_glob_path};
+
+async fn walk_matches(
+  pattern: &GlobPattern<'_>,
+  root: &Utf8Path,
+  fs: Arc<dyn ReadableFileSystem>,
+) -> Vec<Utf8PathBuf> {
+  let mut files = Vec::new();
+  pattern
+    .walk(root, fs.as_ref(), false, &mut |path, _| files.push(path))
+    .await
+    .expect("walk matching paths");
+  files
+}
+
+async fn scan_matches(
+  pattern: &GlobPattern<'_>,
+  context: &Utf8Path,
+  fs: Arc<dyn ReadableFileSystem>,
+) -> Vec<Utf8PathBuf> {
+  let root = pattern.scan_root(context);
+  let remaining = pattern
+    .match_prefix(pattern.scan_directory_prefix().as_bytes())
+    .expect("valid literal prefix");
+  walk_matches(&remaining, &root, fs).await
+}
+
+fn default_options() -> GlobOptions {
+  GlobOptions {
+    require_literal_leading_dot: true,
+    ..Default::default()
+  }
+}
+
+fn matches_with_options(pattern: &str, path: &str, options: &GlobOptions) -> bool {
+  GlobPattern::new_with_options(pattern.as_bytes(), *options)
+    .expect("valid glob")
+    .is_match(path)
+}
+fn matches_with_explicit_dot(
+  pattern: &str,
+  path: &str,
+  _base: &str,
+  options: &GlobOptions,
+) -> bool {
+  GlobPattern::new_with_options(
+    pattern.as_bytes(),
+    GlobOptions {
+      windows_paths: true,
+      ..*options
+    },
+  )
+  .expect("valid path glob")
+  .is_match(normalize_path_separators(path).as_bytes())
+}
+fn pattern_has_explicit_dot_for(
+  pattern: &str,
+  _base: &str,
+  path: &str,
+  options: &GlobOptions,
+) -> bool {
+  matches_with_options(pattern, path, options)
+}
+
+#[derive(Debug, Default)]
+struct ReadDirCountingFileSystem {
+  inner: MemoryFileSystem,
+  read_dir_count: AtomicUsize,
+  visited: Mutex<Vec<Utf8PathBuf>>,
+  missing_metadata: Option<Utf8PathBuf>,
+  metadata_alias: Option<(Utf8PathBuf, Utf8PathBuf)>,
+}
+
+#[async_trait::async_trait]
+impl ReadableFileSystem for ReadDirCountingFileSystem {
+  async fn read(&self, path: &Utf8Path) -> rspack_fs::Result<Vec<u8>> {
+    self.inner.read(path).await
+  }
+
+  fn read_sync(&self, path: &Utf8Path) -> rspack_fs::Result<Vec<u8>> {
+    self.inner.read_sync(path)
+  }
+
+  async fn metadata(&self, path: &Utf8Path) -> rspack_fs::Result<FileMetadata> {
+    if self.missing_metadata.as_deref() == Some(path) {
+      return Err(rspack_fs::Error::new(
+        std::io::ErrorKind::NotFound,
+        "entry disappeared after read_dir",
+      ));
+    }
+    if let Some((alias, actual)) = &self.metadata_alias
+      && alias == path
+    {
+      return self.inner.metadata(actual).await;
+    }
+    self.inner.metadata(path).await
+  }
+
+  fn metadata_sync(&self, path: &Utf8Path) -> rspack_fs::Result<FileMetadata> {
+    self.inner.metadata_sync(path)
+  }
+
+  async fn symlink_metadata(&self, path: &Utf8Path) -> rspack_fs::Result<FileMetadata> {
+    self.inner.symlink_metadata(path).await
+  }
+
+  async fn read_link(&self, path: &Utf8Path) -> rspack_fs::Result<Utf8PathBuf> {
+    self.inner.read_link(path).await
+  }
+
+  async fn canonicalize(&self, path: &Utf8Path) -> rspack_fs::Result<Utf8PathBuf> {
+    self.inner.canonicalize(path).await
+  }
+
+  async fn read_dir(&self, dir: &Utf8Path) -> rspack_fs::Result<Vec<String>> {
+    self.read_dir_count.fetch_add(1, Ordering::Relaxed);
+    self
+      .visited
+      .lock()
+      .expect("visited directories lock")
+      .push(dir.to_path_buf());
+    let mut names = ReadableFileSystem::read_dir(&self.inner, dir).await?;
+    names.sort_unstable();
+    Ok(names)
+  }
+
+  fn read_dir_sync(&self, dir: &Utf8Path) -> rspack_fs::Result<Vec<String>> {
+    self.read_dir_count.fetch_add(1, Ordering::Relaxed);
+    self
+      .visited
+      .lock()
+      .expect("visited directories lock")
+      .push(dir.to_path_buf());
+    self.inner.read_dir_sync(dir)
+  }
+
+  async fn permissions(&self, path: &Utf8Path) -> rspack_fs::Result<Option<FilePermissions>> {
+    self.inner.permissions(path).await
+  }
+}
+
+#[tokio::test]
+async fn walkers_preserve_their_metadata_error_policy() {
+  #[derive(Clone)]
+  struct AllEntries;
+
+  impl WalkMatcher for AllEntries {
+    const VISIT_ON_METADATA_ERROR: bool = true;
+  }
+
+  let root = Utf8Path::new("/project");
+  let entry = root.join("entry.js");
+  let fs = Arc::new(ReadDirCountingFileSystem {
+    missing_metadata: Some(entry.clone()),
+    ..Default::default()
+  });
+  fs.inner.create_dir_all(root).await.unwrap();
+  fs.inner.write(&entry, b"").await.unwrap();
+
+  let mut files = Vec::new();
+  AllEntries
+    .walk(root, fs.as_ref(), false, &mut |path, _| {
+      files.push(path);
+    })
+    .await
+    .unwrap();
+  assert_eq!(files.as_slice(), std::slice::from_ref(&entry));
+
+  let glob = GlobPattern::new(b"*.js").unwrap();
+  assert_eq!(walk_matches(&glob, root, fs).await, [entry]);
+}
+
+#[tokio::test]
+async fn literal_pattern_only_reads_its_base_directory() {
+  let fs = Arc::new(ReadDirCountingFileSystem::default());
+  fs.inner
+    .create_dir_all("/project/deps".into())
+    .await
+    .unwrap();
+  fs.inner
+    .write("/project/index.html".into(), "abc".as_bytes())
+    .await
+    .unwrap();
+  fs.inner
+    .write("/project/deps/other.html".into(), "abc".as_bytes())
+    .await
+    .unwrap();
+
+  let pattern = GlobPattern::new_with_options("/project/index.html".as_bytes(), default_options())
+    .expect("valid glob");
+  let entries = scan_matches(&pattern, Utf8Path::new("."), fs.clone()).await;
+
+  assert_eq!(entries, vec![Utf8PathBuf::from("/project/index.html")]);
+  assert_eq!(*fs.visited.lock().unwrap(), [Utf8PathBuf::from("/project")]);
+}
+
+#[tokio::test]
+async fn literal_pattern_returns_nothing_when_the_file_is_missing() {
+  let fs = Arc::new(MemoryFileSystem::default());
+  fs.create_dir_all("/project".into()).await.unwrap();
+
+  let pattern = GlobPattern::new_with_options("/project/index.html".as_bytes(), default_options())
+    .expect("valid glob");
+  let entries = scan_matches(&pattern, Utf8Path::new("."), fs).await;
+
+  assert!(entries.is_empty());
+}
+
+#[test]
+fn directory_prefix_decodes_escapes_and_shared_branches() {
+  for (source, expected) in [
+    (r"./fixtures/a\[b\]/file", "./fixtures/a[b]/"),
+    (r"./fixtures/a\[b\]/**/*.js", "./fixtures/a[b]/"),
+    (r"./fixtures/file\*.js", "./fixtures/"),
+    (
+      r"./fixtures/directory\?1/**/*.js",
+      "./fixtures/directory?1/",
+    ),
+    ("{src/a,src/b}/*.js", "src/"),
+    ("./{src,src}/components/*.js", "./src/components/"),
+    ("{src,lib}/*.js", ""),
+    ("*.js", ""),
+    ("!src/**/*.js", ""),
+  ] {
+    let pattern = GlobPattern::new(source.as_bytes()).unwrap();
+    assert_eq!(pattern.directory_prefix(), expected.as_bytes(), "{source}");
+    assert!(
+      pattern.match_prefix(pattern.directory_prefix()).is_some(),
+      "{source}"
+    );
+  }
+}
+
+#[test]
+fn directory_prefix_borrows_the_cached_literal_prefix() {
+  let source = b"./src/components/*.js";
+  let pattern = GlobPattern::new(source).unwrap();
+  assert_eq!(pattern.directory_prefix(), b"./src/components/");
+  assert_eq!(pattern.directory_prefix().as_ptr(), source.as_ptr());
+
+  let remaining = pattern.match_prefix(b"./src/").unwrap();
+  assert_eq!(remaining.directory_prefix(), b"components/");
+  assert_eq!(remaining.directory_prefix().as_ptr(), source[6..].as_ptr());
+}
+
+#[test]
+fn glob_parser_handles_windows_separators_and_glob_escapes() {
+  for (source, expected, path) in [
+    (
+      r"./fixtures/a\[b\]/*.js",
+      r"./fixtures/a\[b\]/*.js",
+      "./fixtures/a[b]/value.js",
+    ),
+    (
+      r"./fixtures/file\*.js",
+      r"./fixtures/file\*.js",
+      "./fixtures/file*.js",
+    ),
+    (
+      r"./fixtures/file\?.js",
+      r"./fixtures/file\?.js",
+      "./fixtures/file?.js",
+    ),
+    (
+      r"C:\fixtures\a\[b\]\file.js",
+      r"C:/fixtures/a\[b\]/file.js",
+      "C:/fixtures/a[b]/file.js",
+    ),
+    (
+      r"C:\repo\src/*.js",
+      "C:/repo/src/*.js",
+      "C:/repo/src/value.js",
+    ),
+    (
+      r"C:\目录\文件\[name\]/*.js",
+      r"C:/目录/文件\[name\]/*.js",
+      "C:/目录/文件[name]/value.js",
+    ),
+  ] {
+    let pattern = GlobPattern::new_with_options(
+      source.as_bytes(),
+      GlobOptions {
+        windows_paths: true,
+        ..Default::default()
+      },
+    )
+    .unwrap();
+    assert_eq!(normalize_glob_path(source), expected, "{source}");
+    assert!(pattern.is_match(path), "{source}");
+    let remaining = pattern.match_prefix(pattern.directory_prefix()).unwrap();
+    let suffix = path
+      .as_bytes()
+      .strip_prefix(pattern.directory_prefix())
+      .unwrap();
+    assert!(remaining.is_match(suffix), "{source}");
+  }
+}
+
+#[test]
+fn native_windows_patterns_keep_wildcards_after_backslash_separators() {
+  let options = GlobOptions {
+    backslash_escape: false,
+    ..Default::default()
+  };
+  for (source, parsed, path) in [
+    (
+      r"C:\repo\src\*.txt",
+      "C:/repo/src/*.txt",
+      "C:/repo/src/value.txt",
+    ),
+    (r"src\?\*.txt", "src/?/*.txt", "src/a/value.txt"),
+    (r"src\{a,b}\*.txt", "src/{a,b}/*.txt", "src/b/value.txt"),
+    (r"src\[ab]\*.txt", "src/[ab]/*.txt", "src/a/value.txt"),
+    (r"src\[\a\]]\*.txt", r"src/[\a\]]/*.txt", "src/]/value.txt"),
+    (
+      r"\\server\share\src\*.txt",
+      "//server/share/src/*.txt",
+      "//server/share/src/value.txt",
+    ),
+  ] {
+    let pattern = GlobPattern::new_with_options(source.as_bytes(), options).unwrap();
+    let normalized = GlobPattern::new(parsed.as_bytes()).expect("valid normalized glob");
+    assert_eq!(
+      pattern.directory_prefix(),
+      normalized.directory_prefix(),
+      "{source}"
+    );
+    assert!(pattern.is_match(path), "{source}");
+    let prefix = pattern.directory_prefix();
+    assert!(
+      pattern
+        .match_prefix(prefix)
+        .unwrap()
+        .is_match(path.as_bytes().strip_prefix(prefix).unwrap())
+    );
+  }
+}
+
+#[tokio::test]
+async fn native_windows_patterns_scan_from_the_literal_directory_prefix() {
+  let fs = Arc::new(ReadDirCountingFileSystem::default());
+  let root = Utf8Path::new("/project");
+  fs.inner
+    .create_dir_all(root.join("src").as_path())
+    .await
+    .unwrap();
+  fs.inner
+    .write(root.join("src/value.txt").as_path(), b"value")
+    .await
+    .unwrap();
+  let pattern = GlobPattern::new_with_options(
+    br"src\*.txt",
+    GlobOptions {
+      backslash_escape: false,
+      ..Default::default()
+    },
+  )
+  .unwrap();
+  assert_eq!(pattern.scan_root(root), root.join("src"));
+  assert_eq!(
+    scan_matches(&pattern, root, fs.clone()).await,
+    vec![root.join("src/value.txt")]
+  );
+  assert_eq!(*fs.visited.lock().unwrap(), vec![root.join("src")]);
+}
+
+#[test]
+fn normalize_path_separators_treats_glob_chars_as_literals() {
+  assert_eq!(
+    normalize_path_separators("C:\\fixtures\\a\\[b]\\file.js"),
+    "C:/fixtures/a/[b]/file.js"
+  );
+  assert_eq!(
+    normalize_path_separators("C:\\fixtures\\a\\{b}\\file.js"),
+    "C:/fixtures/a/{b}/file.js"
+  );
+}
+
+#[test]
+fn separator_normalization_borrows_unchanged_inputs() {
+  let path = "./src/目录/index.js";
+  let normalized = normalize_path_separators(path);
+  assert!(matches!(normalized, Cow::Borrowed(_)));
+  assert_eq!(normalized.as_ptr(), path.as_ptr());
+
+  let pattern = r"./src/目录/\[literal\]/file\*.js";
+  let normalized = normalize_glob_path(pattern);
+  assert!(matches!(normalized, Cow::Borrowed(_)));
+  assert_eq!(normalized.as_ptr(), pattern.as_ptr());
+}
+
+#[test]
+fn native_separator_normalization_preserves_unix_filename_backslashes() {
+  let path = r"src\literal\*.js";
+  let normalized = normalize_native_path_separators(path);
+  if cfg!(windows) {
+    assert_eq!(normalized, "src/literal/*.js");
+  } else {
+    assert_eq!(normalized, path);
+    assert!(matches!(normalized, Cow::Borrowed(_)));
+  }
+}
+
+#[test]
+fn recursive_matching_uses_remaining_states() {
+  for (source, expected) in [
+    ("./src/*.js", false),
+    ("./src/value.js", false),
+    (r"./src/file\*\*.js", false),
+    ("./src/{a,b}.js", false),
+    ("./{src,src}/*.js", false),
+    ("./src/**/*.js", true),
+    ("./src/{a,b/nested}.js", true),
+    ("{src/a,src/b}/*.js", true),
+    ("!*.js", true),
+  ] {
+    let pattern = GlobPattern::new(source.as_bytes()).unwrap();
+    let remaining = pattern.match_prefix(pattern.directory_prefix()).unwrap();
+    assert_eq!(remaining.is_recursive(), expected, "{source}");
+  }
+
+  let pattern = GlobPattern::new(b"src/{a,b/nested}.js").unwrap();
+  let remaining = pattern.match_prefix(b"src/b/").unwrap();
+  assert!(!remaining.is_recursive());
+  assert!(remaining.is_match(b"nested.js"));
+}
+
+#[test]
+fn escaped_star_and_question_match_literal_path_segments() {
+  let options = default_options();
+
+  assert!(matches_with_options(
+    "./fixtures/file\\*.js",
+    "./fixtures/file*.js",
+    &options
+  ));
+  assert!(!matches_with_options(
+    "./fixtures/file\\*.js",
+    "./fixtures/file-a.js",
+    &options
+  ));
+  assert!(matches_with_options(
+    "./fixtures/directory\\?1/**/*.js",
+    "./fixtures/directory?1/index.js",
+    &options
+  ));
+  assert!(!matches_with_options(
+    "./fixtures/directory\\?1/**/*.js",
+    "./fixtures/directory-a1/index.js",
+    &options
+  ));
+}
+
+#[test]
+fn explicit_dot_patterns_allow_wildcard_dot_segments() {
+  let base_dir = "./fixtures/";
+  let options = default_options();
+
+  assert!(pattern_has_explicit_dot_for(
+    "./fixtures/**/.*",
+    base_dir,
+    "./fixtures/.env",
+    &options
+  ));
+  assert!(pattern_has_explicit_dot_for(
+    "./fixtures/**/.*/index.js",
+    base_dir,
+    "./fixtures/.cache/index.js",
+    &options
+  ));
+  assert!(!pattern_has_explicit_dot_for(
+    "./fixtures/**/index.js",
+    base_dir,
+    "./fixtures/.cache/index.js",
+    &options
+  ));
+}
+
+#[test]
+fn explicit_dot_patterns_respect_case_insensitive_matching() {
+  let base_dir = "./fixtures/";
+  let options = GlobOptions {
+    case_sensitive: false,
+    ..Default::default()
+  };
+
+  assert!(pattern_has_explicit_dot_for(
+    "./fixtures/**/.ENV",
+    base_dir,
+    "./fixtures/.env",
+    &options
+  ));
+}
+
+#[test]
+fn matches_with_explicit_dot_treats_windows_path_separators_as_separators() {
+  let options = default_options();
+  assert!(matches_with_explicit_dot(
+    "C:/repo/escape/**/glob.js",
+    "C:\\repo\\escape\\[brackets]\\glob.js",
+    "C:/repo/escape/",
+    &options
+  ));
+  assert!(matches_with_explicit_dot(
+    "C:/repo/escape/**/glob.js",
+    "C:\\repo\\escape\\{curlies}\\glob.js",
+    "C:/repo/escape/",
+    &options
+  ));
+}
+
+#[test]
+fn matches_with_explicit_dot_requires_literal_dot_segments() {
+  let options = default_options();
+  assert!(matches_with_explicit_dot(
+    "./fixtures/.*.js",
+    "./fixtures/.hidden.js",
+    "./fixtures/",
+    &options
+  ));
+  assert!(!matches_with_explicit_dot(
+    "./fixtures/*.js",
+    "./fixtures/.hidden.js",
+    "./fixtures/",
+    &options
+  ));
+}
+
+#[tokio::test]
+async fn scan_keeps_physical_metacharacters_out_of_pattern_syntax() {
+  let fs = Arc::new(MemoryFileSystem::default());
+  let root = Utf8Path::new("/project/[src]/{assets}");
+  fs.create_dir_all(&root.join(".cache"))
+    .await
+    .expect("create directory");
+  for filename in ["index.js", ".env", ".cache/value.js", "index.css"] {
+    fs.write(root.join(filename).as_path(), b"value")
+      .await
+      .expect("write fixture");
+  }
+  let pattern = GlobPattern::new_with_options("**/{*.js,.env}".as_bytes(), default_options())
+    .expect("valid glob");
+  let mut files = scan_matches(&pattern, root, fs).await;
+  files.sort();
+  assert_eq!(files, vec![root.join(".env"), root.join("index.js")]);
+}
+
+#[tokio::test]
+async fn scan_prunes_unrelated_directories_and_exhausted_patterns() {
+  let fs = Arc::new(ReadDirCountingFileSystem::default());
+  for dir in ["components/nested", "widgets", "unrelated"] {
+    fs.inner
+      .create_dir_all(Utf8Path::new("/project").join(dir).as_path())
+      .await
+      .expect("create directory");
+  }
+  for filename in [
+    "components/value.js",
+    "widgets/value.js",
+    "components/nested/unused.js",
+    "unrelated/unused.js",
+  ] {
+    fs.inner
+      .write(Utf8Path::new("/project").join(filename).as_path(), b"value")
+      .await
+      .expect("write fixture");
+  }
+  let pattern =
+    GlobPattern::new_with_options("{components,widgets}/*.js".as_bytes(), default_options())
+      .expect("valid glob");
+  let mut files = scan_matches(&pattern, Utf8Path::new("/project"), fs.clone()).await;
+  files.sort();
+  assert_eq!(
+    files,
+    vec![
+      Utf8PathBuf::from("/project/components/value.js"),
+      Utf8PathBuf::from("/project/widgets/value.js")
+    ]
+  );
+  let visited = fs.visited.lock().expect("visited directories lock");
+  assert_eq!(
+    *visited,
+    ["/project", "/project/components", "/project/widgets"].map(Utf8PathBuf::from)
+  );
+}
+
+#[tokio::test]
+async fn scan_literal_branches_reuses_a_directory_listing() {
+  let fs = Arc::new(ReadDirCountingFileSystem::default());
+  let root = Utf8Path::new("/project/[physical]");
+  fs.inner
+    .create_dir_all(root.join("src").as_path())
+    .await
+    .unwrap();
+  for name in ["one.js", "two.js", "other.js"] {
+    fs.inner
+      .write(root.join("src").join(name).as_path(), b"value")
+      .await
+      .unwrap();
+  }
+  let pattern = GlobPattern::new("{src/one.js,src/two.js,src/missing.js}".as_bytes()).unwrap();
+  assert_eq!(pattern.scan_root(root), root.join("src"));
+  let mut files = scan_matches(&pattern, root, fs.clone()).await;
+  files.sort();
+  assert_eq!(
+    files,
+    vec![root.join("src/one.js"), root.join("src/two.js")]
+  );
+  assert_eq!(fs.read_dir_count.load(Ordering::Relaxed), 1);
+}
+
+#[tokio::test]
+async fn scan_matches_case_against_enumerated_entry_names() {
+  let root = Utf8Path::new("/project");
+  let fs = Arc::new(ReadDirCountingFileSystem {
+    metadata_alias: Some((root.join("other.js"), root.join("OTHER.js"))),
+    ..Default::default()
+  });
+  fs.inner.create_dir_all(root).await.unwrap();
+  for name in ["one.js", "OTHER.js"] {
+    fs.inner.write(&root.join(name), b"").await.unwrap();
+  }
+
+  let pattern = GlobPattern::new(b"{one,other}.js").unwrap();
+  assert_eq!(
+    walk_matches(&pattern, root, fs).await,
+    [root.join("one.js")]
+  );
+}
+
+#[tokio::test]
+async fn walk_preserves_depth_first_order_and_sibling_patterns() {
+  let fs = Arc::new(ReadDirCountingFileSystem::default());
+  let root = Utf8Path::new("/project");
+  for directory in ["a/deep", "z"] {
+    fs.inner
+      .create_dir_all(root.join(directory).as_path())
+      .await
+      .expect("create directory");
+  }
+  let expected = ["a/deep/first.js", "a/last.js", "z/other.js"].map(|name| root.join(name));
+  for path in &expected {
+    fs.inner.write(path, b"value").await.expect("write fixture");
+  }
+  let pattern = GlobPattern::new(b"{a/deep/first.js,a/last.js,z/other.js}").expect("valid glob");
+  assert_eq!(walk_matches(&pattern, root, fs.clone()).await, expected);
+  assert_eq!(fs.read_dir_count.load(Ordering::Relaxed), 4);
+}
+
+#[tokio::test]
+async fn walk_keeps_globstar_continuations_after_exact_matches() {
+  let fs = Arc::new(MemoryFileSystem::default());
+  fs.create_dir_all("/project/nested".into()).await.unwrap();
+  fs.write("/project/value.js".into(), b"value")
+    .await
+    .unwrap();
+  fs.write("/project/nested/value.js".into(), b"value")
+    .await
+    .unwrap();
+  let pattern = GlobPattern::new("**".as_bytes()).unwrap();
+  assert!(pattern.is_match("nested"));
+  let mut files = walk_matches(&pattern, Utf8Path::new("/project"), fs).await;
+  files.sort();
+  assert_eq!(
+    files,
+    vec![
+      Utf8PathBuf::from("/project/nested/value.js"),
+      Utf8PathBuf::from("/project/value.js")
+    ]
+  );
+}
+
+#[tokio::test]
+async fn scan_case_insensitively_preserves_filesystem_spelling() {
+  let fs = Arc::new(MemoryFileSystem::default());
+  fs.create_dir_all("/project/assets".into())
+    .await
+    .expect("create directory");
+  fs.write("/project/assets/value.js".into(), b"value")
+    .await
+    .expect("write fixture");
+  let pattern = GlobPattern::new_with_options(
+    "ASSETS/*.JS".as_bytes(),
+    GlobOptions {
+      case_sensitive: false,
+      ..Default::default()
+    },
+  )
+  .expect("valid scan");
+  assert_eq!(
+    scan_matches(&pattern, Utf8Path::new("/project"), fs).await,
+    vec![Utf8PathBuf::from("/project/assets/value.js")]
+  );
+}

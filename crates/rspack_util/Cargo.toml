@@ -47,6 +47,11 @@ wasmtime          = { workspace = true, optional = true, features = ["runtime", 
 rspack_regex = { workspace = true }
 signal-hook  = { workspace = true, optional = true }
 
+[dev-dependencies]
+async-trait = { workspace = true }
+rspack_fs   = { workspace = true }
+tokio       = { workspace = true, features = ["macros", "rt"] }
+
 [features]
 allocative = ["dep:rspack-allocative", "rspack-allocative/smallvec", "rspack-allocative/triomphe", "rspack-allocative/either", "rspack-allocative/parking_lot", "rspack_intern/allocative"]
 debug_tool = ["signal-hook"]                                                                                                                                                                # only used for local debug and  should not be enabled in production release
