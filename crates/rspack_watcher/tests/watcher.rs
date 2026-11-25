@@ -2,20 +2,19 @@
 
 use std::sync::atomic::AtomicU8;
 
-use rspack_paths::InternedPath;
 use rspack_watcher::{FsWatcher, FsWatcherOptions, TimeInfoEntry};
 
 mod helpers;
 
 macro_rules! e {
   () => {
-    (std::iter::empty(), std::iter::empty())
+    (std::iter::empty::<&str>(), std::iter::empty::<&str>())
   };
 }
 
 macro_rules! f {
   ($($file:expr),*) => {
-    (vec![$(InternedPath::from($file)),*].into_iter(), std::iter::empty())
+    (vec![$($file),*].into_iter(), std::iter::empty::<&str>())
   };
 }
 
@@ -86,11 +85,11 @@ fn should_watch_a_single_file() {
   helper.collect_events(
     rx,
     |file, _| {
-      file.assert_path(helper.join("a"));
+      file.assert_path(&helper.join("a"));
       add!(change_events);
     },
     |changes, abort| {
-      changes.assert_changed(helper.join("a"));
+      changes.assert_changed(&helper.join("a"));
       assert!(load!(change_events) > 0);
       *abort = true;
     },
@@ -128,7 +127,7 @@ fn should_report_registered_files_inside_a_directory_moved_into_place() {
     rx,
     |_, _| {},
     |changes, abort| {
-      changes.assert_changed(helper.join("parent/dir/a.js"));
+      changes.assert_changed(&helper.join("parent/dir/a.js"));
       reported = true;
       *abort = true;
     },
@@ -147,8 +146,8 @@ async fn should_report_error_when_watching_after_close() {
   impl EventAggregateHandler for ErrorProbe {
     fn on_event_handle(
       &self,
-      _changed_files: rspack_util::fx_hash::FxHashSet<String>,
-      _deleted_files: rspack_util::fx_hash::FxHashSet<String>,
+      _changed_files: rspack_fs::AbsPathSet,
+      _deleted_files: rspack_fs::AbsPathSet,
     ) {
     }
     fn on_error(&self, error: rspack_error::Error) {
@@ -165,9 +164,9 @@ async fn should_report_error_when_watching_after_close() {
   let (tx, rx) = std::sync::mpsc::channel();
   watcher
     .watch(
-      e!(),
-      e!(),
-      e!(),
+      (std::iter::empty(), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
       std::time::SystemTime::now(),
       Box::new(ErrorProbe(tx)),
       Box::new(NoopHandler),
@@ -204,12 +203,12 @@ fn should_emit_remove_when_a_watched_file_is_deleted() {
       // `a` around the deletion; we only require that the deletion itself
       // surfaces as a `remove`, not a `change`.
       if let helpers::ChangedEvent::Deleted(_) = event {
-        event.assert_path(helper.join("a"));
+        event.assert_path(&helper.join("a"));
         add!(delete_events);
       }
     },
     |changes, abort| {
-      changes.assert_deleted(helper.join("a"));
+      changes.assert_deleted(&helper.join("a"));
       assert!(load!(delete_events) > 0);
       *abort = true;
     },
@@ -342,9 +341,7 @@ fn collect_time_info_entries_nulls_a_removed_file() {
 
   helper.tick(|| std::fs::remove_file(helper.join("a")).unwrap());
   let removed = helper.join("a");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.deleted_files.contains(removed.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.deleted_files.contains(&removed));
 
   assert_eq!(
     *helper.time_info_entry(&helper.collect_time_info_entries().0, "a"),
@@ -372,9 +369,7 @@ fn collect_time_info_entries_reports_a_created_missing_dependency() {
 
   helper.tick(|| helper.file("later"));
   let created = helper.join("later");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(created.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&created));
 
   let entry = helper
     .time_info_entry(&helper.collect_time_info_entries().0, "later")
@@ -417,9 +412,7 @@ fn collect_time_info_entries_advances_a_context_for_an_edit_inside_it() {
   let edited_at = now_millis();
   helper.tick(|| helper.file("ctx/inner"));
   let context = helper.join("ctx");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(context.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&context));
 
   let after = safe_time_of(helper.time_info_entry(&helper.collect_time_info_entries().1, "ctx"));
   // Only a floor: the scan's accuracy-padded record for `ctx/inner` can sit
@@ -465,9 +458,7 @@ fn collect_time_info_entries_stamps_a_live_event_with_the_observed_time() {
     std::fs::rename(&staged, helper.join("a")).unwrap();
   });
   let swapped = helper.join("a");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(swapped.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&swapped));
 
   let entry = helper
     .time_info_entry(&helper.collect_time_info_entries().0, "a")
@@ -493,7 +484,7 @@ fn collect_time_info_entries_stamps_a_live_event_with_the_observed_time() {
 
 /// Retime a file or directory. Unix retimes through a read handle; Windows
 /// needs a writable one, and can only open a directory with backup semantics.
-fn set_modified(path: &std::path::Path, when: std::time::SystemTime) -> std::io::Result<()> {
+fn set_modified(path: &rspack_fs::AbsPath, when: std::time::SystemTime) -> std::io::Result<()> {
   let mut options = std::fs::File::options();
   #[cfg(windows)]
   {
@@ -518,7 +509,7 @@ fn collect_time_info_entries_derives_a_context_safe_time_from_its_files() {
   helper.file("ctx/inner");
   let parked = std::time::SystemTime::now() - std::time::Duration::from_secs(3600);
   for name in ["ctx/inner", "ctx"] {
-    let retimed = set_modified(helper.join(name).as_std_path(), parked);
+    let retimed = set_modified(&helper.join(name), parked);
     assert!(retimed.is_ok(), "retime {name}: {retimed:?}");
   }
 
@@ -578,9 +569,7 @@ fn collect_time_info_entries_nulls_a_moved_away_context_and_its_files() {
 
   helper.tick(|| std::fs::rename(helper.join("ctx"), helper.join("ctx.moved")).unwrap());
   let context = helper.join("ctx");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.deleted_files.contains(context.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.deleted_files.contains(&context));
 
   let (file_timestamps, directory_timestamps) = helper.collect_time_info_entries();
   assert_eq!(
@@ -629,16 +618,14 @@ fn aggregated_reports_the_paused_events_without_consuming_them() {
   for _ in 0..2 {
     let (changed, deleted) = helper.peek_aggregated();
     assert!(
-      changed.contains(edited.as_str()),
+      changed.contains(&edited),
       "the paused-period edit is pending: {changed:?}"
     );
     assert!(deleted.is_empty());
   }
 
   let rx = helper.watch(e!(), e!(), e!());
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(edited.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&edited));
 }
 
 fn has_time_info_entry(
@@ -647,9 +634,7 @@ fn has_time_info_entry(
   name: &str,
 ) -> bool {
   let path = helper.join(name);
-  entries
-    .iter()
-    .any(|(entry_path, _)| entry_path == path.as_str())
+  entries.iter().any(|(entry_path, _)| entry_path == &path)
 }
 
 /// Like watchpack's `DirectoryWatcher`, a registered context reports every
@@ -721,8 +706,7 @@ fn collect_time_info_entries_follows_a_file_created_and_removed_under_a_context(
   let created_at = now_millis();
   helper.tick(|| helper.file("ctx/later"));
   let context = helper.join("ctx");
-  let matches_context =
-    |batch: &helpers::AggregatedEvent| batch.changed_files.contains(context.as_str());
+  let matches_context = |batch: &helpers::AggregatedEvent| batch.changed_files.contains(&context);
   wait_for_aggregated_ref(&rx, matches_context);
 
   let entry = helper
@@ -764,10 +748,7 @@ fn collect_time_info_entries_keeps_an_unregistered_file_a_context_still_covers()
 
   let _rx = helper.watch(f!("ctx/inner"), f!("ctx"), e!());
   let _rx = helper.watch(
-    (
-      std::iter::empty(),
-      vec![InternedPath::from("ctx/inner")].into_iter(),
-    ),
+    (std::iter::empty::<&str>(), vec!["ctx/inner"].into_iter()),
     e!(),
     e!(),
   );
@@ -800,7 +781,7 @@ fn collect_time_info_entries_scans_a_directory_moved_into_a_context() {
 
   helper.tick(|| std::fs::rename(helper.join("outside"), helper.join("ctx/moved")).unwrap());
   let context = helper.join("ctx");
-  wait_for_aggregated_ref(&rx, |batch| batch.changed_files.contains(context.as_str()));
+  wait_for_aggregated_ref(&rx, |batch| batch.changed_files.contains(&context));
 
   let (file_timestamps, directory_timestamps) = helper.collect_time_info_entries();
   let deep = helper.time_info_entry(&file_timestamps, "ctx/moved/nested/deep");
@@ -830,7 +811,7 @@ fn a_context_file_changed_within_the_accuracy_with_the_same_mtime_still_notifies
   // An mtime not yet past the filesystem accuracy: as if just written, so a
   // second event with it is a change watchpack keeps.
   let just_written = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
-  set_modified(helper.join("ctx/inner").as_std_path(), just_written).unwrap();
+  set_modified(&helper.join("ctx/inner"), just_written).unwrap();
 
   let rx = helper.watch(f!("sibling"), f!("ctx"), e!());
   std::thread::sleep(std::time::Duration::from_millis(300));
@@ -838,9 +819,7 @@ fn a_context_file_changed_within_the_accuracy_with_the_same_mtime_still_notifies
 
   helper.trigger_event("ctx/inner", rspack_watcher::FsEventKind::Change);
   let context = helper.join("ctx");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(context.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&context));
 }
 
 /// A registered context moved away and moved back is scanned again: what it
@@ -861,9 +840,9 @@ fn collect_time_info_entries_rescans_a_context_that_reappears() {
   let context = helper.join("ctx");
 
   helper.tick(|| std::fs::rename(helper.join("ctx"), helper.join("ctx.away")).unwrap());
-  wait_for_aggregated_ref(&rx, |batch| batch.deleted_files.contains(context.as_str()));
+  wait_for_aggregated_ref(&rx, |batch| batch.deleted_files.contains(&context));
   helper.tick(|| std::fs::rename(helper.join("ctx.away"), helper.join("ctx")).unwrap());
-  wait_for_aggregated_ref(&rx, |batch| batch.changed_files.contains(context.as_str()));
+  wait_for_aggregated_ref(&rx, |batch| batch.changed_files.contains(&context));
 
   let (file_timestamps, _) = helper.collect_time_info_entries();
   let inner = helper.time_info_entry(&file_timestamps, "ctx/inner");
@@ -890,7 +869,7 @@ fn collect_time_info_entries_restamps_a_context_file_changed_again_with_the_same
   // An mtime not yet past the filesystem accuracy: as if just written, so a
   // second event with it is a change watchpack keeps.
   let just_written = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
-  set_modified(helper.join("ctx/inner").as_std_path(), just_written).unwrap();
+  set_modified(&helper.join("ctx/inner"), just_written).unwrap();
 
   let rx = helper.watch(f!("sibling"), f!("ctx"), e!());
   std::thread::sleep(std::time::Duration::from_millis(300));
@@ -898,12 +877,12 @@ fn collect_time_info_entries_restamps_a_context_file_changed_again_with_the_same
   let context = helper.join("ctx");
 
   helper.trigger_event("ctx/inner", rspack_watcher::FsEventKind::Change);
-  wait_for_aggregated_ref(&rx, |batch| batch.changed_files.contains(context.as_str()));
+  wait_for_aggregated_ref(&rx, |batch| batch.changed_files.contains(&context));
   std::thread::sleep(std::time::Duration::from_millis(50));
 
   let second_at = now_millis();
   helper.trigger_event("ctx/inner", rspack_watcher::FsEventKind::Change);
-  wait_for_aggregated_ref(&rx, |batch| batch.changed_files.contains(context.as_str()));
+  wait_for_aggregated_ref(&rx, |batch| batch.changed_files.contains(&context));
 
   let (file_timestamps, _) = helper.collect_time_info_entries();
   let inner = safe_time_of(helper.time_info_entry(&file_timestamps, "ctx/inner"));
@@ -924,7 +903,7 @@ fn collect_time_info_entries_records_a_missing_dependency_found_by_the_scan() {
   });
   helper.file("later");
   set_modified(
-    helper.join("later").as_std_path(),
+    &helper.join("later"),
     std::time::SystemTime::now() - std::time::Duration::from_secs(3600),
   )
   .unwrap();
@@ -989,9 +968,7 @@ fn a_missing_dependency_created_in_a_new_context_directory_still_reports() {
   helper.trigger_event("ctx/sub/dep", rspack_watcher::FsEventKind::Create);
 
   let dep = helper.join("ctx/sub/dep");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(dep.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&dep));
 }
 
 /// With `followSymlinks`, a context's scan descends into a symlinked
@@ -1075,9 +1052,7 @@ fn collect_time_info_entries_does_not_follow_a_new_link_without_follow_symlinks(
   std::os::unix::fs::symlink(helper.join("outside"), helper.join("ctx/link")).unwrap();
   helper.trigger_event("ctx/link", rspack_watcher::FsEventKind::Create);
   let context = helper.join("ctx");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(context.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&context));
 
   let (file_timestamps, _) = helper.collect_time_info_entries();
   assert!(
@@ -1103,7 +1078,7 @@ fn a_missing_dependency_found_by_the_scan_still_reports_its_own_event() {
   });
   helper.file("later");
   set_modified(
-    helper.join("later").as_std_path(),
+    &helper.join("later"),
     std::time::SystemTime::now() - std::time::Duration::from_secs(3600),
   )
   .unwrap();
@@ -1117,9 +1092,7 @@ fn a_missing_dependency_found_by_the_scan_still_reports_its_own_event() {
 
   helper.trigger_event("later", rspack_watcher::FsEventKind::Create);
   let later = helper.join("later");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(later.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&later));
 }
 
 /// Watch `ctx` and `ctx/sub`, then let an event inside `ctx/sub` advance both
@@ -1130,8 +1103,7 @@ fn watch_nested_contexts_after_an_event(helper: &mut helpers::TestHelper) -> u64
   // An mtime not yet past the filesystem accuracy: as if just written, so a
   // second event with it is a change watchpack keeps.
   let just_written = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
-  set_modified(helper.join("ctx/sub/inner").as_std_path(), just_written)
-    .expect("date ctx/sub/inner");
+  set_modified(&helper.join("ctx/sub/inner"), just_written).expect("date ctx/sub/inner");
   let rx = helper.watch(e!(), f!("ctx", "ctx/sub"), e!());
   std::thread::sleep(std::time::Duration::from_millis(300));
   while rx.try_recv().is_ok() {}
@@ -1152,10 +1124,7 @@ fn unregistering_an_outer_context_keeps_a_registered_inner_ones_safe_time() {
   let event_at = watch_nested_contexts_after_an_event(&mut helper);
   let _rx = helper.watch(
     e!(),
-    (
-      std::iter::empty(),
-      vec![InternedPath::from("ctx")].into_iter(),
-    ),
+    (std::iter::empty::<&str>(), vec!["ctx"].into_iter()),
     e!(),
   );
 
@@ -1178,10 +1147,7 @@ fn unregistering_an_inner_context_keeps_its_safe_time_while_covered() {
   let event_at = watch_nested_contexts_after_an_event(&mut helper);
   let _rx = helper.watch(
     e!(),
-    (
-      std::iter::empty(),
-      vec![InternedPath::from("ctx/sub")].into_iter(),
-    ),
+    (std::iter::empty::<&str>(), vec!["ctx/sub"].into_iter()),
     e!(),
   );
 
@@ -1212,7 +1178,7 @@ fn take_aggregated_hands_the_paused_events_over_once() {
   std::thread::sleep(std::time::Duration::from_millis(300));
   let edited = helper.join("a");
   let (changed, _) = helper.take_aggregated();
-  assert!(changed.contains(edited.as_str()), "taken: {changed:?}");
+  assert!(changed.contains(&edited), "taken: {changed:?}");
   let (changed, deleted) = helper.take_aggregated();
   assert!(changed.is_empty() && deleted.is_empty(), "handed over once");
 
@@ -1221,7 +1187,7 @@ fn take_aggregated_hands_the_paused_events_over_once() {
   while let Ok(event) = rx.try_recv() {
     if let helpers::Event::Aggregated(batch) = event {
       assert!(
-        !batch.changed_files.contains(edited.as_str()),
+        !batch.changed_files.contains(&edited),
         "a taken event is not delivered again: {batch:?}"
       );
     }
@@ -1242,13 +1208,13 @@ fn a_registered_link_below_a_context_still_deduplicates_repeated_events() {
   std::fs::create_dir_all(helper.join("ctx")).unwrap();
   helper.file("ctx/target");
   let an_hour_ago = std::time::SystemTime::now() - std::time::Duration::from_secs(3600);
-  set_modified(helper.join("ctx/target").as_std_path(), an_hour_ago).unwrap();
+  set_modified(&helper.join("ctx/target"), an_hour_ago).unwrap();
   std::os::unix::fs::symlink(helper.join("ctx/target"), helper.join("ctx/link")).unwrap();
 
   let rx = helper.watch(f!("ctx/link"), f!("ctx"), e!());
   std::thread::sleep(std::time::Duration::from_millis(300));
   let half_an_hour_ago = std::time::SystemTime::now() - std::time::Duration::from_secs(1800);
-  set_modified(helper.join("ctx/target").as_std_path(), half_an_hour_ago).unwrap();
+  set_modified(&helper.join("ctx/target"), half_an_hour_ago).unwrap();
   helper.trigger_event("ctx/link", rspack_watcher::FsEventKind::Change);
   std::thread::sleep(std::time::Duration::from_millis(500));
   while rx.try_recv().is_ok() {}
@@ -1300,9 +1266,7 @@ fn an_event_on_a_known_directory_does_not_rescan_it() {
 
   helper.trigger_event("ctx/sub", rspack_watcher::FsEventKind::Change);
   let context = helper.join("ctx");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(context.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&context));
 
   let inner = helper.join("ctx/sub/inner");
   assert!(
@@ -1398,7 +1362,7 @@ fn a_scan_resuming_after_its_context_is_unregistered_records_nothing() {
   helper.file("outside/moved/a");
   helper.file("outside/moved/b");
   helper.file("sibling");
-  *moved_in.lock().unwrap() = helper.join("ctx/moved").into_std_path_buf();
+  *moved_in.lock().unwrap() = helper.join("ctx/moved").to_std_path_buf();
 
   let _rx = helper.watch(f!("sibling"), f!("ctx"), e!());
   std::thread::sleep(std::time::Duration::from_millis(300));
@@ -1414,10 +1378,7 @@ fn a_scan_resuming_after_its_context_is_unregistered_records_nothing() {
   }
   let _rx = helper.watch(
     e!(),
-    (
-      std::iter::empty(),
-      vec![InternedPath::from("ctx")].into_iter(),
-    ),
+    (std::iter::empty::<&str>(), vec!["ctx"].into_iter()),
     e!(),
   );
   release.store(true, Ordering::SeqCst);
@@ -1468,7 +1429,7 @@ fn a_scan_updates_a_recorded_file_whose_mtime_moved_on() {
   let moved_on = std::time::UNIX_EPOCH
     + std::time::Duration::from_millis(1_700_000_000_000)
     + std::time::Duration::from_micros(500);
-  set_modified(helper.join("ctx/sub/found").as_std_path(), moved_on).unwrap();
+  set_modified(&helper.join("ctx/sub/found"), moved_on).unwrap();
   std::thread::sleep(std::time::Duration::from_millis(500));
   hide.store(false, Ordering::SeqCst);
 
@@ -1505,15 +1466,10 @@ fn an_unregistered_inner_context_removed_before_is_new_again_to_its_outer_one() 
 
   helper.tick(|| std::fs::remove_dir(helper.join("ctx/sub")).unwrap());
   let context = helper.join("ctx");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(context.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&context));
   let _rx = helper.watch(
     e!(),
-    (
-      std::iter::empty(),
-      vec![InternedPath::from("ctx/sub")].into_iter(),
-    ),
+    (std::iter::empty::<&str>(), vec!["ctx/sub"].into_iter()),
     e!(),
   );
 
@@ -1601,11 +1557,9 @@ fn a_context_that_comes_back_stamps_its_files_with_the_observed_time() {
 
   helper.tick(|| std::fs::rename(helper.join("ctx"), helper.join("ctx.moved")).unwrap());
   let context = helper.join("ctx");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.deleted_files.contains(context.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.deleted_files.contains(&context));
   let an_hour_ago = std::time::SystemTime::now() - std::time::Duration::from_secs(3600);
-  set_modified(helper.join("ctx.moved/found").as_std_path(), an_hour_ago).unwrap();
+  set_modified(&helper.join("ctx.moved/found"), an_hour_ago).unwrap();
 
   let restored_at = now_millis();
   std::fs::rename(helper.join("ctx.moved"), helper.join("ctx")).unwrap();
@@ -1629,15 +1583,13 @@ fn a_new_context_reports_a_file_changed_since_the_start_time() {
   std::fs::create_dir_all(helper.join("ctx")).unwrap();
   helper.file("ctx/edited");
   let after_start = std::time::SystemTime::now() + std::time::Duration::from_secs(60);
-  set_modified(helper.join("ctx/edited").as_std_path(), after_start).unwrap();
+  set_modified(&helper.join("ctx/edited"), after_start).unwrap();
   // Let the setup's own writes age out, so FSEvents cannot deliver them late.
   std::thread::sleep(std::time::Duration::from_millis(1000));
 
   let rx = helper.watch(e!(), f!("ctx"), e!());
   let context = helper.join("ctx");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(context.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&context));
 }
 
 #[test]
@@ -1661,9 +1613,9 @@ fn should_report_a_recreated_file_as_changed_only() {
     rx,
     |_, _| {},
     |changes, abort| {
-      changes.assert_changed(helper.join("a"));
+      changes.assert_changed(&helper.join("a"));
       assert!(
-        !changes.deleted_files.contains(helper.join("a").as_str()),
+        !changes.deleted_files.contains(&helper.join("a")),
         "A recreated file must not be reported as removed: {:?}",
         changes.deleted_files
       );
@@ -1724,7 +1676,7 @@ fn an_attribute_only_event_on_a_context_file_is_dropped() {
   helper.file("ctx/old");
   helper.file("sibling");
   let an_hour_ago = std::time::SystemTime::now() - std::time::Duration::from_secs(3600);
-  set_modified(helper.join("ctx/old").as_std_path(), an_hour_ago).unwrap();
+  set_modified(&helper.join("ctx/old"), an_hour_ago).unwrap();
   // Let the setup's own writes age out, so FSEvents cannot deliver them late.
   std::thread::sleep(std::time::Duration::from_millis(1000));
 
@@ -1760,13 +1712,13 @@ fn a_new_context_reports_a_file_changed_between_the_start_time_and_the_watch() {
   helper.file("ctx/edited");
   let now = std::time::SystemTime::now();
   set_modified(
-    helper.join("ctx/edited").as_std_path(),
+    &helper.join("ctx/edited"),
     now - std::time::Duration::from_secs(2),
   )
   .unwrap();
   // The directory itself predates the start: only the file changed since.
   set_modified(
-    helper.join("ctx").as_std_path(),
+    &helper.join("ctx"),
     now - std::time::Duration::from_secs(60),
   )
   .unwrap();
@@ -1780,9 +1732,7 @@ fn a_new_context_reports_a_file_changed_between_the_start_time_and_the_watch() {
     now - std::time::Duration::from_secs(5),
   );
   let context = helper.join("ctx");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(context.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&context));
 }
 
 /// A removal reported for a path that is back on disk (unlinked and
@@ -1804,10 +1754,10 @@ fn a_removal_of_a_path_back_on_disk_is_reported_as_a_change() {
   let a = helper.join("a");
   wait_for_aggregated(&helper, rx, |batch| {
     assert!(
-      !batch.deleted_files.contains(a.as_str()),
+      !batch.deleted_files.contains(&a),
       "a path still on disk was reported as deleted: {batch:?}"
     );
-    batch.changed_files.contains(a.as_str())
+    batch.changed_files.contains(&a)
   });
 }
 
@@ -1833,15 +1783,13 @@ fn an_edit_to_a_registered_file_below_a_context_is_reported() {
   // A new mtime already past the filesystem accuracy when the event is
   // processed, like a copy that keeps its source's time (`cp -p`).
   set_modified(
-    helper.join("ctx/f").as_std_path(),
+    &helper.join("ctx/f"),
     std::time::SystemTime::now() - std::time::Duration::from_secs(10),
   )
   .unwrap();
   helper.trigger_event("ctx/f", rspack_watcher::FsEventKind::Change);
   let f = helper.join("ctx/f");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(f.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&f));
 }
 
 /// Like watchpack's initial scan (`setDirectory(.., initial)` checks the
@@ -1858,7 +1806,7 @@ fn a_new_context_reports_a_directory_created_since_the_start_time() {
   std::fs::create_dir_all(helper.join("ctx/created")).unwrap();
   // The context itself predates the start: only its new subdirectory does not.
   set_modified(
-    helper.join("ctx").as_std_path(),
+    &helper.join("ctx"),
     now - std::time::Duration::from_secs(60),
   )
   .unwrap();
@@ -1872,9 +1820,7 @@ fn a_new_context_reports_a_directory_created_since_the_start_time() {
     now - std::time::Duration::from_secs(5),
   );
   let context = helper.join("ctx");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(context.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&context));
 }
 
 /// Like watchpack, whose live events `lstat` the path and take a link for a
@@ -1902,9 +1848,7 @@ fn a_link_created_after_the_watch_is_recorded_as_itself_with_follow_symlinks() {
   std::os::unix::fs::symlink(helper.join("ctx"), helper.join("ctx/loop")).unwrap();
   helper.trigger_event("ctx/loop", rspack_watcher::FsEventKind::Create);
   let context = helper.join("ctx");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(context.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&context));
 
   let (file_timestamps, directory_timestamps) = helper.collect_time_info_entries();
   assert!(
@@ -1979,10 +1923,10 @@ fn a_scanned_removal_of_a_file_back_on_disk_is_reported_as_a_change() {
     match rx.recv_timeout(remaining) {
       Ok(helpers::Event::Aggregated(batch)) => {
         assert!(
-          !batch.deleted_files.contains(restored.as_str()),
+          !batch.deleted_files.contains(&restored),
           "a file back on disk is not reported removed: {batch:?}"
         );
-        if batch.changed_files.contains(restored.as_str()) {
+        if batch.changed_files.contains(&restored) {
           return;
         }
       }
@@ -2014,21 +1958,17 @@ fn unregistered_paths_leave_no_index_behind() {
       helper.file(&format!("{dir}/a.js"));
       // Older than the watch start, so the scan does not record it on its own.
       set_modified(
-        helper.join(&format!("{dir}/a.js")).as_std_path(),
+        &helper.join(&format!("{dir}/a.js")),
         std::time::SystemTime::now() - std::time::Duration::from_secs(60),
       )
       .unwrap();
-      files.push(InternedPath::from(
-        helper.join(&format!("{dir}/a.js")).as_std_path(),
-      ));
-      missing.push(InternedPath::from(
-        helper.join(&format!("{dir}/m.js")).as_std_path(),
-      ));
+      files.push(helper.join(&format!("{dir}/a.js")));
+      missing.push(helper.join(&format!("{dir}/m.js")));
     }
     let _rx = helper.watch(
-      (files.clone().into_iter(), std::iter::empty()),
+      (files.iter(), std::iter::empty::<&str>()),
       e!(),
-      (missing.clone().into_iter(), std::iter::empty()),
+      (missing.iter(), std::iter::empty::<&str>()),
     );
     assert_ne!(
       helper.index_sizes(),
@@ -2036,9 +1976,9 @@ fn unregistered_paths_leave_no_index_behind() {
       "round {round} indexes its paths"
     );
     let _rx = helper.watch(
-      (std::iter::empty(), files.into_iter()),
+      (std::iter::empty::<&str>(), files.into_iter()),
       e!(),
-      (std::iter::empty(), missing.into_iter()),
+      (std::iter::empty::<&str>(), missing.into_iter()),
     );
     assert_eq!(
       helper.index_sizes(),
@@ -2059,7 +1999,7 @@ fn a_registered_file_the_scan_finds_gone_changes_its_context() {
   });
   std::fs::create_dir_all(helper.join("ctx")).unwrap();
   set_modified(
-    helper.join("ctx").as_std_path(),
+    &helper.join("ctx"),
     std::time::SystemTime::now() - std::time::Duration::from_secs(60),
   )
   .unwrap();
@@ -2070,7 +2010,7 @@ fn a_registered_file_the_scan_finds_gone_changes_its_context() {
   let gone = helper.join("ctx/gone.js");
   let context = helper.join("ctx");
   wait_for_aggregated(&helper, rx, |batch| {
-    batch.deleted_files.contains(gone.as_str()) && batch.changed_files.contains(context.as_str())
+    batch.deleted_files.contains(&gone) && batch.changed_files.contains(&context)
   });
 }
 
@@ -2089,7 +2029,7 @@ fn a_scanned_change_is_checked_against_ignored_once() {
   std::fs::create_dir_all(helper.join("ctx")).unwrap();
   helper.file("ctx/new.js");
   set_modified(
-    helper.join("ctx").as_std_path(),
+    &helper.join("ctx"),
     std::time::SystemTime::now() - std::time::Duration::from_secs(60),
   )
   .unwrap();
@@ -2103,9 +2043,7 @@ fn a_scanned_change_is_checked_against_ignored_once() {
     std::time::SystemTime::now() - std::time::Duration::from_secs(5),
   );
   let context = helper.join("ctx");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(context.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&context));
 
   let file = helper.join("ctx/new.js");
   let queries = queried
@@ -2135,9 +2073,9 @@ fn a_new_link_to_an_old_file_is_a_change_with_follow_symlinks() {
   std::fs::create_dir_all(helper.join("outside")).unwrap();
   helper.file("outside/old.js");
   let a_minute_ago = std::time::SystemTime::now() - std::time::Duration::from_secs(60);
-  set_modified(helper.join("outside/old.js").as_std_path(), a_minute_ago).unwrap();
+  set_modified(&helper.join("outside/old.js"), a_minute_ago).unwrap();
   std::os::unix::fs::symlink(helper.join("outside/old.js"), helper.join("ctx/link.js")).unwrap();
-  set_modified(helper.join("ctx").as_std_path(), a_minute_ago).unwrap();
+  set_modified(&helper.join("ctx"), a_minute_ago).unwrap();
   // Let the setup's own writes age out, so FSEvents cannot deliver them late.
   std::thread::sleep(std::time::Duration::from_millis(1000));
 
@@ -2148,9 +2086,7 @@ fn a_new_link_to_an_old_file_is_a_change_with_follow_symlinks() {
     std::time::SystemTime::now() - std::time::Duration::from_secs(5),
   );
   let context = helper.join("ctx");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.changed_files.contains(context.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.changed_files.contains(&context));
 }
 
 /// A removal below a registered context that arrives after the context's own
@@ -2184,10 +2120,10 @@ fn a_removal_arriving_after_its_context_is_gone_reports_the_context_removed() {
     match rx.recv_timeout(remaining) {
       Ok(helpers::Event::Aggregated(batch)) => {
         assert!(
-          !batch.changed_files.contains(context.as_str()),
+          !batch.changed_files.contains(&context),
           "the gone context is not changed: {batch:?}"
         );
-        if batch.deleted_files.contains(file.as_str()) {
+        if batch.deleted_files.contains(&file) {
           return;
         }
       }
@@ -2220,8 +2156,7 @@ fn a_registered_dangling_link_older_than_the_start_is_not_reported() {
   {
     if let helpers::Event::Aggregated(batch) = event {
       assert!(
-        !batch.changed_files.contains(link.as_str())
-          && !batch.deleted_files.contains(link.as_str()),
+        !batch.changed_files.contains(&link) && !batch.deleted_files.contains(&link),
         "the dangling link is reported: {batch:?}"
       );
     }
@@ -2246,7 +2181,7 @@ fn a_registered_context_that_is_a_dangling_link_is_reported() {
   let rx = helper.watch(f!("sibling"), f!("ctx"), e!());
   let context = helper.join("ctx");
   wait_for_aggregated(&helper, rx, |batch| {
-    batch.deleted_files.contains(context.as_str()) || batch.changed_files.contains(context.as_str())
+    batch.deleted_files.contains(&context) || batch.changed_files.contains(&context)
   });
 }
 
@@ -2287,9 +2222,7 @@ fn a_context_found_gone_through_an_event_below_it_reads_as_absent() {
   std::fs::remove_dir_all(helper.join("ctx")).unwrap();
   helper.trigger_event("ctx/a.js", rspack_watcher::FsEventKind::Remove);
   let context = helper.join("ctx");
-  wait_for_aggregated(&helper, rx, |batch| {
-    batch.deleted_files.contains(context.as_str())
-  });
+  wait_for_aggregated(&helper, rx, |batch| batch.deleted_files.contains(&context));
 
   let (_, directory_timestamps) = helper.collect_time_info_entries();
   let entry = helper.time_info_entry(&directory_timestamps, "ctx");

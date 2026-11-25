@@ -4,7 +4,7 @@ use notify::{
   Event, EventKind, RecommendedWatcher, Watcher,
   event::{ModifyKind, RenameMode},
 };
-use rspack_paths::InternedPath;
+use rspack_fs::{AbsPath, AbsPathSet};
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use crate::{FsEventKind, WatchPattern, analyzer::Analyzer, trigger};
@@ -65,7 +65,7 @@ impl DiskWatcher {
     let new_paths = new_patterns.iter().map(|p| &p.path).collect::<HashSet<_>>();
 
     // Collect stale paths that are no longer needed, then unwatch and remove them.
-    let stale_paths: HashSet<InternedPath> = self
+    let stale_paths: AbsPathSet = self
       .watch_patterns
       .iter()
       .filter(|p| !new_paths.contains(&p.path))
@@ -77,7 +77,7 @@ impl DiskWatcher {
       // Linux `notify` can return `EINVAL` for a subdirectory that was deleted while its parent
       // was watched recursively (https://github.com/notify-rs/notify/issues/709).
       if let Some(watcher) = &mut self.inner
-        && let Err(e) = watcher.unwatch(path)
+        && let Err(e) = watcher.unwatch(path.as_std_path())
         && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
       {
         tracing::warn!(
@@ -99,7 +99,7 @@ impl DiskWatcher {
 
       if let Some(watcher) = &mut self.inner {
         watcher
-          .watch(&pattern.path, pattern.mode)
+          .watch(pattern.path.as_std_path(), pattern.mode)
           .map_err(|e| rspack_error::error!(e.to_string()))?;
       }
 
@@ -130,7 +130,10 @@ pub(crate) fn handle_event(event: Event, trigger: &trigger::Trigger) {
     return;
   }
 
-  for (index, path) in event.paths.into_iter().map(InternedPath::from).enumerate() {
+  for (index, raw_path) in event.paths.into_iter().enumerate() {
+    let Ok(path) = AbsPath::try_from_std_path(&raw_path) else {
+      continue;
+    };
     let kind = match event.kind {
       EventKind::Create(_) | EventKind::Modify(ModifyKind::Name(RenameMode::To)) => {
         FsEventKind::Create
@@ -168,7 +171,7 @@ pub(crate) fn handle_event(event: Event, trigger: &trigger::Trigger) {
 mod tests {
   use std::sync::Arc;
 
-  use rspack_paths::InternedPath;
+  use rspack_fs::AbsPath;
   use tokio::sync::mpsc;
 
   use super::*;
@@ -186,9 +189,9 @@ mod tests {
     let temp_dir = tempfile::TempDir::new().unwrap();
     let base = temp_dir.path().canonicalize().unwrap();
 
-    let dir_a = base.join("a");
-    let dir_b = base.join("b");
-    let dir_c = base.join("c");
+    let dir_a = AbsPath::try_from_std_path(&base.join("a")).unwrap();
+    let dir_b = AbsPath::try_from_std_path(&base.join("b")).unwrap();
+    let dir_c = AbsPath::try_from_std_path(&base.join("c")).unwrap();
     std::fs::create_dir_all(&dir_a).unwrap();
     std::fs::create_dir_all(&dir_b).unwrap();
     std::fs::create_dir_all(&dir_c).unwrap();
@@ -200,11 +203,11 @@ mod tests {
       .watch(
         vec![
           WatchPattern {
-            path: InternedPath::from(dir_a.clone()),
+            path: dir_a.clone(),
             mode: notify::RecursiveMode::NonRecursive,
           },
           WatchPattern {
-            path: InternedPath::from(dir_b.clone()),
+            path: dir_b.clone(),
             mode: notify::RecursiveMode::NonRecursive,
           },
         ]
@@ -218,11 +221,11 @@ mod tests {
       .watch(
         vec![
           WatchPattern {
-            path: InternedPath::from(dir_b.clone()),
+            path: dir_b.clone(),
             mode: notify::RecursiveMode::NonRecursive,
           },
           WatchPattern {
-            path: InternedPath::from(dir_c.clone()),
+            path: dir_c.clone(),
             mode: notify::RecursiveMode::NonRecursive,
           },
         ]
@@ -236,9 +239,9 @@ mod tests {
       .iter()
       .map(|p| p.path.clone())
       .collect();
-    assert!(paths.contains(&InternedPath::from(dir_b)));
-    assert!(paths.contains(&InternedPath::from(dir_c)));
-    assert!(!paths.contains(&InternedPath::from(dir_a)));
+    assert!(paths.contains(&dir_b));
+    assert!(paths.contains(&dir_c));
+    assert!(!paths.contains(&dir_a));
   }
 
   #[cfg(target_os = "linux")]
@@ -247,8 +250,8 @@ mod tests {
     let temp_dir = tempfile::TempDir::new().unwrap();
     let base = temp_dir.path().canonicalize().unwrap();
 
-    let dir = base.join("dir");
-    let other = base.join("other");
+    let dir = AbsPath::try_from_std_path(&base.join("dir")).unwrap();
+    let other = AbsPath::try_from_std_path(&base.join("other")).unwrap();
     std::fs::create_dir_all(&dir).unwrap();
     std::fs::create_dir_all(&other).unwrap();
 
@@ -256,7 +259,7 @@ mod tests {
     watcher
       .watch(
         vec![WatchPattern {
-          path: InternedPath::from(dir.clone()),
+          path: dir.clone(),
           mode: notify::RecursiveMode::Recursive,
         }]
         .into_iter(),
@@ -264,7 +267,7 @@ mod tests {
       .unwrap();
 
     // Let the inotify backend add and then drop a watch for the subdirectory.
-    let sub = dir.join("sub");
+    let sub = dir.join("sub").unwrap();
     std::fs::create_dir(&sub).unwrap();
     std::thread::sleep(std::time::Duration::from_millis(200));
     std::fs::remove_dir(&sub).unwrap();
@@ -274,7 +277,7 @@ mod tests {
     watcher
       .watch(
         vec![WatchPattern {
-          path: InternedPath::from(other.clone()),
+          path: other.clone(),
           mode: notify::RecursiveMode::NonRecursive,
         }]
         .into_iter(),
@@ -287,6 +290,6 @@ mod tests {
       .map(|p| p.path.clone())
       .collect();
     assert_eq!(paths.len(), 1);
-    assert!(paths.contains(&InternedPath::from(other)));
+    assert!(paths.contains(&other));
   }
 }

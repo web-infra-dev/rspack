@@ -3,11 +3,8 @@ use std::{
   time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use rspack_paths::InternedPath;
-use rspack_util::{
-  fx_hash::FxHashSet,
-  time::{fs_accuracy, mtime_accuracy},
-};
+use rspack_fs::{AbsPath, AbsPathSet};
+use rspack_util::time::{fs_accuracy, mtime_accuracy};
 use rspack_watcher::{
   EventAggregateHandler, EventHandler, FsEventKind, FsWatcher, TimeInfoEntry,
   testing::DirectoryAnalyzer,
@@ -15,11 +12,11 @@ use rspack_watcher::{
 
 struct Handler;
 impl EventAggregateHandler for Handler {
-  fn on_event_handle(&self, _: FxHashSet<String>, _: FxHashSet<String>) {}
+  fn on_event_handle(&self, _: AbsPathSet, _: AbsPathSet) {}
 }
 impl EventHandler for Handler {}
 
-async fn watch_file(path: &InternedPath) -> FsWatcher {
+async fn watch_file(path: &AbsPath) -> FsWatcher {
   let watcher = FsWatcher::new(Default::default(), Default::default());
   watcher
     .watch(
@@ -34,11 +31,11 @@ async fn watch_file(path: &InternedPath) -> FsWatcher {
   watcher
 }
 
-fn assert_accuracy(watcher: &FsWatcher, path: &InternedPath, expected: u64) -> u64 {
+fn assert_accuracy(watcher: &FsWatcher, path: &AbsPath, expected: u64) -> u64 {
   let (entries, _) = watcher.collect_time_info_entries();
   let entry = entries
     .iter()
-    .find(|(name, _)| name == &path.to_string_lossy())
+    .find(|(name, _)| name == path)
     .expect("file entry");
   match entry.1 {
     TimeInfoEntry::Entry {
@@ -58,8 +55,9 @@ fn assert_accuracy(watcher: &FsWatcher, path: &InternedPath, expected: u64) -> u
 #[tokio::test]
 async fn watcher_accuracy_is_shared_between_instances_and_isolated_from_cache() {
   let temp = tempfile::tempdir().expect("create fixture");
-  let base = temp.path().canonicalize().expect("resolve fixture");
-  let coarse = InternedPath::from(base.join("coarse"));
+  let base = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+    .expect("valid utf-8 fixture path");
+  let coarse = base.join("coarse").expect("valid path");
   fs::write(&coarse, "coarse").expect("create coarse file");
   let round = UNIX_EPOCH + Duration::from_millis(1_700_000_000_000);
   fs::File::options()
@@ -71,9 +69,10 @@ async fn watcher_accuracy_is_shared_between_instances_and_isolated_from_cache() 
   let first = watch_file(&coarse).await;
   assert_accuracy(&first, &coarse, 2000);
 
-  let context = InternedPath::from(base.join("context"));
+  let context = base.join("context").expect("valid path");
   fs::create_dir(&context).expect("create context");
-  fs::create_dir(base.join("context/empty")).expect("create empty child directory");
+  fs::create_dir(base.join("context/empty").expect("valid path"))
+    .expect("create empty child directory");
   let mut directory_options = fs::File::options();
   #[cfg(windows)]
   {
@@ -82,9 +81,12 @@ async fn watcher_accuracy_is_shared_between_instances_and_isolated_from_cache() 
   }
   #[cfg(not(windows))]
   directory_options.read(true);
-  for directory in [base.join("context/empty"), base.join("context")] {
+  for directory in [
+    base.join("context/empty").expect("valid path"),
+    context.clone(),
+  ] {
     directory_options
-      .open(directory)
+      .open(&directory)
       .expect("open directory")
       .set_modified(round)
       .expect("set coarse directory mtime");
@@ -132,7 +134,9 @@ async fn watcher_accuracy_is_shared_between_instances_and_isolated_from_cache() 
     (Duration::from_micros(1500), 10, 2),
     (Duration::ZERO, 10, 0),
   ] {
-    let path = InternedPath::from(base.join(format!("fine-{}", offset.as_nanos())));
+    let path = base
+      .join(&format!("fine-{}", offset.as_nanos()))
+      .expect("valid path");
     fs::write(&path, "fine").expect("create fine file");
     let mtime = round + offset;
     fs::File::options()
@@ -186,7 +190,7 @@ async fn watcher_accuracy_is_shared_between_instances_and_isolated_from_cache() 
         notify::Event::new(notify::EventKind::Modify(notify::event::ModifyKind::Data(
           notify::event::DataChange::Any,
         )))
-        .add_path(path.as_ref().to_path_buf()),
+        .add_path(path.to_std_path_buf()),
       );
       let events = tokio::time::timeout(Duration::from_secs(5), analyzer.next_events())
         .await

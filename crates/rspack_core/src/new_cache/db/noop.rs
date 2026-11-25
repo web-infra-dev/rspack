@@ -1,5 +1,6 @@
 use rayon::iter::ParallelIterator;
 use rspack_error::Result;
+use rspack_fs::AbsPath;
 
 use crate::new_cache::{
   CacheKey,
@@ -9,11 +10,7 @@ use crate::new_cache::{
 pub struct NoopDatabase;
 
 impl NoopDatabase {
-  pub fn open(
-    _base_path: rspack_paths::Utf8PathBuf,
-    _path: rspack_paths::Utf8PathBuf,
-    _readonly: bool,
-  ) -> Result<Self> {
+  pub fn open(_base_path: AbsPath, _path: AbsPath, _readonly: bool) -> Result<Self> {
     Ok(Self)
   }
 

@@ -94,17 +94,12 @@ impl HtmlTemplate {
         path_clean::clean(compilation.options.context.as_path().join("src/index.ejs"))
           .assert_utf8();
 
-      let default_template_content =
-        if let Ok(abs_default_template) = AbsPath::new(default_src_template.as_str()) {
-          compilation
-            .input_filesystem
-            .read_to_string(&abs_default_template)
-            .await
-            .ok()
-        } else {
-          None
-        };
-      if let Some(content) = default_template_content {
+      if let Ok(default_template) = AbsPath::new(default_src_template.as_str())
+        && let Ok(content) = compilation
+          .input_filesystem
+          .read_to_string(&default_template)
+          .await
+      {
         Ok(Self {
           render: TemplateRender::Template(content),
           url: default_src_template.as_str().to_string(),

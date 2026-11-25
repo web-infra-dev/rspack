@@ -8,7 +8,12 @@ use std::{
 use rspack_intern::{InternSliceStorage, InternedSlice, SliceInternable};
 use rustc_hash::FxHasher;
 
-use super::normalize::{PathFlavor, abs_join, abs_parent, abs_strip_prefix, normalize_abs_path};
+use super::{
+  normalize::{
+    PathFlavor, abs_join, abs_parent, abs_relative_to, abs_strip_prefix, normalize_abs_path,
+  },
+  rel_path::RelPath,
+};
 use crate::{Error, Result};
 
 struct AbsPathInner;
@@ -40,10 +45,9 @@ pub(crate) fn fx_hash_bytes(bytes: &[u8]) -> u64 {
   hasher.finish()
 }
 
-/// An interned, strictly UTF-8, lexically normalized absolute OS path.
+/// An interned, lexically normalized UTF-8 absolute path.
 ///
-/// Intentionally does NOT implement `rspack_cacheable` / `rkyv` traits so unanchored
-/// absolute paths cannot be persisted directly into `new_cache`.
+/// Convert to [`crate::ProjectPath`] before storing it in the persistent cache.
 #[derive(Clone, PartialEq, Eq)]
 pub struct AbsPath(InternedSlice<AbsPathInner>);
 
@@ -174,7 +178,108 @@ impl AbsPath {
     }
     abs_strip_prefix(self.as_str(), base.as_str(), PathFlavor::HOST)
   }
+
+  #[inline]
+  pub fn file_stem(&self) -> Option<&str> {
+    self.as_utf8_path().file_stem()
+  }
+
+  #[inline]
+  pub fn starts_with(&self, base: &Self) -> bool {
+    self.strip_prefix(base).is_some()
+  }
+
+  #[inline]
+  pub fn ancestors(&self) -> AbsPathAncestors {
+    AbsPathAncestors {
+      next: Some(self.clone()),
+    }
+  }
+
+  pub fn join_rel(&self, rel: &RelPath) -> Self {
+    if rel.is_empty() {
+      return self.clone();
+    }
+    if !rel.escapes_root() {
+      return self.join_normalized_posix_rel(rel.as_str());
+    }
+    let joined = abs_join(self.as_str(), rel.as_str(), PathFlavor::HOST)
+      .expect("validated RelPath cannot fail abs_join");
+    Self::from_normalized(&joined)
+  }
+
+  pub fn relative_to(&self, base: &Self) -> Option<RelPath> {
+    abs_relative_to(self.as_str(), base.as_str(), PathFlavor::HOST).map(RelPath::from_normalized)
+  }
+
+  #[inline]
+  pub fn exists(&self) -> bool {
+    self.as_std_path().exists()
+  }
+
+  #[inline]
+  pub fn try_exists(&self) -> std::io::Result<bool> {
+    self.as_std_path().try_exists()
+  }
+
+  #[inline]
+  pub fn is_file(&self) -> bool {
+    self.as_std_path().is_file()
+  }
+
+  #[inline]
+  pub fn is_dir(&self) -> bool {
+    self.as_std_path().is_dir()
+  }
+
+  #[inline]
+  pub fn is_symlink(&self) -> bool {
+    self.as_std_path().is_symlink()
+  }
+
+  #[inline]
+  pub fn metadata(&self) -> std::io::Result<std::fs::Metadata> {
+    std::fs::metadata(self.as_std_path())
+  }
+
+  #[inline]
+  pub fn symlink_metadata(&self) -> std::io::Result<std::fs::Metadata> {
+    std::fs::symlink_metadata(self.as_std_path())
+  }
+
+  #[inline]
+  pub fn read_link(&self) -> std::io::Result<PathBuf> {
+    std::fs::read_link(self.as_std_path())
+  }
+
+  #[inline]
+  pub fn read_dir(&self) -> std::io::Result<std::fs::ReadDir> {
+    std::fs::read_dir(self.as_std_path())
+  }
+
+  pub fn canonicalize(&self) -> Result<Self> {
+    let canonical = std::fs::canonicalize(self.as_std_path())?;
+    Self::try_from_std_path(&canonical)
+  }
 }
+
+/// Iterator over an [`AbsPath`] and all of its ancestors up to the filesystem root.
+#[derive(Debug, Clone)]
+pub struct AbsPathAncestors {
+  next: Option<AbsPath>,
+}
+
+impl Iterator for AbsPathAncestors {
+  type Item = AbsPath;
+
+  fn next(&mut self) -> Option<Self::Item> {
+    let current = self.next.take()?;
+    self.next = current.parent();
+    Some(current)
+  }
+}
+
+impl std::iter::FusedIterator for AbsPathAncestors {}
 
 impl fmt::Debug for AbsPath {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {

@@ -2,7 +2,7 @@
 use std::ops::Deref;
 
 use dashmap::DashSet as HashSet;
-use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
+use rspack_fs::{AbsPath, AbsPathDashMap, AbsPathDashSet, AbsPathSet};
 use rspack_util::fx_hash::FxDashMap as HashMap;
 
 use super::{Analyzer, WatchPattern};
@@ -48,12 +48,8 @@ impl Analyzer for WatcherRootAnalyzer {
 }
 
 /// Union of three path sets into a fresh set.
-fn union3(
-  a: &InternedPathDashSet,
-  b: &InternedPathDashSet,
-  c: &InternedPathDashSet,
-) -> InternedPathDashSet {
-  let out = InternedPathDashSet::default();
+fn union3(a: &AbsPathDashSet, b: &AbsPathDashSet, c: &AbsPathDashSet) -> AbsPathDashSet {
+  let out = AbsPathDashSet::default();
   for set in [a, b, c] {
     for path in set.iter() {
       out.insert(path.deref().clone());
@@ -63,8 +59,8 @@ fn union3(
 }
 
 /// Set difference `a - b` into a fresh set.
-fn difference(a: &InternedPathDashSet, b: &InternedPathDashSet) -> InternedPathDashSet {
-  let out = InternedPathDashSet::default();
+fn difference(a: &AbsPathDashSet, b: &AbsPathDashSet) -> AbsPathDashSet {
+  let out = AbsPathDashSet::default();
   for path in a.iter() {
     if !b.contains(path.deref()) {
       out.insert(path.deref().clone());
@@ -75,16 +71,16 @@ fn difference(a: &InternedPathDashSet, b: &InternedPathDashSet) -> InternedPathD
 
 #[derive(Debug, Default)]
 struct PathTree {
-  inner: InternedPathDashMap<TreeNode>,
+  inner: AbsPathDashMap<TreeNode>,
 }
 
 impl PathTree {
-  pub fn find_common_root(&self) -> Option<InternedPath> {
+  pub fn find_common_root(&self) -> Option<AbsPath> {
     let root = self.find_root()?;
     Some(self.find_common_root_recursive(root))
   }
 
-  fn find_common_root_recursive(&self, path: InternedPath) -> InternedPath {
+  fn find_common_root_recursive(&self, path: AbsPath) -> AbsPath {
     let node = self
       .inner
       .get(&path)
@@ -103,11 +99,7 @@ impl PathTree {
     }
   }
 
-  pub fn update_paths(
-    &self,
-    added_paths: &InternedPathDashSet,
-    removed_paths: &InternedPathDashSet,
-  ) {
+  pub fn update_paths(&self, added_paths: &AbsPathDashSet, removed_paths: &AbsPathDashSet) {
     for added in added_paths.iter() {
       self.add_path(added.deref());
     }
@@ -116,37 +108,37 @@ impl PathTree {
     }
   }
 
-  pub fn add_path(&self, path: &InternedPath) {
+  pub fn add_path(&self, path: &AbsPath) {
     self.inner.entry(path.clone()).or_default();
     self.add_path_recursive(path);
   }
 
-  pub fn remove_path(&self, path: &InternedPath) {
+  pub fn remove_path(&self, path: &AbsPath) {
     self.inner.remove(path);
     // Detach from the PARENT's child set. The previous code removed `path` from
     // its own set (a no-op), leaving a stale child reference on the parent that
     // could later surface as a tree node that no longer exists.
-    if let Some(parent) = path.parent().map(InternedPath::from)
+    if let Some(parent) = path.parent()
       && let Some(mut parent_node) = self.inner.get_mut(&parent)
     {
       parent_node.children.remove(path);
     }
   }
 
-  fn find_root(&self) -> Option<InternedPath> {
+  fn find_root(&self) -> Option<AbsPath> {
     // Start from the current path and find the root recursively
     let path = self.inner.iter().next()?.key().clone();
     Some(self.find_root_recursive(path))
   }
 
-  fn find_root_recursive(&self, path: InternedPath) -> InternedPath {
+  fn find_root_recursive(&self, path: AbsPath) -> AbsPath {
     // If the path is already a root, return it
 
     match path.parent() {
       Some(parent) => {
         // If the parent exists in the tree, continue searching up
-        if self.inner.get(&InternedPath::from(parent)).is_some() {
-          self.find_root_recursive(InternedPath::from(parent))
+        if self.inner.get(&parent).is_some() {
+          self.find_root_recursive(parent)
         } else {
           path
         }
@@ -155,32 +147,32 @@ impl PathTree {
     }
   }
 
-  fn add_path_recursive(&self, path: &InternedPath) {
+  fn add_path_recursive(&self, path: &AbsPath) {
     let tree = &self.inner;
     if let Some(parent) = path.parent() {
-      if let Some(mut node) = tree.get_mut(&InternedPath::from(parent)) {
+      if let Some(mut node) = tree.get_mut(&parent) {
         node.add_child(path.clone());
         return;
       }
       let mut parent_node = TreeNode::default();
       parent_node.add_child(path.clone());
-      tree.insert(InternedPath::from(parent), parent_node);
-      self.add_path_recursive(&InternedPath::from(parent))
+      tree.insert(parent.clone(), parent_node);
+      self.add_path_recursive(&parent)
     }
   }
 }
 
 #[derive(Debug, Default)]
 struct TreeNode {
-  children: InternedPathSet,
+  children: AbsPathSet,
 }
 
 impl TreeNode {
-  fn add_child(&mut self, child: InternedPath) {
+  fn add_child(&mut self, child: AbsPath) {
     self.children.insert(child);
   }
 
-  fn only_child(&self) -> Option<InternedPath> {
+  fn only_child(&self) -> Option<AbsPath> {
     if self.children.len() == 1 {
       self.children.iter().next().cloned()
     } else {
@@ -191,18 +183,21 @@ impl TreeNode {
 
 #[cfg(test)]
 mod tests {
-  use rspack_paths::InternedPath;
+  use rspack_fs::AbsPath;
 
   use super::*;
   use crate::paths::PathManager;
 
   #[tokio::test]
   async fn test_find_watch_root() {
-    let current_dir = std::env::current_dir().expect("Failed to get current directory");
-    let file_0 = InternedPath::from(current_dir.join("Cargo.toml"));
-    let file_1 = InternedPath::from(current_dir.join("src/lib.rs"));
-    let dir_0 = InternedPath::from(current_dir.clone());
-    let dir_1 = InternedPath::from(current_dir.join("src"));
+    let current_dir = AbsPath::try_from_std_path(
+      &std::env::current_dir().expect("Failed to get current directory"),
+    )
+    .expect("valid cwd");
+    let file_0 = current_dir.join("Cargo.toml").unwrap();
+    let file_1 = current_dir.join("src/lib.rs").unwrap();
+    let dir_0 = current_dir.clone();
+    let dir_1 = current_dir.join("src").unwrap();
     let path_manager = PathManager::default();
     let files = (vec![file_0, file_1].into_iter(), vec![].into_iter());
     let dirs = (vec![dir_0, dir_1].into_iter(), vec![].into_iter());
@@ -213,22 +208,25 @@ mod tests {
     let watch_patterns = analyzer.analyze(path_manager.access());
 
     assert_eq!(watch_patterns.len(), 1);
-    assert_eq!(watch_patterns[0].path, InternedPath::from(current_dir));
+    assert_eq!(watch_patterns[0].path, current_dir);
     assert_eq!(watch_patterns[0].mode, notify::RecursiveMode::Recursive);
   }
 
   #[tokio::test]
   async fn test_find_with_missing() {
-    let current_dir = std::env::current_dir().expect("Failed to get current directory");
+    let current_dir = AbsPath::try_from_std_path(
+      &std::env::current_dir().expect("Failed to get current directory"),
+    )
+    .expect("valid cwd");
 
     let path_manager = PathManager::default();
     let files = (vec![].into_iter(), vec![].into_iter());
     let dirs = (vec![].into_iter(), vec![].into_iter());
     let missing = (
       vec![
-        current_dir.join("_missing").join("a").into(),
-        current_dir.join("_missing").join("b").into(),
-        current_dir.join("_missing").join("c.js").into(),
+        current_dir.join("_missing/a").unwrap(),
+        current_dir.join("_missing/b").unwrap(),
+        current_dir.join("_missing/c.js").unwrap(),
       ]
       .into_iter(),
       vec![].into_iter(),
@@ -240,14 +238,17 @@ mod tests {
     let watch_patterns = analyzer.analyze(path_manager.access());
 
     assert_eq!(watch_patterns.len(), 1);
-    assert_eq!(watch_patterns[0].path, InternedPath::from(current_dir));
+    assert_eq!(watch_patterns[0].path, current_dir);
   }
 
   #[test]
   fn test_remove_path_detaches_from_parent() {
-    let base = std::env::current_dir().expect("Failed to get current directory");
-    let dir = InternedPath::from(base.join("a"));
-    let leaf = InternedPath::from(base.join("a").join("b.js"));
+    let base = AbsPath::try_from_std_path(
+      &std::env::current_dir().expect("Failed to get current directory"),
+    )
+    .expect("valid cwd");
+    let dir = base.join("a").unwrap();
+    let leaf = base.join("a/b.js").unwrap();
 
     let tree = PathTree::default();
     tree.add_path(&leaf); // builds `a` as an ancestor whose child is `b.js`
@@ -282,9 +283,9 @@ mod tests {
     // union-difference must cancel it, so the shared tree neither re-adds nor
     // deletes it — keeping the tree connected so `find_common_root` cannot land
     // on a non-existent orphan root and panic.
-    let base = std::env::current_dir().expect("cwd");
-    let sm = InternedPath::from(base.join("__mig__").join("some-module"));
-    let sub = |s: &str| InternedPath::from(base.join("__mig__").join("some-module").join(s));
+    let base = AbsPath::try_from_std_path(&std::env::current_dir().expect("cwd")).unwrap();
+    let sm = base.join("__mig__/some-module").unwrap();
+    let sub = |s: &str| sm.join(s).unwrap();
 
     let pm = PathManager::default();
     let analyzer = WatcherRootAnalyzer::default();

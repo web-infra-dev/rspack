@@ -3,11 +3,12 @@
 //! The filesystem accuracy is process-wide and only narrows, so this test runs
 //! in its own binary: nothing has narrowed it before it starts.
 
+use rspack_fs::AbsPath;
 use rspack_watcher::{FsWatcher, FsWatcherOptions, TimeInfoEntry};
 
 mod helpers;
 
-fn set_modified(path: &std::path::Path, when: std::time::SystemTime) -> std::io::Result<()> {
+fn set_modified(path: &AbsPath, when: std::time::SystemTime) -> std::io::Result<()> {
   let mut options = std::fs::File::options();
   #[cfg(windows)]
   {
@@ -56,16 +57,13 @@ fn a_recorded_accuracy_narrows_with_the_filesystem_accuracy() {
   std::fs::create_dir_all(helper.join("ctx")).unwrap();
   helper.file("ctx/coarse");
   for name in ["ctx/coarse", "ctx"] {
-    set_modified(helper.join(name).as_std_path(), round).unwrap();
+    set_modified(&helper.join(name), round).unwrap();
   }
 
   let _rx = helper.watch(
-    (std::iter::empty(), std::iter::empty()),
-    (
-      vec![rspack_paths::InternedPath::from("ctx")].into_iter(),
-      std::iter::empty(),
-    ),
-    (std::iter::empty(), std::iter::empty()),
+    (std::iter::empty::<&str>(), std::iter::empty::<&str>()),
+    (vec!["ctx"].into_iter(), std::iter::empty::<&str>()),
+    (std::iter::empty::<&str>(), std::iter::empty::<&str>()),
   );
   std::thread::sleep(std::time::Duration::from_millis(300));
   let (_, _, accuracy) = accuracy_of(&helper, "ctx/coarse");
@@ -78,17 +76,14 @@ fn a_recorded_accuracy_narrows_with_the_filesystem_accuracy() {
   std::fs::create_dir_all(helper.join("ctx2")).unwrap();
   helper.file("ctx2/fine");
   set_modified(
-    helper.join("ctx2/fine").as_std_path(),
+    &helper.join("ctx2/fine"),
     round + std::time::Duration::from_millis(1),
   )
   .unwrap();
   let _rx = helper.watch(
-    (std::iter::empty(), std::iter::empty()),
-    (
-      vec![rspack_paths::InternedPath::from("ctx2")].into_iter(),
-      std::iter::empty(),
-    ),
-    (std::iter::empty(), std::iter::empty()),
+    (std::iter::empty::<&str>(), std::iter::empty::<&str>()),
+    (vec!["ctx2"].into_iter(), std::iter::empty::<&str>()),
+    (std::iter::empty::<&str>(), std::iter::empty::<&str>()),
   );
 
   let (safe_time, timestamp, accuracy) = accuracy_of(&helper, "ctx/coarse");

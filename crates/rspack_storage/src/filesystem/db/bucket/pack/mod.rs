@@ -77,7 +77,7 @@ impl Pack {
   ///
   /// The index includes a bloom filter for fast key lookups and a content hash for integrity.
   pub async fn save(&self, fs: &ScopeFileSystem, id: PackId) -> Result<PackIndex> {
-    let mut writer = fs.stream_write(id.pack_name()).await?;
+    let mut writer = fs.stream_write(&id.pack_name()).await?;
 
     let mut index_gen = IndexGenerator::default();
     for (key, value) in &self.data {
@@ -121,7 +121,7 @@ mod test {
   #[cfg_attr(miri, ignore)]
   async fn test_pack() -> Result<()> {
     let pack_id = PackId::new(10);
-    let fs = ScopeFileSystem::new_memory_fs("/bucket1".into());
+    let fs = ScopeFileSystem::new_memory_fs("/bucket1");
     fs.ensure_exist().await?;
 
     // pack not found

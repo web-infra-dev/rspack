@@ -7,7 +7,8 @@ use std::{
   time::Duration,
 };
 
-use rspack_paths::{InternedPathSet, Utf8PathBuf};
+use rspack_fs::AbsPath;
+use rspack_paths::InternedPathSet;
 use tokio::{
   sync::mpsc,
   time::{Instant, sleep_until},
@@ -51,7 +52,7 @@ struct BackgroundJob {
 }
 
 impl BackgroundJob {
-  async fn run(mut self, database_paths: (Utf8PathBuf, Utf8PathBuf)) {
+  async fn run(mut self, database_paths: (AbsPath, AbsPath)) {
     self.strategy.db_init(database_paths).await;
 
     let idle_epoch = Arc::clone(&self.idle_epoch);
@@ -157,7 +158,7 @@ pub struct IdleFileCache {
 
 impl IdleFileCache {
   pub fn new(
-    database_paths: (Utf8PathBuf, Utf8PathBuf),
+    database_paths: (AbsPath, AbsPath),
     strategy: FileCacheStrategy,
     logger: Arc<InfrastructureLogger>,
     idle_timeout: Option<Duration>,

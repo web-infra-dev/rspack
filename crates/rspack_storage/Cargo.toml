@@ -20,7 +20,6 @@ rspack-allocative = { workspace = true, optional = true }
 rspack_error      = { workspace = true }
 rspack_fs         = { workspace = true }
 rspack_parallel   = { workspace = true }
-rspack_paths      = { workspace = true }
 rustc-hash        = { workspace = true }
 tokio             = { workspace = true, features = ["sync", "time"] }
 

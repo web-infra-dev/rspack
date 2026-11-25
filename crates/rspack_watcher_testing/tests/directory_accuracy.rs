@@ -7,18 +7,17 @@ use notify::{
   Event, EventKind,
   event::{MetadataKind, ModifyKind},
 };
-use rspack_paths::InternedPath;
-use rspack_util::fx_hash::FxHashSet;
+use rspack_fs::{AbsPath, AbsPathSet};
 use rspack_watcher::{
   EventAggregateHandler, EventHandler, FsEventKind, FsWatcher, FsWatcherOptions, TimeInfoEntry,
   testing::DirectoryAnalyzer,
 };
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
-struct Handler(Option<UnboundedSender<String>>);
+struct Handler(Option<UnboundedSender<AbsPath>>);
 
 impl EventAggregateHandler for Handler {
-  fn on_event_handle(&self, changed: FxHashSet<String>, _: FxHashSet<String>) {
+  fn on_event_handle(&self, changed: AbsPathSet, _: AbsPathSet) {
     if let Some(tx) = &self.0 {
       for path in changed {
         let _ = tx.send(path);
@@ -28,7 +27,7 @@ impl EventAggregateHandler for Handler {
 }
 impl EventHandler for Handler {}
 
-fn set_modified(path: &InternedPath, mtime: SystemTime) {
+fn set_modified(path: &AbsPath, mtime: SystemTime) {
   let mut options = fs::File::options();
   #[cfg(windows)]
   {
@@ -44,12 +43,7 @@ fn set_modified(path: &InternedPath, mtime: SystemTime) {
     .expect("set fixture mtime");
 }
 
-async fn watch(
-  watcher: &FsWatcher,
-  files: Vec<InternedPath>,
-  contexts: Vec<InternedPath>,
-  handler: Handler,
-) {
+async fn watch(watcher: &FsWatcher, files: Vec<AbsPath>, contexts: Vec<AbsPath>, handler: Handler) {
   watcher
     .watch(
       (files.into_iter(), std::iter::empty()),
@@ -62,11 +56,11 @@ async fn watch(
     .await;
 }
 
-fn assert_accuracy(watcher: &FsWatcher, file: &InternedPath, expected: u64) {
+fn assert_accuracy(watcher: &FsWatcher, file: &AbsPath, expected: u64) {
   let (entries, _) = watcher.collect_time_info_entries();
   let (_, entry) = entries
     .iter()
-    .find(|(name, _)| name == &file.to_string_lossy())
+    .find(|(name, _)| name == file)
     .expect("file entry");
   let TimeInfoEntry::Entry {
     accuracy,
@@ -84,17 +78,18 @@ fn assert_accuracy(watcher: &FsWatcher, file: &InternedPath, expected: u64) {
 #[tokio::test]
 async fn directory_mtimes_narrow_accuracy_during_scans_and_events() {
   let temp = tempfile::tempdir().expect("create fixture");
-  let base = temp.path().canonicalize().expect("resolve fixture");
+  let base = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+    .expect("valid utf-8 fixture path");
   let round = UNIX_EPOCH + Duration::from_millis(1_700_000_000_000);
-  let coarse = InternedPath::from(base.join("coarse"));
+  let coarse = base.join("coarse").expect("valid path");
   fs::write(&coarse, "coarse").expect("create coarse file");
   set_modified(&coarse, round);
   let first = FsWatcher::new(Default::default(), Default::default());
   watch(&first, vec![coarse.clone()], vec![], Handler(None)).await;
   assert_accuracy(&first, &coarse, 2000);
 
-  let context = InternedPath::from(base.join("context"));
-  let child = InternedPath::from(base.join("context/empty"));
+  let context = base.join("context").expect("valid path");
+  let child = base.join("context/empty").expect("valid path");
   fs::create_dir_all(&child).expect("create old empty directory");
   set_modified(&child, round + Duration::from_millis(100));
   set_modified(&context, round);
@@ -134,14 +129,14 @@ async fn directory_mtimes_narrow_accuracy_during_scans_and_events() {
   set_modified(&child, round + Duration::from_millis(10));
   analyzer.on_native_event(
     Event::new(EventKind::Modify(ModifyKind::Metadata(MetadataKind::Any)))
-      .add_path(child.as_ref().to_path_buf()),
+      .add_path(child.to_std_path_buf()),
   );
   tokio::time::timeout(Duration::from_secs(5), analyzer.next_events())
     .await
     .expect("report directory event");
   assert_accuracy(&first, &coarse, 100);
 
-  let scanned = InternedPath::from(base.join("scanned"));
+  let scanned = base.join("scanned").expect("valid path");
   fs::create_dir(&scanned).expect("create scanned directory");
   set_modified(&scanned, round + Duration::from_millis(1));
   let mut scanner = DirectoryAnalyzer::default();

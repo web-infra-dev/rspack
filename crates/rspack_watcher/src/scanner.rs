@@ -1,6 +1,6 @@
 use std::{ops::Deref, sync::Arc, time::SystemTime};
 
-use rspack_paths::{InternedPath, InternedPathDashSet};
+use rspack_fs::{AbsPath, AbsPathDashSet};
 use rspack_util::time::system_time_to_millis;
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -54,9 +54,7 @@ impl Scanner {
       let files_path_manager = Arc::clone(&self.path_manager);
       tokio::spawn(async move {
         // A file is there as `lstat` sees it, so a dangling link counts.
-        let mut removed = absent_paths(&files, &missing, |path| {
-          std::fs::symlink_metadata(path).is_ok()
-        });
+        let mut removed = absent_paths(&files, &missing, |path| path.symlink_metadata().is_ok());
         removed.retain(|path| !files_path_manager.is_known_absent(path));
         let changed = files
           .iter()
@@ -138,10 +136,10 @@ impl Scanner {
 /// The registered `paths` not `present` on disk (a registered-missing path
 /// is expected to be absent and is not one of them).
 fn absent_paths(
-  paths: &[InternedPath],
-  missing: &InternedPathDashSet,
-  present: impl Fn(&InternedPath) -> bool,
-) -> Vec<InternedPath> {
+  paths: &[AbsPath],
+  missing: &AbsPathDashSet,
+  present: impl Fn(&AbsPath) -> bool,
+) -> Vec<AbsPath> {
   paths
     .iter()
     .filter(|path| !present(path) && !missing.contains(*path))
@@ -149,11 +147,7 @@ fn absent_paths(
     .collect()
 }
 
-fn send_events(
-  paths: Vec<InternedPath>,
-  kind: FsEventKind,
-  tx: &UnboundedSender<EventBatch>,
-) -> bool {
+fn send_events(paths: Vec<AbsPath>, kind: FsEventKind, tx: &UnboundedSender<EventBatch>) -> bool {
   if paths.is_empty() {
     return true;
   }
@@ -168,7 +162,7 @@ fn send_events(
 /// watchpack's accuracy padding ([`mtime_safe_time`]) so a change hidden by
 /// coarse mtime granularity is still caught. A failed stat (missing/unreadable)
 /// counts as unchanged.
-fn changed_since(path: &InternedPath, start_time: SystemTime) -> bool {
+fn changed_since(path: &AbsPath, start_time: SystemTime) -> bool {
   let Ok(metadata) = path.metadata() else {
     return false;
   };
@@ -184,27 +178,30 @@ fn changed_since(path: &InternedPath, start_time: SystemTime) -> bool {
 
 #[cfg(test)]
 mod tests {
-  use rspack_paths::InternedPath;
+  use rspack_fs::AbsPath;
 
   use super::*;
 
   #[tokio::test]
   async fn test_scan() {
-    let current_dir = std::env::current_dir().expect("Failed to get current directory");
+    let current_dir = AbsPath::try_from_std_path(
+      &std::env::current_dir().expect("Failed to get current directory"),
+    )
+    .expect("valid cwd");
     let path_manager = PathManager::default();
 
     let files = (
-      vec![current_dir.join("___test_file.txt").into()].into_iter(),
+      vec![current_dir.join("___test_file.txt").unwrap()].into_iter(),
       vec![].into_iter(),
     );
 
     let dirs = (
-      vec![current_dir.join("___test_dir/a/b/c").into()].into_iter(),
+      vec![current_dir.join("___test_dir/a/b/c").unwrap()].into_iter(),
       vec![].into_iter(),
     );
 
     let missing = (
-      vec![current_dir.join("___missing_file.txt").into()].into_iter(),
+      vec![current_dir.join("___missing_file.txt").unwrap()].into_iter(),
       vec![].into_iter(),
     );
     path_manager.update(files, dirs, missing).await.unwrap();
@@ -229,11 +226,11 @@ mod tests {
     assert_eq!(collected_events.len(), 2);
 
     assert!(collected_events.contains(&vec![FsEvent {
-      path: InternedPath::from(current_dir.join("___test_file.txt")),
+      path: current_dir.join("___test_file.txt").unwrap(),
       kind: FsEventKind::Remove
     }]));
     assert!(collected_events.contains(&vec![FsEvent {
-      path: InternedPath::from(current_dir.join("___test_dir/a/b/c")),
+      path: current_dir.join("___test_dir/a/b/c").unwrap(),
       kind: FsEventKind::Remove,
     }]));
   }
@@ -257,12 +254,13 @@ mod tests {
     use std::{collections::HashSet, time::Duration};
 
     let dir = tempfile::tempdir().expect("create temp dir");
-    let changed = InternedPath::from(dir.path().join("changed.js").as_path());
-    let unchanged = InternedPath::from(dir.path().join("unchanged.js").as_path());
-    std::fs::write(changed.as_ref(), b"a").expect("write changed");
-    std::fs::write(unchanged.as_ref(), b"b").expect("write unchanged");
+    let dir_path = AbsPath::try_from_std_path(dir.path()).expect("valid temp dir");
+    let changed = dir_path.join("changed.js").unwrap();
+    let unchanged = dir_path.join("unchanged.js").unwrap();
+    std::fs::write(&changed, b"a").expect("write changed");
+    std::fs::write(&unchanged, b"b").expect("write unchanged");
     // `unchanged` is parked well before start_time; `changed` keeps its ~now mtime.
-    set_mtime_in_past(unchanged.as_ref(), Duration::from_secs(3600));
+    set_mtime_in_past(&unchanged, Duration::from_secs(3600));
 
     let path_manager = Arc::new(PathManager::default());
     path_manager
@@ -311,8 +309,9 @@ mod tests {
     use std::{collections::HashSet, time::Duration};
 
     let dir = tempfile::tempdir().expect("create temp dir");
-    let created = InternedPath::from(dir.path().join("created.js").as_path());
-    let still_missing = InternedPath::from(dir.path().join("still_missing.js").as_path());
+    let dir_path = AbsPath::try_from_std_path(dir.path()).expect("valid temp dir");
+    let created = dir_path.join("created.js").unwrap();
+    let still_missing = dir_path.join("still_missing.js").unwrap();
 
     let path_manager = Arc::new(PathManager::default());
     path_manager
@@ -329,7 +328,7 @@ mod tests {
 
     // start_time is in the past; the missing dep is created "now", after it.
     let start_time = SystemTime::now() - Duration::from_secs(5);
-    std::fs::write(created.as_ref(), b"new").expect("create file");
+    std::fs::write(&created, b"new").expect("create file");
 
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     let mut scanner = Scanner::new(tx, path_manager.clone());

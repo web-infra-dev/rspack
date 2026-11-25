@@ -4306,7 +4306,9 @@ version = "0.103.4"
 dependencies = [
  "async-trait",
  "camino",
+ "dashmap",
  "dunce",
+ "indexmap",
  "pnp",
  "rspack_cacheable",
  "rspack_error",
@@ -4366,7 +4368,6 @@ dependencies = [
  "rspack_fs",
  "rspack_hash",
  "rspack_hook",
- "rspack_paths",
  "rspack_util",
  "rustc-hash",
  "serde_json",
@@ -4798,7 +4799,6 @@ dependencies = [
  "rspack_hash",
  "rspack_hook",
  "rspack_intern",
- "rspack_paths",
  "rspack_plugin_externals",
  "rspack_util",
  "rustc-hash",
@@ -5603,7 +5603,6 @@ dependencies = [
  "rspack_error",
  "rspack_fs",
  "rspack_parallel",
- "rspack_paths",
  "rustc-hash",
  "tokio",
 ]
@@ -5635,21 +5634,6 @@ dependencies = [
 name = "rspack_tasks"
 version = "0.103.4"
 dependencies = [
- "tokio",
-]
-
-[[package]]
-name = "rspack_tools"
-version = "0.103.4"
-dependencies = [
- "clap",
- "itertools 0.14.0",
- "rspack_cacheable",
- "rspack_core",
- "rspack_error",
- "rspack_fs",
- "rspack_paths",
- "rustc-hash",
  "tokio",
 ]
 
@@ -5727,7 +5711,7 @@ dependencies = [
  "notify",
  "regex",
  "rspack_error",
- "rspack_paths",
+ "rspack_fs",
  "rspack_regex",
  "rspack_util",
  "tempfile",
@@ -5741,7 +5725,7 @@ version = "0.103.4"
 dependencies = [
  "notify",
  "rspack_error",
- "rspack_paths",
+ "rspack_fs",
  "rspack_util",
  "rspack_watcher",
  "tempfile",

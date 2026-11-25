@@ -2,7 +2,6 @@
 
 use std::{
   mem::ManuallyDrop,
-  path::PathBuf,
   sync::{
     Arc, Condvar, Mutex,
     mpsc::{Receiver, Sender},
@@ -10,8 +9,7 @@ use std::{
   time::SystemTime,
 };
 
-use rspack_paths::{InternedPath, Utf8PathBuf};
-use rspack_util::fx_hash::FxHashSet;
+use rspack_fs::{AbsOrRelPath, AbsPath, AbsPathSet};
 use rspack_watcher::{
   EventAggregateHandler, EventHandler, FsWatcher, TimeInfoEntries, TimeInfoEntry,
 };
@@ -25,38 +23,30 @@ pub struct TestHelper {
   ///
   /// on macOS, TempDir::path() returns a path with symlink (/var -> /private/var),
   /// which causes issues when matching paths. Therefore, we use the canonicalized path.
-  canonicalized_temp_dir: PathBuf,
+  canonicalized_temp_dir: AbsPath,
   /// File system watcher instance
   watcher: Arc<RwLock<FsWatcher>>,
 }
 
 #[derive(Debug, Clone)]
 pub struct AggregatedEvent {
-  pub changed_files: FxHashSet<String>,
-  pub deleted_files: FxHashSet<String>,
+  pub changed_files: AbsPathSet,
+  pub deleted_files: AbsPathSet,
 }
 
 impl AggregatedEvent {
-  pub fn assert_changed(&self, expected: impl AsRef<str>) {
+  pub fn assert_changed(&self, expected: &AbsPath) {
     assert!(
-      self
-        .changed_files
-        .iter()
-        .any(|path| path == expected.as_ref()),
-      "Expected changed files to contain a path of '{}', but got '{:?}'",
-      expected.as_ref(),
+      self.changed_files.contains(expected),
+      "Expected changed files to contain a path of '{expected}', but got '{:?}'",
       self.changed_files
     );
   }
 
-  pub fn assert_deleted(&self, expected: impl AsRef<str>) {
+  pub fn assert_deleted(&self, expected: &AbsPath) {
     assert!(
-      self
-        .deleted_files
-        .iter()
-        .any(|path| path == expected.as_ref()),
-      "Expected deleted files to contain a path of '{}', but got '{:?}'",
-      expected.as_ref(),
+      self.deleted_files.contains(expected),
+      "Expected deleted files to contain a path of '{expected}', but got '{:?}'",
       self.deleted_files
     );
   }
@@ -64,51 +54,40 @@ impl AggregatedEvent {
 
 #[derive(Debug, Clone)]
 pub enum ChangedEvent {
-  Changed(String),
-  Deleted(String),
+  Changed(AbsPath),
+  Deleted(AbsPath),
 }
 
 impl ChangedEvent {
-  pub fn assert_changed(&self, expected: impl AsRef<str>) {
+  pub fn assert_changed(&self, expected: &AbsPath) {
     match self {
       ChangedEvent::Changed(path) => assert_eq!(
-        path,
-        expected.as_ref(),
-        "Expected changed path to be '{}', but got '{}'",
-        expected.as_ref(),
-        path
+        path, expected,
+        "Expected changed path to be '{expected}', but got '{path}'"
       ),
-      ChangedEvent::Deleted(_) => panic!(
-        "Expected changed event, but got deleted event for '{}'",
-        expected.as_ref()
-      ),
+      ChangedEvent::Deleted(_) => {
+        panic!("Expected changed event, but got deleted event for '{expected}'")
+      }
     }
   }
 
-  pub fn assert_deleted(&self, expected: impl AsRef<str>) {
+  pub fn assert_deleted(&self, expected: &AbsPath) {
     match self {
       ChangedEvent::Deleted(path) => assert_eq!(
-        path,
-        expected.as_ref(),
-        "Expected deleted path to be '{}', but got '{}'",
-        expected.as_ref(),
-        path
+        path, expected,
+        "Expected deleted path to be '{expected}', but got '{path}'"
       ),
-      ChangedEvent::Changed(_) => panic!(
-        "Expected deleted event, but got changed event for '{}'",
-        expected.as_ref()
-      ),
+      ChangedEvent::Changed(_) => {
+        panic!("Expected deleted event, but got changed event for '{expected}'")
+      }
     }
   }
 
-  pub fn assert_path(&self, expected: impl AsRef<str>) {
+  pub fn assert_path(&self, expected: &AbsPath) {
     match self {
       ChangedEvent::Changed(path) | ChangedEvent::Deleted(path) => assert_eq!(
-        path,
-        expected.as_ref(),
-        "Expected path to be '{}', but got '{}'",
-        expected.as_ref(),
-        path
+        path, expected,
+        "Expected path to be '{expected}', but got '{path}'"
       ),
     }
   }
@@ -137,7 +116,8 @@ impl TestHelper {
   /// Creates a new `TestHelper` instance
   pub fn new(watcher: impl FnOnce() -> FsWatcher) -> Self {
     let temp_dir = TempDir::new().expect("Failed to create temp dir");
-    let canonicalized_temp_dir = temp_dir.path().canonicalize().unwrap();
+    let canonicalized_temp_dir =
+      AbsPath::try_from_std_path(&temp_dir.path().canonicalize().unwrap()).unwrap();
     let watcher = watcher();
     Self {
       temp_dir: ManuallyDrop::new(temp_dir),
@@ -146,8 +126,14 @@ impl TestHelper {
     }
   }
 
-  pub fn join(&self, name: &str) -> Utf8PathBuf {
-    Utf8PathBuf::from(self.canonicalized_temp_dir.join(name).to_str().unwrap())
+  pub fn join(&self, name: &str) -> AbsPath {
+    self.canonicalized_temp_dir.join(name).unwrap()
+  }
+
+  fn resolve_path(&self, raw: impl AsRef<str>) -> AbsPath {
+    AbsOrRelPath::new(raw.as_ref())
+      .expect("valid test path")
+      .resolve(&self.canonicalized_temp_dir)
   }
 
   pub fn file(&self, name: &str) {
@@ -198,7 +184,7 @@ impl TestHelper {
 
   /// Deliver `kind` for `name` as if the OS had reported it.
   pub fn trigger_event(&self, name: &str, kind: rspack_watcher::FsEventKind) {
-    let path = InternedPath::from(self.canonicalized_temp_dir.join(name));
+    let path = self.join(name);
     self.watcher.blocking_read().trigger_event(&path, kind);
   }
 
@@ -207,12 +193,12 @@ impl TestHelper {
   }
 
   /// watchpack's `aggregatedChanges` / `aggregatedRemovals`.
-  pub fn peek_aggregated(&self) -> (FxHashSet<String>, FxHashSet<String>) {
+  pub fn peek_aggregated(&self) -> (AbsPathSet, AbsPathSet) {
     self.watcher.blocking_read().peek_aggregated()
   }
 
   /// [`Self::peek_aggregated`], drained.
-  pub fn take_aggregated(&self) -> (FxHashSet<String>, FxHashSet<String>) {
+  pub fn take_aggregated(&self) -> (AbsPathSet, AbsPathSet) {
     self.watcher.blocking_read().take_aggregated()
   }
 
@@ -231,7 +217,7 @@ impl TestHelper {
     let path = self.join(name);
     entries
       .iter()
-      .find(|(entry_path, _)| entry_path == path.as_str())
+      .find(|(entry_path, _)| entry_path == &path)
       .map_or_else(
         || panic!("no time-info entry for {path}"),
         |(_, entry)| entry,
@@ -244,16 +230,16 @@ impl TestHelper {
   pub fn watch(
     &mut self,
     files: (
-      impl Iterator<Item = InternedPath>,
-      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = impl AsRef<str>>,
+      impl Iterator<Item = impl AsRef<str>>,
     ),
     directories: (
-      impl Iterator<Item = InternedPath>,
-      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = impl AsRef<str>>,
+      impl Iterator<Item = impl AsRef<str>>,
     ),
     missing: (
-      impl Iterator<Item = InternedPath>,
-      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = impl AsRef<str>>,
+      impl Iterator<Item = impl AsRef<str>>,
     ),
   ) -> Receiver<Event> {
     self.watch_since(files, directories, missing, SystemTime::now())
@@ -264,16 +250,16 @@ impl TestHelper {
   pub fn watch_since(
     &mut self,
     files: (
-      impl Iterator<Item = InternedPath>,
-      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = impl AsRef<str>>,
+      impl Iterator<Item = impl AsRef<str>>,
     ),
     directories: (
-      impl Iterator<Item = InternedPath>,
-      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = impl AsRef<str>>,
+      impl Iterator<Item = impl AsRef<str>>,
     ),
     missing: (
-      impl Iterator<Item = InternedPath>,
-      impl Iterator<Item = InternedPath>,
+      impl Iterator<Item = impl AsRef<str>>,
+      impl Iterator<Item = impl AsRef<str>>,
     ),
     start_time: SystemTime,
   ) -> Receiver<Event> {
@@ -286,14 +272,8 @@ impl TestHelper {
 
     macro_rules! collect_paths {
       ($expr:expr) => {{
-        let left = $expr
-          .0
-          .map(|p| InternedPath::from(self.canonicalized_temp_dir.join(p)))
-          .collect::<Vec<_>>();
-        let right = $expr
-          .1
-          .map(|p| InternedPath::from(self.canonicalized_temp_dir.join(p)))
-          .collect::<Vec<_>>();
+        let left = $expr.0.map(|p| self.resolve_path(p)).collect::<Vec<_>>();
+        let right = $expr.1.map(|p| self.resolve_path(p)).collect::<Vec<_>>();
         (left, right)
       }};
     }
@@ -339,11 +319,7 @@ impl TestHelper {
     struct AggregateHandler(Sender<Event>);
 
     impl EventAggregateHandler for AggregateHandler {
-      fn on_event_handle(
-        &self,
-        changed_files: FxHashSet<String>,
-        deleted_files: FxHashSet<String>,
-      ) {
+      fn on_event_handle(&self, changed_files: AbsPathSet, deleted_files: AbsPathSet) {
         let _ = self.0.send(Event::Aggregated(AggregatedEvent {
           changed_files,
           deleted_files,
@@ -354,14 +330,14 @@ impl TestHelper {
     struct ChangeHandler(Sender<Event>);
 
     impl EventHandler for ChangeHandler {
-      fn on_change(&self, changed_file: String) -> rspack_error::Result<()> {
+      fn on_change(&self, changed_file: AbsPath) -> rspack_error::Result<()> {
         let _ = self
           .0
           .send(Event::Changed(ChangedEvent::Changed(changed_file)));
         Ok(())
       }
 
-      fn on_delete(&self, deleted_file: String) -> rspack_error::Result<()> {
+      fn on_delete(&self, deleted_file: AbsPath) -> rspack_error::Result<()> {
         let _ = self
           .0
           .send(Event::Changed(ChangedEvent::Deleted(deleted_file)));

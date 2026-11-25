@@ -1,14 +1,13 @@
 use std::{
   boxed::Box,
-  path::{Path, PathBuf},
   sync::{Arc, Mutex},
   time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 use napi::{Either, bindgen_prelude::*};
 use napi_derive::*;
+use rspack_fs::{AbsPath, AbsPathSet};
 use rspack_napi::threadsafe_function::ThreadsafeFunction;
-use rspack_paths::InternedPath;
 use rspack_regex::RspackRegex;
 use rspack_watcher::{
   FsEventKind, FsWatcher, FsWatcherIgnored, FsWatcherIgnoredItem, FsWatcherOptions, IgnoredFn,
@@ -81,6 +80,21 @@ pub struct NativeWatcherOptions {
 pub struct NativeWatchResult {
   pub changed_files: Vec<String>,
   pub removed_files: Vec<String>,
+}
+
+impl From<(AbsPathSet, AbsPathSet)> for NativeWatchResult {
+  fn from((changed_files, removed_files): (AbsPathSet, AbsPathSet)) -> Self {
+    Self {
+      changed_files: changed_files
+        .into_iter()
+        .map(|path| path.as_str().to_owned())
+        .collect(),
+      removed_files: removed_files
+        .into_iter()
+        .map(|path| path.as_str().to_owned())
+        .collect(),
+    }
+  }
 }
 
 /// One row of watchpack's `TimeInfoEntries`, flattened for napi: a file's
@@ -168,16 +182,14 @@ fn to_native_time_info_table(entries: TimeInfoEntries) -> NativeTimeInfoTable {
     let mut missing_paths = FxHashSet::default();
     for (path, entry) in &entries {
       if matches!(entry, TimeInfoEntry::Null) {
-        missing_paths.insert(path.as_str());
+        missing_paths.insert(path);
       } else {
-        missing_paths.remove(path.as_str());
+        missing_paths.remove(path);
       }
     }
     entries
       .iter()
-      .map(|(path, entry)| {
-        matches!(entry, TimeInfoEntry::Null) && missing_paths.contains(path.as_str())
-      })
+      .map(|(path, entry)| matches!(entry, TimeInfoEntry::Null) && missing_paths.contains(path))
       .collect::<Vec<_>>()
   };
   let mut table = NativeTimeInfoTable {
@@ -187,12 +199,12 @@ fn to_native_time_info_table(entries: TimeInfoEntries) -> NativeTimeInfoTable {
   for ((path, entry), missing) in entries.into_iter().zip(missing_rows) {
     if matches!(entry, TimeInfoEntry::Null) {
       if missing {
-        table.missing.push(path);
+        table.missing.push(path.as_str().to_owned());
       }
       continue;
     }
     let mut row = NativeTimeInfoEntry {
-      path,
+      path: path.as_str().to_owned(),
       existence_only: false,
       safe_time: None,
       timestamp: None,
@@ -281,6 +293,10 @@ impl NativeWatcher {
       ));
     }
 
+    let files = parse_path_tuple(files)?;
+    let directories = parse_path_tuple(directories)?;
+    let missing = parse_path_tuple(missing)?;
+
     let delivery = match &self.delivery {
       Some(delivery) => Arc::clone(delivery),
       None => {
@@ -310,9 +326,9 @@ impl NativeWatcher {
     // nothing.
     #[allow(clippy::let_underscore_future)]
     let _ = self.watcher.watch(
-      to_tuple_path_iterator(files),
-      to_tuple_path_iterator(directories),
-      to_tuple_path_iterator(missing),
+      (files.0.into_iter(), files.1.into_iter()),
+      (directories.0.into_iter(), directories.1.into_iter()),
+      (missing.0.into_iter(), missing.1.into_iter()),
       timestamp_to_system_time(start_time),
       Box::new(js_event_handler),
       Box::new(js_event_handler_undelayed),
@@ -322,17 +338,17 @@ impl NativeWatcher {
   }
 
   #[napi(ts_type = "(kind: 'change' | 'remove' | 'create', path: string): void")]
-  pub fn trigger_event(&self, kind: String, path: String) {
+  pub fn trigger_event(&self, kind: String, path: String) -> napi::Result<()> {
+    let path = AbsPath::new(&path).map_err(|e| napi::Error::from_reason(e.to_string()))?;
     if let Some(kind) = match kind.as_str() {
       "change" => Some(FsEventKind::Change),
       "remove" => Some(FsEventKind::Remove),
       "create" => Some(FsEventKind::Create),
       _ => None,
     } {
-      self
-        .watcher
-        .trigger_event(&InternedPath::from(AsRef::<Path>::as_ref(&path)), kind);
+      self.watcher.trigger_event(&path, kind);
     }
+    Ok(())
   }
 
   #[napi(ts_return_type = "Promise<void>")]
@@ -358,22 +374,14 @@ impl NativeWatcher {
   /// draining them.
   #[napi]
   pub fn peek_aggregated(&self) -> NativeWatchResult {
-    let (changed_files, removed_files) = self.watcher.peek_aggregated();
-    NativeWatchResult {
-      changed_files: changed_files.into_iter().collect(),
-      removed_files: removed_files.into_iter().collect(),
-    }
+    self.watcher.peek_aggregated().into()
   }
 
   /// watchpack's `getAggregated`: the same events, drained, for the build
   /// that folds them in.
   #[napi]
   pub fn get_aggregated(&self) -> NativeWatchResult {
-    let (changed_files, removed_files) = self.watcher.take_aggregated();
-    NativeWatchResult {
-      changed_files: changed_files.into_iter().collect(),
-      removed_files: removed_files.into_iter().collect(),
-    }
+    self.watcher.take_aggregated().into()
   }
 
   /// watchpack's `collectTimeInfoEntries`, over every registered path.
@@ -397,22 +405,27 @@ impl NativeWatcher {
   }
 }
 
-fn to_tuple_path_iterator(
+fn parse_path_vec(paths: Vec<String>) -> napi::Result<Vec<AbsPath>> {
+  paths
+    .into_iter()
+    .map(|path| {
+      AbsPath::new(&path)
+        .or_else(|err| match err {
+          rspack_fs::Error::NotAbsolutePath(_) => {
+            let absolute = std::path::absolute(&path)?;
+            AbsPath::try_from_std_path(&absolute)
+          }
+          err => Err(err),
+        })
+        .map_err(|err| napi::Error::from_reason(err.to_string()))
+    })
+    .collect()
+}
+
+fn parse_path_tuple(
   tuple: (Vec<String>, Vec<String>),
-) -> (
-  impl Iterator<Item = InternedPath>,
-  impl Iterator<Item = InternedPath>,
-) {
-  (
-    tuple
-      .0
-      .into_iter()
-      .map(|s| InternedPath::from(PathBuf::from(s))),
-    tuple
-      .1
-      .into_iter()
-      .map(|s| InternedPath::from(PathBuf::from(s))),
-  )
+) -> napi::Result<(Vec<AbsPath>, Vec<AbsPath>)> {
+  Ok((parse_path_vec(tuple.0)?, parse_path_vec(tuple.1)?))
 }
 
 // A single stream survives watch() callback replacement. Each queued message
@@ -436,8 +449,8 @@ struct JsCallbacks {
 #[derive(Default)]
 struct PendingAggregate {
   sequence: u64,
-  changed_files: FxHashSet<String>,
-  removed_files: FxHashSet<String>,
+  changed_files: AbsPathSet,
+  removed_files: AbsPathSet,
 }
 
 enum JsDelivery {
@@ -468,10 +481,7 @@ impl JsValuesTupleIntoVec for JsDispatchArgs {
             std::mem::take(&mut pending.removed_files),
           )
         };
-        let result = NativeWatchResult {
-          changed_files: changed_files.into_iter().collect(),
-          removed_files: removed_files.into_iter().collect(),
-        };
+        let result = NativeWatchResult::from((changed_files, removed_files));
         let callback = callbacks.aggregate.borrow_back(&env)?;
         (callback, true, Either::A(Null), Either3::A(result))
       }
@@ -540,11 +550,7 @@ struct JsEventHandler {
 }
 
 impl rspack_watcher::EventAggregateHandler for JsEventHandler {
-  fn on_event_handle(
-    &self,
-    changed_files: rspack_util::fx_hash::FxHashSet<String>,
-    deleted_files: rspack_util::fx_hash::FxHashSet<String>,
-  ) {
+  fn on_event_handle(&self, changed_files: AbsPathSet, deleted_files: AbsPathSet) {
     let mut pending = self
       .callbacks
       .pending
@@ -586,34 +592,34 @@ impl rspack_watcher::EventAggregateHandler for JsEventHandler {
 }
 
 impl rspack_watcher::EventHandler for JsEventHandler {
-  fn on_change(&self, changed_file: String) -> rspack_error::Result<()> {
+  fn on_change(&self, changed_file: AbsPath) -> rspack_error::Result<()> {
     self.delivery.send(JsDelivery::Undelayed(
       Arc::clone(&self.callbacks),
       NativeWatchUndelayedEvent {
         kind: "change".to_string(),
-        path: changed_file,
+        path: changed_file.as_str().to_owned(),
         mtime: None,
       },
     ))
   }
 
-  fn on_delete(&self, deleted_file: String) -> rspack_error::Result<()> {
+  fn on_delete(&self, deleted_file: AbsPath) -> rspack_error::Result<()> {
     self.delivery.send(JsDelivery::Undelayed(
       Arc::clone(&self.callbacks),
       NativeWatchUndelayedEvent {
         kind: "remove".to_string(),
-        path: deleted_file,
+        path: deleted_file.as_str().to_owned(),
         mtime: None,
       },
     ))
   }
 
-  fn on_context_remove(&self, removed_file: String) -> rspack_error::Result<()> {
+  fn on_context_remove(&self, removed_file: AbsPath) -> rspack_error::Result<()> {
     self.delivery.send(JsDelivery::Undelayed(
       Arc::clone(&self.callbacks),
       NativeWatchUndelayedEvent {
         kind: "change".to_string(),
-        path: removed_file,
+        path: removed_file.as_str().to_owned(),
         mtime: Some(Null),
       },
     ))

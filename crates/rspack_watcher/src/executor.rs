@@ -3,8 +3,7 @@ use std::sync::{
   atomic::{AtomicBool, AtomicU64, Ordering},
 };
 
-use rspack_paths::InternedPath;
-use rspack_util::fx_hash::FxHashSet as HashSet;
+use rspack_fs::{AbsPath, AbsPathSet};
 use tokio::{
   sync::{
     Mutex,
@@ -24,8 +23,8 @@ type ThreadSafety<T> = Arc<Mutex<T>>;
 /// synchronous mutex so a paused watcher can be drained from JS.
 #[derive(Debug, Default)]
 pub(crate) struct FilesData {
-  pub(crate) changed: HashSet<String>,
-  pub(crate) deleted: HashSet<String>,
+  pub(crate) changed: AbsPathSet,
+  pub(crate) deleted: AbsPathSet,
 }
 
 impl FilesData {
@@ -77,7 +76,7 @@ enum ExecAggregateEvent {
 }
 
 enum ExecEvent {
-  Execute(Option<FsEvent>, EventBatch, Option<InternedPath>),
+  Execute(Option<FsEvent>, EventBatch, Option<AbsPath>),
   Aggregate(FilesData),
   Close,
 }
@@ -174,15 +173,14 @@ impl Executor {
           {
             let mut files = files_data.lock().expect("aggregated sets poisoned");
             for event in &events.dependencies {
-              let path = event.path.to_string_lossy().to_string();
               match event.kind {
                 FsEventKind::Change | FsEventKind::Create => {
-                  files.deleted.remove(&path);
-                  files.changed.insert(path);
+                  files.deleted.remove(&event.path);
+                  files.changed.insert(event.path.clone());
                 }
                 FsEventKind::Remove => {
-                  files.changed.remove(&path);
-                  files.deleted.insert(path);
+                  files.changed.remove(&event.path);
+                  files.deleted.insert(event.path.clone());
                 }
               }
             }
@@ -205,7 +203,7 @@ impl Executor {
                   events: events
                     .dependencies
                     .iter()
-                    .map(|event| (event.path.to_string_lossy().into_owned(), event.kind))
+                    .map(|event| (event.path.clone(), event.kind))
                     .collect(),
                 });
             }
@@ -283,19 +281,18 @@ fn create_execute_task(
         ExecEvent::Execute(raw, recovered, context_removal) => {
           for event in raw.into_iter().chain(recovered) {
             // Handle each event based on its kind
-            let path = event.path.to_string_lossy().to_string();
             let result = match event.kind {
               super::FsEventKind::Change | super::FsEventKind::Create => {
-                event_handler.on_change(path)
+                event_handler.on_change(event.path)
               }
-              super::FsEventKind::Remove => event_handler.on_delete(path),
+              super::FsEventKind::Remove => event_handler.on_delete(event.path),
             };
             if result.is_err() {
               continue 'deliveries;
             }
           }
           if let Some(path) = context_removal {
-            let _ = event_handler.on_context_remove(path.to_string_lossy().to_string());
+            let _ = event_handler.on_context_remove(path);
           }
         }
         ExecEvent::Aggregate(files) => {

@@ -55,10 +55,8 @@ impl RootTable {
     }
 
     // Reject any overlap across distinct logical/canonical root entries so encoding is unambiguous.
-    for i in 0..entries.len() {
-      for j in (i + 1)..entries.len() {
-        let left = &entries[i];
-        let right = &entries[j];
+    for (i, left) in entries.iter().enumerate() {
+      for right in &entries[i + 1..] {
         for lhs in [Some(&left.root), left.canonical_root.as_ref()]
           .into_iter()
           .flatten()
@@ -165,12 +163,7 @@ impl RootTable {
         let Some(&idx) = self.by_name.get(root) else {
           return Err(Error::UnknownRoot(root.to_string()));
         };
-        let root_abs = &self.entries[idx].root;
-        if rel.is_empty() {
-          Ok(root_abs.clone())
-        } else {
-          Ok(root_abs.join_normalized_posix_rel(rel))
-        }
+        Ok(self.entries[idx].root.join_normalized_posix_rel(rel))
       }
       ProjectPathParts::External(abs) => {
         if abs.starts_with('/') == matches!(PathFlavor::HOST, PathFlavor::Unix) {

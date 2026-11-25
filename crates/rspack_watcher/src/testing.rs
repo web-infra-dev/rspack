@@ -6,8 +6,7 @@ use std::{
 };
 
 use notify::{Event, RecursiveMode};
-use rspack_paths::InternedPath;
-use rspack_util::fx_hash::FxHashSet;
+use rspack_fs::{AbsPath, AbsPathSet};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
 use crate::{
@@ -20,12 +19,12 @@ use crate::{
 pub enum ExecutorEvent {
   Accepted {
     at: Instant,
-    events: Vec<(String, FsEventKind)>,
+    events: Vec<(AbsPath, FsEventKind)>,
   },
   Aggregated {
     at: Instant,
-    changed_files: FxHashSet<String>,
-    deleted_files: FxHashSet<String>,
+    changed_files: AbsPathSet,
+    deleted_files: AbsPathSet,
   },
 }
 
@@ -74,9 +73,9 @@ impl Default for DirectoryAnalyzer {
 impl DirectoryAnalyzer {
   pub async fn update(
     &self,
-    files: (Vec<InternedPath>, Vec<InternedPath>),
-    contexts: (Vec<InternedPath>, Vec<InternedPath>),
-    missing: (Vec<InternedPath>, Vec<InternedPath>),
+    files: (Vec<AbsPath>, Vec<AbsPath>),
+    contexts: (Vec<AbsPath>, Vec<AbsPath>),
+    missing: (Vec<AbsPath>, Vec<AbsPath>),
   ) -> rspack_error::Result<()> {
     self.paths.reset();
     self
@@ -89,7 +88,7 @@ impl DirectoryAnalyzer {
       .await
   }
 
-  pub fn analyze(&self) -> Vec<(InternedPath, RecursiveMode)> {
+  pub fn analyze(&self) -> Vec<(AbsPath, RecursiveMode)> {
     self
       .trigger
       .analyzer
@@ -99,7 +98,7 @@ impl DirectoryAnalyzer {
       .collect()
   }
 
-  pub fn invalidate_path(&self, path: &InternedPath) {
+  pub fn invalidate_path(&self, path: &AbsPath) {
     self.trigger.analyzer.invalidate_path(path);
   }
 
@@ -107,7 +106,7 @@ impl DirectoryAnalyzer {
     handle_event(event, &self.trigger);
   }
 
-  pub fn on_scanned_change(&self, path: &InternedPath) {
+  pub fn on_scanned_change(&self, path: &AbsPath) {
     self.trigger.on_scanned_change(path);
   }
 
@@ -115,7 +114,7 @@ impl DirectoryAnalyzer {
     Scanner::new(self.scan_tx.clone(), Arc::clone(&self.paths)).scan(start_time);
   }
 
-  pub async fn next_events(&mut self) -> Vec<(InternedPath, FsEventKind)> {
+  pub async fn next_events(&mut self) -> Vec<(AbsPath, FsEventKind)> {
     self
       .events
       .recv()

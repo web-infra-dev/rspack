@@ -3,7 +3,7 @@ use std::{
   time::{Duration, Instant, SystemTime},
 };
 
-use rspack_util::fx_hash::FxHashSet;
+use rspack_fs::{AbsPath, AbsPathSet};
 use rspack_watcher::{
   EventAggregateHandler, EventHandler, FsEventKind, FsWatcher, FsWatcherOptions,
   testing::{ExecutorEvent, take_executor_events},
@@ -11,12 +11,12 @@ use rspack_watcher::{
 
 const TIMEOUT: Duration = Duration::from_millis(600);
 
-struct Handler(Sender<(FxHashSet<String>, FxHashSet<String>)>);
+struct Handler(Sender<(AbsPathSet, AbsPathSet)>);
 
 impl EventHandler for Handler {}
 
 impl EventAggregateHandler for Handler {
-  fn on_event_handle(&self, changed: FxHashSet<String>, deleted: FxHashSet<String>) {
+  fn on_event_handle(&self, changed: AbsPathSet, deleted: AbsPathSet) {
     let _ = self.0.send((changed, deleted));
   }
 }
@@ -31,8 +31,8 @@ fn run_burst(last_gap: Duration) {
   let names = ["a", "b", "c", "d", "e", "f", "g"];
   let expected_files = names
     .iter()
-    .map(|name| base.join(name).to_string_lossy().into_owned())
-    .collect::<FxHashSet<_>>();
+    .map(|name| AbsPath::try_from_std_path(&base.join(name)).expect("valid utf-8 path"))
+    .collect::<AbsPathSet>();
   let watcher = FsWatcher::new(
     FsWatcherOptions {
       aggregate_timeout: Some(TIMEOUT.as_millis() as u32),
@@ -41,17 +41,21 @@ fn run_burst(last_gap: Duration) {
     Default::default(),
   );
   let (tx, rx) = mpsc::channel();
-  runtime.block_on(watcher.watch(
-    (std::iter::empty(), std::iter::empty()),
-    (std::iter::empty(), std::iter::empty()),
-    (
-      names.iter().map(|name| base.join(name).into()),
-      std::iter::empty(),
+  runtime.block_on(
+    watcher.watch(
+      (std::iter::empty(), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
+      (
+        names
+          .iter()
+          .map(|name| AbsPath::try_from_std_path(&base.join(name)).expect("valid utf-8 path")),
+        std::iter::empty(),
+      ),
+      SystemTime::now(),
+      Box::new(Handler(tx.clone())),
+      Box::new(Handler(tx)),
     ),
-    SystemTime::now(),
-    Box::new(Handler(tx.clone())),
-    Box::new(Handler(tx)),
-  ));
+  );
 
   let start = Instant::now();
   let (delivered, writes) = std::thread::scope(|scope| {
@@ -73,7 +77,7 @@ fn run_burst(last_gap: Duration) {
     });
     let deadline = start + Duration::from_secs(6);
     let mut delivered = Vec::new();
-    let mut reported = FxHashSet::default();
+    let mut reported = AbsPathSet::default();
     while let Some(remaining) = deadline.checked_duration_since(Instant::now()) {
       let complete = writer.is_finished() && reported == expected_files;
       let wait = if complete {
@@ -128,7 +132,7 @@ fn run_burst(last_gap: Duration) {
   let reported = delivered_batches
     .into_iter()
     .flatten()
-    .collect::<FxHashSet<_>>();
+    .collect::<AbsPathSet>();
   assert_eq!(
     reported, expected_files,
     "written files were not all reported"
@@ -156,8 +160,8 @@ fn should_aggregate_a_burst_with_a_long_final_gap() {
   run_burst(Duration::from_millis(900));
 }
 
-fn assert_legal_batches(timeline: &[ExecutorEvent]) -> Vec<FxHashSet<String>> {
-  let mut pending = FxHashSet::default();
+fn assert_legal_batches(timeline: &[ExecutorEvent]) -> Vec<AbsPathSet> {
+  let mut pending = AbsPathSet::default();
   let mut last_accepted = None;
   let mut batches = Vec::new();
   for event in timeline {
@@ -193,12 +197,20 @@ fn assert_legal_batches(timeline: &[ExecutorEvent]) -> Vec<FxHashSet<String>> {
   batches
 }
 
+fn test_abs(name: &str) -> AbsPath {
+  let root = if cfg!(windows) { "C:\\burst" } else { "/burst" };
+  AbsPath::new(root)
+    .expect("valid test root")
+    .join(name)
+    .expect("valid test path")
+}
+
 fn accepted(at: Instant, files: &[&str]) -> ExecutorEvent {
   ExecutorEvent::Accepted {
     at,
     events: files
       .iter()
-      .map(|file| (String::from(*file), FsEventKind::Change))
+      .map(|file| (test_abs(file), FsEventKind::Change))
       .collect(),
   }
 }
@@ -206,7 +218,7 @@ fn accepted(at: Instant, files: &[&str]) -> ExecutorEvent {
 fn aggregated(at: Instant, files: &[&str]) -> ExecutorEvent {
   ExecutorEvent::Aggregated {
     at,
-    changed_files: files.iter().map(|file| String::from(*file)).collect(),
+    changed_files: files.iter().map(|file| test_abs(file)).collect(),
     deleted_files: Default::default(),
   }
 }

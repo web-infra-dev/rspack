@@ -5,7 +5,8 @@ use std::{
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rspack_error::Result;
-use rspack_paths::{InternedPathSet, Utf8PathBuf};
+use rspack_fs::AbsPath;
+use rspack_paths::InternedPathSet;
 use rspack_util::fx_hash::FxDashMap;
 use tokio::sync::Notify;
 
@@ -99,7 +100,7 @@ impl FileCacheStrategy {
     self.validator.matches_cache_version(version)
   }
 
-  pub async fn db_init(&self, (base_path, path): (Utf8PathBuf, Utf8PathBuf)) {
+  pub async fn db_init(&self, (base_path, path): (AbsPath, AbsPath)) {
     fn set_initialized(strategy: &FileCacheStrategy, database: Database) {
       strategy
         .state

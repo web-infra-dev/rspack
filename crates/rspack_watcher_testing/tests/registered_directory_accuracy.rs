@@ -7,8 +7,7 @@ use notify::{
   Event, EventKind,
   event::{MetadataKind, ModifyKind},
 };
-use rspack_paths::InternedPath;
-use rspack_util::fx_hash::FxHashSet;
+use rspack_fs::{AbsPath, AbsPathSet};
 use rspack_watcher::{
   EventAggregateHandler, EventHandler, FsEventKind, FsWatcher, TimeInfoEntry,
   testing::DirectoryAnalyzer,
@@ -16,11 +15,11 @@ use rspack_watcher::{
 
 struct Handler;
 impl EventAggregateHandler for Handler {
-  fn on_event_handle(&self, _: FxHashSet<String>, _: FxHashSet<String>) {}
+  fn on_event_handle(&self, _: AbsPathSet, _: AbsPathSet) {}
 }
 impl EventHandler for Handler {}
 
-fn set_modified(path: &InternedPath, mtime: SystemTime) {
+fn set_modified(path: &AbsPath, mtime: SystemTime) {
   let mut options = fs::File::options();
   #[cfg(windows)]
   {
@@ -36,12 +35,7 @@ fn set_modified(path: &InternedPath, mtime: SystemTime) {
     .expect("set fixture mtime");
 }
 
-async fn watch(
-  watcher: &FsWatcher,
-  files: Vec<InternedPath>,
-  contexts: Vec<InternedPath>,
-  handler: Handler,
-) {
+async fn watch(watcher: &FsWatcher, files: Vec<AbsPath>, contexts: Vec<AbsPath>, handler: Handler) {
   watcher
     .watch(
       (files.into_iter(), std::iter::empty()),
@@ -54,11 +48,11 @@ async fn watch(
     .await;
 }
 
-fn assert_accuracy(watcher: &FsWatcher, file: &InternedPath, expected: u64) {
+fn assert_accuracy(watcher: &FsWatcher, file: &AbsPath, expected: u64) {
   let (entries, _) = watcher.collect_time_info_entries();
   let (_, entry) = entries
     .iter()
-    .find(|(name, _)| name == &file.to_string_lossy())
+    .find(|(name, _)| name == file)
     .expect("file entry");
   let TimeInfoEntry::Entry {
     accuracy,
@@ -76,19 +70,20 @@ fn assert_accuracy(watcher: &FsWatcher, file: &InternedPath, expected: u64) {
 #[tokio::test]
 async fn registered_directory_events_update_accuracy_without_rescanning() {
   let temp = tempfile::tempdir().expect("create fixture");
-  let base = temp.path().canonicalize().expect("resolve fixture");
+  let base = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+    .expect("valid utf-8 fixture path");
   let round = UNIX_EPOCH + Duration::from_millis(1_700_000_000_000);
-  let coarse = InternedPath::from(base.join("coarse"));
+  let coarse = base.join("coarse").expect("valid path");
   fs::write(&coarse, "coarse").expect("create coarse file");
   set_modified(&coarse, round);
   let watcher = FsWatcher::new(Default::default(), Default::default());
   watch(&watcher, vec![coarse.clone()], vec![], Handler).await;
   assert_accuracy(&watcher, &coarse, 2000);
 
-  let parent = InternedPath::from(base.join("parent"));
-  let child = InternedPath::from(base.join("parent/child"));
+  let parent = base.join("parent").expect("valid path");
+  let child = base.join("parent/child").expect("valid path");
   fs::create_dir_all(&child).expect("create directories");
-  let fine = InternedPath::from(base.join("parent/child/fine"));
+  let fine = base.join("parent/child/fine").expect("valid path");
   fs::write(&fine, "fine").expect("create unobserved file");
   set_modified(&fine, round + Duration::from_millis(1));
   set_modified(&parent, round);
@@ -107,7 +102,7 @@ async fn registered_directory_events_update_accuracy_without_rescanning() {
     set_modified(path, round + Duration::from_millis(offset));
     analyzer.on_native_event(
       Event::new(EventKind::Modify(ModifyKind::Metadata(MetadataKind::Any)))
-        .add_path(path.as_ref().to_path_buf()),
+        .add_path(path.to_std_path_buf()),
     );
     let events = tokio::time::timeout(Duration::from_secs(5), analyzer.next_events())
       .await

@@ -1,3 +1,5 @@
+use rspack_fs::RelPath;
+
 use crate::{Error, Result};
 
 /// Unique identifier for a pack file.
@@ -36,8 +38,8 @@ impl PackId {
   }
 
   /// Returns the filename for this pack (e.g., "1.pack")
-  pub fn pack_name(&self) -> String {
-    format!("{}.pack", self.0)
+  pub fn pack_name(&self) -> RelPath {
+    RelPath::new_contained(&format!("{}.pack", self.0)).expect("valid pack filename")
   }
 }
 

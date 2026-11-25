@@ -205,26 +205,19 @@ which tries to resolve these kind of requests in the current directory too.",
     let connected_path = base_dir.join(args.specifier);
     let normalized_path = connected_path.absolutize();
 
-    let mut is_resolving_dir = false; // whether the request is to resolve a directory or not
-
     let file_name = normalized_path.file_name();
     let utf8_normalized_path = Utf8PathBuf::from_path_buf(normalized_path.to_path_buf())
       .expect("should be a valid utf8 path");
 
-    let parent_path = match AbsPath::new(utf8_normalized_path.as_str()) {
-      Ok(abs) => match fs.metadata(&abs).await {
-        Ok(metadata) => {
-          // if the path is not directory, we need to resolve the parent directory
-          if !metadata.is_directory {
-            normalized_path.parent()
-          } else {
-            is_resolving_dir = true;
-            Some(normalized_path.borrow())
-          }
-        }
-        Err(_) => normalized_path.parent(),
-      },
-      Err(_) => normalized_path.parent(),
+    let is_resolving_dir = if let Ok(abs) = AbsPath::new(utf8_normalized_path.as_str()) {
+      fs.metadata(&abs).await.is_ok_and(|meta| meta.is_directory)
+    } else {
+      false
+    };
+    let parent_path = if is_resolving_dir {
+      Some(normalized_path.borrow())
+    } else {
+      normalized_path.parent()
     };
 
     if let Some(file_name) = file_name

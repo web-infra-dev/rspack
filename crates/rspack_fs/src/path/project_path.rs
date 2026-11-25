@@ -282,15 +282,7 @@ impl ProjectPath {
       return Some(self.clone());
     }
     if stack.is_empty() {
-      let root_len = self.0.header().root_len;
-      let slice = &self.0.items()[..usize::from(root_len)];
-      return Some(Self(InternedSlice::new(
-        ProjectPathHeader {
-          hash: fx_hash_bytes(slice),
-          root_len,
-        },
-        slice,
-      )));
+      return Some(Self::intern_anchored_canonical(root, ""));
     }
     Some(Self::intern_anchored_canonical(root, &stack.join("/")))
   }
@@ -304,9 +296,7 @@ impl ProjectPath {
     if items.len() <= usize::from(root_len) {
       return None;
     }
-    // SAFETY: `ProjectPath` only ever interns valid UTF-8 bytes.
-    let s = unsafe { std::str::from_utf8_unchecked(items) };
-    let idx = s.rfind('/')?;
+    let idx = items.iter().rposition(|&byte| byte == b'/')?;
     let slice = &items[..idx];
     Some(Self(InternedSlice::new(
       ProjectPathHeader {

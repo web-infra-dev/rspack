@@ -12,6 +12,8 @@ pub use fs::{
   WriteStream,
 };
 pub use path::{
-  AbsPath, AbsPathMap, AbsPathSet, AsProjectPath, IdentityHasher, ProjectPath, ProjectPathMap,
-  ProjectPathParts, ProjectPathSet,
+  AbsOrRelPath, AbsPath, AbsPathAncestors, AbsPathDashMap, AbsPathDashSet, AbsPathIndexMap,
+  AbsPathIndexSet, AbsPathList, AbsPathMap, AbsPathSet, AsProjectPath, IdentityHasher, ProjectPath,
+  ProjectPathDashMap, ProjectPathDashSet, ProjectPathIndexMap, ProjectPathIndexSet, ProjectPathMap,
+  ProjectPathParts, ProjectPathSet, RelPath,
 };

@@ -1,20 +1,9 @@
-use std::{
-  ffi::OsStr,
-  fmt::Debug,
-  ops::Deref,
-  path::{Path, PathBuf},
-  time::SystemTime,
-};
+use std::{fmt::Debug, ops::Deref, time::SystemTime};
 
 use dashmap::{mapref::one::RefMut, setref::multiple::RefMulti};
 use rspack_error::Result;
-use rspack_paths::{
-  InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathIndexSet, InternedPathSet,
-};
-use rspack_util::{
-  fx_hash::FxHashMap,
-  time::{current_time, system_time_to_millis},
-};
+use rspack_fs::{AbsPath, AbsPathDashMap, AbsPathDashSet, AbsPathIndexSet, AbsPathMap, AbsPathSet};
+use rspack_util::time::{current_time, system_time_to_millis};
 
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
 use crate::{
@@ -25,15 +14,15 @@ use crate::{
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
 pub(crate) struct All<'a> {
-  inner: Box<dyn Iterator<Item = RefMulti<'a, InternedPath>> + 'a>,
+  inner: Box<dyn Iterator<Item = RefMulti<'a, AbsPath>> + 'a>,
 }
 
 impl<'a> All<'a> {
   /// Creates a new `All` iterator from the given sets of files, directories, and missing paths.
   fn new(
-    files: &'a InternedPathDashSet,
-    directories: &'a InternedPathDashSet,
-    missing: &'a InternedPathDashSet,
+    files: &'a AbsPathDashSet,
+    directories: &'a AbsPathDashSet,
+    missing: &'a AbsPathDashSet,
   ) -> Self {
     let files_iter = files.iter();
     let directories_iter = directories.iter();
@@ -47,7 +36,7 @@ impl<'a> All<'a> {
 }
 
 impl<'a> Iterator for All<'a> {
-  type Item = InternedPath;
+  type Item = AbsPath;
 
   fn next(&mut self) -> Option<Self::Item> {
     self.inner.next().map(|v| v.deref().clone())
@@ -72,24 +61,12 @@ impl<'a> PathAccessor<'a> {
   }
 
   /// Returns references to the sets of files, including added and removed files.
-  pub fn files(
-    &self,
-  ) -> (
-    &'a InternedPathDashSet,
-    &'a InternedPathDashSet,
-    &'a InternedPathDashSet,
-  ) {
+  pub fn files(&self) -> (&'a AbsPathDashSet, &'a AbsPathDashSet, &'a AbsPathDashSet) {
     (&self.files.all, &self.files.added, &self.files.removed)
   }
 
   /// Returns references to the set of directories, including added and removed directories.
-  pub fn directories(
-    &self,
-  ) -> (
-    &'a InternedPathDashSet,
-    &'a InternedPathDashSet,
-    &'a InternedPathDashSet,
-  ) {
+  pub fn directories(&self) -> (&'a AbsPathDashSet, &'a AbsPathDashSet, &'a AbsPathDashSet) {
     (
       &self.directories.all,
       &self.directories.added,
@@ -98,13 +75,7 @@ impl<'a> PathAccessor<'a> {
   }
 
   /// Returns references to the set of missing paths, including added and removed missing paths.
-  pub fn missing(
-    &self,
-  ) -> (
-    &'a InternedPathDashSet,
-    &'a InternedPathDashSet,
-    &'a InternedPathDashSet,
-  ) {
+  pub fn missing(&self) -> (&'a AbsPathDashSet, &'a AbsPathDashSet, &'a AbsPathDashSet) {
     (
       &self.missing.all,
       &self.missing.added,
@@ -113,7 +84,7 @@ impl<'a> PathAccessor<'a> {
   }
 
   /// Returns an iterator that combines all files, directories, and missing paths into a single sequence.
-  pub fn all(&self) -> impl Iterator<Item = InternedPath> + '_ {
+  pub fn all(&self) -> impl Iterator<Item = AbsPath> + '_ {
     All::new(&self.files.all, &self.directories.all, &self.missing.all)
   }
 }
@@ -123,22 +94,20 @@ impl<'a> PathAccessor<'a> {
 /// added and removed, and provides functionality to apply these changes to a path tracker. This struct
 /// facilitates batch updates to the path sets, ensuring that additions and removals are processed efficiently.
 struct PathUpdater<'a> {
-  pub added: Vec<InternedPath>,
-  pub removed: Vec<InternedPath>,
-  base_dir: PathBuf,
+  pub added: Vec<AbsPath>,
+  pub removed: Vec<AbsPath>,
   contexts: Option<&'a WatcherManager>,
 }
 
 impl<Added, Removed> From<(Added, Removed)> for PathUpdater<'_>
 where
-  Added: Iterator<Item = InternedPath>,
-  Removed: Iterator<Item = InternedPath>,
+  Added: Iterator<Item = AbsPath>,
+  Removed: Iterator<Item = AbsPath>,
 {
   fn from((added, removed): (Added, Removed)) -> Self {
     Self {
       added: added.collect(),
       removed: removed.collect(),
-      base_dir: std::env::current_dir().unwrap_or_default(),
       contexts: None,
     }
   }
@@ -156,26 +125,15 @@ impl<'a> PathUpdater<'a> {
     self,
     watch_tracker: &PathTracker,
     ignored: &IgnoredMatcher,
-  ) -> Result<(Vec<InternedPath>, Vec<InternedPath>)> {
+  ) -> Result<(Vec<AbsPath>, Vec<AbsPath>)> {
     let added_paths = self.added;
     let removed_paths = self.removed;
     let mut registered = Vec::new();
     let mut unregistered = Vec::new();
 
     for added in added_paths {
-      // Absolutize before the ignored check so registration filters on the
-      // same absolute path the watcher reports for events.
-      let added = if added.is_absolute() {
-        added
-      } else {
-        InternedPath::from(self.base_dir.join(added.as_ref()))
-      };
-
       // Skip ignored paths AND anything inside an ignored directory.
-      if ignored
-        .is_ignored(added.to_str().expect("Path should be valid UTF-8"))
-        .await
-      {
+      if ignored.is_ignored(added.as_str()).await {
         continue;
       }
 
@@ -188,11 +146,6 @@ impl<'a> PathUpdater<'a> {
     }
 
     for removed in removed_paths {
-      let removed = if removed.is_absolute() {
-        removed
-      } else {
-        InternedPath::from(self.base_dir.join(removed.as_ref()))
-      };
       if watch_tracker.remove(removed.clone()) {
         if let Some(contexts) = self.contexts {
           contexts.unsubscribe_context(&removed);
@@ -215,9 +168,9 @@ impl<'a> PathUpdater<'a> {
 /// This struct enables efficient updates and queries for the file system watcher,
 /// ensuring that changes to the set of watched paths are tracked and managed correctly.
 struct PathTracker {
-  added: InternedPathDashSet,
-  removed: InternedPathDashSet,
-  all: InternedPathDashSet,
+  added: AbsPathDashSet,
+  removed: AbsPathDashSet,
+  all: AbsPathDashSet,
 }
 
 impl PathTracker {
@@ -227,13 +180,13 @@ impl PathTracker {
   }
 
   /// Adds a path to the tracker; whether it was not tracked before.
-  fn add(&self, path: InternedPath) -> bool {
+  fn add(&self, path: AbsPath) -> bool {
     self.added.insert(path.clone());
     self.all.insert(path)
   }
 
   /// Removes a path from the tracker; whether it was tracked.
-  fn remove(&self, path: InternedPath) -> bool {
+  fn remove(&self, path: AbsPath) -> bool {
     let tracked = self.all.remove(&path).is_some();
     self.removed.insert(path);
     tracked
@@ -340,26 +293,26 @@ impl FileRecord {
 
 #[derive(Default)]
 struct FileTimes {
-  records: InternedPathDashMap<FileRecord>,
+  records: AbsPathDashMap<FileRecord>,
 }
 
 impl FileTimes {
-  fn get(&self, path: &InternedPath) -> Option<FileTime> {
+  fn get(&self, path: &AbsPath) -> Option<FileTime> {
     self.records.get(path)?.time
   }
 
-  fn reported(&self, path: &InternedPath) -> ReportedBaseline {
+  fn reported(&self, path: &AbsPath) -> ReportedBaseline {
     self
       .records
       .get(path)
       .map_or(ReportedBaseline::Unknown, |record| record.reported)
   }
 
-  fn record(&self, path: &InternedPath) -> RefMut<'_, InternedPath, FileRecord> {
+  fn record(&self, path: &AbsPath) -> RefMut<'_, AbsPath, FileRecord> {
     self.records.entry(path.clone()).or_default()
   }
 
-  fn clear(&self, path: &InternedPath, clear: impl FnOnce(&mut FileRecord)) {
+  fn clear(&self, path: &AbsPath, clear: impl FnOnce(&mut FileRecord)) {
     self.records.remove_if_mut(path, |_, record| {
       clear(record);
       record.time.is_none() && record.reported == ReportedBaseline::Unknown
@@ -383,19 +336,19 @@ pub(crate) struct PathManager {
   /// descendant's), in epoch millis. Like watchpack it starts at 0 (absent)
   /// and only events advance it; a context's safe time is the max of it and
   /// the safe times of the files below.
-  last_watch_events: InternedPathDashMap<u64>,
+  last_watch_events: AbsPathDashMap<u64>,
   pub(super) watchers: WatcherManager,
   /// Every directory above a registered path: a removal of one of them may
   /// have taken registered records, or a registered context, with it. Each
   /// counts the registrations directly in it plus its subdirectories here,
   /// and goes once that count is back to zero.
-  registered_ancestors: InternedPathDashMap<usize>,
+  registered_ancestors: AbsPathDashMap<usize>,
   /// Every path holding time info (in `file_times`, the directory watchers or
   /// `last_watch_events`) under its parent directory, ancestors included up
   /// to the first one already indexed: a removed directory's records are
   /// found by walking its subtree, not by scanning every map. A directory
   /// left with no children and no record of its own is dropped.
-  recorded_children: InternedPathDashMap<InternedPathSet>,
+  recorded_children: AbsPathDashMap<AbsPathSet>,
   /// Serializes changes to `recorded_children`'s links: a walk taking a
   /// directory out on one thread must not interleave with a walk linking it
   /// in on another, or a linked subtree is left cut off from its parent.
@@ -403,7 +356,7 @@ pub(crate) struct PathManager {
   /// Registered contexts known to be absent from disk: absent when registered,
   /// or removed since. The only directories `collect_time_info_entries`
   /// stats, to see one that came back without an event of its own.
-  absent_directories: InternedPathDashSet,
+  absent_directories: AbsPathDashSet,
   /// The `followSymlinks` watch option: the context scan descends into
   /// symlinked directories, as watchpack does.
   follow_symlinks: bool,
@@ -418,11 +371,11 @@ impl PathManager {
       missing: PathTracker::default(),
       ignored: IgnoredMatcher::new(ignored),
       file_times: FileTimes::default(),
-      last_watch_events: InternedPathDashMap::default(),
+      last_watch_events: AbsPathDashMap::default(),
       watchers: WatcherManager::default(),
-      registered_ancestors: InternedPathDashMap::default(),
-      absent_directories: InternedPathDashSet::default(),
-      recorded_children: InternedPathDashMap::default(),
+      registered_ancestors: AbsPathDashMap::default(),
+      absent_directories: AbsPathDashSet::default(),
+      recorded_children: AbsPathDashMap::default(),
       index_lock: std::sync::Mutex::default(),
       follow_symlinks: false,
     }
@@ -451,7 +404,7 @@ impl PathManager {
   ///
   /// Use `has_mtime_changed` (which atomically reads-and-updates the
   /// baseline) to advance the recorded mtime in response to real events.
-  pub fn set_file_time_if_absent(&self, path: InternedPath, mtime: SystemTime) {
+  pub fn set_file_time_if_absent(&self, path: AbsPath, mtime: SystemTime) {
     self.record(&path, || {
       let mut record = self.file_times.record(&path);
       if !matches!(record.reported, ReportedBaseline::Present(_)) {
@@ -463,7 +416,7 @@ impl PathManager {
 
   /// The scanner reported `path` as changed: the build will know this mtime,
   /// so it becomes the deduplication baseline as well as the time info.
-  pub fn set_reported_file_time(&self, path: &InternedPath, mtime: SystemTime) {
+  pub fn set_reported_file_time(&self, path: &AbsPath, mtime: SystemTime) {
     self.record(path, || {
       let mut record = self.file_times.record(path);
       record.reported = ReportedBaseline::Present(mtime);
@@ -473,16 +426,16 @@ impl PathManager {
 
   /// Whether a removal was already reported for this path. The scanner must
   /// still report an absence with no prior record.
-  pub fn is_known_absent(&self, path: &InternedPath) -> bool {
+  pub fn is_known_absent(&self, path: &AbsPath) -> bool {
     self.file_times.reported(path) == ReportedBaseline::Absent
   }
 
   /// Record a removal the caller is about to deliver. The scanner relies on
   /// this marker to mean the build was told about the absence.
-  pub fn set_reported_file_removal(&self, path: &InternedPath) {
+  pub fn set_reported_file_removal(&self, path: &AbsPath) {
     self.file_times.record(path).reported = ReportedBaseline::Absent;
     if (!self.files.all.contains(path) && !self.missing.all.contains(path))
-      || std::fs::symlink_metadata(path).is_ok()
+      || path.symlink_metadata().is_ok()
     {
       self.file_times.clear(path, FileRecord::clear_absent);
     }
@@ -490,7 +443,7 @@ impl PathManager {
 
   /// Drop a removed path's time info and present baseline. A reported absence
   /// survives later removals until the path reappears or is unregistered.
-  pub fn remove_file_time(&self, path: &InternedPath) {
+  pub fn remove_file_time(&self, path: &AbsPath) {
     let _index = self.lock_index();
     self.file_times.clear(path, FileRecord::clear_present);
     if self.watchers.remove_member(path).directory {
@@ -501,7 +454,7 @@ impl PathManager {
 
   /// Drop the records of every path inside the directory `dir` (watchpack's
   /// `onDirectoryRemoved` marks them all missing), walking only its subtree.
-  pub fn remove_file_times_under(&self, dir: &InternedPath) {
+  pub fn remove_file_times_under(&self, dir: &AbsPath) {
     let _index = self.lock_index();
     let mut pending = vec![dir.clone()];
     while let Some(path) = pending.pop() {
@@ -516,7 +469,7 @@ impl PathManager {
     }
     self.unlink_unrecorded(dir);
     for context in self.directories.all.iter() {
-      if context.starts_with(dir.as_ref() as &Path) {
+      if context.starts_with(dir) {
         self.absent_directories.insert(context.clone());
       }
     }
@@ -525,11 +478,11 @@ impl PathManager {
   /// Writes a record for `path` with `write` and indexes it, and its ancestors
   /// not indexed yet, under the index lock: a sweep of an ancestor sees the
   /// record either both written and indexed, or not at all.
-  fn record<R>(&self, path: &InternedPath, write: impl FnOnce() -> R) -> R {
+  fn record<R>(&self, path: &AbsPath, write: impl FnOnce() -> R) -> R {
     let _index = self.lock_index();
     let written = write();
     let mut child = path.clone();
-    while let Some(parent) = child.parent().map(InternedPath::from) {
+    while let Some(parent) = child.parent() {
       let indexed = !self
         .recorded_children
         .entry(parent.clone())
@@ -545,16 +498,16 @@ impl PathManager {
 
   /// `path` may no longer hold a record of its own: once it holds none and
   /// has nothing indexed below it, it leaves its parent, and so on up.
-  fn unindex_record(&self, path: &InternedPath) {
+  fn unindex_record(&self, path: &AbsPath) {
     let _index = self.lock_index();
     self.unlink_unrecorded(path);
   }
 
   /// [`Self::unindex_record`] under the index lock already held.
-  fn unlink_unrecorded(&self, path: &InternedPath) {
+  fn unlink_unrecorded(&self, path: &AbsPath) {
     let mut child = path.clone();
     while !self.holds_record(&child) && !self.recorded_children.contains_key(&child) {
-      let Some(parent) = child.parent().map(InternedPath::from) else {
+      let Some(parent) = child.parent() else {
         return;
       };
       let emptied = match self.recorded_children.get_mut(&parent) {
@@ -584,7 +537,7 @@ impl PathManager {
     self.index_lock.lock().expect("record index lock poisoned")
   }
 
-  fn holds_record(&self, path: &InternedPath) -> bool {
+  fn holds_record(&self, path: &AbsPath) -> bool {
     self.file_times.get(path).is_some()
       || self.watchers.member(path).is_some()
       || self.last_watch_events.contains_key(path)
@@ -592,9 +545,9 @@ impl PathManager {
 
   /// `path` was registered: count it in its directory, and each directory
   /// above that is new here in its own parent.
-  fn retain_registered_ancestors(&self, path: &InternedPath) {
+  fn retain_registered_ancestors(&self, path: &AbsPath) {
     let mut child = path.clone();
-    while let Some(parent) = child.parent().map(InternedPath::from) {
+    while let Some(parent) = child.parent() {
       let mut count = self.registered_ancestors.entry(parent.clone()).or_default();
       *count += 1;
       if *count > 1 {
@@ -606,9 +559,9 @@ impl PathManager {
   }
 
   /// `path` was unregistered: the reverse of [`Self::retain_registered_ancestors`].
-  fn release_registered_ancestors(&self, path: &InternedPath) {
+  fn release_registered_ancestors(&self, path: &AbsPath) {
     let mut child = path.clone();
-    while let Some(parent) = child.parent().map(InternedPath::from) {
+    while let Some(parent) = child.parent() {
       let released = self
         .registered_ancestors
         .get_mut(&parent)
@@ -634,8 +587,8 @@ impl PathManager {
   /// Returns the files that changed since `start_time` (watchpack's
   /// `checkStartTime`): they changed before the watch was active, so no event
   /// will come for them.
-  pub async fn scan_contexts(&self, start_time: SystemTime) -> Vec<InternedPath> {
-    let contexts: Vec<InternedPath> = self.directories.added.iter().map(|p| p.clone()).collect();
+  pub async fn scan_contexts(&self, start_time: SystemTime) -> Vec<AbsPath> {
+    let contexts: Vec<AbsPath> = self.directories.added.iter().map(|p| p.clone()).collect();
     self
       .scan_below(contexts, false, Some(system_time_to_millis(start_time)))
       .await
@@ -649,21 +602,21 @@ impl PathManager {
   /// Returns the files whose safe time is at or after `changed_since`.
   async fn scan_below(
     &self,
-    roots: Vec<InternedPath>,
+    roots: Vec<AbsPath>,
     recovered: bool,
     changed_since: Option<u64>,
-  ) -> Vec<InternedPath> {
+  ) -> Vec<AbsPath> {
     let mut changed = Vec::new();
     // Each directory carries the real paths of the directories above it: with
     // `followSymlinks`, a link back into its own ancestry is a loop, while two
     // links to one directory are two aliases, each scanned.
-    let mut pending: Vec<(InternedPath, Vec<PathBuf>, bool)> = roots
+    let mut pending: Vec<(AbsPath, Vec<AbsPath>, bool)> = roots
       .into_iter()
       .map(|root| (root, Vec::new(), recovered))
       .collect();
     while let Some((dir, mut ancestry, observed)) = pending.pop() {
       if self.follow_symlinks {
-        let Ok(real) = std::fs::canonicalize(&dir) else {
+        let Ok(real) = dir.canonicalize() else {
           continue;
         };
         if ancestry.contains(&real) {
@@ -671,12 +624,14 @@ impl PathManager {
         }
         ancestry.push(real);
       }
-      let Ok(entries) = std::fs::read_dir(&dir) else {
+      let Ok(entries) = dir.read_dir() else {
         continue;
       };
       for entry in entries.flatten() {
-        let path = InternedPath::from(entry.path());
-        if self.is_ignored_path(path.as_ref()).await {
+        let Ok(path) = AbsPath::try_from_std_path(&entry.path()) else {
+          continue;
+        };
+        if self.is_ignored_path(&path).await {
           continue;
         }
         let Ok(metadata) = Self::scan_metadata(ancestry.last(), &path) else {
@@ -728,7 +683,7 @@ impl PathManager {
   /// closing a `DirectoryWatcher`. A record is written first and checked
   /// after, so it either sees the context gone here or is swept by the
   /// unregistering `update()`.
-  fn forget_if_orphaned(&self, path: &InternedPath) -> bool {
+  fn forget_if_orphaned(&self, path: &AbsPath) -> bool {
     if self.is_below_context(path) {
       return false;
     }
@@ -759,11 +714,11 @@ impl PathManager {
   /// An event already `judged` a change — a file the scan found changed since
   /// the start time, or a registered path past its baseline check — skips the
   /// attribute-only check and keeps the record already written for it.
-  pub async fn set_context_entry(&self, path: &InternedPath, judged: bool) -> bool {
-    let recovered: Vec<InternedPath> = self
+  pub async fn set_context_entry(&self, path: &AbsPath, judged: bool) -> bool {
+    let recovered: Vec<AbsPath> = self
       .absent_directories
       .iter()
-      .filter(|context| context.starts_with(path.as_ref() as &Path) && context.is_dir())
+      .filter(|context| context.starts_with(path) && context.is_dir())
       .map(|context| context.clone())
       .collect();
     if !recovered.is_empty() {
@@ -779,7 +734,7 @@ impl PathManager {
     }
     // Like watchpack's live events, `lstat`: a link is a file entry here even
     // with `followSymlinks`; only the scan descends into links.
-    let Ok(metadata) = std::fs::symlink_metadata(path) else {
+    let Ok(metadata) = path.symlink_metadata() else {
       return true;
     };
     if metadata.is_dir()
@@ -826,26 +781,28 @@ impl PathManager {
   /// own directory, or one back above itself: those are recorded as
   /// themselves (`lstat`).
   fn scan_metadata(
-    real_dir: Option<&PathBuf>,
-    path: &InternedPath,
+    real_dir: Option<&AbsPath>,
+    path: &AbsPath,
   ) -> std::io::Result<std::fs::Metadata> {
-    let own = std::fs::symlink_metadata(path)?;
+    let own = path.symlink_metadata()?;
     let Some(real_dir) = real_dir.filter(|_| own.file_type().is_symlink()) else {
       return Ok(own);
     };
-    let Ok(target) = std::fs::canonicalize(path) else {
+    let Ok(target) = path.canonicalize() else {
       return Ok(own);
     };
-    let into_own_directory = target.parent() == Some(real_dir.as_path());
-    let above_itself = path
-      .file_name()
-      .is_some_and(|name| real_dir.join(name).starts_with(&target));
+    let into_own_directory = target.parent().as_ref() == Some(real_dir);
+    let above_itself = path.file_name().is_some_and(|name| {
+      real_dir
+        .join(name)
+        .is_ok_and(|joined| joined.starts_with(&target))
+    });
     if into_own_directory || above_itself {
       return Ok(own);
     }
     // Like watchpack, only a link to a directory takes the target's metadata;
     // a link to a file keeps its own mtime.
-    match std::fs::metadata(&target) {
+    match target.metadata() {
       Ok(metadata) if metadata.is_dir() => Ok(metadata),
       _ => Ok(own),
     }
@@ -854,16 +811,15 @@ impl PathManager {
   /// Whether removing `path` can take recorded paths below it along: it is a
   /// registered or discovered context, or a directory above a registered
   /// path.
-  pub fn may_contain_records(&self, path: &InternedPath) -> bool {
+  pub fn may_contain_records(&self, path: &AbsPath) -> bool {
     self.watchers.is_watched_directory(path) || self.registered_ancestors.contains_key(path)
   }
 
-  fn is_below_context(&self, path: &InternedPath) -> bool {
-    path.ancestors().skip(1).any(|ancestor| {
-      self
-        .watchers
-        .is_explicit_context(&InternedPath::from(ancestor))
-    })
+  fn is_below_context(&self, path: &AbsPath) -> bool {
+    path
+      .ancestors()
+      .skip(1)
+      .any(|ancestor| self.watchers.is_explicit_context(&ancestor))
   }
 
   /// watchpack's `setFileTime(filePath, mtime, initial, ignoreWhenEqual)`:
@@ -873,7 +829,7 @@ impl PathManager {
   /// Returns whether a record was written.
   pub fn set_file_time(
     &self,
-    path: &InternedPath,
+    path: &AbsPath,
     mtime: SystemTime,
     initial: bool,
     ignore_when_equal: bool,
@@ -889,10 +845,9 @@ impl PathManager {
   /// An event reached `path` or something below it: advance the
   /// `lastWatchEvent` of `path` and of every registered or discovered
   /// context above it.
-  pub fn set_last_watch_events(&self, path: &InternedPath) {
+  pub fn set_last_watch_events(&self, path: &AbsPath) {
     let now = current_time();
     for ancestor in path.ancestors() {
-      let ancestor = InternedPath::from(ancestor);
       if self.watchers.is_watched_directory(&ancestor) {
         self.last_watch_events.insert(ancestor, now);
       }
@@ -905,7 +860,7 @@ impl PathManager {
   /// other paths, files found below a context included, pass through
   /// unfiltered.
   /// Equal mtimes are only stale once they are past the filesystem accuracy window.
-  pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
+  pub fn has_mtime_changed(&self, path: &AbsPath) -> bool {
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       return true;
     }
@@ -935,18 +890,9 @@ impl PathManager {
   /// Update the paths, directories, and missing paths in the `PathManager`.
   pub async fn update(
     &self,
-    files: (
-      impl Iterator<Item = InternedPath>,
-      impl Iterator<Item = InternedPath>,
-    ),
-    directories: (
-      impl Iterator<Item = InternedPath>,
-      impl Iterator<Item = InternedPath>,
-    ),
-    missing: (
-      impl Iterator<Item = InternedPath>,
-      impl Iterator<Item = InternedPath>,
-    ),
+    files: (impl Iterator<Item = AbsPath>, impl Iterator<Item = AbsPath>),
+    directories: (impl Iterator<Item = AbsPath>, impl Iterator<Item = AbsPath>),
+    missing: (impl Iterator<Item = AbsPath>, impl Iterator<Item = AbsPath>),
   ) -> Result<()> {
     let mut registered = Vec::new();
     let mut unregistered = Vec::new();
@@ -984,19 +930,17 @@ impl PathManager {
     // fresh stat would reopen the rewatch-gap race `set_file_time_if_absent`
     // guards against. A path still below a registered context keeps its
     // record: the context reports it.
-    let removed_files: Vec<InternedPath> = self.files.removed.iter().map(|p| p.clone()).collect();
+    let removed_files: Vec<AbsPath> = self.files.removed.iter().map(|p| p.clone()).collect();
     for path in &removed_files {
       self.prune_file_record(path, self.missing.all.contains(path));
     }
-    let removed_missing: Vec<InternedPath> =
-      self.missing.removed.iter().map(|p| p.clone()).collect();
+    let removed_missing: Vec<AbsPath> = self.missing.removed.iter().map(|p| p.clone()).collect();
     for path in &removed_missing {
       if !self.files.all.contains(path) {
         self.prune_file_record(path, false);
       }
     }
-    let removed_dirs: Vec<InternedPath> =
-      self.directories.removed.iter().map(|p| p.clone()).collect();
+    let removed_dirs: Vec<AbsPath> = self.directories.removed.iter().map(|p| p.clone()).collect();
     for dir in &removed_dirs {
       // Still below a registered context and on disk: it stays reported, as a
       // directory found there, and keeps its event clock. Absent, it is
@@ -1013,7 +957,7 @@ impl PathManager {
     Ok(())
   }
 
-  fn prune_file_record(&self, path: &InternedPath, keep_reported: bool) {
+  fn prune_file_record(&self, path: &AbsPath, keep_reported: bool) {
     let below_context = self.is_below_context(path);
     self.file_times.clear(path, |record| {
       if !keep_reported {
@@ -1030,7 +974,7 @@ impl PathManager {
 
   /// A context was unregistered: forget what its scan found below it, except
   /// what another still-registered context also covers.
-  fn forget_context_entries_under(&self, dir: &InternedPath) {
+  fn forget_context_entries_under(&self, dir: &AbsPath) {
     let _index = self.lock_index();
     let mut subtree = Vec::new();
     let mut pending = vec![dir.clone()];
@@ -1068,32 +1012,23 @@ impl PathManager {
 
   /// Whether `path` is excluded from watching by the configured ignored
   /// patterns — directly, or by living inside an ignored directory.
-  pub async fn is_ignored_path(&self, path: &Path) -> bool {
-    match path.to_str() {
-      Some(s) => self.ignored.is_ignored(s).await,
-      None => false,
-    }
+  pub async fn is_ignored_path(&self, path: &AbsPath) -> bool {
+    self.ignored.is_ignored(path.as_str()).await
   }
 }
 
 pub(super) struct RegisteredTimeInfo {
-  file_paths: InternedPathIndexSet,
-  dir_paths: InternedPathIndexSet,
+  file_paths: AbsPathIndexSet,
+  dir_paths: AbsPathIndexSet,
   file_timestamps: TimeInfoEntries,
-  file_safe_times: Vec<(InternedPath, u64)>,
-}
-
-fn path_to_string(path: &Path) -> String {
-  path
-    .to_str()
-    .map_or_else(|| path.to_string_lossy().into_owned(), str::to_owned)
+  file_safe_times: Vec<(AbsPath, u64)>,
 }
 
 impl PathManager {
   /// A file's `file_times` record (no syscall), falling back to a fresh stat
   /// for a registered file with no record yet (e.g. one whose record was
   /// dropped when it was removed).
-  fn file_time(&self, path: &InternedPath) -> Option<FileTime> {
+  fn file_time(&self, path: &AbsPath) -> Option<FileTime> {
     self
       .file_times
       .get(path)
@@ -1131,9 +1066,9 @@ impl PathManager {
 
   pub(super) fn collect_registered_time_info(&self) -> RegisteredTimeInfo {
     let accessor = self.access();
-    let file_paths: InternedPathIndexSet = accessor.files().0.iter().map(|p| p.clone()).collect();
+    let file_paths: AbsPathIndexSet = accessor.files().0.iter().map(|p| p.clone()).collect();
     let mut file_timestamps = TimeInfoEntries::with_capacity(file_paths.len());
-    let mut file_safe_times: Vec<(InternedPath, u64)> = Vec::with_capacity(file_paths.len());
+    let mut file_safe_times: Vec<(AbsPath, u64)> = Vec::with_capacity(file_paths.len());
     for path in &file_paths {
       let entry = self
         .file_time(path)
@@ -1141,7 +1076,7 @@ impl PathManager {
       if let TimeInfoEntry::Entry { safe_time, .. } = entry {
         file_safe_times.push((path.clone(), safe_time));
       }
-      file_timestamps.push((path_to_string(path.as_path()), entry));
+      file_timestamps.push((path.clone(), entry));
     }
     // webpack registers `files` and `missing` as disjoint sets, so a null
     // missing entry never clobbers a real file entry sharing the same key.
@@ -1153,7 +1088,7 @@ impl PathManager {
       if let TimeInfoEntry::Entry { safe_time, .. } = entry {
         file_safe_times.push((path.clone(), safe_time));
       }
-      file_timestamps.push((path_to_string(path.as_path()), entry));
+      file_timestamps.push((path.clone(), entry));
     }
     RegisteredTimeInfo {
       file_paths,
@@ -1183,12 +1118,12 @@ impl PathManager {
           && let Some(time) = self.file_times.get(path)
         {
           file_safe_times.push((path.clone(), time.narrowed().safe_time));
-          file_timestamps.push((path_to_string(path.as_path()), Self::entry(time)));
+          file_timestamps.push((path.clone(), Self::entry(time)));
         }
       }
     }
-    let mut dir_safe_times: FxHashMap<InternedPath, Option<u64>> =
-      FxHashMap::with_capacity_and_hasher(dir_paths.len(), Default::default());
+    let mut dir_safe_times: AbsPathMap<Option<u64>> =
+      AbsPathMap::with_capacity_and_hasher(dir_paths.len(), Default::default());
     for dir in &dir_paths {
       let last_watch_event = self.last_watch_events.get(dir).map(|time| *time);
       // An absent registered context reads null, where watchpack reports `{}`
@@ -1207,52 +1142,39 @@ impl PathManager {
     // times; a record cannot resurrect a directory gone from disk. Files are
     // folded into their parent first, so each ancestor chain is walked once.
     if !dir_safe_times.is_empty() {
-      let mut parent_indices: FxHashMap<&OsStr, usize> = FxHashMap::default();
-      let mut raw_parent_safe_times: Vec<(&Path, u64)> = Vec::new();
+      let mut parent_safe_times: AbsPathMap<u64> = AbsPathMap::default();
       for (file, safe_time) in &file_safe_times {
         if let Some(parent) = file.parent() {
-          let index = *parent_indices.entry(parent.as_os_str()).or_insert_with(|| {
-            raw_parent_safe_times.push((parent, 0));
-            raw_parent_safe_times.len() - 1
-          });
-          let latest = &mut raw_parent_safe_times[index].1;
+          let latest = parent_safe_times.entry(parent).or_default();
           *latest = (*latest).max(*safe_time);
         }
       }
-      // Preserve the first spelling of Path-equal parents when merging the raw groups.
-      let mut parent_safe_times: FxHashMap<&Path, u64> = FxHashMap::default();
-      for (parent, safe_time) in raw_parent_safe_times {
-        let latest = parent_safe_times.entry(parent).or_default();
-        *latest = (*latest).max(safe_time);
-      }
       for (parent, safe_time) in parent_safe_times {
         for dir in parent.ancestors() {
-          if let Some(Some(current)) = dir_safe_times.get_mut(&InternedPath::from(dir)) {
+          if let Some(Some(current)) = dir_safe_times.get_mut(&dir) {
             *current = (*current).max(safe_time);
           }
         }
       }
     }
     let mut directory_timestamps = TimeInfoEntries::with_capacity(dir_paths.len());
-    for dir in &dir_paths {
-      let path = path_to_string(dir.as_path());
-      match dir_safe_times.get(dir).copied().flatten() {
-        Some(safe_time) => {
-          file_timestamps.push((path.clone(), TimeInfoEntry::ExistenceOnlyTimeEntry));
-          directory_timestamps.push((path, TimeInfoEntry::OnlySafeTimeEntry { safe_time }));
-        }
-        None => {
-          file_timestamps.push((path.clone(), TimeInfoEntry::Null));
-          directory_timestamps.push((path, TimeInfoEntry::Null));
-        }
-      }
+    for dir in dir_paths {
+      let (file_entry, directory_entry) = match dir_safe_times.get(&dir).copied().flatten() {
+        Some(safe_time) => (
+          TimeInfoEntry::ExistenceOnlyTimeEntry,
+          TimeInfoEntry::OnlySafeTimeEntry { safe_time },
+        ),
+        None => (TimeInfoEntry::Null, TimeInfoEntry::Null),
+      };
+      file_timestamps.push((dir.clone(), file_entry));
+      directory_timestamps.push((dir, directory_entry));
     }
 
     (file_timestamps, directory_timestamps)
   }
 }
 
-pub(crate) fn disk_mtime(path: &InternedPath) -> Option<SystemTime> {
+pub(crate) fn disk_mtime(path: &AbsPath) -> Option<SystemTime> {
   path
     .metadata()
     .and_then(|m| m.modified().or_else(|_| m.created()))
@@ -1261,23 +1183,25 @@ pub(crate) fn disk_mtime(path: &InternedPath) -> Option<SystemTime> {
 
 #[cfg(test)]
 mod tests {
-  use rspack_paths::Utf8Path;
-
   use super::*;
 
   #[tokio::test]
   async fn test_updater() {
+    let cwd =
+      AbsPath::try_from_std_path(&std::env::current_dir().expect("cwd")).expect("valid cwd");
+    let expected = cwd.join("src/index.js").unwrap();
     let updater = PathUpdater::from((
       vec![
-        InternedPath::from(Utf8Path::new("src/index.js")),
-        InternedPath::from(Utf8Path::new("node_modules/.pnpm/axios/lib/index.js")),
-        InternedPath::from(Utf8Path::new(".git/abc/")),
+        expected.clone(),
+        cwd.join("node_modules/.pnpm/axios/lib/index.js").unwrap(),
+        cwd.join(".git/abc").unwrap(),
       ]
       .into_iter(),
       vec![].into_iter(),
     ));
     let ignored = FsWatcherIgnored::Paths(vec![
       "**/.git/**".to_owned(),
+      "**/.git".to_owned(),
       "**/node_modules/**".to_owned(),
     ]);
 
@@ -1291,71 +1215,62 @@ mod tests {
     let all = path_tracker.all;
 
     assert_eq!(all.len(), 1);
-    assert!(
-      all
-        .iter()
-        .any(|p| p.to_string_lossy().contains("src/index.js"))
-    )
+    assert!(all.iter().any(|p| *p == expected))
   }
 
   #[tokio::test]
   async fn test_accessor() {
+    let cwd =
+      AbsPath::try_from_std_path(&std::env::current_dir().expect("cwd")).expect("valid cwd");
     let path_manager = PathManager::default();
 
     let files = (
-      vec![InternedPath::from(Utf8Path::new("src/index.js"))].into_iter(),
+      vec![cwd.join("src/index.js").unwrap()].into_iter(),
       vec![].into_iter(),
     );
     let dirs = (
-      vec![InternedPath::from(Utf8Path::new("src"))].into_iter(),
+      vec![cwd.join("src").unwrap()].into_iter(),
       vec![].into_iter(),
     );
     let missing = (
-      vec![InternedPath::from(Utf8Path::new("src/page/index.ts"))].into_iter(),
+      vec![cwd.join("src/page/index.ts").unwrap()].into_iter(),
       vec![].into_iter(),
     );
 
     path_manager.update(files, dirs, missing).await.unwrap();
 
     let accessor = PathAccessor::new(&path_manager);
-    let mut all_paths = vec![];
-
-    for path in accessor.all() {
-      all_paths.push(path.to_string_lossy().to_string());
-    }
-
-    all_paths.sort();
+    let all_paths: AbsPathSet = accessor.all().collect();
 
     assert_eq!(all_paths.len(), 3);
 
-    let should_exist_paths = vec!["src", "src/index.js", "src/page/index.ts"];
-
-    for path in should_exist_paths {
-      assert!(all_paths.iter().any(|p| p.ends_with(path)));
+    for rel in ["src", "src/index.js", "src/page/index.ts"] {
+      let expected = cwd.join(rel).unwrap();
+      assert!(all_paths.contains(&expected));
     }
   }
 
   #[tokio::test]
   async fn test_manager() {
-    let ignored = FsWatcherIgnored::Paths(vec![
-      "**/node_modules/**".to_string(),
-      "**/.git/**".to_string(),
-    ]);
+    let cwd =
+      AbsPath::try_from_std_path(&std::env::current_dir().expect("cwd")).expect("valid cwd");
+    let ignored =
+      FsWatcherIgnored::Paths(vec!["**/node_modules".to_string(), "**/.git".to_string()]);
     let path_manager = PathManager::new(ignored);
     let files = (
-      vec![InternedPath::from(Utf8Path::new("src/index.js"))].into_iter(),
+      vec![cwd.join("src/index.js").unwrap()].into_iter(),
       vec![].into_iter(),
     );
     let directories = (
       vec![
-        InternedPath::from(Utf8Path::new("src/")),
-        InternedPath::from(Utf8Path::new("node_modules/")),
+        cwd.join("src/").unwrap(),
+        cwd.join("node_modules/").unwrap(),
       ]
       .into_iter(),
       vec![].into_iter(),
     );
     let missing = (
-      vec![InternedPath::from(Utf8Path::new("src/page/index.ts"))].into_iter(),
+      vec![cwd.join("src/page/index.ts").unwrap()].into_iter(),
       vec![].into_iter(),
     );
 
@@ -1365,19 +1280,13 @@ mod tests {
       .unwrap();
 
     let accessor = path_manager.access();
-    let mut all_paths = accessor
-      .all()
-      .map(|p| p.to_string_lossy().to_string())
-      .collect::<Vec<_>>();
-
-    all_paths.sort();
+    let all_paths: AbsPathSet = accessor.all().collect();
 
     assert_eq!(all_paths.len(), 3);
 
-    let should_exist_paths = vec!["src/", "src/index.js", "src/page/index.ts"];
-
-    for path in should_exist_paths {
-      assert!(all_paths.iter().any(|p| p.ends_with(path)));
+    for rel in ["src", "src/index.js", "src/page/index.ts"] {
+      let expected = cwd.join(rel).unwrap();
+      assert!(all_paths.contains(&expected));
     }
   }
 
@@ -1394,7 +1303,7 @@ mod tests {
     use tempfile::NamedTempFile;
 
     let tempfile = NamedTempFile::new().expect("create temp file");
-    let path = InternedPath::from(tempfile.path());
+    let path = AbsPath::try_from_std_path(tempfile.path()).expect("valid temp file path");
 
     let pm = PathManager::default();
     pm.update(

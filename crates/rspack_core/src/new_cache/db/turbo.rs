@@ -6,7 +6,7 @@ use std::{
 
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 use rspack_error::Result;
-use rspack_paths::Utf8PathBuf;
+use rspack_fs::AbsPath;
 use turbo_persistence::{
   CompactConfig, DbConfig, FamilyConfig, FamilyKind, KeyBase, ParallelScheduler, QueryKey,
   StoreKey, TurboPersistence,
@@ -186,8 +186,8 @@ impl StoreKey for CacheKey {
 
 pub struct TurboDatabase {
   inner: Inner,
-  base_path: Utf8PathBuf,
-  path: Utf8PathBuf,
+  base_path: AbsPath,
+  path: AbsPath,
   readonly: bool,
 }
 
@@ -222,7 +222,7 @@ impl fmt::Debug for TurboDatabase {
 }
 
 impl TurboDatabase {
-  pub fn open(base_path: Utf8PathBuf, path: Utf8PathBuf, readonly: bool) -> Result<Self> {
+  pub fn open(base_path: AbsPath, path: AbsPath, readonly: bool) -> Result<Self> {
     let inner = open_database(&path, readonly)
       .map_err(|error| rspack_error::error!("Open cache database from {path} failed: {error}"))?;
     Ok(Self {
@@ -305,7 +305,7 @@ impl TurboDatabase {
   }
 }
 
-fn move_to_stale(base_path: &Utf8PathBuf, path: &Utf8PathBuf) -> Result<()> {
+fn move_to_stale(base_path: &AbsPath, path: &AbsPath) -> Result<()> {
   if !path.is_dir() {
     return Ok(());
   }
@@ -324,7 +324,10 @@ fn move_to_stale(base_path: &Utf8PathBuf, path: &Utf8PathBuf) -> Result<()> {
     .duration_since(UNIX_EPOCH)
     .unwrap_or_default()
     .as_nanos();
-  let stale_path = stale_directory.join(format!("{file_name}-{}-{timestamp}", std::process::id()));
+  let stale_name = format!("{file_name}-{}-{timestamp}", std::process::id());
+  let stale_path = stale_directory
+    .join(&stale_name)
+    .map_err(|error| rspack_error::error!("Failed to build stale cache path: {error}"))?;
   std::fs::rename(path, &stale_path).map_err(|error| {
     rspack_error::error!(
       "Failed to move invalid persistent cache database {path} to {stale_path}: {error}"
@@ -333,16 +336,18 @@ fn move_to_stale(base_path: &Utf8PathBuf, path: &Utf8PathBuf) -> Result<()> {
   Ok(())
 }
 
-fn stale_directory(base_path: &Utf8PathBuf) -> Utf8PathBuf {
-  base_path.join(STALE_DIRECTORY)
+fn stale_directory(base_path: &AbsPath) -> AbsPath {
+  base_path
+    .join(STALE_DIRECTORY)
+    .expect("valid stale directory")
 }
 
-fn open_database(path: &Utf8PathBuf, readonly: bool) -> Result<Inner> {
+fn open_database(path: &AbsPath, readonly: bool) -> Result<Inner> {
   let config = database_config();
   let db = if readonly {
-    Inner::open_read_only_with_config(path.as_std_path().to_path_buf(), config)
+    Inner::open_read_only_with_config(path.to_std_path_buf(), config)
   } else {
-    Inner::open_with_config(path.as_std_path().to_path_buf(), config)
+    Inner::open_with_config(path.to_std_path_buf(), config)
   }?;
   Ok(db)
 }

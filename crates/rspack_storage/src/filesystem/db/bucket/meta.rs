@@ -1,3 +1,6 @@
+use std::sync::LazyLock;
+
+use rspack_fs::RelPath;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{
@@ -26,6 +29,12 @@ pub struct Meta {
 impl Meta {
   pub const FILE_NAME: &str = "_meta";
 
+  pub fn file_path() -> &'static RelPath {
+    static PATH: LazyLock<RelPath> =
+      LazyLock::new(|| RelPath::new_contained(Meta::FILE_NAME).expect("valid meta filename"));
+    &PATH
+  }
+
   /// Parses a single index line: "pack_id content_hash bloom_filter"
   fn parse_index_line(line: &str) -> Option<(PackId, PackIndex)> {
     let (pack_id_str, index_str) = line.split_once(' ')?;
@@ -38,7 +47,7 @@ impl Meta {
   pub async fn load(fs: &ScopeFileSystem) -> Result<Self> {
     let mut meta = Self::default();
 
-    let mut reader = fs.stream_read(&Self::FILE_NAME).await?;
+    let mut reader = fs.stream_read(Self::file_path()).await?;
 
     // First line: pack ID allocator state
     meta.pack_id_alloc = reader.read_line().await?.parse()?;
@@ -65,7 +74,7 @@ impl Meta {
 
   /// Saves metadata to file.
   pub async fn save(&self, fs: &ScopeFileSystem) -> Result<()> {
-    let mut writer = fs.stream_write(&Self::FILE_NAME).await?;
+    let mut writer = fs.stream_write(Self::file_path()).await?;
 
     // First line: pack ID allocator state
     writer.write_line(&self.pack_id_alloc.to_string()).await?;
@@ -135,7 +144,7 @@ mod test {
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn test_meta() -> Result<()> {
-    let fs = ScopeFileSystem::new_memory_fs("/bucket1".into());
+    let fs = ScopeFileSystem::new_memory_fs("/bucket1");
     fs.ensure_exist().await?;
 
     // meta not found

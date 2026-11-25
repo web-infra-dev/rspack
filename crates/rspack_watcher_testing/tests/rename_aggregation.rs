@@ -4,22 +4,22 @@ use std::{
   time::{Duration, SystemTime},
 };
 
-use rspack_util::fx_hash::FxHashSet;
+use rspack_fs::{AbsPath, AbsPathSet};
 use rspack_watcher::{EventAggregateHandler, EventHandler, FsWatcher, FsWatcherOptions};
 use tempfile::TempDir;
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
-struct Aggregate(UnboundedSender<(FxHashSet<String>, FxHashSet<String>)>);
+struct Aggregate(UnboundedSender<(AbsPathSet, AbsPathSet)>);
 
 impl EventAggregateHandler for Aggregate {
-  fn on_event_handle(&self, changed: FxHashSet<String>, removed: FxHashSet<String>) {
+  fn on_event_handle(&self, changed: AbsPathSet, removed: AbsPathSet) {
     let _ = self.0.send((changed, removed));
   }
 }
 
-struct Raw(UnboundedSender<String>);
+struct Raw(UnboundedSender<AbsPath>);
 impl EventHandler for Raw {
-  fn on_delete(&self, path: String) -> rspack_error::Result<()> {
+  fn on_delete(&self, path: AbsPath) -> rspack_error::Result<()> {
     let _ = self.0.send(path);
     Ok(())
   }
@@ -56,12 +56,10 @@ async fn assert_rename_result(operation: &str) {
   );
   let (tx, mut rx) = unbounded_channel();
   let (raw_tx, mut raw_rx) = unbounded_channel();
+  let file_abs = AbsPath::try_from_std_path(&file).expect("valid utf-8 path");
   watcher
     .watch(
-      (
-        vec![file.clone()].into_iter().map(Into::into),
-        std::iter::empty(),
-      ),
+      (vec![file_abs.clone()].into_iter(), std::iter::empty()),
       (std::iter::empty(), std::iter::empty()),
       (std::iter::empty(), std::iter::empty()),
       SystemTime::now(),
@@ -76,7 +74,7 @@ async fn assert_rename_result(operation: &str) {
   }
   assert_eq!(
     removal.expect("watcher should observe the rename source removal"),
-    Some(file.to_string_lossy().into_owned())
+    Some(file_abs.clone())
   );
   match operation {
     "replace" => fs::rename(&replacement, &file).expect("install replacement"),
@@ -98,23 +96,22 @@ async fn assert_rename_result(operation: &str) {
   let (changed, removed) = batch
     .expect("rename should produce an aggregated batch")
     .expect("aggregate handler should remain active");
-  let file = file.to_string_lossy().into_owned();
   if operation == "remove" {
     assert!(
-      removed.contains(&file),
+      removed.contains(&file_abs),
       "rename source was not removed: {removed:?}"
     );
     assert!(
-      !changed.contains(&file),
+      !changed.contains(&file_abs),
       "rename source was reported changed: {changed:?}"
     );
   } else {
     assert!(
-      changed.contains(&file),
+      changed.contains(&file_abs),
       "existing replacement was not changed: {changed:?}"
     );
     assert!(
-      !removed.contains(&file),
+      !removed.contains(&file_abs),
       "existing replacement was reported removed: {removed:?}"
     );
   }

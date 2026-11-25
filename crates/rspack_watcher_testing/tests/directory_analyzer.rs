@@ -1,28 +1,28 @@
 use std::{collections::HashSet, fs, time::Duration};
 
 use notify::{Event, EventKind, RecursiveMode, event::Flag};
-use rspack_paths::InternedPath;
+use rspack_fs::AbsPath;
 use rspack_watcher::{FsEventKind, testing::DirectoryAnalyzer};
 use tempfile::TempDir;
 
-fn empty() -> (Vec<InternedPath>, Vec<InternedPath>) {
+fn empty() -> (Vec<AbsPath>, Vec<AbsPath>) {
   (vec![], vec![])
 }
 
-fn added(path: &InternedPath) -> (Vec<InternedPath>, Vec<InternedPath>) {
+fn added(path: &AbsPath) -> (Vec<AbsPath>, Vec<AbsPath>) {
   (vec![path.clone()], vec![])
 }
 
-fn removed(path: &InternedPath) -> (Vec<InternedPath>, Vec<InternedPath>) {
+fn removed(path: &AbsPath) -> (Vec<AbsPath>, Vec<AbsPath>) {
   (vec![], vec![path.clone()])
 }
 
-fn assert_patterns(analyzer: &DirectoryAnalyzer, expected: Vec<(InternedPath, RecursiveMode)>) {
+fn assert_patterns(analyzer: &DirectoryAnalyzer, expected: Vec<(AbsPath, RecursiveMode)>) {
   let actual: HashSet<_> = analyzer.analyze().into_iter().collect();
   assert_eq!(actual, expected.into_iter().collect::<HashSet<_>>());
 }
 
-async fn next_events(analyzer: &mut DirectoryAnalyzer) -> Vec<(InternedPath, FsEventKind)> {
+async fn next_events(analyzer: &mut DirectoryAnalyzer) -> Vec<(AbsPath, FsEventKind)> {
   tokio::time::timeout(Duration::from_secs(5), analyzer.next_events())
     .await
     .expect("the event processor should report the dependency change")
@@ -31,13 +31,14 @@ async fn next_events(analyzer: &mut DirectoryAnalyzer) -> Vec<(InternedPath, FsE
 #[tokio::test]
 async fn test_shared_pattern_survives_until_the_last_dependency_is_removed() {
   let temp = TempDir::new().expect("create fixture");
-  let base = temp.path().canonicalize().expect("resolve fixture");
-  let a = InternedPath::from(base.join("a.js"));
-  let b = InternedPath::from(base.join("b.js"));
+  let base = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+    .expect("valid utf-8 fixture path");
+  let a = base.join("a.js").expect("valid path");
+  let b = base.join("b.js").expect("valid path");
   fs::write(&a, "a").expect("create a.js");
   fs::write(&b, "b").expect("create b.js");
   let analyzer = DirectoryAnalyzer::default();
-  let expected = vec![(InternedPath::from(base), RecursiveMode::NonRecursive)];
+  let expected = vec![(base, RecursiveMode::NonRecursive)];
 
   analyzer
     .update((vec![a.clone(), b.clone()], vec![]), empty(), empty())
@@ -72,10 +73,11 @@ async fn test_shared_pattern_survives_until_the_last_dependency_is_removed() {
 #[tokio::test]
 async fn test_path_stays_watched_while_another_subscription_set_references_it() {
   let temp = TempDir::new().expect("create fixture");
-  let base = temp.path().canonicalize().expect("resolve fixture");
-  let path = InternedPath::from(base.join("a.js"));
+  let base = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+    .expect("valid utf-8 fixture path");
+  let path = base.join("a.js").expect("valid path");
   let analyzer = DirectoryAnalyzer::default();
-  let expected = vec![(InternedPath::from(base), RecursiveMode::NonRecursive)];
+  let expected = vec![(base, RecursiveMode::NonRecursive)];
 
   analyzer
     .update(added(&path), empty(), added(&path))
@@ -97,12 +99,13 @@ async fn test_path_stays_watched_while_another_subscription_set_references_it() 
 #[tokio::test]
 async fn test_invalidation_recomputes_the_existing_ancestor_and_watch_mode() {
   let temp = TempDir::new().expect("create fixture");
-  let base = temp.path().canonicalize().expect("resolve fixture");
-  let parent = InternedPath::from(base.join("new"));
-  let nested = InternedPath::from(base.join("new/nested"));
-  let missing = InternedPath::from(base.join("new/nested/a.js"));
+  let base = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+    .expect("valid utf-8 fixture path");
+  let parent = base.join("new").expect("valid path");
+  let nested = base.join("new/nested").expect("valid path");
+  let missing = base.join("new/nested/a.js").expect("valid path");
   let analyzer = DirectoryAnalyzer::default();
-  let original = vec![(InternedPath::from(base), RecursiveMode::Recursive)];
+  let original = vec![(base, RecursiveMode::Recursive)];
 
   analyzer
     .update(empty(), empty(), added(&missing))
@@ -130,19 +133,17 @@ async fn test_invalidation_recomputes_the_existing_ancestor_and_watch_mode() {
 #[tokio::test]
 async fn test_missing_to_files_migration_refreshes_the_pattern() {
   let temp = TempDir::new().expect("create fixture");
-  let base = temp.path().canonicalize().expect("resolve fixture");
-  let parent = InternedPath::from(base.join("new"));
-  let path = InternedPath::from(base.join("new/a.js"));
+  let base = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+    .expect("valid utf-8 fixture path");
+  let parent = base.join("new").expect("valid path");
+  let path = base.join("new/a.js").expect("valid path");
   let analyzer = DirectoryAnalyzer::default();
 
   analyzer
     .update(empty(), empty(), added(&path))
     .await
     .expect("register missing path");
-  assert_patterns(
-    &analyzer,
-    vec![(InternedPath::from(base), RecursiveMode::Recursive)],
-  );
+  assert_patterns(&analyzer, vec![(base, RecursiveMode::Recursive)]);
   fs::create_dir(&parent).expect("create parent");
   fs::write(&path, "hello").expect("create dependency");
   analyzer
@@ -155,18 +156,16 @@ async fn test_missing_to_files_migration_refreshes_the_pattern() {
 #[tokio::test]
 async fn test_missing_to_context_migration_refreshes_the_pattern() {
   let temp = TempDir::new().expect("create fixture");
-  let base = temp.path().canonicalize().expect("resolve fixture");
-  let context = InternedPath::from(base.join("ctx"));
+  let base = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+    .expect("valid utf-8 fixture path");
+  let context = base.join("ctx").expect("valid path");
   let analyzer = DirectoryAnalyzer::default();
 
   analyzer
     .update(empty(), empty(), added(&context))
     .await
     .expect("register missing context");
-  assert_patterns(
-    &analyzer,
-    vec![(InternedPath::from(base), RecursiveMode::NonRecursive)],
-  );
+  assert_patterns(&analyzer, vec![(base, RecursiveMode::NonRecursive)]);
   fs::create_dir(&context).expect("create context");
   analyzer
     .update(empty(), added(&context), removed(&context))
@@ -178,9 +177,10 @@ async fn test_missing_to_context_migration_refreshes_the_pattern() {
 #[tokio::test]
 async fn test_inferred_context_removal_refreshes_the_pattern() {
   let temp = TempDir::new().expect("create fixture");
-  let base = temp.path().canonicalize().expect("resolve fixture");
-  let context = InternedPath::from(base.join("ctx"));
-  let child = InternedPath::from(base.join("ctx/a.js"));
+  let base = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+    .expect("valid utf-8 fixture path");
+  let context = base.join("ctx").expect("valid path");
+  let child = base.join("ctx/a.js").expect("valid path");
   fs::create_dir(&context).expect("create context");
   fs::write(&child, "hello").expect("create child");
   let mut analyzer = DirectoryAnalyzer::default();
@@ -196,7 +196,7 @@ async fn test_inferred_context_removal_refreshes_the_pattern() {
   fs::remove_dir_all(&context).expect("remove context");
   analyzer.on_native_event(
     Event::new(EventKind::Remove(notify::event::RemoveKind::File))
-      .add_path(child.as_ref().to_path_buf()),
+      .add_path(child.to_std_path_buf()),
   );
   assert!(
     next_events(&mut analyzer)
@@ -207,26 +207,21 @@ async fn test_inferred_context_removal_refreshes_the_pattern() {
     .update(empty(), empty(), empty())
     .await
     .expect("empty update");
-  assert_patterns(
-    &analyzer,
-    vec![(InternedPath::from(base), RecursiveMode::NonRecursive)],
-  );
+  assert_patterns(&analyzer, vec![(base, RecursiveMode::NonRecursive)]);
 }
 
 async fn assert_scan_appearance_refreshes_context(background_scan: bool) {
   let temp = TempDir::new().expect("create fixture");
-  let base = temp.path().canonicalize().expect("resolve fixture");
-  let context = InternedPath::from(base.join("ctx"));
-  let child = InternedPath::from(base.join("ctx/a.js"));
+  let base = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+    .expect("valid utf-8 fixture path");
+  let context = base.join("ctx").expect("valid path");
+  let child = base.join("ctx/a.js").expect("valid path");
   let mut analyzer = DirectoryAnalyzer::default();
   analyzer
     .update(empty(), added(&context), empty())
     .await
     .expect("register absent context");
-  assert_patterns(
-    &analyzer,
-    vec![(InternedPath::from(base), RecursiveMode::NonRecursive)],
-  );
+  assert_patterns(&analyzer, vec![(base, RecursiveMode::NonRecursive)]);
   fs::create_dir(&context).expect("create context after analysis");
   fs::write(&child, "hello").expect("create child");
 
@@ -260,9 +255,10 @@ async fn test_background_scan_refreshes_the_context() {
 #[tokio::test]
 async fn test_scanner_remembers_a_removal_until_the_file_is_unregistered() {
   let temp = TempDir::new().expect("create fixture");
-  let base = temp.path().canonicalize().expect("resolve fixture");
-  let gone = InternedPath::from(base.join("gone.js"));
-  let present = InternedPath::from(base.join("present.js"));
+  let base = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+    .expect("valid utf-8 fixture path");
+  let gone = base.join("gone.js").expect("valid path");
+  let present = base.join("present.js").expect("valid path");
   fs::write(&present, "").expect("create present file");
   let mut analyzer = DirectoryAnalyzer::default();
   analyzer
@@ -310,8 +306,9 @@ async fn test_scanner_remembers_a_removal_until_the_file_is_unregistered() {
 async fn test_rescan_invalidates_before_empty_paths_and_unsupported_kind_returns() {
   for include_path in [false, true] {
     let temp = TempDir::new().expect("create fixture");
-    let base = temp.path().canonicalize().expect("resolve fixture");
-    let context = InternedPath::from(base.join("ctx"));
+    let base = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+      .expect("valid utf-8 fixture path");
+    let context = base.join("ctx").expect("valid path");
     fs::create_dir(&context).expect("create context");
     let analyzer = DirectoryAnalyzer::default();
     analyzer
@@ -326,17 +323,14 @@ async fn test_rescan_invalidates_before_empty_paths_and_unsupported_kind_returns
 
     let mut event = Event::new(EventKind::Other).set_flag(Flag::Rescan);
     if include_path {
-      event = event.add_path(context.as_ref().to_path_buf());
+      event = event.add_path(context.to_std_path_buf());
     }
     analyzer.on_native_event(event);
     analyzer
       .update(empty(), empty(), empty())
       .await
       .expect("empty update");
-    assert_patterns(
-      &analyzer,
-      vec![(InternedPath::from(base), RecursiveMode::NonRecursive)],
-    );
+    assert_patterns(&analyzer, vec![(base, RecursiveMode::NonRecursive)]);
   }
 }
 
@@ -369,7 +363,7 @@ mod symlinks {
       if !has_subdirectory {
         fs::create_dir(replacement.join("sub")).expect("create replacement subdirectory");
       }
-      let missing = InternedPath::from(project.join("link/sub/a.js"));
+      let missing = AbsPath::try_from_std_path(&project.join("link/sub/a.js")).expect("valid path");
       let analyzer = DirectoryAnalyzer::default();
       analyzer
         .update(empty(), empty(), added(&missing))
@@ -378,7 +372,12 @@ mod symlinks {
       assert_patterns(
         &analyzer,
         vec![(
-          InternedPath::from(project.join(if has_subdirectory { "link/sub" } else { "link" })),
+          AbsPath::try_from_std_path(&project.join(if has_subdirectory {
+            "link/sub"
+          } else {
+            "link"
+          }))
+          .expect("valid path"),
           if has_subdirectory {
             RecursiveMode::NonRecursive
           } else {
@@ -396,7 +395,12 @@ mod symlinks {
       assert_patterns(
         &analyzer,
         vec![(
-          InternedPath::from(project.join(if has_subdirectory { "link" } else { "link/sub" })),
+          AbsPath::try_from_std_path(&project.join(if has_subdirectory {
+            "link"
+          } else {
+            "link/sub"
+          }))
+          .expect("valid path"),
           if has_subdirectory {
             RecursiveMode::Recursive
           } else {
@@ -415,7 +419,7 @@ mod symlinks {
       if has_subdirectory {
         fs::create_dir(target.join("sub")).expect("create target subdirectory");
       }
-      let missing = InternedPath::from(project.join("link/sub/a.js"));
+      let missing = AbsPath::try_from_std_path(&project.join("link/sub/a.js")).expect("valid path");
       let analyzer = DirectoryAnalyzer::default();
       analyzer
         .update(empty(), empty(), added(&missing))
@@ -424,7 +428,12 @@ mod symlinks {
       assert_patterns(
         &analyzer,
         vec![(
-          InternedPath::from(project.join(if has_subdirectory { "link/sub" } else { "link" })),
+          AbsPath::try_from_std_path(&project.join(if has_subdirectory {
+            "link/sub"
+          } else {
+            "link"
+          }))
+          .expect("valid path"),
           if has_subdirectory {
             RecursiveMode::NonRecursive
           } else {
@@ -440,7 +449,10 @@ mod symlinks {
         .expect("empty update after unlinking");
       assert_patterns(
         &analyzer,
-        vec![(InternedPath::from(project), RecursiveMode::Recursive)],
+        vec![(
+          AbsPath::try_from_std_path(&project).expect("valid path"),
+          RecursiveMode::Recursive,
+        )],
       );
     }
   }
@@ -448,7 +460,7 @@ mod symlinks {
   #[tokio::test]
   async fn test_dangling_symlink_recovery_refreshes_an_unchanged_missing_dependency() {
     let (_temp, project, target) = external_link();
-    let missing = InternedPath::from(project.join("link/a.js"));
+    let missing = AbsPath::try_from_std_path(&project.join("link/a.js")).expect("valid path");
     let analyzer = DirectoryAnalyzer::default();
     analyzer
       .update(empty(), empty(), added(&missing))
@@ -457,7 +469,7 @@ mod symlinks {
     assert_patterns(
       &analyzer,
       vec![(
-        InternedPath::from(project.clone()),
+        AbsPath::try_from_std_path(&project).expect("valid path"),
         RecursiveMode::Recursive,
       )],
     );
@@ -471,7 +483,7 @@ mod symlinks {
     assert_patterns(
       &analyzer,
       vec![(
-        InternedPath::from(project.join("link")),
+        AbsPath::try_from_std_path(&project.join("link")).expect("valid path"),
         RecursiveMode::NonRecursive,
       )],
     );
@@ -481,7 +493,7 @@ mod symlinks {
   async fn test_file_target_becoming_a_directory_refreshes_a_descendant_dependency() {
     let (_temp, project, target) = external_link();
     fs::write(&target, "regular file").expect("create external file target");
-    let missing = InternedPath::from(project.join("link/a.js"));
+    let missing = AbsPath::try_from_std_path(&project.join("link/a.js")).expect("valid path");
     let analyzer = DirectoryAnalyzer::default();
     analyzer
       .update(empty(), empty(), added(&missing))
@@ -490,7 +502,7 @@ mod symlinks {
     assert_patterns(
       &analyzer,
       vec![(
-        InternedPath::from(project.clone()),
+        AbsPath::try_from_std_path(&project).expect("valid path"),
         RecursiveMode::Recursive,
       )],
     );
@@ -504,7 +516,7 @@ mod symlinks {
     assert_patterns(
       &analyzer,
       vec![(
-        InternedPath::from(project.join("link")),
+        AbsPath::try_from_std_path(&project.join("link")).expect("valid path"),
         RecursiveMode::NonRecursive,
       )],
     );
@@ -515,7 +527,7 @@ mod symlinks {
     for is_context in [false, true] {
       let (_temp, project, target) = external_link();
       fs::write(&target, "regular file").expect("create external file target");
-      let link = InternedPath::from(project.join("link"));
+      let link = AbsPath::try_from_std_path(&project.join("link")).expect("valid path");
       let analyzer = DirectoryAnalyzer::default();
       if is_context {
         analyzer
@@ -530,7 +542,10 @@ mod symlinks {
       }
       assert_patterns(
         &analyzer,
-        vec![(InternedPath::from(project), RecursiveMode::NonRecursive)],
+        vec![(
+          AbsPath::try_from_std_path(&project).expect("valid path"),
+          RecursiveMode::NonRecursive,
+        )],
       );
 
       fs::remove_file(&target).expect("remove external file");
@@ -547,11 +562,16 @@ mod symlinks {
 #[tokio::test]
 async fn nested_contexts_route_unscanned_children_after_either_unsubscribes() {
   let temp = TempDir::new().expect("create fixture");
-  let outer = InternedPath::from(temp.path().canonicalize().expect("resolve fixture"));
-  let inner = InternedPath::from(outer.join("inner"));
+  let outer = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+    .expect("valid utf-8 fixture path");
+  let inner = outer.join("inner").expect("valid path");
   fs::create_dir(&inner).expect("create nested context");
-  let event = Event::new(EventKind::Remove(notify::event::RemoveKind::File))
-    .add_path(inner.join("unscanned/child.js"));
+  let event = Event::new(EventKind::Remove(notify::event::RemoveKind::File)).add_path(
+    inner
+      .join("unscanned/child.js")
+      .expect("valid path")
+      .to_std_path_buf(),
+  );
 
   for (unregistered, remaining) in [(&inner, &outer), (&outer, &inner)] {
     let mut analyzer = DirectoryAnalyzer::default();

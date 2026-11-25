@@ -3,6 +3,7 @@ mod meta;
 mod pack;
 
 use pack::{PackGenerator, PackId, PackIdAlloc};
+use rspack_fs::RelPath;
 use rspack_parallel::TryFutureConsumer;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -104,7 +105,7 @@ impl Bucket {
     writable_fs: Option<ScopeFileSystem>,
     data: Vec<(Vec<u8>, Option<Vec<u8>>)>,
     max_pack_size: usize,
-  ) -> Result<(Vec<String>, Vec<String>)> {
+  ) -> Result<(Vec<RelPath>, Vec<RelPath>)> {
     let writable_fs = writable_fs.unwrap_or(self.fs.clone());
 
     // Find packs that need to be rewritten (contain modified keys)
@@ -162,7 +163,7 @@ impl Bucket {
 
     // Write metadata
     self.meta.save(&writable_fs).await?;
-    added_files.push(Meta::FILE_NAME.to_string());
+    added_files.push(Meta::file_path().clone());
 
     Ok((added_files, removed_files))
   }
@@ -227,7 +228,7 @@ mod test {
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn test_bucket() -> Result<()> {
-    let fs = ScopeFileSystem::new_memory_fs("/bucket1".into());
+    let fs = ScopeFileSystem::new_memory_fs("/bucket1");
 
     let mut bucket = Bucket::new(fs).await?;
     assert_eq!(bucket.meta, Default::default());

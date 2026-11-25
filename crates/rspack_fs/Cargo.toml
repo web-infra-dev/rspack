@@ -12,7 +12,9 @@ allocative = ["rspack_intern/allocative"]
 [dependencies]
 async-trait      = { workspace = true }
 camino           = { workspace = true }
+dashmap          = { workspace = true, features = ["raw-api"] }
 dunce            = { workspace = true }
+indexmap         = { workspace = true }
 pnp              = { workspace = true }
 rspack_cacheable = { workspace = true }
 rspack_error     = { workspace = true }

@@ -9,6 +9,7 @@ use std::{
   },
 };
 
+use rspack_fs::RelPath;
 use rspack_parallel::TryFutureConsumer;
 use rustc_hash::FxHashMap as HashMap;
 use tokio::sync::Mutex;
@@ -55,11 +56,11 @@ impl DB {
     // Filter to keep only directories (buckets), excluding internal directories
     let mut bucket_names = Vec::new();
     for entry in entries {
-      if !entry.starts_with('.')
+      if !entry.as_str().starts_with('.')
         && let Ok(metadata) = self.fs.stat(&entry).await
         && metadata.is_directory
       {
-        bucket_names.push(entry);
+        bucket_names.push(entry.as_str().to_string());
       }
     }
 
@@ -78,7 +79,8 @@ impl DB {
     let bucket = match buckets.entry(bucket_name.to_string()) {
       Entry::Occupied(entry) => entry.into_mut(),
       Entry::Vacant(entry) => {
-        let fs = self.fs.child_fs(bucket_name);
+        let bucket_path = RelPath::new_contained(bucket_name)?;
+        let fs = self.fs.child_fs(&bucket_path)?;
         let bucket = Bucket::new(fs).await?;
         entry.insert(bucket)
       }
@@ -115,9 +117,12 @@ impl DB {
         .into_iter()
         .map(|(bucket_name, changes)| {
           let cached_bucket = buckets.remove(&bucket_name);
-          let readable_fs = transaction.readable_fs().child_fs(&bucket_name);
-          let writable_fs = transaction.writable_fs().child_fs(&bucket_name);
+          let readable_root = transaction.readable_fs().clone();
+          let writable_root = transaction.writable_fs().clone();
           async move {
+            let bucket_path = RelPath::new_contained(&bucket_name)?;
+            let readable_fs = readable_root.child_fs(&bucket_path)?;
+            let writable_fs = writable_root.child_fs(&bucket_path)?;
             // Initialize bucket if not already cached (runs in parallel across buckets)
             let mut bucket = if let Some(bucket) = cached_bucket {
               bucket
@@ -127,21 +132,21 @@ impl DB {
             let affacted_files = bucket
               .save(Some(writable_fs), changes, max_pack_size)
               .await?;
-            Ok::<_, Error>((bucket_name, bucket, affacted_files))
+            Ok::<_, Error>((bucket_name, bucket_path, bucket, affacted_files))
           }
         })
-        .try_fut_consume(|(bucket_name, bucket, affacted_files)| {
+        .try_fut_consume(|(bucket_name, bucket_path, bucket, affacted_files)| {
           let (added_pack, removed_pack) = affacted_files;
-          updated_buckets.insert(bucket_name.clone(), bucket);
+          updated_buckets.insert(bucket_name, bucket);
           all_files_to_add.extend(
             added_pack
               .into_iter()
-              .map(|file| format!("{bucket_name}/{file}")),
+              .map(|file| bucket_path.join_rel(&file)),
           );
           all_files_to_remove.extend(
             removed_pack
               .into_iter()
-              .map(|file| format!("{bucket_name}/{file}")),
+              .map(|file| bucket_path.join_rel(&file)),
           );
         })
         .await;
@@ -193,7 +198,11 @@ impl DB {
       buckets.remove(scope);
     }
 
-    let result = self.fs.child_fs(scope).remove().await;
+    let result = async {
+      let scope_path = RelPath::new_contained(scope)?;
+      self.fs.child_fs(&scope_path)?.remove().await
+    }
+    .await;
 
     if let Err(err) = result {
       // The cache may be in an indeterminate state. Switch to readonly so no
@@ -251,7 +260,7 @@ mod test {
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn test_db() -> Result<()> {
-    let fs = ScopeFileSystem::new_memory_fs("/".into());
+    let fs = ScopeFileSystem::new_memory_fs("/");
     let db = DB::new(fs);
     let name_1 = "name1";
     let name_2 = "name2";

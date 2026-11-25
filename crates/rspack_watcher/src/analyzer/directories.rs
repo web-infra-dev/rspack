@@ -1,7 +1,7 @@
 #![allow(unused)]
 use std::sync::Mutex;
 
-use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
+use rspack_fs::{AbsPath, AbsPathMap, AbsPathSet};
 use rspack_util::fx_hash::FxHashMap;
 
 use super::{Analyzer, WatchPattern};
@@ -20,15 +20,15 @@ pub struct WatcherDirectoriesAnalyzer {
 
 #[derive(Default)]
 struct InvalidatedPaths {
-  paths: InternedPathSet,
+  paths: AbsPathSet,
   all: bool,
 }
 
 #[derive(Default)]
 struct DirectoryAnalyzerState {
-  paths: InternedPathMap<Option<WatchPattern>>,
+  paths: AbsPathMap<Option<WatchPattern>>,
   patterns: FxHashMap<WatchPattern, usize>,
-  symlink_dependent_paths: InternedPathSet,
+  symlink_dependent_paths: AbsPathSet,
 }
 
 impl Analyzer for WatcherDirectoriesAnalyzer {
@@ -45,8 +45,7 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
       path_accessor.directories(),
       path_accessor.missing(),
     ];
-    let is_registered =
-      |path: &InternedPath| subscriptions.iter().any(|(all, _, _)| all.contains(path));
+    let is_registered = |path: &AbsPath| subscriptions.iter().any(|(all, _, _)| all.contains(path));
     let mut dirty = state.symlink_dependent_paths.clone();
     for (_, added, removed) in subscriptions {
       dirty.extend(added.iter().map(|path| path.clone()));
@@ -61,15 +60,15 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
         if invalidated.all
           || path
             .ancestors()
-            .any(|ancestor| invalidated.paths.contains(&InternedPath::from(ancestor)))
+            .any(|ancestor| invalidated.paths.contains(&ancestor))
         {
           dirty.insert(path);
         }
       }
     }
 
-    let mut resolutions = InternedPathMap::default();
-    let mut symlink_ancestors = InternedPathMap::default();
+    let mut resolutions = AbsPathMap::default();
+    let mut symlink_ancestors = AbsPathMap::default();
     for path in dirty {
       state.symlink_dependent_paths.remove(&path);
       if let Some(Some(pattern)) = state.paths.remove(&path) {
@@ -109,7 +108,7 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
     state.patterns.keys().cloned().collect()
   }
 
-  fn invalidate_path(&self, path: &InternedPath) {
+  fn invalidate_path(&self, path: &AbsPath) {
     let mut invalidated = self
       .invalidated
       .lock()
@@ -142,10 +141,10 @@ const DIRECTORY_WATCH_DEPTH: u32 = 2;
 const MAX_INVALIDATED_PATHS: usize = 1024;
 
 fn find_existing_directory(
-  path: InternedPath,
-  resolutions: &mut InternedPathMap<Option<(InternedPath, u32, bool, bool)>>,
-  symlink_ancestors: &mut InternedPathMap<bool>,
-) -> Option<(InternedPath, u32, bool, bool)> {
+  path: AbsPath,
+  resolutions: &mut AbsPathMap<Option<(AbsPath, u32, bool, bool)>>,
+  symlink_ancestors: &mut AbsPathMap<bool>,
+) -> Option<(AbsPath, u32, bool, bool)> {
   if let Some(resolution) = resolutions.get(&path) {
     return resolution.clone();
   }
@@ -163,9 +162,7 @@ fn find_existing_directory(
     let unresolved_symlink = metadata.is_err() && non_directory_symlink;
     path
       .parent()
-      .and_then(|parent| {
-        find_existing_directory(InternedPath::from(parent), resolutions, symlink_ancestors)
-      })
+      .and_then(|parent| find_existing_directory(parent, resolutions, symlink_ancestors))
       .map(|(directory, depth, recheck, parent_symlink)| {
         (
           directory,
@@ -179,17 +176,14 @@ fn find_existing_directory(
   resolution
 }
 
-fn has_symlink_ancestor(
-  path: &InternedPath,
-  symlink_ancestors: &mut InternedPathMap<bool>,
-) -> bool {
+fn has_symlink_ancestor(path: &AbsPath, symlink_ancestors: &mut AbsPathMap<bool>) -> bool {
   if let Some(has_symlink) = symlink_ancestors.get(path) {
     return *has_symlink;
   }
   let has_symlink = path.is_symlink()
     || path
       .parent()
-      .is_some_and(|parent| has_symlink_ancestor(&InternedPath::from(parent), symlink_ancestors));
+      .is_some_and(|parent| has_symlink_ancestor(&parent, symlink_ancestors));
   symlink_ancestors.insert(path.clone(), has_symlink);
   has_symlink
 }
@@ -201,19 +195,22 @@ mod tests {
 
   #[tokio::test]
   async fn test_find_watch_directories() {
-    let current_dir = std::env::current_dir().expect("Failed to get current directory");
+    let current_dir = AbsPath::try_from_std_path(
+      &std::env::current_dir().expect("Failed to get current directory"),
+    )
+    .expect("valid cwd");
     let path_manager = PathManager::default();
     let files = (
       vec![
-        current_dir.join("Cargo.toml").into(),
-        current_dir.join("src/lib.rs").into(),
+        current_dir.join("Cargo.toml").unwrap(),
+        current_dir.join("src/lib.rs").unwrap(),
       ]
       .into_iter(),
       vec![].into_iter(),
     );
 
     let dirs = (
-      vec![current_dir.join("src").into()].into_iter(),
+      vec![current_dir.join("src").unwrap()].into_iter(),
       vec![].into_iter(),
     );
 
@@ -226,34 +223,37 @@ mod tests {
     assert_eq!(watch_patterns.len(), 2);
     assert!(watch_patterns.contains(&{
       WatchPattern {
-        path: InternedPath::from(current_dir.clone()),
+        path: current_dir.clone(),
         mode: notify::RecursiveMode::NonRecursive,
       }
     }));
     assert!(watch_patterns.contains(&WatchPattern {
-      path: InternedPath::from(current_dir.join("src")),
+      path: current_dir.join("src").unwrap(),
       mode: notify::RecursiveMode::NonRecursive
     }));
   }
 
   #[tokio::test]
   async fn test_find_non_exists_watcher_directories() {
-    let current_dir = std::env::current_dir().expect("Failed to get current directory");
-    let dir_0 = InternedPath::from(current_dir.join("src"));
+    let current_dir = AbsPath::try_from_std_path(
+      &std::env::current_dir().expect("Failed to get current directory"),
+    )
+    .expect("valid cwd");
+    let dir_0 = current_dir.join("src").unwrap();
 
     let path_manager = PathManager::default();
     let files = (
       vec![
-        current_dir.join("Cargo.toml").into(),
-        current_dir.join("src/a/b/c/d.rs").into(),
+        current_dir.join("Cargo.toml").unwrap(),
+        current_dir.join("src/a/b/c/d.rs").unwrap(),
       ]
       .into_iter(),
       vec![].into_iter(),
     );
     let dirs = (
       vec![
-        current_dir.join("src").into(),
-        current_dir.join("src/b/c/d/e").into(),
+        current_dir.join("src").unwrap(),
+        current_dir.join("src/b/c/d/e").unwrap(),
       ]
       .into_iter(),
       vec![].into_iter(),
@@ -275,7 +275,7 @@ mod tests {
       mode: notify::RecursiveMode::Recursive,
     }));
     assert!(watch_patterns.contains(&WatchPattern {
-      path: InternedPath::from(current_dir),
+      path: current_dir,
       mode: notify::RecursiveMode::NonRecursive,
     }));
   }

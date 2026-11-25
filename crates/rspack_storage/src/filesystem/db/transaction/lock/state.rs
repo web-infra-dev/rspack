@@ -1,7 +1,17 @@
+use std::sync::LazyLock;
+
+use rspack_fs::RelPath;
+
 use super::super::ScopeFileSystem;
 use crate::{Error, Result};
 
 const STATE_LOCK_FILE: &str = "state.lock";
+
+fn state_lock_file() -> &'static RelPath {
+  static PATH: LazyLock<RelPath> =
+    LazyLock::new(|| RelPath::new_contained(STATE_LOCK_FILE).expect("valid state lock filename"));
+  &PATH
+}
 
 /// State lock file that records the process owning a transaction.
 ///
@@ -32,7 +42,7 @@ impl std::default::Default for StateLock {
 impl StateLock {
   /// Loads state lock from filesystem and returns the process info.
   pub async fn load(fs: &ScopeFileSystem) -> Result<Self> {
-    let mut reader = fs.stream_read(STATE_LOCK_FILE).await?;
+    let mut reader = fs.stream_read(state_lock_file()).await?;
 
     // Read PID (4 bytes, big-endian)
     let pid_bytes = reader.read(4).await.map_err(|e| {
@@ -67,7 +77,7 @@ impl StateLock {
 
   /// Saves state lock to filesystem with current process info.
   pub async fn save(&self, fs: &ScopeFileSystem) -> Result<()> {
-    let mut writer = fs.stream_write(STATE_LOCK_FILE).await?;
+    let mut writer = fs.stream_write(state_lock_file()).await?;
 
     // Write PID (4 bytes, big-endian)
     writer.write(&self.pid.to_be_bytes()).await?;
@@ -81,7 +91,7 @@ impl StateLock {
 
   /// Remove state lock from filesystem
   pub async fn remove(fs: &ScopeFileSystem) -> Result<()> {
-    fs.remove_file(STATE_LOCK_FILE).await
+    fs.remove_file(state_lock_file()).await
   }
 
   /// Checks if the process recorded in this lock is currently running.
@@ -163,7 +173,7 @@ mod tests {
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn test_state_lock() -> Result<()> {
-    let fs = ScopeFileSystem::new_memory_fs("/bucket1".into());
+    let fs = ScopeFileSystem::new_memory_fs("/bucket1");
     fs.ensure_exist().await?;
 
     // commit lock not found

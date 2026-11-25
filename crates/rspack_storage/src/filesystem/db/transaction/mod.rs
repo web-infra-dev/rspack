@@ -1,8 +1,18 @@
 mod lock;
 
+use std::sync::LazyLock;
+
+use rspack_fs::RelPath;
+
 use self::lock::{CommitLock, StateLock};
 use super::ScopeFileSystem;
 use crate::Result;
+
+fn temp_dir_path() -> &'static RelPath {
+  static PATH: LazyLock<RelPath> =
+    LazyLock::new(|| RelPath::new_contained(".temp").expect("valid temp dir path"));
+  &PATH
+}
 
 /// Transaction for atomic file operations with crash recovery.
 ///
@@ -28,7 +38,7 @@ impl Transaction {
     Self::ensure_committed(root_fs).await?;
 
     let root_fs = root_fs.clone();
-    let temp_fs = root_fs.child_fs(".temp");
+    let temp_fs = root_fs.child_fs(temp_dir_path())?;
     temp_fs.ensure_exist().await?;
 
     // Create state lock for current process
@@ -40,7 +50,7 @@ impl Transaction {
 
   /// Ensures any previously interrupted commit is fully applied before reading.
   pub async fn ensure_committed(root_fs: &ScopeFileSystem) -> Result<()> {
-    let temp_fs = root_fs.child_fs(".temp");
+    let temp_fs = root_fs.child_fs(temp_dir_path())?;
     let state_lock = match StateLock::load(&temp_fs).await {
       Ok(lock) => Some(lock),
       Err(e) if e.is_not_found() => None,
@@ -89,8 +99,8 @@ impl Transaction {
   /// * `removed_relative_path` - Files to delete from root
   pub async fn commit(
     self,
-    added_relative_path: Vec<String>,
-    removed_relative_path: Vec<String>,
+    added_relative_path: Vec<RelPath>,
+    removed_relative_path: Vec<RelPath>,
   ) -> Result<()> {
     // Verify this transaction still belongs to current process
     match StateLock::load(&self.temp_fs).await {
@@ -152,49 +162,56 @@ impl Transaction {
 
 #[cfg(test)]
 mod test {
+  use rspack_fs::RelPath;
+
   use super::{Result, ScopeFileSystem, Transaction};
+
+  fn rel(path: &str) -> RelPath {
+    RelPath::new_contained(path).expect("valid test relative path")
+  }
+
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn test_smoke() -> Result<()> {
-    let fs = ScopeFileSystem::new_memory_fs("/".into());
+    let fs = ScopeFileSystem::new_memory_fs("/");
     fs.ensure_exist().await?;
-    fs.write("a.txt", "a".as_bytes()).await?;
-    fs.write("b.txt", "b".as_bytes()).await?;
-    fs.write("c.txt", "c".as_bytes()).await?;
-    assert!(fs.stat("/.temp").await.is_err());
+    fs.write(&rel("a.txt"), "a".as_bytes()).await?;
+    fs.write(&rel("b.txt"), "b".as_bytes()).await?;
+    fs.write(&rel("c.txt"), "c".as_bytes()).await?;
+    assert!(fs.stat(&rel(".temp")).await.is_err());
 
     let transaction = Transaction::new(&fs).await?;
-    assert!(fs.stat("/.temp").await.is_ok());
+    assert!(fs.stat(&rel(".temp")).await.is_ok());
 
     // test read & write
     transaction
       .writable_fs()
-      .write("a.txt", "aa".as_bytes())
+      .write(&rel("a.txt"), "aa".as_bytes())
       .await?;
     transaction
       .writable_fs()
-      .write("d.txt", "dd".as_bytes())
+      .write(&rel("d.txt"), "dd".as_bytes())
       .await?;
     let readable_fs = transaction.readable_fs();
-    assert_eq!(readable_fs.read("a.txt").await?, "a".as_bytes());
-    assert_eq!(readable_fs.read("b.txt").await?, "b".as_bytes());
-    assert_eq!(readable_fs.read("c.txt").await?, "c".as_bytes());
-    assert!(readable_fs.read("d.txt").await.is_err());
+    assert_eq!(readable_fs.read(&rel("a.txt")).await?, "a".as_bytes());
+    assert_eq!(readable_fs.read(&rel("b.txt")).await?, "b".as_bytes());
+    assert_eq!(readable_fs.read(&rel("c.txt")).await?, "c".as_bytes());
+    assert!(readable_fs.read(&rel("d.txt")).await.is_err());
 
     let writable_fs = transaction.writable_fs();
-    assert_eq!(writable_fs.read("a.txt").await?, "aa".as_bytes());
-    assert!(writable_fs.read("b.txt").await.is_err());
-    assert!(writable_fs.read("c.txt").await.is_err());
-    assert_eq!(writable_fs.read("d.txt").await?, "dd".as_bytes());
+    assert_eq!(writable_fs.read(&rel("a.txt")).await?, "aa".as_bytes());
+    assert!(writable_fs.read(&rel("b.txt")).await.is_err());
+    assert!(writable_fs.read(&rel("c.txt")).await.is_err());
+    assert_eq!(writable_fs.read(&rel("d.txt")).await?, "dd".as_bytes());
 
     transaction
-      .commit(vec!["a.txt".into(), "d.txt".into()], vec!["b.txt".into()])
+      .commit(vec![rel("a.txt"), rel("d.txt")], vec![rel("b.txt")])
       .await?;
 
-    assert!(fs.stat("/.temp").await.is_err());
-    assert_eq!(fs.read("a.txt").await?, "aa".as_bytes());
-    assert_eq!(fs.read("c.txt").await?, "c".as_bytes());
-    assert_eq!(fs.read("d.txt").await?, "dd".as_bytes());
+    assert!(fs.stat(&rel(".temp")).await.is_err());
+    assert_eq!(fs.read(&rel("a.txt")).await?, "aa".as_bytes());
+    assert_eq!(fs.read(&rel("c.txt")).await?, "c".as_bytes());
+    assert_eq!(fs.read(&rel("d.txt")).await?, "dd".as_bytes());
 
     Ok(())
   }

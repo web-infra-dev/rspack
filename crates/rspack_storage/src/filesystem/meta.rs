@@ -1,5 +1,9 @@
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::{
+  sync::LazyLock,
+  time::{SystemTime, UNIX_EPOCH},
+};
 
+use rspack_fs::RelPath;
 use rustc_hash::FxHashMap as HashMap;
 
 use super::{CacheDirectory, ScopeFileSystem};
@@ -22,6 +26,12 @@ pub struct Meta {
 impl Meta {
   const FILE_NAME: &str = "_meta";
 
+  fn file_path() -> &'static RelPath {
+    static PATH: LazyLock<RelPath> =
+      LazyLock::new(|| RelPath::new_contained(Meta::FILE_NAME).expect("valid meta filename"));
+    &PATH
+  }
+
   /// Gets the current timestamp in seconds since UNIX_EPOCH
   pub fn current_timestamp() -> u64 {
     SystemTime::now()
@@ -33,7 +43,7 @@ impl Meta {
   /// Loads metadata from `_meta` file
   pub async fn load(fs: &ScopeFileSystem) -> Result<Self> {
     let mut meta = Self::default();
-    let mut reader = fs.stream_read(&Self::FILE_NAME).await?;
+    let mut reader = fs.stream_read(Self::file_path()).await?;
 
     while let Ok(line) = reader.read_line().await {
       if line.is_empty() {
@@ -68,7 +78,7 @@ impl Meta {
 
   /// Saves metadata to `_meta` file
   pub async fn save(&self, fs: &ScopeFileSystem) -> Result<()> {
-    let mut writer = fs.stream_write(&Self::FILE_NAME).await?;
+    let mut writer = fs.stream_write(Self::file_path()).await?;
 
     for (cache_directory, timestamp) in &self.access_times {
       writer
@@ -137,7 +147,7 @@ mod test {
   #[tokio::test]
   #[cfg_attr(miri, ignore)]
   async fn test_meta() -> Result<()> {
-    let fs = ScopeFileSystem::new_memory_fs("/test_meta".into());
+    let fs = ScopeFileSystem::new_memory_fs("/test_meta");
     fs.ensure_exist().await?;
 
     assert!(Meta::load(&fs).await.is_err());
@@ -162,7 +172,7 @@ mod test {
     assert_eq!(meta.access_times.len(), 1);
     assert!(meta.access_times.contains_key(&cache_directory(V3)));
 
-    let contents = String::from_utf8(fs.read(Meta::FILE_NAME).await?).expect("valid metadata");
+    let contents = String::from_utf8(fs.read(Meta::file_path()).await?).expect("valid metadata");
     assert!(contents.lines().all(|line| line.split(' ').count() == 2));
 
     Ok(())
@@ -170,12 +180,12 @@ mod test {
 
   #[tokio::test]
   async fn load_should_ignore_invalid_meta_entries() -> Result<()> {
-    let fs = ScopeFileSystem::new_memory_fs("/invalid_meta_entries".into());
+    let fs = ScopeFileSystem::new_memory_fs("/invalid_meta_entries");
     fs.ensure_exist().await?;
 
     let timestamp = Meta::current_timestamp() - 30;
     fs.write(
-      Meta::FILE_NAME,
+      Meta::file_path(),
       format!(
         "../outside {timestamp}\nkeep-me {timestamp}\n0000000000000001 {timestamp}\n{V1} {timestamp}\n"
       )

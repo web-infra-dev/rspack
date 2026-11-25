@@ -1,4 +1,4 @@
-use rspack_paths::InternedPath;
+use rspack_fs::AbsPath;
 
 use crate::{WatchPattern, paths::PathAccessor};
 
@@ -17,7 +17,7 @@ pub(crate) trait Analyzer: Default {
   /// A vector of [`WatchPattern`]s representing the paths and their watch modes.
   fn analyze<'a>(&self, path_accessor: PathAccessor<'a>) -> Vec<WatchPattern>;
 
-  fn invalidate_path(&self, _path: &InternedPath) {}
+  fn invalidate_path(&self, _path: &AbsPath) {}
 
   fn invalidate_all(&self) {}
 }

@@ -240,6 +240,153 @@ pub(crate) fn is_canonical_windows_abs_path(s: &str) -> bool {
   is_canonical_windows_drive_path(s) || is_canonical_windows_unc_path(s)
 }
 
+pub(crate) fn is_canonical_rel_path(s: &str) -> bool {
+  if s.is_empty() {
+    return true;
+  }
+  if s.starts_with('/') || s.ends_with('/') || s.contains('\\') {
+    return false;
+  }
+  let mut seen_normal = false;
+  for seg in s.split('/') {
+    if seg.is_empty() || seg == "." {
+      return false;
+    }
+    if seg == ".." {
+      if seen_normal {
+        return false;
+      }
+    } else {
+      seen_normal = true;
+    }
+  }
+  true
+}
+
+fn format_rel_segments(leading_parents: usize, parts: &[&str]) -> String {
+  if leading_parents == 0 && parts.is_empty() {
+    return String::new();
+  }
+  let count = leading_parents + parts.len();
+  let len =
+    leading_parents * 2 + parts.iter().map(|p| p.len()).sum::<usize>() + count.saturating_sub(1);
+  let mut out = String::with_capacity(len);
+  for i in 0..leading_parents {
+    if i > 0 {
+      out.push('/');
+    }
+    out.push_str("..");
+  }
+  for part in parts {
+    if !out.is_empty() {
+      out.push('/');
+    }
+    out.push_str(part);
+  }
+  out
+}
+
+pub(crate) fn normalize_rel_path(raw: &str) -> Result<Cow<'_, str>> {
+  if raw.is_empty() {
+    return Ok(Cow::Borrowed(""));
+  }
+  let bytes = raw.as_bytes();
+  if is_windows_sep_byte(bytes[0]) || has_windows_drive_prefix(bytes) {
+    return Err(Error::NotRelativePath(raw.to_string()));
+  }
+  if is_canonical_rel_path(raw) {
+    return Ok(Cow::Borrowed(raw));
+  }
+
+  let mut leading_parents = 0usize;
+  let mut parts: SmallVec<[&str; 16]> = SmallVec::new();
+  for seg in raw.split(['/', '\\']) {
+    match seg {
+      "" | "." => {}
+      ".." => {
+        if parts.pop().is_none() {
+          leading_parents += 1;
+        }
+      }
+      _ => parts.push(seg),
+    }
+  }
+  Ok(Cow::Owned(format_rel_segments(leading_parents, &parts)))
+}
+
+pub(crate) fn normalize_rel_join(base: &str, sub: &str) -> Result<String> {
+  if sub.is_empty() {
+    return Ok(base.to_string());
+  }
+  let sub_bytes = sub.as_bytes();
+  if is_windows_sep_byte(sub_bytes[0]) || has_windows_drive_prefix(sub_bytes) {
+    return Err(Error::NotRelativePath(sub.to_string()));
+  }
+  if base.is_empty() {
+    return normalize_rel_path(sub).map(Cow::into_owned);
+  }
+
+  let sub_has_parent = sub == ".." || sub.starts_with("../");
+  if is_canonical_rel_path(sub) && (!sub_has_parent || base.split('/').all(|seg| seg == "..")) {
+    let mut out = String::with_capacity(base.len() + 1 + sub.len());
+    out.push_str(base);
+    out.push('/');
+    out.push_str(sub);
+    return Ok(out);
+  }
+
+  let mut leading_parents = 0usize;
+  let mut parts: SmallVec<[&str; 16]> = SmallVec::new();
+  for seg in base.split('/').chain(sub.split(['/', '\\'])) {
+    match seg {
+      "" | "." => {}
+      ".." => {
+        if parts.pop().is_none() {
+          leading_parents += 1;
+        }
+      }
+      _ => parts.push(seg),
+    }
+  }
+  Ok(format_rel_segments(leading_parents, &parts))
+}
+
+pub(crate) fn abs_relative_to(target: &str, base: &str, flavor: PathFlavor) -> Option<String> {
+  if target == base {
+    return Some(String::new());
+  }
+  let t_root = abs_root_len(target, flavor);
+  let b_root = abs_root_len(base, flavor);
+  let root_matches = match flavor {
+    PathFlavor::Unix => target[..t_root] == base[..b_root],
+    PathFlavor::Windows => target[..t_root].eq_ignore_ascii_case(&base[..b_root]),
+  };
+  if !root_matches {
+    return None;
+  }
+
+  let sep = flavor.separator();
+  let t_tail = &target[t_root..];
+  let b_tail = &base[b_root..];
+  let t_segs: SmallVec<[&str; 16]> = if t_tail.is_empty() {
+    SmallVec::new()
+  } else {
+    t_tail.split(sep).collect()
+  };
+  let b_segs: SmallVec<[&str; 16]> = if b_tail.is_empty() {
+    SmallVec::new()
+  } else {
+    b_tail.split(sep).collect()
+  };
+  let common = t_segs
+    .iter()
+    .zip(b_segs.iter())
+    .take_while(|(a, b)| a == b)
+    .count();
+  let up_count = b_segs.len() - common;
+  Some(format_rel_segments(up_count, &t_segs[common..]))
+}
+
 pub(crate) fn normalize_posix_rel_path(raw: &str) -> Result<Cow<'_, str>> {
   if raw.is_empty() {
     return Ok(Cow::Borrowed(""));
@@ -382,7 +529,6 @@ pub(crate) fn abs_join<'a>(
       let bytes = s.as_bytes();
 
       if is_windows_drive_abs_prefix(bytes)
-        || parse_windows_unc(s).is_some()
         || (bytes.len() >= 2 && is_windows_sep_byte(bytes[0]) && is_windows_sep_byte(bytes[1]))
       {
         return normalize_windows_abs_path(sub);

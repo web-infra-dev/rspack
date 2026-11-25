@@ -303,19 +303,14 @@ impl FileSystemInfo {
       if !visited.insert(dependency.clone()) {
         continue;
       }
-      match AbsPath::try_from_std_path(dependency.as_path()) {
-        Ok(abs) => match self.inner.fs.metadata(&abs).await {
-          Ok(metadata) if metadata.is_directory => {
-            resolved.contexts.insert(dependency.clone());
-          }
-          Ok(_) => {
-            resolved.files.insert(dependency.clone());
-          }
-          Err(_) => {
-            resolved.missing.insert(dependency.clone());
-          }
-        },
-        Err(_) => {
+      match self.metadata(&dependency).await {
+        Ok(Some(metadata)) if metadata.is_directory => {
+          resolved.contexts.insert(dependency.clone());
+        }
+        Ok(Some(_)) => {
+          resolved.files.insert(dependency.clone());
+        }
+        _ => {
           resolved.missing.insert(dependency.clone());
         }
       }
@@ -410,9 +405,7 @@ impl FileSystemInfo {
         let this = self.clone();
         async move {
           // Force content validation: virtual timestamps change with each compiler.
-          let mode = if AbsPath::try_from_std_path(path.as_path())
-            .is_ok_and(|abs| this.inner.fs.is_virtual(&abs))
-          {
+          let mode = if this.is_virtual(&path) {
             SnapshotMode::Hash
           } else {
             mode
@@ -538,6 +531,10 @@ impl FileSystemInfo {
         map.insert(path, exists);
       })
       .await
+  }
+
+  fn is_virtual(&self, path: &InternedPath) -> bool {
+    AbsPath::try_from_std_path(path.as_path()).is_ok_and(|abs| self.inner.fs.is_virtual(&abs))
   }
 
   async fn metadata(&self, path: &InternedPath) -> Result<Option<FileMetadata>> {
@@ -851,8 +848,7 @@ impl FileSystemInfo {
     path: &InternedPath,
     mode: SnapshotMode,
   ) -> Result<Option<ContextValue>> {
-    let is_virtual =
-      AbsPath::try_from_std_path(path.as_path()).is_ok_and(|abs| self.inner.fs.is_virtual(&abs));
+    let is_virtual = self.is_virtual(path);
     let file_mode = if is_virtual { SnapshotMode::Hash } else { mode };
     let timestamp = if file_mode.uses_timestamp() {
       self.file_timestamp(path).await?
@@ -933,8 +929,7 @@ impl FileSystemInfo {
         let current = self.file_timestamp(path).await?;
         // A newly introduced virtual overlay cannot be validated using the
         // timestamp of the real file that previously occupied this path.
-        if AbsPath::try_from_std_path(path.as_path())
-          .is_ok_and(|abs| self.inner.fs.is_virtual(&abs))
+        if self.is_virtual(path)
           || !file_timestamp_matches(current.as_ref(), expected.as_ref(), snapshot.start_time)
         {
           record_invalid(path, current.is_some(), modified_files, removed_files);
@@ -951,22 +946,20 @@ impl FileSystemInfo {
     }
     if let Some(entries) = &snapshot.file_timestamp_hashes {
       for (path, expected) in entries {
-        let timestamp_matches = !AbsPath::try_from_std_path(path.as_path())
-          .is_ok_and(|abs| self.inner.fs.is_virtual(&abs))
-          && {
-            let current_timestamp = self.file_timestamp(path).await?;
-            match expected {
-              Some(expected) => file_timestamp_matches(
-                current_timestamp.as_ref(),
-                Some(&FileSystemInfoEntry {
-                  safe_time: expected.safe_time,
-                  timestamp: expected.timestamp,
-                }),
-                snapshot.start_time,
-              ),
-              None => current_timestamp.is_none(),
-            }
-          };
+        let timestamp_matches = !self.is_virtual(path) && {
+          let current_timestamp = self.file_timestamp(path).await?;
+          match expected {
+            Some(expected) => file_timestamp_matches(
+              current_timestamp.as_ref(),
+              Some(&FileSystemInfoEntry {
+                safe_time: expected.safe_time,
+                timestamp: expected.timestamp,
+              }),
+              snapshot.start_time,
+            ),
+            None => current_timestamp.is_none(),
+          }
+        };
         if timestamp_matches {
           continue;
         }

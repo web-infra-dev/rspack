@@ -7,18 +7,18 @@ use notify::{
   Event, EventKind,
   event::{CreateKind, ModifyKind, RemoveKind, RenameMode},
 };
-use rspack_paths::InternedPath;
+use rspack_fs::AbsPath;
 use rspack_watcher::{FsEventKind, testing::DirectoryAnalyzer};
 use tempfile::TempDir;
 
-fn rename(mode: RenameMode, paths: &[&InternedPath]) -> Event {
+fn rename(mode: RenameMode, paths: &[&AbsPath]) -> Event {
   paths.iter().fold(
     Event::new(EventKind::Modify(ModifyKind::Name(mode))),
-    |event, path| event.add_path(path.as_ref().to_path_buf()),
+    |event, path| event.add_path(path.to_std_path_buf()),
   )
 }
 
-async fn next_events(analyzer: &mut DirectoryAnalyzer) -> Vec<(InternedPath, FsEventKind)> {
+async fn next_events(analyzer: &mut DirectoryAnalyzer) -> Vec<(AbsPath, FsEventKind)> {
   tokio::time::timeout(Duration::from_secs(5), analyzer.next_events())
     .await
     .expect("rename should report the dependency change")
@@ -26,9 +26,10 @@ async fn next_events(analyzer: &mut DirectoryAnalyzer) -> Vec<(InternedPath, FsE
 
 async fn assert_file_rename(paired: bool) {
   let temp = TempDir::new().expect("create fixture");
-  let base = temp.path().canonicalize().expect("resolve fixture");
-  let from = InternedPath::from(base.join("index.js"));
-  let to = InternedPath::from(base.join("index.js.map"));
+  let base = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+    .expect("valid utf-8 fixture path");
+  let from = base.join("index.js").expect("valid path");
+  let to = base.join("index.js.map").expect("valid path");
   fs::write(&from, "source").expect("write source");
   let mut analyzer = DirectoryAnalyzer::default();
   analyzer
@@ -70,8 +71,9 @@ async fn test_paired_rename_removes_source_and_creates_destination() {
 async fn test_unknown_rename_modes_keep_change_fallback() {
   for mode in [RenameMode::Any, RenameMode::Other] {
     let temp = TempDir::new().expect("create fixture");
-    let base = temp.path().canonicalize().expect("resolve fixture");
-    let file = InternedPath::from(base.join("index.js"));
+    let base = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+      .expect("valid utf-8 fixture path");
+    let file = base.join("index.js").expect("valid path");
     fs::write(&file, "source").expect("write source");
     let mut analyzer = DirectoryAnalyzer::default();
     analyzer
@@ -93,9 +95,10 @@ async fn test_unknown_rename_modes_keep_change_fallback() {
 #[tokio::test]
 async fn test_delayed_rename_round_trip_with_unchanged_mtime_is_ignored() {
   let temp = TempDir::new().expect("create fixture");
-  let base = temp.path().canonicalize().expect("resolve fixture");
-  let file = InternedPath::from(base.join("index.js"));
-  let backup = InternedPath::from(base.join("backup.js"));
+  let base = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+    .expect("valid utf-8 fixture path");
+  let file = base.join("index.js").expect("valid path");
+  let backup = base.join("backup.js").expect("valid path");
   fs::write(&file, "source").expect("write source");
   fs::File::options()
     .write(true)
@@ -113,7 +116,7 @@ async fn test_delayed_rename_round_trip_with_unchanged_mtime_is_ignored() {
     .await
     .expect("register file");
   analyzer.on_native_event(
-    Event::new(EventKind::Modify(ModifyKind::Any)).add_path(file.as_ref().to_path_buf()),
+    Event::new(EventKind::Modify(ModifyKind::Any)).add_path(file.to_std_path_buf()),
   );
   assert_eq!(
     next_events(&mut analyzer).await,
@@ -159,13 +162,14 @@ async fn test_unchanged_mtime_inside_the_accuracy_window_still_reports_changes()
     (EventKind::Create(CreateKind::File), FsEventKind::Create),
   ] {
     let temp = TempDir::new().expect("create fixture");
-    let file = InternedPath::from(
-      temp
+    let file = AbsPath::try_from_std_path(
+      &temp
         .path()
         .canonicalize()
         .expect("resolve fixture")
         .join("index.js"),
-    );
+    )
+    .expect("valid utf-8 fixture path");
     fs::write(&file, "source").expect("write source");
     // A future mtime keeps the accuracy window open regardless of scheduling.
     fs::File::options()
@@ -184,13 +188,13 @@ async fn test_unchanged_mtime_inside_the_accuracy_window_still_reports_changes()
       .await
       .expect("register file");
     analyzer.on_native_event(
-      Event::new(EventKind::Modify(ModifyKind::Any)).add_path(file.as_ref().to_path_buf()),
+      Event::new(EventKind::Modify(ModifyKind::Any)).add_path(file.to_std_path_buf()),
     );
     assert_eq!(
       next_events(&mut analyzer).await,
       vec![(file.clone(), FsEventKind::Change)]
     );
-    analyzer.on_native_event(Event::new(kind).add_path(file.as_ref().to_path_buf()));
+    analyzer.on_native_event(Event::new(kind).add_path(file.to_std_path_buf()));
     assert_eq!(next_events(&mut analyzer).await, vec![(file, expected)]);
   }
 }
@@ -198,12 +202,18 @@ async fn test_unchanged_mtime_inside_the_accuracy_window_still_reports_changes()
 #[tokio::test]
 async fn test_paired_directory_rename_discovers_missing_descendant() {
   let temp = TempDir::new().expect("create fixture");
-  let base = temp.path().canonicalize().expect("resolve fixture");
-  let from = InternedPath::from(base.join("staged"));
-  let to = InternedPath::from(base.join("modules"));
-  let child = InternedPath::from(base.join("modules/nested/index.js"));
-  fs::create_dir_all(base.join("staged/nested")).expect("create staging directory");
-  fs::write(base.join("staged/nested/index.js"), "source").expect("write staged file");
+  let base = AbsPath::try_from_std_path(&temp.path().canonicalize().expect("resolve fixture"))
+    .expect("valid utf-8 fixture path");
+  let from = base.join("staged").expect("valid path");
+  let to = base.join("modules").expect("valid path");
+  let child = base.join("modules/nested/index.js").expect("valid path");
+  fs::create_dir_all(base.join("staged/nested").expect("valid path"))
+    .expect("create staging directory");
+  fs::write(
+    base.join("staged/nested/index.js").expect("valid path"),
+    "source",
+  )
+  .expect("write staged file");
   let mut analyzer = DirectoryAnalyzer::default();
   analyzer
     .update(

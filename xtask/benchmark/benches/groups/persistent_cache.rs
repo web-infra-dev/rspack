@@ -12,7 +12,7 @@ use criterion::{BatchSize, Criterion};
 use rspack_core::{
   CacheOptions, MaxMemoryGenerations, Mode, PersistentCacheOptions, StorageOptions,
 };
-use rspack_fs::{NativeFileSystem, NoopFileSystem};
+use rspack_fs::{AbsPath, NativeFileSystem, NoopFileSystem};
 use rspack_tasks::{CompilerContext, within_compiler_context, within_compiler_context_sync};
 
 use super::{bundle::basic_react, diagnostics::assert_no_compilation_errors};
@@ -189,6 +189,7 @@ async fn run_compiler(project_dir: &Path, cache_dir: &Path) {
 // configuration so all builds go through filesystem-backed persistent cache in
 // the sample-local cache directory.
 fn persistent_compiler(project_dir: &Path, cache_dir: &Path) -> rspack::builder::CompilerBuilder {
+  let cache_dir = AbsPath::try_from_std_path(cache_dir).expect("valid utf-8 absolute cache path");
   let mut builder = basic_react::compiler();
   builder
     .context(project_dir.to_string_lossy().to_string())
@@ -197,8 +198,8 @@ fn persistent_compiler(project_dir: &Path, cache_dir: &Path) -> rspack::builder:
       build_dependencies: vec![project_dir.join(CONFIG_FILE)],
       version: String::new(),
       storage: StorageOptions::FileSystem {
-        directory: cache_dir.to_string_lossy().to_string().into(),
-        location: cache_dir.to_string_lossy().to_string().into(),
+        directory: cache_dir.clone(),
+        location: cache_dir,
       },
       portable: false,
       readonly: false,

@@ -1,5 +1,6 @@
 use napi_derive::napi;
 use rspack_core::StorageOptions;
+use rspack_fs::AbsPath;
 
 #[derive(Debug, Default)]
 #[napi(object)]
@@ -14,8 +15,10 @@ impl RawStorageOptions {
   pub(super) fn normalize(self) -> rspack_error::Result<StorageOptions> {
     match self.r#type.as_str() {
       "filesystem" => Ok(StorageOptions::FileSystem {
-        directory: self.directory.into(),
-        location: self.location.into(),
+        directory: AbsPath::new(&self.directory)
+          .map_err(|e| rspack_error::error!("invalid cache storage directory: {e}"))?,
+        location: AbsPath::new(&self.location)
+          .map_err(|e| rspack_error::error!("invalid cache storage location: {e}"))?,
       }),
       storage_type => Err(rspack_error::error!(
         "unsupported storage type {storage_type}"

@@ -1,8 +1,10 @@
 use std::fmt;
 
+use rspack_fs::RelPath;
+
 /// Filesystem persistent-cache directory name derived from a compiler path.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct CacheDirectory(String);
+pub struct CacheDirectory(RelPath);
 
 impl CacheDirectory {
   const PREFIX: &str = "rspack_v_";
@@ -14,12 +16,17 @@ impl CacheDirectory {
       Self::is_valid_hash(hash),
       "invalid persistent cache directory hash"
     );
-    Self(format!("{}{hash}", Self::PREFIX))
+    Self(
+      RelPath::new_contained(&format!("{}{hash}", Self::PREFIX))
+        .expect("valid persistent cache directory"),
+    )
   }
 
   pub fn parse(value: impl AsRef<str>) -> Option<Self> {
     let value = value.as_ref();
-    Self::is_valid(value).then(|| Self(value.to_string()))
+    Self::is_valid(value).then(|| {
+      Self(RelPath::new_contained(value).expect("validated cache directory is contained RelPath"))
+    })
   }
 
   pub fn is_valid(value: impl AsRef<str>) -> bool {
@@ -30,8 +37,12 @@ impl CacheDirectory {
     Self::is_valid_hash(value)
   }
 
-  pub fn as_str(&self) -> &str {
+  pub fn as_rel_path(&self) -> &RelPath {
     &self.0
+  }
+
+  pub fn as_str(&self) -> &str {
+    self.0.as_str()
   }
 
   fn is_valid_hash(hash: &str) -> bool {
@@ -44,12 +55,18 @@ impl CacheDirectory {
 
 impl fmt::Display for CacheDirectory {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.write_str(&self.0)
+    f.write_str(self.as_str())
   }
 }
 
 impl AsRef<str> for CacheDirectory {
   fn as_ref(&self) -> &str {
     self.as_str()
+  }
+}
+
+impl AsRef<RelPath> for CacheDirectory {
+  fn as_ref(&self) -> &RelPath {
+    self.as_rel_path()
   }
 }

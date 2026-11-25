@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
-use rspack_fs::IntermediateFileSystem;
-use rspack_paths::Utf8PathBuf;
+use rspack_fs::{AbsPath, IntermediateFileSystem};
 
 use super::CacheDirectory;
 
@@ -10,7 +9,7 @@ use super::CacheDirectory;
 pub struct FileSystemOptions {
   /// Storage root directory path. Filesystem cache entries are stored under
   /// `<directory>/<compiler-path-hash>`.
-  pub directory: Utf8PathBuf,
+  pub directory: AbsPath,
   /// Compiler-path-specific subdirectory for this DB instance.
   pub cache_directory: CacheDirectory,
   /// Maximum pack file size (bytes), creates new pack file when exceeded

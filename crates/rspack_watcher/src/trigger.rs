@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_paths::{InternedPath, InternedPathDashSet};
+use rspack_fs::{AbsPath, AbsPathDashSet};
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 use super::{FsEvent, FsEventKind};
@@ -14,8 +14,8 @@ use crate::{
 };
 
 #[cfg(test)]
-impl ContextLookup for InternedPathDashSet {
-  fn subscriptions(&self, path: &InternedPath) -> DirectorySubscriptions {
+impl ContextLookup for AbsPathDashSet {
+  fn subscriptions(&self, path: &AbsPath) -> DirectorySubscriptions {
     DirectorySubscriptions {
       explicit: self.contains(path),
       parent: None,
@@ -24,9 +24,9 @@ impl ContextLookup for InternedPathDashSet {
 }
 
 struct DependencyFinder<'a, D = WatcherManager> {
-  files: &'a InternedPathDashSet,
+  files: &'a AbsPathDashSet,
   directories: &'a D,
-  missing: &'a InternedPathDashSet,
+  missing: &'a AbsPathDashSet,
 }
 
 impl<D: ContextLookup> DependencyFinder<'_, D> {
@@ -37,9 +37,9 @@ impl<D: ContextLookup> DependencyFinder<'_, D> {
   /// that are registered as directories or missing.
   pub fn find_associated_event(
     &self,
-    path: &InternedPath,
+    path: &AbsPath,
     kind: FsEventKind,
-  ) -> Vec<(InternedPath, FsEventKind)> {
+  ) -> Vec<(AbsPath, FsEventKind)> {
     let mut paths = Vec::new();
 
     if path.exists() {
@@ -63,31 +63,25 @@ impl<D: ContextLookup> DependencyFinder<'_, D> {
   }
 
   /// Checks if the given path is registered as a file or missing.
-  fn contains_file(&self, path: &InternedPath) -> bool {
+  fn contains_file(&self, path: &AbsPath) -> bool {
     self.files.contains(path) || self.missing.contains(path)
   }
 
   /// Checks if the given path is registered as a directory or missing.
-  fn contains_directory(&self, path: &InternedPath) -> bool {
+  fn contains_directory(&self, path: &AbsPath) -> bool {
     self.directories.subscriptions(path).explicit || self.missing.contains(path)
   }
 
-  fn contains_path(&self, path: &InternedPath) -> bool {
+  fn contains_path(&self, path: &AbsPath) -> bool {
     self.contains_file(path) || self.directories.subscriptions(path).explicit
   }
 
-  fn collect_parent_dependencies(
-    &self,
-    path: &InternedPath,
-    paths: &mut Vec<(InternedPath, FsEventKind)>,
-  ) {
-    let mut parent = path.parent().map(InternedPath::from);
+  fn collect_parent_dependencies(&self, path: &AbsPath, paths: &mut Vec<(AbsPath, FsEventKind)>) {
+    let mut parent = path.parent();
     while let Some(directory) = parent {
       let subscriptions = self.directories.subscriptions(&directory);
       // An event can arrive before a new directory was scanned or after its members were swept.
-      parent = subscriptions
-        .parent
-        .or_else(|| directory.parent().map(InternedPath::from));
+      parent = subscriptions.parent.or_else(|| directory.parent());
       if subscriptions.explicit || self.missing.contains(&directory) {
         paths.push((directory, FsEventKind::Change));
       }
@@ -118,7 +112,7 @@ struct EventProcessor {
 /// It only buffers: the OS watcher callback hands an event over and returns
 /// immediately, and a dedicated thread drains the buffer one event at a time.
 pub struct Trigger {
-  pending: UnboundedSender<(InternedPath, FsEventKind, Origin)>,
+  pending: UnboundedSender<(AbsPath, FsEventKind, Origin)>,
   pub(crate) analyzer: Arc<RecommendedAnalyzer>,
 }
 
@@ -139,7 +133,7 @@ enum Origin {
 impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
   pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<ResolvedEvents>) -> Self {
-    let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind, Origin)>();
+    let (pending, mut incoming) = unbounded_channel::<(AbsPath, FsEventKind, Origin)>();
     let analyzer = Arc::default();
     let processor = EventProcessor {
       path_manager,
@@ -172,14 +166,14 @@ impl Trigger {
   }
 
   /// Queues an explicit event from `FsWatcher::trigger_event` without blocking.
-  pub fn on_event(&self, path: &InternedPath, kind: FsEventKind) {
+  pub fn on_event(&self, path: &AbsPath, kind: FsEventKind) {
     self.analyzer.invalidate_path(path);
     let _ = self.pending.send((path.clone(), kind, Origin::Injected));
   }
 
   /// Preserves whether an OS event created or renamed a path into place,
   /// without treating ordinary directory changes as appearances.
-  pub(crate) fn on_disk_event(&self, path: &InternedPath, kind: FsEventKind, appeared: bool) {
+  pub(crate) fn on_disk_event(&self, path: &AbsPath, kind: FsEventKind, appeared: bool) {
     let _ = self
       .pending
       .send((path.clone(), kind, Origin::Disk { appeared }));
@@ -188,7 +182,7 @@ impl Trigger {
   /// A context's initial scan found `path` changed since the start time, while
   /// the watch was not active yet: like watchpack's initial scan, it is
   /// reported as found, never taken for an attribute-only event.
-  pub(crate) fn on_scanned_change(&self, path: &InternedPath) {
+  pub(crate) fn on_scanned_change(&self, path: &AbsPath) {
     let _ = self
       .pending
       .send((path.clone(), FsEventKind::Change, Origin::Scan));
@@ -228,7 +222,7 @@ impl EventProcessor {
   /// If the file `/path/to/file.js` is changed, the trigger will send an event for the following paths:
   /// - `/path`
   /// - `/path/to`
-  async fn process(&self, path: &InternedPath, kind: FsEventKind, origin: Origin) {
+  async fn process(&self, path: &AbsPath, kind: FsEventKind, origin: Origin) {
     let appeared = matches!(origin, Origin::Disk { appeared: true })
       || (matches!(origin, Origin::Injected) && kind == FsEventKind::Create);
     // Drop events inside ignored subtrees. The recursive-root watch delivers
@@ -236,7 +230,7 @@ impl EventProcessor {
     // `find_associated_event` bubbles them to a registered parent and triggers
     // a spurious rebuild.
     // A scan's event was filtered when the scan found the path.
-    if !matches!(origin, Origin::Scan) && self.path_manager.is_ignored_path(path.as_ref()).await {
+    if !matches!(origin, Origin::Scan) && self.path_manager.is_ignored_path(path).await {
       return;
     }
 
@@ -254,7 +248,7 @@ impl EventProcessor {
     // scanned removals already declare the old record invalid.
     let removed = kind == FsEventKind::Remove && !matches!(origin, Origin::Disk { .. });
     let initial_missing = removed && matches!(origin, Origin::Scan);
-    let exists = std::fs::symlink_metadata(path).is_ok();
+    let exists = path.symlink_metadata().is_ok();
     let kind = match kind {
       FsEventKind::Change | FsEventKind::Create if !exists => FsEventKind::Remove,
       FsEventKind::Remove if exists => FsEventKind::Change,
@@ -310,7 +304,7 @@ impl EventProcessor {
     for (associated, associated_kind) in &mut associated_event {
       if associated != path
         && *associated_kind == FsEventKind::Change
-        && std::fs::symlink_metadata(&*associated).is_err()
+        && associated.symlink_metadata().is_err()
       {
         *associated_kind = FsEventKind::Remove;
         self.analyzer.invalidate_path(associated);
@@ -355,19 +349,21 @@ impl EventProcessor {
       // Linux it is comparable to notify's own add-watch walk.
       let mut directories = vec![path.clone()];
       while let Some(directory) = directories.pop() {
-        let Ok(entries) = std::fs::read_dir(&directory) else {
+        let Ok(entries) = directory.read_dir() else {
           continue;
         };
         for entry in entries.flatten() {
           let Ok(file_type) = entry.file_type() else {
             continue;
           };
-          let entry_path = InternedPath::from(entry.path());
+          let Ok(entry_path) = AbsPath::try_from_std_path(&entry.path()) else {
+            continue;
+          };
           let is_registered = finder.contains_path(&entry_path);
           if !file_type.is_dir() && !is_registered {
             continue;
           }
-          if self.path_manager.is_ignored_path(entry_path.as_ref()).await {
+          if self.path_manager.is_ignored_path(&entry_path).await {
             continue;
           }
 
@@ -420,10 +416,10 @@ impl EventProcessor {
   /// If the event is successfully sent, it returns true; otherwise, it returns false.
   fn trigger_events(
     &self,
-    events: Vec<(InternedPath, FsEventKind)>,
+    events: Vec<(AbsPath, FsEventKind)>,
     raw: Option<FsEvent>,
     recovered: EventBatch,
-    context_removal: Option<InternedPath>,
+    context_removal: Option<AbsPath>,
   ) -> bool {
     self
       .tx
@@ -441,21 +437,18 @@ impl EventProcessor {
 }
 #[cfg(test)]
 mod tests {
-
-  use std::path::Path;
-
-  use rspack_paths::InternedPath;
+  use rspack_fs::AbsPath;
 
   use super::*;
 
   #[test]
   fn test_find_dependency_for_file() {
-    let files = InternedPathDashSet::default();
-    let directories = InternedPathDashSet::default();
-    let missing = InternedPathDashSet::default();
+    let files = AbsPathDashSet::default();
+    let directories = AbsPathDashSet::default();
+    let missing = AbsPathDashSet::default();
 
-    let file_0 = InternedPath::from(Path::new("/path/a/b/c/index.js"));
-    let dir_0 = InternedPath::from(Path::new("/path/a/b"));
+    let file_0 = AbsPath::new("/path/a/b/c/index.js").unwrap();
+    let dir_0 = AbsPath::new("/path/a/b").unwrap();
     files.insert(file_0.clone());
 
     directories.insert(dir_0.clone());
@@ -475,12 +468,12 @@ mod tests {
 
   #[test]
   fn test_find_dependency_for_directory() {
-    let files = InternedPathDashSet::default();
-    let directories = InternedPathDashSet::default();
-    let missing = InternedPathDashSet::default();
+    let files = AbsPathDashSet::default();
+    let directories = AbsPathDashSet::default();
+    let missing = AbsPathDashSet::default();
 
-    let dir_0 = InternedPath::from(Path::new("/path/a/b/c"));
-    let dir_1 = InternedPath::from(Path::new("/path/a/b"));
+    let dir_0 = AbsPath::new("/path/a/b/c").unwrap();
+    let dir_1 = AbsPath::new("/path/a/b").unwrap();
 
     directories.insert(dir_0.clone());
     directories.insert(dir_1.clone());
@@ -492,7 +485,7 @@ mod tests {
     };
 
     let associated_events = finder.find_associated_event(
-      &InternedPath::from(Path::new("/path/a/b/c/index.js")),
+      &AbsPath::new("/path/a/b/c/index.js").unwrap(),
       FsEventKind::Create,
     );
     assert_eq!(associated_events.len(), 2);

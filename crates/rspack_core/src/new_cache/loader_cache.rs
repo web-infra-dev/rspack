@@ -7,7 +7,7 @@ use std::{
 use arc_swap::ArcSwapWeak;
 use dashmap::mapref::entry::Entry;
 use parking_lot::Mutex;
-use rspack_paths::{InternedPath, InternedPathDashMap};
+use rspack_fs::{AbsPath, AbsPathDashMap};
 
 use super::{
   Cache, CompilerCache, FileCacheStrategy, IdleFileCache, MemoryCache,
@@ -16,7 +16,7 @@ use super::{
 use crate::{CacheOptions, CompilerOptions, StorageOptions, cache::CacheCodec};
 
 static MEMORY_LOADER_CACHE: LazyLock<ArcSwapWeak<LoaderCache>> = LazyLock::new(Default::default);
-static PERSISTENT_LOADER_CACHES: LazyLock<InternedPathDashMap<PersistentLoaderCacheEntry>> =
+static PERSISTENT_LOADER_CACHES: LazyLock<AbsPathDashMap<PersistentLoaderCacheEntry>> =
   LazyLock::new(Default::default);
 
 struct PersistentLoaderCacheEntry {
@@ -28,7 +28,7 @@ struct PersistentLoaderCacheEntry {
 #[derive(Debug)]
 pub struct LoaderCache {
   cache: Cache,
-  directory: Option<InternedPath>,
+  directory: Option<AbsPath>,
   active_builds: Mutex<usize>,
 }
 
@@ -41,7 +41,7 @@ impl Deref for LoaderCache {
 }
 
 impl LoaderCache {
-  fn new(cache: Cache, directory: Option<InternedPath>) -> Arc<Self> {
+  fn new(cache: Cache, directory: Option<AbsPath>) -> Arc<Self> {
     Arc::new(Self {
       cache,
       directory,
@@ -115,8 +115,8 @@ pub(crate) fn create_loader_cache(
     CacheOptions::Persistent(options) => options,
   };
   let StorageOptions::FileSystem { directory, .. } = &options.storage;
-  let location = directory.join("loader");
-  let key = InternedPath::from(location.as_path());
+  let location = directory.join("loader").expect("valid loader cache dir");
+  let key = location.clone();
 
   let entry = loop {
     match PERSISTENT_LOADER_CACHES.entry(key.clone()) {

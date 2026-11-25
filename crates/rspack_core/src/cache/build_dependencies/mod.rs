@@ -57,17 +57,12 @@ impl<L: Logger> Helper<L> {
   /// Resolve a directory.
   ///
   /// Return the sub dir and files.
-  async fn resolve_directory(&mut self, dir: &Utf8Path) -> Option<HashSet<Utf8PathBuf>> {
-    let abs_dir = match AbsPath::new(dir.as_str()) {
-      Ok(abs) => abs,
-      Err(err) => {
-        self.logger.warn(format!(
-          "BuildDependencies: can't read directory {dir}.\n  - {err}"
-        ));
-        return None;
-      }
-    };
-    let entries = self.resolver.inner_fs().read_dir(&abs_dir).await;
+  async fn resolve_directory(
+    &mut self,
+    dir: &Utf8Path,
+    abs_dir: &AbsPath,
+  ) -> Option<HashSet<Utf8PathBuf>> {
+    let entries = self.resolver.inner_fs().read_dir(abs_dir).await;
     match entries {
       Ok(entries) => Some(entries.into_iter().map(|item| dir.join(item)).collect()),
       Err(err) => {
@@ -83,7 +78,11 @@ impl<L: Logger> Helper<L> {
   ///
   /// This function will try analyze the ast and resolve the requests in them.
   /// Return the file path that the input file depends on.
-  async fn resolve_file(&mut self, file: &Utf8Path) -> Option<HashSet<Utf8PathBuf>> {
+  async fn resolve_file(
+    &mut self,
+    file: &Utf8Path,
+    abs_file: &AbsPath,
+  ) -> Option<HashSet<Utf8PathBuf>> {
     let Some(ext) = file.extension() else {
       // no extension
       return None;
@@ -96,16 +95,7 @@ impl<L: Logger> Helper<L> {
         return None;
       }
     };
-    let abs_file = match AbsPath::new(file.as_str()) {
-      Ok(abs) => abs,
-      Err(err) => {
-        self.logger.warn(format!(
-          "BuildDependencies: can't read file {file}.\n  - {err}"
-        ));
-        return None;
-      }
-    };
-    let source = match self.resolver.inner_fs().read_to_string(&abs_file).await {
+    let source = match self.resolver.inner_fs().read_to_string(abs_file).await {
       Ok(source) => source,
       Err(err) => {
         self.logger.warn(format!(
@@ -191,9 +181,9 @@ impl<L: Logger> Helper<L> {
       }
     };
     if metadata.is_directory {
-      self.resolve_directory(path).await
+      self.resolve_directory(path, &abs_path).await
     } else {
-      self.resolve_file(path).await
+      self.resolve_file(path, &abs_path).await
     }
   }
 }

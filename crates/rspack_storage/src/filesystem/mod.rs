@@ -5,8 +5,9 @@ mod options;
 mod scope_fs;
 mod task_queue;
 
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, LazyLock, Mutex};
 
+use rspack_fs::RelPath;
 use rustc_hash::FxHashMap as HashMap;
 
 pub use self::{cache_directory::CacheDirectory, options::FileSystemOptions};
@@ -18,6 +19,12 @@ type BucketChangesMap = HashMap<Vec<u8>, Option<Vec<u8>>>;
 
 const STALE_DIR_NAME: &str = "_stale";
 
+fn stale_dir_path() -> &'static RelPath {
+  static PATH: LazyLock<RelPath> =
+    LazyLock::new(|| RelPath::new_contained(STALE_DIR_NAME).expect("valid stale directory"));
+  &PATH
+}
+
 async fn cleanup_stale_directories(stale_fs: ScopeFileSystem) -> Result<()> {
   stale_fs.ensure_exist().await?;
 
@@ -26,10 +33,10 @@ async fn cleanup_stale_directories(stale_fs: ScopeFileSystem) -> Result<()> {
     .await
     .unwrap_or_default()
     .into_iter()
-    .filter(|child| CacheDirectory::parse(child).is_some())
-    .map(|child| stale_fs.child_fs(child));
+    .filter(|child| CacheDirectory::is_valid(child.as_str()))
+    .map(|child| stale_fs.child_fs(&child));
 
-  for stale_directory in stale_directories {
+  for stale_directory in stale_directories.flatten() {
     let _ = stale_directory.remove().await;
   }
 
@@ -48,7 +55,7 @@ async fn move_stale_directories(
   stale_fs.ensure_exist().await?;
 
   for directory in stale_directories {
-    ScopeFileSystem::move_to(fs, stale_fs, directory.as_str()).await?;
+    ScopeFileSystem::move_to(fs, stale_fs, directory.as_rel_path()).await?;
   }
   Ok(())
 }
@@ -114,7 +121,10 @@ impl FileSystemStorage {
     let fs = ScopeFileSystem::new(options.directory.clone(), options.fs.clone());
 
     Self {
-      db: DB::new(fs.child_fs(options.cache_directory.as_str())),
+      db: DB::new(
+        fs.child_fs(options.cache_directory.as_rel_path())
+          .expect("CacheDirectory is a contained RelPath"),
+      ),
       task_queue: TaskQueue::default(),
       updates: Default::default(),
       next_meta_refresh_time: Default::default(),
@@ -124,7 +134,10 @@ impl FileSystemStorage {
   }
 
   pub fn stale_fs(&self) -> ScopeFileSystem {
-    self.fs.child_fs(STALE_DIR_NAME)
+    self
+      .fs
+      .child_fs(stale_dir_path())
+      .expect("stale directory is a contained RelPath")
   }
 }
 

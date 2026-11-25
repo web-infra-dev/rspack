@@ -1,7 +1,6 @@
 use std::path::PathBuf;
 
-use rspack_cacheable::{cacheable, utils::PortablePath, with::As};
-use rspack_paths::Utf8PathBuf;
+use rspack_fs::AbsPath;
 
 #[derive(Debug, Clone)]
 pub enum CacheOptions {
@@ -19,14 +18,11 @@ pub enum CacheOptions {
 pub type BuildDepsOptions = Vec<PathBuf>;
 
 /// Storage options shared by the cache backends.
-#[cacheable]
 #[derive(Debug, Clone, Hash)]
 pub enum StorageOptions {
   FileSystem {
-    #[cacheable(with=As<PortablePath>)]
-    directory: Utf8PathBuf,
-    #[cacheable(with=As<PortablePath>)]
-    location: Utf8PathBuf,
+    directory: AbsPath,
+    location: AbsPath,
   },
 }
 

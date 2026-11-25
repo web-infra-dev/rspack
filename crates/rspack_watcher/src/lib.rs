@@ -28,15 +28,14 @@ use executor::{Aggregated, Executor};
 pub use ignored::{FsWatcherIgnored, FsWatcherIgnoredItem, IgnoredFn};
 use paths::PathManager;
 use rspack_error::Result;
-use rspack_paths::InternedPath;
-use rspack_util::fx_hash::FxHashSet as HashSet;
+use rspack_fs::{AbsPath, AbsPathSet};
 use scanner::Scanner;
 use tokio::sync::{mpsc, oneshot};
 use trigger::Trigger;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct WatchPattern {
-  path: InternedPath,
+  path: AbsPath,
   mode: notify::RecursiveMode,
 }
 
@@ -49,7 +48,7 @@ pub enum FsEventKind {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct FsEvent {
-  pub path: InternedPath,
+  pub path: AbsPath,
   pub kind: FsEventKind,
 }
 
@@ -72,7 +71,7 @@ pub enum TimeInfoEntry {
 }
 
 /// watchpack's `TimeInfoEntries`, as `(path, entry)` rows.
-pub type TimeInfoEntries = Vec<(String, TimeInfoEntry)>;
+pub type TimeInfoEntries = Vec<(AbsPath, TimeInfoEntry)>;
 
 pub(crate) type EventBatch = Vec<FsEvent>;
 
@@ -80,7 +79,7 @@ pub(crate) struct ResolvedEvents {
   pub dependencies: EventBatch,
   pub raw: Option<FsEvent>,
   pub recovered: EventBatch,
-  pub context_removal: Option<InternedPath>,
+  pub context_removal: Option<AbsPath>,
 }
 
 /// `EventAggregateHandler` is a trait for handling aggregated file system events.
@@ -91,7 +90,7 @@ pub(crate) struct ResolvedEvents {
 /// and handle them in a single place.
 pub trait EventAggregateHandler {
   /// Handle a batch of file system events.
-  fn on_event_handle(&self, _changed_files: HashSet<String>, _deleted_files: HashSet<String>);
+  fn on_event_handle(&self, _changed_files: AbsPathSet, _deleted_files: AbsPathSet);
 
   /// Handle an error that occurs during file system watching.
   fn on_error(&self, _error: rspack_error::Error) {
@@ -103,17 +102,17 @@ pub trait EventAggregateHandler {
 /// It provides methods to handle changes and deletions of files.
 pub trait EventHandler {
   /// Handle a change in a file.
-  fn on_change(&self, _changed_file: String) -> rspack_error::Result<()> {
+  fn on_change(&self, _changed_file: AbsPath) -> rspack_error::Result<()> {
     Ok(())
   }
 
   /// Handle a deletion of a file.
-  fn on_delete(&self, _deleted_file: String) -> rspack_error::Result<()> {
+  fn on_delete(&self, _deleted_file: AbsPath) -> rspack_error::Result<()> {
     Ok(())
   }
 
   /// A removed context entry changes its parent directory's contents.
-  fn on_context_remove(&self, removed_file: String) -> rspack_error::Result<()> {
+  fn on_context_remove(&self, removed_file: AbsPath) -> rspack_error::Result<()> {
     self.on_change(removed_file)
   }
 }
@@ -136,9 +135,9 @@ const WATCHER_UNAVAILABLE: &str =
 
 enum WatcherOp {
   Watch {
-    files: (Vec<InternedPath>, Vec<InternedPath>),
-    directories: (Vec<InternedPath>, Vec<InternedPath>),
-    missing: (Vec<InternedPath>, Vec<InternedPath>),
+    files: (Vec<AbsPath>, Vec<AbsPath>),
+    directories: (Vec<AbsPath>, Vec<AbsPath>),
+    missing: (Vec<AbsPath>, Vec<AbsPath>),
     start_time: SystemTime,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
@@ -217,7 +216,7 @@ impl FsWatcher {
   /// arrived since the last aggregated batch, typically while paused. Read,
   /// not drained, so a caller peeking at them cannot swallow the batch they
   /// are about to be delivered in.
-  pub fn peek_aggregated(&self) -> (HashSet<String>, HashSet<String>) {
+  pub fn peek_aggregated(&self) -> (AbsPathSet, AbsPathSet) {
     let files = self.aggregated.lock().expect("aggregated sets poisoned");
     (files.changed.clone(), files.deleted.clone())
   }
@@ -225,7 +224,7 @@ impl FsWatcher {
   /// [`Self::peek_aggregated`], drained: for the build that folds these events in,
   /// so they are not delivered again as a batch of their own on resume.
   /// Events arriving afterwards are kept.
-  pub fn take_aggregated(&self) -> (HashSet<String>, HashSet<String>) {
+  pub fn take_aggregated(&self) -> (AbsPathSet, AbsPathSet) {
     let files = std::mem::take(&mut *self.aggregated.lock().expect("aggregated sets poisoned"));
     (files.changed, files.deleted)
   }
@@ -252,18 +251,9 @@ impl FsWatcher {
   /// * `event_handler` - A boxed trait object for handling individual events.
   pub fn watch(
     &self,
-    files: (
-      impl Iterator<Item = InternedPath>,
-      impl Iterator<Item = InternedPath>,
-    ),
-    directories: (
-      impl Iterator<Item = InternedPath>,
-      impl Iterator<Item = InternedPath>,
-    ),
-    missing: (
-      impl Iterator<Item = InternedPath>,
-      impl Iterator<Item = InternedPath>,
-    ),
+    files: (impl Iterator<Item = AbsPath>, impl Iterator<Item = AbsPath>),
+    directories: (impl Iterator<Item = AbsPath>, impl Iterator<Item = AbsPath>),
+    missing: (impl Iterator<Item = AbsPath>, impl Iterator<Item = AbsPath>),
     start_time: SystemTime,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
@@ -311,7 +301,7 @@ impl FsWatcher {
     })
   }
 
-  pub fn trigger_event(&self, path: &InternedPath, kind: FsEventKind) {
+  pub fn trigger_event(&self, path: &AbsPath, kind: FsEventKind) {
     let trigger = self.trigger.lock().expect("should lock trigger").clone();
     if let Some(trigger) = trigger {
       trigger.on_event(path, kind);
@@ -391,9 +381,9 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
 impl FsWatcherInner {
   async fn watch(
     &mut self,
-    files: (Vec<InternedPath>, Vec<InternedPath>),
-    directories: (Vec<InternedPath>, Vec<InternedPath>),
-    missing: (Vec<InternedPath>, Vec<InternedPath>),
+    files: (Vec<AbsPath>, Vec<AbsPath>),
+    directories: (Vec<AbsPath>, Vec<AbsPath>),
+    missing: (Vec<AbsPath>, Vec<AbsPath>),
     start_time: SystemTime,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
@@ -425,9 +415,9 @@ impl FsWatcherInner {
 
   async fn wait_for_event(
     &mut self,
-    files: (Vec<InternedPath>, Vec<InternedPath>),
-    directories: (Vec<InternedPath>, Vec<InternedPath>),
-    missing: (Vec<InternedPath>, Vec<InternedPath>),
+    files: (Vec<AbsPath>, Vec<AbsPath>),
+    directories: (Vec<AbsPath>, Vec<AbsPath>),
+    missing: (Vec<AbsPath>, Vec<AbsPath>),
     start_time: SystemTime,
   ) -> Result<()> {
     self

@@ -4,8 +4,7 @@ use std::os::unix::fs::symlink as symlink_dir;
 use std::os::windows::fs::symlink_dir;
 use std::{fs, path::Path, time::SystemTime};
 
-use rspack_paths::InternedPath;
-use rspack_util::fx_hash::FxHashSet;
+use rspack_fs::{AbsPath, AbsPathSet};
 use rspack_watcher::{
   EventAggregateHandler, EventHandler, FsWatcher, FsWatcherOptions, TimeInfoEntries, TimeInfoEntry,
 };
@@ -13,7 +12,7 @@ use rspack_watcher::{
 struct Handler;
 
 impl EventAggregateHandler for Handler {
-  fn on_event_handle(&self, _: FxHashSet<String>, _: FxHashSet<String>) {}
+  fn on_event_handle(&self, _: AbsPathSet, _: AbsPathSet) {}
 }
 
 impl EventHandler for Handler {}
@@ -27,11 +26,17 @@ async fn snapshot(files: &[&Path], directories: &[&Path]) -> (TimeInfoEntries, T
   watcher
     .watch(
       (
-        files.iter().copied().map(InternedPath::from),
+        files
+          .iter()
+          .copied()
+          .map(|p| AbsPath::try_from_std_path(p).expect("valid utf-8 path")),
         std::iter::empty(),
       ),
       (
-        directories.iter().copied().map(InternedPath::from),
+        directories
+          .iter()
+          .copied()
+          .map(|p| AbsPath::try_from_std_path(p).expect("valid utf-8 path")),
         std::iter::empty(),
       ),
       (std::iter::empty(), std::iter::empty()),
@@ -48,7 +53,7 @@ async fn snapshot(files: &[&Path], directories: &[&Path]) -> (TimeInfoEntries, T
 fn entry<'a>(entries: &'a TimeInfoEntries, path: &Path) -> Option<&'a TimeInfoEntry> {
   entries
     .iter()
-    .find(|(name, _)| name == &path.to_string_lossy())
+    .find(|(name, _)| name.as_str() == path.to_string_lossy())
     .map(|(_, entry)| entry)
 }
 
@@ -132,11 +137,11 @@ async fn removing_a_context_subdirectory_forgets_its_scanned_and_live_members() 
   watcher
     .watch(
       (
-        std::iter::once(InternedPath::from(&anchor)),
+        std::iter::once(AbsPath::try_from_std_path(&anchor).expect("valid utf-8 path")),
         std::iter::empty(),
       ),
       (
-        std::iter::once(InternedPath::from(&root)),
+        std::iter::once(AbsPath::try_from_std_path(&root).expect("valid utf-8 path")),
         std::iter::empty(),
       ),
       (std::iter::empty(), std::iter::empty()),
@@ -204,7 +209,7 @@ async fn promoting_context_members_during_a_snapshot_keeps_their_timestamps() {
   fs::create_dir(&directory).expect("create directory member");
   fs::write(&file, "").expect("create file member");
   let watcher = FsWatcher::new(Default::default(), Default::default());
-  let register = |files: Vec<InternedPath>, directories: Vec<InternedPath>| {
+  let register = |files: Vec<AbsPath>, directories: Vec<AbsPath>| {
     watcher.watch(
       (files.into_iter(), std::iter::empty()),
       (directories.into_iter(), std::iter::empty()),
@@ -214,7 +219,11 @@ async fn promoting_context_members_during_a_snapshot_keeps_their_timestamps() {
       Box::new(Handler),
     )
   };
-  register(vec![], vec![InternedPath::from(&root)]).await;
+  register(
+    vec![],
+    vec![AbsPath::try_from_std_path(&root).expect("valid utf-8 path")],
+  )
+  .await;
   let (initial_files, initial_directories) = watcher.collect_time_info_entries();
   let Some(TimeInfoEntry::Entry { timestamp, .. }) = entry(&initial_files, &file) else {
     panic!("expected the initial context scan to record the file timestamp");
@@ -225,8 +234,8 @@ async fn promoting_context_members_during_a_snapshot_keeps_their_timestamps() {
   ));
   let finish = rspack_watcher::testing::begin_time_info_snapshot(&watcher);
   register(
-    vec![InternedPath::from(&file)],
-    vec![InternedPath::from(&directory)],
+    vec![AbsPath::try_from_std_path(&file).expect("valid utf-8 path")],
+    vec![AbsPath::try_from_std_path(&directory).expect("valid utf-8 path")],
   )
   .await;
   let (files, directories) = finish();
@@ -258,9 +267,10 @@ async fn an_explicit_directory_link_keeps_its_file_time_after_its_parent_unsubsc
   symlink_dir(&target, &link).expect("create directory link");
 
   let watcher = FsWatcher::new(Default::default(), Default::default());
-  let outer = InternedPath::from(context);
+  let outer = AbsPath::try_from_std_path(&context).expect("valid utf-8 path");
+  let link_abs = AbsPath::try_from_std_path(&link).expect("valid utf-8 path");
   for (added, removed) in [
-    (vec![outer.clone(), InternedPath::from(&link)], vec![]),
+    (vec![outer.clone(), link_abs.clone()], vec![]),
     (vec![], vec![outer]),
   ] {
     watcher
@@ -276,7 +286,7 @@ async fn an_explicit_directory_link_keeps_its_file_time_after_its_parent_unsubsc
     let (files, _) = watcher.collect_time_info_entries();
     let entries: Vec<_> = files
       .iter()
-      .filter(|(name, _)| name == &link.to_string_lossy())
+      .filter(|(name, _)| name == &link_abs)
       .map(|(_, info)| info)
       .collect();
     assert_eq!(entries.len(), 2, "{entries:?}");

@@ -232,29 +232,26 @@ impl ReadableFileSystem for NativeFileSystem {
 
   #[instrument(skip(self), level = "debug")]
   fn canonicalize_sync(&self, path: &AbsPath) -> Result<AbsPath> {
-    use std::path::Component;
+    use camino::{Utf8Component, Utf8Path};
     let mut path_buf = path.as_std_path().to_path_buf();
     while fs::symlink_metadata(&path_buf)?.is_symlink() {
       let link = fs::read_link(&path_buf)?;
-      if link.to_str().is_none() {
+      let Some(link_str) = link.to_str() else {
         return Err(Error::NonUtf8Path(link));
-      }
+      };
       path_buf.pop();
-      for component in link.components() {
+      for component in Utf8Path::new(link_str).components() {
         match component {
-          Component::ParentDir => {
+          Utf8Component::ParentDir => {
             path_buf.pop();
           }
-          Component::Normal(seg) => {
-            let seg = seg
-              .to_str()
-              .ok_or_else(|| Error::NonUtf8Path(path_buf.join(seg)))?;
+          Utf8Component::Normal(seg) => {
             path_buf.push(seg.trim_end_matches('\0'));
           }
-          Component::RootDir => {
+          Utf8Component::RootDir => {
             path_buf = PathBuf::from("/");
           }
-          Component::CurDir | Component::Prefix(_) => {}
+          Utf8Component::CurDir | Utf8Component::Prefix(_) => {}
         }
       }
     }

@@ -4,10 +4,11 @@ use std::{
 
 use rspack_cacheable::{cacheable, from_bytes, to_bytes};
 use rspack_fs::{
-  AbsPath, AbsPathMap, Error, FileMetadata, FilePermissions, IdentityHasher,
+  AbsOrRelPath, AbsPath, AbsPathDashMap, AbsPathDashSet, AbsPathIndexMap, AbsPathIndexSet,
+  AbsPathList, AbsPathMap, Error, FileMetadata, FilePermissions, IdentityHasher,
   IntermediateFileSystem, IntermediateFileSystemExtras, MemoryFileSystem, NativeFileSystem,
-  NoopFileSystem, ProjectPath, ProjectPathParts, ProjectPathSet, ReadableFileSystem, Result,
-  RootTable, WritableFileSystem,
+  NoopFileSystem, ProjectPath, ProjectPathParts, ProjectPathSet, ReadableFileSystem, RelPath,
+  Result, RootTable, WritableFileSystem,
 };
 
 fn same_project_path_alloc(a: &ProjectPath, b: &ProjectPath) -> bool {
@@ -823,4 +824,286 @@ async fn noop_fs_basics() {
     noop.stat(&file_abs).await,
     Err(Error::Io(e)) if e.kind() == ErrorKind::NotFound
   ));
+}
+
+#[test]
+fn rel_path_basics_and_cacheable() {
+  use std::path::PathBuf;
+
+  use camino::{Utf8Path, Utf8PathBuf};
+
+  assert!(RelPath::default().is_empty());
+  assert_eq!(RelPath::new("").expect("empty").as_str(), "");
+  assert_eq!(RelPath::new(".").expect("dot").as_str(), "");
+  assert_eq!(
+    RelPath::new("./a//b/../c.d.ts").expect("norm").as_str(),
+    "a/c.d.ts"
+  );
+  assert_eq!(RelPath::new(r"a\b\.\c").expect("win_sep").as_str(), "a/b/c");
+  assert_eq!(RelPath::new("a/..").expect("cancel").as_str(), "");
+
+  let esc = RelPath::new("a/../../x").expect("esc");
+  assert_eq!(esc.as_str(), "../x");
+  assert!(esc.escapes_root());
+
+  assert!(matches!(
+    RelPath::new("/abs"),
+    Err(Error::NotRelativePath(_))
+  ));
+  assert!(matches!(
+    RelPath::new(r"\win_root"),
+    Err(Error::NotRelativePath(_))
+  ));
+  assert!(matches!(
+    RelPath::new("C:foo"),
+    Err(Error::NotRelativePath(_))
+  ));
+  assert!(matches!(
+    RelPath::new_contained("../x"),
+    Err(Error::PathEscapesRoot(_))
+  ));
+  assert!(matches!(
+    RelPath::new_contained("/abs"),
+    Err(Error::NotRelativePath(_))
+  ));
+
+  #[cfg(unix)]
+  {
+    use std::{ffi::OsStr, os::unix::ffi::OsStrExt};
+    let bad = Path::new(OsStr::from_bytes(b"src/\xff.js"));
+    assert!(matches!(
+      RelPath::try_from_std_path(bad),
+      Err(Error::NonUtf8Path(_))
+    ));
+  }
+
+  let src = RelPath::new("src").expect("src");
+  assert_eq!(
+    src.join("../dist/./out.js").expect("join").as_str(),
+    "dist/out.js"
+  );
+  assert_eq!(
+    RelPath::new("..")
+      .expect("up")
+      .join("../x")
+      .expect("join up")
+      .as_str(),
+    "../../x"
+  );
+
+  assert_eq!(RelPath::default().parent(), None);
+  assert_eq!(RelPath::new("..").expect("p1").parent(), None);
+  assert_eq!(RelPath::new("../..").expect("p2").parent(), None);
+  assert_eq!(src.parent(), Some(RelPath::default()));
+  assert_eq!(
+    RelPath::new("a/b").expect("ab").parent(),
+    Some(RelPath::new("a").expect("a"))
+  );
+  assert_eq!(
+    RelPath::new("../a").expect("up_a").parent(),
+    Some(RelPath::new("..").expect("up"))
+  );
+
+  for no_name in ["", ".", "..", "../.."] {
+    let rp = RelPath::new(no_name).expect("no_name");
+    assert_eq!(rp.file_name(), None);
+    assert_eq!(rp.file_stem(), None);
+    assert_eq!(rp.extension(), None);
+  }
+  let file = RelPath::new("a/b.d.ts").expect("file");
+  assert_eq!(file.file_name(), Some("b.d.ts"));
+  assert_eq!(file.file_stem(), Some("b.d"));
+  assert_eq!(file.extension(), Some("ts"));
+  let dotfile = RelPath::new(".env").expect("dotfile");
+  assert_eq!(dotfile.file_name(), Some(".env"));
+  assert_eq!(dotfile.file_stem(), Some(".env"));
+  assert_eq!(dotfile.extension(), None);
+
+  assert!(src.starts_with(&RelPath::default()));
+  assert_eq!(src.strip_prefix(&src), Some(""));
+  let nested = RelPath::new("src/a").expect("nested");
+  assert!(nested.starts_with(&src));
+  assert_eq!(nested.strip_prefix(&src), Some("a"));
+  assert!(!RelPath::new("src2/a").expect("src2").starts_with(&src));
+
+  let parsed: RelPath = "src/index.ts".parse().expect("parse");
+  assert_eq!(parsed.as_utf8_path(), Utf8Path::new("src/index.ts"));
+  assert_eq!(parsed.to_utf8_path_buf(), Utf8PathBuf::from("src/index.ts"));
+  assert_eq!(parsed.to_std_path_buf(), PathBuf::from("src/index.ts"));
+  assert_eq!(PathBuf::from(&parsed), PathBuf::from("src/index.ts"));
+  assert_eq!(
+    RelPath::try_from(Utf8Path::new("src/index.ts")).expect("from utf8"),
+    parsed
+  );
+
+  #[cacheable]
+  #[derive(Debug, PartialEq, Eq)]
+  struct Wrapper(RelPath);
+  let wire = to_bytes(&Wrapper(parsed.clone()), &()).expect("ser rel");
+  let restored: Wrapper = from_bytes(&wire, &()).expect("de rel");
+  assert_eq!(restored.0, parsed);
+  assert_eq!(Utf8PathBuf::from(parsed), Utf8PathBuf::from("src/index.ts"));
+}
+
+#[test]
+fn abs_path_ancestors_join_rel_and_relative_to() {
+  let root = AbsPath::new(if cfg!(windows) { r"C:\" } else { "/" }).expect("root");
+  let repo = AbsPath::new(if cfg!(windows) { r"C:\repo" } else { "/repo" }).expect("repo");
+  let repo2 = AbsPath::new(if cfg!(windows) { r"C:\repo2" } else { "/repo2" }).expect("repo2");
+  let src = repo.join("src").expect("src");
+  let file = src.join("index.d.ts").expect("file");
+  let sibling = repo2.join("other/mod.js").expect("sibling");
+
+  assert_eq!(file.file_stem(), Some("index.d"));
+  assert_eq!(root.file_stem(), None);
+  assert!(file.starts_with(&repo));
+  assert!(file.starts_with(&file));
+  assert!(!file.starts_with(&repo2));
+
+  let ancestors: Vec<AbsPath> = file.ancestors().collect();
+  assert_eq!(
+    ancestors,
+    vec![file.clone(), src.clone(), repo.clone(), root.clone()]
+  );
+
+  assert_eq!(
+    repo.join_rel(&RelPath::new("src/index.d.ts").expect("r1")),
+    file
+  );
+  assert_eq!(repo.join_rel(&RelPath::default()), repo);
+  assert_eq!(
+    src.join_rel(&RelPath::new("../../repo2/other/mod.js").expect("r2")),
+    sibling
+  );
+
+  assert_eq!(file.relative_to(&file), Some(RelPath::default()));
+  assert_eq!(
+    file.relative_to(&repo),
+    Some(RelPath::new("src/index.d.ts").expect("rel_child"))
+  );
+  assert_eq!(
+    repo.relative_to(&file),
+    Some(RelPath::new("../..").expect("rel_parent"))
+  );
+  assert_eq!(
+    sibling.relative_to(&file),
+    Some(RelPath::new("../../../repo2/other/mod.js").expect("rel_sib"))
+  );
+  assert_eq!(
+    root.relative_to(&repo),
+    Some(RelPath::new("..").expect("rel_root"))
+  );
+  assert_eq!(
+    repo.relative_to(&root),
+    Some(RelPath::new("repo").expect("rel_from_root"))
+  );
+
+  for (base, target) in [
+    (&repo, &file),
+    (&file, &repo),
+    (&file, &sibling),
+    (&repo, &root),
+    (&root, &repo),
+  ] {
+    let rel = target.relative_to(base).expect("same root");
+    assert_eq!(base.join_rel(&rel), *target);
+  }
+
+  #[cfg(windows)]
+  {
+    let other_drive = AbsPath::new(r"D:\repo\src\a.ts").expect("d");
+    assert_eq!(other_drive.relative_to(&file), None);
+  }
+}
+
+#[test]
+fn abs_path_list_interning_and_collections() {
+  let a = AbsPath::new(if cfg!(windows) { r"C:\a.js" } else { "/a.js" }).expect("a");
+  let b = AbsPath::new(if cfg!(windows) { r"C:\b.js" } else { "/b.js" }).expect("b");
+
+  {
+    let list1 = AbsPathList::new(&[a.clone(), b.clone()]);
+    let list2: AbsPathList = [a.clone(), b.clone()].into_iter().collect();
+    assert_eq!(list1, list2);
+    assert_eq!(list1.len(), 2);
+    assert!(!list1.is_empty());
+    assert!(std::ptr::eq(
+      list1.as_slice().as_ptr(),
+      list2.as_slice().as_ptr()
+    ));
+  }
+
+  let list3 = AbsPathList::from_vec(vec![a.clone(), b.clone()]);
+  assert_eq!(list3.as_slice(), &[a.clone(), b.clone()]);
+  assert!(AbsPathList::default().is_empty());
+
+  let dmap = AbsPathDashMap::default();
+  dmap.insert(a.clone(), 42);
+  assert_eq!(dmap.get(&a).map(|v| *v), Some(42));
+
+  let dset = AbsPathDashSet::default();
+  dset.insert(b.clone());
+  assert!(dset.contains(&b));
+
+  let mut imap = AbsPathIndexMap::default();
+  imap.insert(b.clone(), 1);
+  imap.insert(a.clone(), 2);
+  assert_eq!(imap.keys().collect::<Vec<_>>(), vec![&b, &a]);
+
+  let mut iset = AbsPathIndexSet::default();
+  iset.insert(b.clone());
+  iset.insert(a.clone());
+  assert_eq!(iset.iter().collect::<Vec<_>>(), vec![&b, &a]);
+}
+
+#[test]
+fn abs_path_fs_queries_rel_join_and_abs_or_rel_path() {
+  let temp = tempfile::tempdir().expect("tempdir");
+  let root = AbsPath::try_from_std_path(temp.path())
+    .expect("root")
+    .canonicalize()
+    .expect("canonicalize root");
+  let nested_dir = root.join("dir").expect("dir");
+  std::fs::create_dir_all(nested_dir.as_std_path()).expect("mkdir");
+  let file = nested_dir.join("file.txt").expect("file");
+  std::fs::write(file.as_std_path(), b"hello").expect("write");
+
+  assert!(nested_dir.exists());
+  assert!(nested_dir.is_dir());
+  assert!(!nested_dir.is_file());
+  assert!(file.exists());
+  assert!(file.is_file());
+  assert!(!file.is_dir());
+  assert!(!file.is_symlink());
+  assert!(file.try_exists().expect("try_exists"));
+  assert_eq!(file.metadata().expect("metadata").len(), 5);
+  assert_eq!(file.symlink_metadata().expect("symlink_metadata").len(), 5);
+  assert_eq!(nested_dir.read_dir().expect("read_dir").count(), 1);
+  assert!(!root.join("missing.txt").expect("missing").exists());
+
+  let rel_dir = RelPath::new("dir").expect("rel_dir");
+  let rel_file = RelPath::new("./sub/../file.txt").expect("rel_file");
+  assert_eq!(
+    rel_dir.join_rel(&rel_file),
+    RelPath::new("dir/file.txt").expect("joined")
+  );
+  assert_eq!(RelPath::default().join_rel(&rel_file), rel_file);
+  assert_eq!(rel_dir.join_rel(&RelPath::default()), rel_dir);
+
+  let parsed_abs = AbsOrRelPath::new(file.as_str()).expect("abs_or_rel abs");
+  assert!(parsed_abs.is_absolute());
+  assert!(!parsed_abs.is_relative());
+  assert_eq!(parsed_abs.as_abs(), Some(&file));
+  assert_eq!(parsed_abs.as_rel(), None);
+  assert_eq!(parsed_abs.resolve(&root), file);
+
+  let parsed_rel = AbsOrRelPath::new("dir/file.txt").expect("abs_or_rel rel");
+  assert!(!parsed_rel.is_absolute());
+  assert!(parsed_rel.is_relative());
+  assert_eq!(parsed_rel.as_abs(), None);
+  assert_eq!(
+    parsed_rel.as_rel(),
+    Some(&RelPath::new("dir/file.txt").expect("r"))
+  );
+  assert_eq!(parsed_rel.resolve(&root), file);
 }
