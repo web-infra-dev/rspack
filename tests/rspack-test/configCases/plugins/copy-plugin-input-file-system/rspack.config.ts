@@ -28,12 +28,12 @@ function createStats(filePath: string) {
     isFile: () => isFile,
     isDirectory: () => isDirectory,
     isSymbolicLink: () => false,
-    atimeMs: 0,
-    mtimeMs: 0,
+    atimeMs: 1_600_000_000_000,
+    mtimeMs: 1_500_000_000_000,
     ctimeMs: 0,
     birthtimeMs: 0,
     size: isFile ? Buffer.byteLength(files.get(normalizedPath)!) : 0,
-    mode: isFile ? 0o100644 : 0o040755,
+    mode: isFile ? 0o100751 : 0o040755,
   };
 }
 
@@ -132,6 +132,8 @@ export default defineConfig({
         {
           from: 'virtual/direct.txt',
           to: 'copied/direct.txt',
+          preservePermissions: true,
+          preserveTimestamps: true,
         },
         {
           from: 'virtual/**/*',
