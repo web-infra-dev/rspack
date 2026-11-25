@@ -140,26 +140,21 @@ pub(crate) fn collect_module_scripts<'a>(
     let Some(src) = attribute(element, "src") else {
       continue;
     };
-    let asset = if element.span.is_dummy() {
-      head_tags.iter().chain(body_tags).find_map(|tag| {
-        (tag.tag_name == "script"
-          && tag.attributes.iter().any(|attr| {
-            attr.attr_name == "type"
-              && attr
-                .attr_value
-                .as_deref()
-                .is_some_and(|value| value.eq_ignore_ascii_case("module"))
-          })
+    let mut asset = None;
+    if element.span.is_dummy() {
+      for tag in head_tags.iter().chain(body_tags) {
+        if tag.tag_name == "script"
+          && let Some(original) = tag.asset.as_deref()
           && tag
             .attributes
             .iter()
-            .any(|attr| attr.attr_name == "src" && attr.attr_value.as_deref() == Some(src)))
-        .then_some(tag.asset.as_deref())
-        .flatten()
-      })
-    } else {
-      None
-    };
+            .any(|attr| attr.attr_name == "src" && attr.attr_value.as_deref() == Some(src))
+        {
+          asset = Some(original);
+          break;
+        }
+      }
+    }
     scripts.push(HtmlModuleScript {
       src: src.trim(),
       asset,
