@@ -59,13 +59,15 @@ impl WatcherManager {
   }
 
   pub(super) fn subscribe_context(&self, path: &InternedPath) {
+    let mut state = self.lock_observations();
+    state.context_changed(path);
     let mut watcher = self.directories.entry(path.clone()).or_default();
     watcher.subscriptions.explicit = true;
   }
 
   pub(super) fn unsubscribe_context(&self, path: &InternedPath) {
     let mut state = self.lock_observations();
-    state.unregister(path);
+    state.context_changed(path);
     self.directories.remove_if_mut(path, |_, watcher| {
       watcher.subscriptions.explicit = false;
       watcher.is_unused()

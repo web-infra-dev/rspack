@@ -19,7 +19,7 @@ use rspack_util::{
 
 use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
 use crate::{
-  observation::{Mutation, Scan, ScanEpoch},
+  observation::{Mutation, Observations, Scan, ScanEpoch},
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
   watcher_manager::{MemberKind, WatcherManager},
 };
@@ -454,6 +454,25 @@ impl PathManager {
     }
   }
 
+  // A directory walk indexes shared members. A queued event belongs to its original subscription.
+  fn scan_has_subscription(
+    &self,
+    state: &Observations,
+    scan: &Scan,
+    directory: Option<&Path>,
+  ) -> bool {
+    let current = |context: &InternedPath| {
+      self.watchers.is_explicit_context(context) && state.same_subscription(scan, context)
+    };
+    current(&scan.root)
+      || directory.is_some_and(|dir| {
+        dir
+          .ancestors()
+          .map(InternedPath::from)
+          .any(|context| current(&context))
+      })
+  }
+
   pub(super) fn with_current<R>(
     &self,
     scan: &Scan,
@@ -461,12 +480,12 @@ impl PathManager {
     action: impl FnOnce() -> R,
   ) -> Option<R> {
     let state = self.watchers.lock_observations();
-    (self.watchers.is_explicit_context(&scan.root) && state.accepts(scan, path)).then(action)
+    (self.scan_has_subscription(&state, scan, None) && state.accepts(scan, path)).then(action)
   }
 
   fn can_scan_children(&self, scan: &Scan, path: &InternedPath) -> bool {
     let state = self.watchers.lock_observations();
-    self.watchers.is_explicit_context(&scan.root) && state.covers_subtree(scan, path)
+    self.scan_has_subscription(&state, scan, Some(path)) && state.covers_subtree(scan, path)
   }
 
   // Check and commit together, after reading metadata and awaiting ignored.
@@ -476,8 +495,19 @@ impl PathManager {
     scan: Option<&Scan>,
     write: impl FnOnce() -> (R, Mutation),
   ) -> Option<R> {
+    self.observe_in_directory(path, scan, None, write)
+  }
+
+  fn observe_in_directory<R>(
+    &self,
+    path: &InternedPath,
+    scan: Option<&Scan>,
+    directory: Option<&Path>,
+    write: impl FnOnce() -> (R, Mutation),
+  ) -> Option<R> {
     let mut state = self.watchers.lock_observations();
-    if scan.is_some_and(|s| !self.watchers.is_explicit_context(&s.root) || !state.accepts(s, path))
+    if scan
+      .is_some_and(|s| !self.scan_has_subscription(&state, s, directory) || !state.accepts(s, path))
     {
       return None;
     }
@@ -834,7 +864,11 @@ impl PathManager {
     scan: Option<&Scan>,
     origin: ContextObservation,
   ) -> Option<bool> {
-    self.observe(path, scan, || {
+    let directory = match origin {
+      ContextObservation::Scan { .. } => path.parent(),
+      _ => None,
+    };
+    self.observe_in_directory(path, scan, directory, || {
       if scan.is_none() && !self.is_below_context(path) {
         return (false, Mutation::Entry);
       }

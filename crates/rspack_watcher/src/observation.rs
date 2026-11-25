@@ -18,7 +18,7 @@ pub(super) struct Observations {
   active: BTreeSet<u64>,
   entries: InternedPathMap<u64>,
   subtrees: InternedPathMap<u64>,
-  unregistered: InternedPathMap<u64>,
+  context_changes: InternedPathMap<u64>,
 }
 
 pub(super) struct ScanEpoch {
@@ -58,7 +58,7 @@ impl Drop for ScanEpoch {
     if self.sequence < oldest {
       state.entries.retain(|_, version| *version > oldest);
       state.subtrees.retain(|_, version| *version > oldest);
-      state.unregistered.retain(|_, version| *version > oldest);
+      state.context_changes.retain(|_, version| *version > oldest);
     }
   }
 }
@@ -69,11 +69,18 @@ impl Observations {
     self.sequence
   }
 
-  pub(super) fn unregister(&mut self, path: &InternedPath) {
+  pub(super) fn context_changed(&mut self, path: &InternedPath) {
     if !self.active.is_empty() {
       let version = self.advance();
-      self.unregistered.insert(path.clone(), version);
+      self.context_changes.insert(path.clone(), version);
     }
+  }
+
+  pub(super) fn same_subscription(&self, scan: &Scan, context: &InternedPath) -> bool {
+    self
+      .context_changes
+      .get(context)
+      .is_none_or(|v| *v <= scan.epoch.sequence)
   }
 
   pub(super) fn accepts(&self, scan: &Scan, path: &InternedPath) -> bool {
@@ -83,17 +90,13 @@ impl Observations {
 
   pub(super) fn covers_subtree(&self, scan: &Scan, path: &InternedPath) -> bool {
     let version = scan.epoch.sequence;
-    self
-      .unregistered
-      .get(&scan.root)
-      .is_none_or(|v| *v <= version)
-      && (self.subtrees.is_empty()
-        || !path.ancestors().any(|ancestor| {
-          self
-            .subtrees
-            .get(&InternedPath::from(ancestor))
-            .is_some_and(|v| *v > version)
-        }))
+    self.subtrees.is_empty()
+      || !path.ancestors().any(|ancestor| {
+        self
+          .subtrees
+          .get(&InternedPath::from(ancestor))
+          .is_some_and(|v| *v > version)
+      })
   }
 
   pub(super) fn observe(&mut self, path: &InternedPath, scan: Option<&Scan>, mutation: Mutation) {

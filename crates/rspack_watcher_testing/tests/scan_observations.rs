@@ -146,6 +146,91 @@ async fn a_paused_scan_cannot_write_into_a_new_subscription_to_the_same_context(
 }
 
 #[tokio::test]
+async fn a_moved_subtree_remains_indexed_when_one_of_its_contexts_is_removed() {
+  for remove_inner in [true, false] {
+    let fixture = tempfile::tempdir().unwrap();
+    let project = fixture.path().canonicalize().unwrap();
+    let outer = project.join("src");
+    let inner = outer.join("pages");
+    let staged = project.join("staged");
+    let moved = inner.join("admin");
+    let nested = moved.join("nested");
+    let route = moved.join("route.js");
+    let deep = nested.join("deep.js");
+    fs::create_dir_all(&inner).unwrap();
+    let (ignored, waiting, release) = pause_at(&route);
+    let mut analyzer = DirectoryAnalyzer::with_ignored(ignored);
+    let contexts = (vec![(&outer).into(), (&inner).into()], vec![]);
+    update(&analyzer, empty(), contexts, empty()).await;
+    analyzer.scan_contexts().await.unwrap();
+
+    fs::create_dir_all(staged.join("nested")).unwrap();
+    fs::write(staged.join("route.js"), "").unwrap();
+    fs::write(staged.join("nested/deep.js"), "").unwrap();
+    fs::rename(staged, &moved).unwrap();
+    analyzer.on_native_event(
+      Event::new(EventKind::Create(notify::event::CreateKind::Folder)).add_path(moved),
+    );
+    timeout(Duration::from_secs(5), waiting)
+      .await
+      .unwrap()
+      .unwrap();
+    let (retired, retained) = if remove_inner {
+      (&inner, &outer)
+    } else {
+      (&outer, &inner)
+    };
+    update(&analyzer, empty(), removed(retired), empty()).await;
+    release.send(()).unwrap();
+    let delivered = timeout(Duration::from_secs(5), analyzer.next_events())
+      .await
+      .unwrap();
+    assert!(delivered.contains(&(retained.into(), FsEventKind::Change)));
+
+    let (files, directories) = analyzer.collect_time_info_entries();
+    for file in [&route, &deep] {
+      assert!(
+        matches!(entry(&files, file), Some(TimeInfoEntry::Entry { .. })),
+        "missing {}",
+        file.display()
+      );
+    }
+    assert!(matches!(
+      entry(&directories, &nested),
+      Some(TimeInfoEntry::OnlySafeTimeEntry { .. })
+    ));
+  }
+}
+
+#[tokio::test]
+async fn a_later_parent_subscription_cannot_adopt_a_paused_scan() {
+  let fixture = tempfile::tempdir().unwrap();
+  let outer = fixture.path().canonicalize().unwrap();
+  let inner = outer.join("pages");
+  let route = inner.join("route.js");
+  fs::create_dir(&inner).unwrap();
+  fs::write(&route, "").unwrap();
+  let (analyzer, release, scan) = paused_scan(&inner, &route).await;
+
+  update(
+    &analyzer,
+    empty(),
+    (vec![(&outer).into()], vec![(&inner).into()]),
+    empty(),
+  )
+  .await;
+  release.send(()).unwrap();
+  assert!(scan.await.unwrap().is_empty());
+  assert_eq!(entry(&analyzer.collect_time_info_entries().0, &route), None);
+
+  analyzer.scan_contexts().await.unwrap();
+  assert!(matches!(
+    entry(&analyzer.collect_time_info_entries().0, &route),
+    Some(TimeInfoEntry::Entry { .. })
+  ));
+}
+
+#[tokio::test]
 async fn a_slow_scan_does_not_replace_a_directory_observed_by_a_newer_scan() {
   let fixture = tempfile::tempdir().unwrap();
   let root = fixture.path().canonicalize().unwrap();
