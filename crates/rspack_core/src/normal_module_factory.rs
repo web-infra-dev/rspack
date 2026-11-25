@@ -801,25 +801,7 @@ async fn resolve_each_with_options(
   data: &mut ModuleFactoryCreateData,
 ) -> Result<ResolvedLoader> {
   let cache_enabled = options.experiments.new_cache.loader && loader.cache();
-  let uncached_loader;
-  let resolve_loader = if !options.experiments.new_cache.loader && loader.cache() {
-    uncached_loader = ModuleRuleUseLoader {
-      loader: loader.loader.clone(),
-      options: loader.options.clone(),
-      metadata: None,
-    };
-    &uncached_loader
-  } else {
-    loader
-  };
-  let resolved = resolve_each(
-    plugin_driver,
-    context,
-    loader_resolver,
-    resolve_loader,
-    data,
-  )
-  .await?;
+  let resolved = resolve_each(plugin_driver, context, loader_resolver, loader, data).await?;
   let metadata = if cache_enabled || loader.filter().is_some() {
     loader.metadata.clone()
   } else {

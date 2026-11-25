@@ -122,7 +122,14 @@ pub(crate) async fn resolve_loader(
       // Use `str::ends_with` instead of `Path::extension` to avoid unnecessary allocation
       let path = path.as_str();
 
-      let cache_version = if l.cache() {
+      let cache_version = if data
+        .build_context
+        .compiler_options
+        .experiments
+        .new_cache
+        .loader
+        && l.cache()
+      {
         loader_cache_version(resolver, Utf8Path::new(path)).await?
       } else {
         None
@@ -147,9 +154,13 @@ pub(crate) async fn resolve_loader(
         rspack_paths::strip_dos_device_path_prefix(path)
       };
 
-      // favor explicit loader query over aliased query, see webpack issue-3320
+      let is_metadata_only_ident =
+        rest.is_some_and(|rest| rest.starts_with("??")) && l.metadata_only_ident();
+      // favor explicit loader query over aliased query, see webpack issue-3320,
+      // but preserve alias-supplied queries over synthetic metadata-only idents
       let resource = if let Some(rest) = rest
         && !rest.is_empty()
+        && (!is_metadata_only_ident || query.is_empty())
       {
         format!("{path}{rest}")
       } else {

@@ -608,19 +608,21 @@ function createRawModuleRuleUsesImpl(
       codeFilter,
       parallel: use.parallel,
     };
+    const loader = resolveStringifyLoaders(
+      use,
+      `${path}[${index}]`,
+      options.compiler,
+      isBuiltin,
+      fingerprintOptions,
+      loaderMetadata,
+    );
     return {
-      loader: resolveStringifyLoaders(
-        use,
-        `${path}[${index}]`,
-        options.compiler,
-        isBuiltin,
-        fingerprintOptions,
-        loaderMetadata,
-      ),
+      loader,
       options: o,
       cache,
       optionsCacheKey: normalizedOptionsCacheKey,
       codeFilter,
+      metadataOnlyIdent: loaderMetadata.metadataOnlyIdent,
     };
   });
 }
@@ -654,6 +656,7 @@ function resolveStringifyLoaders(
   if (use.options === null || use.options === undefined) {
     if (!obj.query && hasLoaderMetadata) {
       obj.query = `??${(ident = use.ident ?? path)}`;
+      loaderMetadata.metadataOnlyIdent = true;
     }
   } else if (typeof use.options === 'string') obj.query = `?${use.options}`;
   else if (use.ident) obj.query = `??${(ident = use.ident)}`;

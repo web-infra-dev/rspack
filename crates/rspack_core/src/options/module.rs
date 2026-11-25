@@ -1723,6 +1723,14 @@ impl ModuleRuleUseLoader {
       .as_deref()
       .and_then(|meta| meta.filter.as_ref())
   }
+
+  #[inline]
+  pub fn metadata_only_ident(&self) -> bool {
+    self
+      .metadata
+      .as_deref()
+      .is_some_and(|meta| meta.metadata_only_ident)
+  }
 }
 
 pub type FnUse =

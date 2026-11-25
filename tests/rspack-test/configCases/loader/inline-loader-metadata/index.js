@@ -24,3 +24,32 @@ it("should preserve codeFilter and parallel metadata across importModule remaini
 		original: "pitch-miss"
 	});
 });
+
+it("should preserve alias query options when rule attaches metadata-only ident", () => {
+	expect(require("./alias-hit.alias-filter.js")).toEqual({
+		value: "from-alias",
+		parallel: false
+	});
+	expect(require("./alias-miss.alias-filter.js")).toEqual({
+		original: "alias-miss"
+	});
+	expect(require("./alias-cache.alias-cache.js")).toEqual({
+		value: "from-alias",
+		parallel: false
+	});
+	expect(require("./alias-override.alias-override.js")).toEqual({
+		value: "from-options",
+		parallel: false
+	});
+	expect(
+		require("!!aliased-transform-loader??alias-meta-only!./alias-inline-hit.js")
+	).toEqual({
+		value: "from-alias",
+		parallel: false
+	});
+	expect(
+		require("!!aliased-transform-loader??alias-meta-only!./alias-inline-miss.js")
+	).toEqual({
+		original: "alias-inline-miss"
+	});
+});
