@@ -3,7 +3,10 @@ use std::{collections::BTreeMap, sync::Arc};
 use futures::future::join_all;
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_core::{ChunkGroupUkey, ChunkLoading, ChunkLoadingType, Compilation, ManifestAssetType};
+use rspack_core::{
+  ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading, ChunkLoadingType, ChunkUkey,
+  Compilation, ManifestAssetType,
+};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
@@ -13,7 +16,7 @@ use rspack_plugin_html::{
   tag::{HtmlPluginAttribute, HtmlPluginTag},
 };
 use rspack_plugin_runtime::is_enabled_for_chunk;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use tokio::sync::RwLock;
 use url::Url;
 
@@ -309,6 +312,38 @@ pub async fn alter_asset_tag_groups(
   Ok(data)
 }
 
+fn collect_import_map_chunks(
+  entry: &ChunkGroup,
+  chunk_groups: &ChunkGroupByUkey,
+) -> FxHashSet<ChunkUkey> {
+  let mut pending_groups = vec![entry.ukey];
+  // dependOn entries are ancestors of the page's entrypoint.
+  pending_groups.extend(
+    entry
+      .ancestors(chunk_groups)
+      .into_iter()
+      .filter(|parent| chunk_groups.expect_get(parent).is_initial()),
+  );
+
+  let mut visited_groups = FxHashSet::default();
+  let mut chunks = FxHashSet::default();
+  while let Some(group) = pending_groups.pop() {
+    if !visited_groups.insert(group) {
+      continue;
+    }
+    let group = chunk_groups.expect_get(&group);
+    chunks.extend(group.chunks.iter().copied());
+    // An initial child can be another page that depends on the same entry.
+    pending_groups.extend(
+      group
+        .children_iterable()
+        .filter(|child| !chunk_groups.expect_get(child).is_initial())
+        .copied(),
+    );
+  }
+  chunks
+}
+
 #[plugin_hook(HtmlPluginCollectImportMapIntegrity for SubresourceIntegrityPlugin)]
 pub async fn collect_import_map_integrity(
   &self,
@@ -331,10 +366,8 @@ pub async fn collect_import_map_integrity(
       continue;
     }
 
-    let entry_chunk = graph
-      .chunk_by_ukey
-      .expect_get(&entry.get_entrypoint_chunk());
-    let chunks = entry_chunk.get_all_referenced_chunks(&graph.chunk_group_by_ukey);
+    let mut chunks = collect_import_map_chunks(entry, &graph.chunk_group_by_ukey);
+    chunks.insert(runtime_chunk);
     let files = chunks
       .iter()
       .flat_map(|chunk| graph.chunk_by_ukey.expect_get(chunk).files())
