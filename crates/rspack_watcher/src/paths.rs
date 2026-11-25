@@ -3,7 +3,7 @@ use std::{
   fmt::Debug,
   ops::Deref,
   path::{Path, PathBuf},
-  sync::{Arc, Mutex},
+  sync::{Arc, Mutex, OnceLock, Weak},
   time::SystemTime,
 };
 
@@ -228,6 +228,7 @@ struct PathTracker {
   added: InternedPathDashSet,
   removed: InternedPathDashSet,
   all: InternedPathDashSet,
+  scan_subscribers: OnceLock<InternedPathDashMap<Arc<InternedPath>>>,
 }
 
 impl PathTracker {
@@ -244,9 +245,29 @@ impl PathTracker {
 
   /// Removes a path from the tracker; whether it was tracked.
   fn remove(&self, path: InternedPath) -> bool {
-    let tracked = self.all.remove(&path).is_some();
+    let tracked = self
+      .all
+      .remove_if(&path, |path| {
+        if let Some(subscribers) = self.scan_subscribers.get() {
+          subscribers.remove(path);
+        }
+        true
+      })
+      .is_some();
     self.removed.insert(path);
     tracked
+  }
+
+  // Hold the set entry while acquiring the handle, so re-registering this path
+  // cannot give an earlier directory change to the replacement subscription.
+  fn scan_subscriber(&self, path: &InternedPath) -> Option<Weak<InternedPath>> {
+    let registered = self.all.get(path)?;
+    let handle = self
+      .scan_subscribers
+      .get_or_init(InternedPathDashMap::default)
+      .entry(registered.clone())
+      .or_insert_with(|| Arc::new(registered.clone()));
+    Some(Arc::downgrade(&handle))
   }
 }
 
@@ -827,32 +848,34 @@ impl PathManager {
       };
       for entry in entries.flatten() {
         let path = InternedPath::from(entry.path());
-        if self.is_ignored_path(path.as_ref()).await {
-          continue;
-        }
-        let Ok((metadata, symlink)) = Self::scan_metadata(ancestry.last(), &path) else {
-          continue;
-        };
-        let Some((_, change)) = self.observe_member(
-          &path,
-          &metadata,
-          symlink,
-          Some(&scan),
-          ContextObservation::Scan {
-            initial: !observed,
-            changed_since,
-          },
-        ) else {
-          if metadata.is_dir() && self.watchers.has_member(&path, |member| member.directory) {
-            pending.push((path, ancestry.clone(), false, scan.clone()));
+        if !self.is_ignored_path(path.as_ref()).await
+          && let Ok((metadata, symlink)) = Self::scan_metadata(ancestry.last(), &path)
+        {
+          let observation = self.observe_member(
+            &path,
+            &metadata,
+            symlink,
+            Some(&scan),
+            ContextObservation::Scan {
+              initial: !observed,
+              changed_since,
+            },
+          );
+          if metadata.is_dir()
+            && (observation.is_some() || self.watchers.has_member(&path, |member| member.directory))
+          {
+            pending.push((path.clone(), ancestry.clone(), false, scan.clone()));
           }
-          continue;
-        };
-        if let Some(change) = change {
-          changed.push((path.clone(), change));
+          if let Some((_, change)) = observation {
+            if let Some(change) = change {
+              changed.push((path, change));
+            }
+            continue;
+          }
         }
-        if metadata.is_dir() {
-          pending.push((path, ancestry.clone(), false, scan.clone()));
+        // A stale child can have live siblings. Losing coverage of the directory retires the walk.
+        if !self.can_scan_children(&scan, &dir) {
+          break;
         }
       }
     }
@@ -935,7 +958,9 @@ impl PathManager {
             .and_then(|_| {
               self
                 .watchers
-                .queue_context_change(path, directory, scan, state)
+                .queue_context_change(path, directory, scan, state, |dep| {
+                  self.missing.scan_subscriber(dep)
+                })
             })
         }
         _ => None,

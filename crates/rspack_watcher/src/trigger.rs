@@ -455,9 +455,7 @@ impl EventProcessor {
       if subscribers.is_empty() {
         return;
       }
-      associated_event.retain(|(dep, _)| {
-        subscribers.contains(dep) || (dep != path && finder.missing.contains(dep))
-      });
+      associated_event.retain(|(dep, _)| subscribers.contains(dep));
       if associated_event.is_empty() {
         return;
       }
