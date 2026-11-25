@@ -85,17 +85,33 @@ export default {
         }</script>
       </head><body></body></html>`,
     }),
-    new HtmlRspackPlugin({
-      filename: 'multiple-authored.html',
-      scriptLoading: 'module',
-      templateContent: `<!DOCTYPE html><html><head>
-        <script type="importmap">{"imports":{"external":"./external.mjs"}}</script>
-        ${preload}
-        <script type="importmap" nonce="authored-nonce">{
-          "integrity": {"./bundle.mjs": "sha384-authored"}
-        }</script>
-      </head><body></body></html>`,
-    }),
+    ...[
+      ['multiple-authored.html', undefined, preload],
+      [
+        'multiple-authored-other-port.html',
+        '//cdn.example.test:8443/app/',
+        '<link rel="modulepreload" href="https://cdn.example.test:9443/app/main%2Bentry.mjs">',
+      ],
+      [
+        'multiple-authored-relative-ports.html',
+        '//cdn.example.test:443/app/',
+        '<link rel="modulepreload" href="//cdn.example.test:80/app/main%2Bentry.mjs">',
+      ],
+    ].map(
+      ([filename, publicPath, preload]) =>
+        new HtmlRspackPlugin({
+          filename,
+          publicPath,
+          scriptLoading: 'module',
+          templateContent: `<!DOCTYPE html><html><head>
+            <script type="importmap">{"imports":{"external":"./external.mjs"}}</script>
+            ${preload}
+            <script type="importmap" nonce="authored-nonce">{
+              "integrity": {"./bundle.mjs": "sha384-authored"}
+            }</script>
+          </head><body></body></html>`,
+        }),
+    ),
     new SubresourceIntegrityPlugin(),
   ],
 };

@@ -1,17 +1,13 @@
-use std::{borrow::Cow, collections::BTreeMap, sync::Arc};
+use std::{borrow::Cow, collections::BTreeMap};
 
 use cow_utils::CowUtils;
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use serde_json::{Map, Value, json};
-use swc_core::{
-  common::{DUMMY_SP, FileName, SourceMap},
-  ecma::{
-    ast::{EsVersion, ExportAll, Import, ImportDecl, NamedExport},
-    parser::{Syntax, parse_file_as_module},
-    visit::{Visit, VisitWith},
-  },
-};
+use swc_core::common::DUMMY_SP;
 use swc_html::ast::{Child, Element, Namespace, Text};
+use swc_next_allocator::Allocator;
+use swc_next_ecma_ast::{Lang, NodeId, NodeKindData, SourceType};
+use swc_next_ecma_parser::{CommentMode, NoTokenParserConfig, Options, Parser};
 use url::Url;
 
 use crate::{
@@ -89,7 +85,8 @@ fn is_active_html_element(element: &Element) -> bool {
   element.namespace == Namespace::HTML && !matches!(&*element.tag_name, "template" | "noscript")
 }
 
-struct ModuleUrl {
+struct ModuleUrl<'a> {
+  input: &'a str,
   url: Url,
   absolute: bool,
   has_authority: bool,
@@ -97,8 +94,8 @@ struct ModuleUrl {
   climbs: bool,
 }
 
-impl ModuleUrl {
-  fn parse(input: &str, root: &Url, document: &Url) -> Option<Self> {
+impl<'a> ModuleUrl<'a> {
+  fn parse(input: &'a str, root: &Url, document: &Url) -> Option<Self> {
     let input = input.trim();
     let url = root.join(input).ok()?;
     let absolute = Url::parse(input).is_ok();
@@ -114,6 +111,7 @@ impl ModuleUrl {
           != Some(url.path())
       });
     Some(Self {
+      input,
       url,
       absolute,
       has_authority,
@@ -122,25 +120,45 @@ impl ModuleUrl {
     })
   }
 
-  fn could_match(&self, other: &Self) -> bool {
-    if self.has_authority && other.has_authority && self.url.host_str() != other.url.host_str() {
-      return false;
-    }
-    if self.absolute && other.absolute && self.url.origin() != other.url.origin() {
-      return false;
-    }
+  fn could_match(&self, other: &ModuleUrl<'_>) -> bool {
     let path = self.url.path();
     let other_path = other.url.path();
-    path_matches(
+    let same_path = path_matches(
       path,
       other_path,
       self.path_relative && (!other.path_relative || self.climbs || other.climbs),
     ) || (other.path_relative
       && (!self.path_relative || self.climbs || other.climbs)
-      && path_matches(other_path, path, true))
+      && path_matches(other_path, path, true));
+    same_path && (!self.has_authority || !other.has_authority || self.could_share_origin(other))
   }
 
-  fn changes_base_for(&self, key: &Self) -> bool {
+  fn could_share_origin(&self, other: &ModuleUrl<'_>) -> bool {
+    if self.url.host_str() != other.url.host_str() {
+      return false;
+    }
+    match (self.absolute, other.absolute) {
+      (true, true) => self.url.origin() == other.url.origin(),
+      (true, false) => self
+        .url
+        .join(other.input)
+        .is_ok_and(|url| url.origin() == self.url.origin()),
+      (false, true) => other
+        .url
+        .join(self.input)
+        .is_ok_and(|url| url.origin() == other.url.origin()),
+      (false, false) => {
+        // Scheme-relative URLs inherit the page's scheme, which also determines the default port.
+        self.url.origin() == other.url.origin() || {
+          let http = Url::parse("http://rspack.invalid/").expect("valid URL");
+          http.join(self.input).ok().map(|url| url.origin())
+            == http.join(other.input).ok().map(|url| url.origin())
+        }
+      }
+    }
+  }
+
+  fn changes_base_for(&self, key: &ModuleUrl<'_>) -> bool {
     if key.absolute {
       return false;
     }
@@ -176,27 +194,6 @@ fn path_matches(path: &str, other: &str, allow_suffix: bool) -> bool {
   }) && (allow_suffix || other_segments.next().is_none())
 }
 
-#[derive(Default)]
-struct ModuleImports(bool);
-
-impl Visit for ModuleImports {
-  fn visit_import_decl(&mut self, _: &ImportDecl) {
-    self.0 = true;
-  }
-
-  fn visit_export_all(&mut self, _: &ExportAll) {
-    self.0 = true;
-  }
-
-  fn visit_named_export(&mut self, export: &NamedExport) {
-    self.0 |= export.src.is_some();
-  }
-
-  fn visit_import(&mut self, _: &Import) {
-    self.0 = true;
-  }
-}
-
 fn inline_module_may_import(element: &Element) -> bool {
   let mut source = String::new();
   for child in &element.children {
@@ -207,20 +204,33 @@ fn inline_module_may_import(element: &Element) -> bool {
   if !source.contains("import") && !source.contains("export") {
     return false;
   }
-  let file = SourceMap::default().new_source_file(Arc::new(FileName::Anon), source);
-  let mut errors = Vec::new();
-  let Ok(module) = parse_file_as_module(
-    &file,
-    Syntax::default(),
-    EsVersion::latest(),
-    None,
-    &mut errors,
-  ) else {
+  let allocator = Allocator::new();
+  let parsed = Parser::init(
+    &allocator,
+    &source,
+    Options {
+      source_type: SourceType::Module,
+      lang: Lang::Js,
+      preserve_parens: false,
+      comments: CommentMode::None,
+    },
+    NoTokenParserConfig,
+  )
+  .parse();
+  if !parsed.diagnostics.is_empty() {
     return true;
-  };
-  let mut imports = ModuleImports::default();
-  module.visit_with(&mut imports);
-  imports.0 || !errors.is_empty()
+  }
+  // SAFETY: The scan only reads nodes from this unmodified parser output.
+  let ast = unsafe { parsed.ast.ast() };
+  (0..ast.node_count()).any(
+    |index| match ast.kind_data(NodeId::from_raw_unchecked(index as u32)) {
+      NodeKindData::ImportDeclaration(_)
+      | NodeKindData::ImportExpression(_)
+      | NodeKindData::ExportAllDeclaration(_) => true,
+      NodeKindData::ExportNamedDeclaration(export) => export.source(ast).is_some(),
+      _ => false,
+    },
+  )
 }
 
 fn find_placement<'a>(

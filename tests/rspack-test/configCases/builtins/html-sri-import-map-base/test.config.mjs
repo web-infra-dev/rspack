@@ -93,18 +93,23 @@ export default {
 			"http://page.example.test/bundle.mjs": "sha384-authored"
 		});
 
-		const multiple = read("multiple-authored.html");
-		const multipleMaps = maps(multiple);
-		expect(multipleMaps).toHaveLength(3);
-		expect(multipleMaps[0].index).toBeLessThan(multiple.indexOf("modulepreload"));
-		expect(multipleMaps[1].index).toBeGreaterThan(multiple.indexOf("modulepreload"));
-		expect(JSON.parse(multipleMaps[0][1])).toEqual({ imports: { external: "./external.mjs" } });
-		expect(JSON.parse(multipleMaps[1][1])).toEqual({ integrity: { "./bundle.mjs": "sha384-authored" } });
-		expect(multipleMaps[2][0]).toContain("authored-nonce");
-		expect(multipleMaps[2].index).toBeLessThan(multiple.search(/<script\b[^>]*type=["']?module\b/));
-		const generatedURL = "http://page.example.test/multiple-authored.html";
-		expect(resolveIntegrity(JSON.parse(multipleMaps[2][1]), generatedURL)).toEqual(
-			integrityFor(generatedURL)
-		);
+		for (const [file, baseURL] of [
+			["multiple-authored.html", "https://page.example.test/"],
+			["multiple-authored-other-port.html", "https://cdn.example.test:8443/app/"],
+			["multiple-authored-relative-ports.html", "https://cdn.example.test/app/"]
+		]) {
+			const multiple = read(file);
+			const multipleMaps = maps(multiple);
+			expect(multipleMaps).toHaveLength(3);
+			expect(multipleMaps[0].index).toBeLessThan(multiple.indexOf("modulepreload"));
+			expect(multipleMaps[1].index).toBeGreaterThan(multiple.indexOf("modulepreload"));
+			expect(JSON.parse(multipleMaps[0][1])).toEqual({ imports: { external: "./external.mjs" } });
+			expect(JSON.parse(multipleMaps[1][1])).toEqual({ integrity: { "./bundle.mjs": "sha384-authored" } });
+			expect(multipleMaps[2][0]).toContain("authored-nonce");
+			expect(multipleMaps[2].index).toBeLessThan(multiple.search(/<script\b[^>]*type=["']?module\b/));
+			expect(resolveIntegrity(JSON.parse(multipleMaps[2][1]), "https://page.example.test/" + file)).toEqual(
+				integrityFor(baseURL)
+			);
+		}
 	}
 };
