@@ -25,10 +25,9 @@ runs:
         node-version: ${{ inputs.node-version }}
 
     - name: Install pnpm
-      uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
-      env:
-        # Mirrors may omit platform packages required by pnpm's self-update.
-        PNPM_CONFIG_REGISTRY: https://registry.npmjs.org
+      uses: pnpm/setup@731dfb6463bbd11c11fd0ee11fe00ed0e36d48a1 # v3.2.0
       with:
+        node-version-file: false
+        install: false
         # E2E containers mount the tool cache to access Node.js and pnpm.
         dest: ${{ runner.tool_cache }}/pnpm
