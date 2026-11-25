@@ -429,7 +429,9 @@ The following substitutions are available in template strings
 | [resource-path]          | The path used to resolve the file without any query params                                                            |
 | [namespace]              | The modules namespace. This is usually the library name when building as a library, empty otherwise                   |
 
-When using a function, the same options are available camel-cased via the `info` parameter:
+`[absolute-resource-path]` and `[relative-resource-path]` normalize regular filesystem paths using POSIX rules, including converting `\` to `/` on Windows. For modules backed by regular files, the absolute path comes from the resolved resource.
+
+Function templates receive the same fields in camel case on `info`, including the normalized `info.absoluteResourcePath` and `info.relativeResourcePath`.
 
 ```js title="rspack.config.mjs"
 export default {
