@@ -1,5 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
+use concat_string::concat_string;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsOption, AsRefStr},
@@ -151,11 +152,11 @@ pub(crate) async fn resolve_loader(
       let resource = if let Some(rest) = rest
         && !rest.is_empty()
       {
-        format!("{path}{rest}")
+        concat_string!(path, rest)
       } else if !query.is_empty() {
-        format!("{path}{query}")
+        concat_string!(path, query)
       } else if let Some(ident) = &l.ident {
-        format!("{path}??{ident}")
+        concat_string!(path, "??", ident)
       } else {
         path.to_owned()
       };

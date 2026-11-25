@@ -7,6 +7,7 @@ use std::{
 
 use async_recursion::async_recursion;
 use bitflags::bitflags;
+use concat_string::concat_string;
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_cacheable::{cacheable, with::Unsupported};
@@ -1731,7 +1732,7 @@ impl ModuleRuleUseLoader {
     if let Some(ident) = &self.ident
       && split_at_query_mark(&self.loader).1.is_none()
     {
-      Cow::Owned(format!("{}??{ident}", self.loader))
+      Cow::Owned(concat_string!(self.loader, "??", ident))
     } else {
       Cow::Borrowed(self.loader.as_str())
     }
