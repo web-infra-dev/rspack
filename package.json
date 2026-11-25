@@ -47,6 +47,8 @@
     "pnpm": "12.23.0"
   },
   "devDependencies": {
+    "@rstackjs/maintainer-skills": "catalog:",
+    "@rstackjs/skills": "catalog:",
     "@types/node": "catalog:",
     "@typescript/native": "catalog:",
     "commander": "catalog:",
