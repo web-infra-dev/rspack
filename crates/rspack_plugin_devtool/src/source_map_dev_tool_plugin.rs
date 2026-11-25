@@ -12,7 +12,7 @@ use regex::Regex;
 use rspack_core::{
   AssetInfo, CacheCount, CacheFacade, CacheValue, Chunk, ChunkUkey, Compilation, CompilationAsset,
   CompilationParams, CompilationProcessAssets, CompilerCompilation, Etag, Filename, Logger,
-  ModuleIdentifier, PathData, Plugin,
+  PathData, Plugin,
   cache::CachedSourceMapDevToolPluginEntry,
   legacy_cache::persistent::occasion::SourceMapDevToolPluginCache,
   rspack_sources::{
@@ -28,7 +28,6 @@ use rspack_util::{
   asset_condition::{AssetConditions, AssetConditionsObject, match_object},
   base64,
   fx_hash::FxIndexMap,
-  identifier::make_paths_absolute,
   node_path::NodePath,
   source_map::SourceMapKind,
 };
@@ -39,7 +38,7 @@ use url::Url;
 use crate::{
   ModuleFilenameTemplateFn, SourceReference, default_source_map_fallback_module_filename_template,
   default_source_map_module_filename_template, generate_debug_id::generate_debug_id,
-  module_filename_helpers::ModuleFilenameHelpers,
+  module_filename_helpers::ModuleFilenameHelpers, resolve_source_reference,
 };
 
 /// Check if a string starts with `data:`, `http:`, or `https:`
@@ -122,24 +121,7 @@ fn compute_source_references(
   source_map
     .sources()
     .iter()
-    .map(|source_name| {
-      if let Some(stripped) = source_name
-        .strip_prefix("webpack://")
-        .or_else(|| source_name.strip_prefix("rspack://"))
-      {
-        let source_name = make_paths_absolute(compilation.options.context.as_str(), stripped);
-        let identifier = ModuleIdentifier::from(source_name.as_str());
-        match compilation
-          .get_module_graph()
-          .module_by_identifier(&identifier)
-        {
-          Some(module) => SourceReference::Module(module.identifier()),
-          None => SourceReference::Source(Arc::from(source_name)),
-        }
-      } else {
-        SourceReference::Source(Arc::from(source_name.as_ref()))
-      }
-    })
+    .map(|source| resolve_source_reference(compilation, source))
     .collect()
 }
 
