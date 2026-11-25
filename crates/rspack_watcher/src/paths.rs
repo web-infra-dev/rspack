@@ -3,7 +3,7 @@ use std::{
   fmt::Debug,
   ops::Deref,
   path::{Path, PathBuf},
-  sync::Arc,
+  sync::{Arc, OnceLock, Weak},
   time::SystemTime,
 };
 
@@ -220,6 +220,7 @@ struct PathTracker {
   added: InternedPathDashSet,
   removed: InternedPathDashSet,
   all: InternedPathDashSet,
+  scan_subscribers: OnceLock<InternedPathDashMap<Arc<InternedPath>>>,
 }
 
 impl PathTracker {
@@ -236,9 +237,29 @@ impl PathTracker {
 
   /// Removes a path from the tracker; whether it was tracked.
   fn remove(&self, path: InternedPath) -> bool {
-    let tracked = self.all.remove(&path).is_some();
+    let tracked = self
+      .all
+      .remove_if(&path, |path| {
+        if let Some(subscribers) = self.scan_subscribers.get() {
+          subscribers.remove(path);
+        }
+        true
+      })
+      .is_some();
     self.removed.insert(path);
     tracked
+  }
+
+  // Hold the set entry while acquiring the handle, so re-registering this path
+  // cannot give an earlier directory change to the replacement subscription.
+  fn scan_subscriber(&self, path: &InternedPath) -> Option<Weak<InternedPath>> {
+    let registered = self.all.get(path)?;
+    let handle = self
+      .scan_subscribers
+      .get_or_init(InternedPathDashMap::default)
+      .entry(registered.clone())
+      .or_insert_with(|| Arc::new(registered.clone()));
+    Some(Arc::downgrade(&handle))
   }
 }
 
@@ -894,7 +915,9 @@ impl PathManager {
             .and_then(|_| {
               self
                 .watchers
-                .queue_context_change(path, directory, scan, state)
+                .queue_context_change(path, directory, scan, state, |dep| {
+                  self.missing.scan_subscriber(dep)
+                })
             })
         }
         _ => None,

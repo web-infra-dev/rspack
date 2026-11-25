@@ -511,6 +511,49 @@ async fn deliveries_until(
 }
 
 #[tokio::test]
+async fn a_directory_scan_notifies_the_missing_dependencies_registered_when_it_found_them() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let root = dir.join("src");
+  let restored = InternedPath::from(root.join("restored"));
+  let readded = InternedPath::from(root.join("readded"));
+  let late = InternedPath::from(root.join("late"));
+  fs::create_dir(&root).unwrap();
+  let (mut analyzer, marker, release) = hold_event_processor(&dir, &dir.join("control")).await;
+  update(
+    &analyzer,
+    empty(),
+    added(&root),
+    (vec![restored.clone(), readded.clone()], vec![]),
+  )
+  .await;
+  for path in [&restored, &readded, &late] {
+    fs::create_dir(path).unwrap();
+  }
+  analyzer.queue_context_changes().await;
+  update(&analyzer, empty(), empty(), removed(&readded)).await;
+  update(
+    &analyzer,
+    empty(),
+    empty(),
+    (vec![readded.clone(), late.clone()], vec![]),
+  )
+  .await;
+  analyzer.on_scanned_change(&marker);
+  release.send(()).unwrap();
+
+  let deliveries = deliveries_until(&mut analyzer, &marker).await;
+  for path in [&restored, &readded, &late] {
+    let (_, deps) = deliveries.iter().find(|(raw, _)| raw == path).unwrap();
+    assert!(deps.contains(&((&root).into(), FsEventKind::Change)));
+    assert_eq!(
+      deps.contains(&(path.clone(), FsEventKind::Change)),
+      path == &restored
+    );
+  }
+}
+
+#[tokio::test]
 async fn a_later_scan_updates_the_mtime_without_cancelling_the_outer_notification() {
   let fixture = tempfile::tempdir().unwrap();
   let dir = fixture.path().canonicalize().unwrap();

@@ -146,19 +146,19 @@ impl WatcherManager {
     directory: bool,
     scan: &Scan,
     state: &Observations,
+    missing_subscriber: impl Fn(&InternedPath) -> Option<Weak<InternedPath>>,
   ) -> Option<ContextChange> {
-    let subscribers = path
-      .ancestors()
-      .skip(usize::from(!directory))
-      .filter_map(|ancestor| {
-        let context = InternedPath::from(ancestor);
-        let watcher = self.directories.get(&context)?;
-        let subscription = watcher.explicit.as_ref()?;
-        state
-          .same_subscription(scan, &context)
-          .then(|| Arc::downgrade(subscription))
-      })
-      .collect::<Vec<_>>();
+    let mut subscribers = Vec::new();
+    for ancestor in path.ancestors().skip(usize::from(!directory)) {
+      let dep = InternedPath::from(ancestor);
+      if let Some(watcher) = self.directories.get(&dep)
+        && let Some(subscription) = &watcher.explicit
+        && state.same_subscription(scan, &dep)
+      {
+        subscribers.push(Arc::downgrade(subscription));
+      }
+      subscribers.extend(missing_subscriber(&dep));
+    }
     if subscribers.is_empty() {
       return None;
     }
