@@ -1,4 +1,4 @@
-//! Versions are needed only while an older scan can still commit or report an event.
+//! Tracks writes that could supersede a running scan’s file or directory observations.
 use std::{
   collections::BTreeSet,
   sync::{Arc, Mutex},

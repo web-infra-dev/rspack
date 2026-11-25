@@ -3,7 +3,7 @@ use std::{
   fmt::Debug,
   ops::Deref,
   path::{Path, PathBuf},
-  sync::{Arc, Mutex, Weak},
+  sync::Arc,
   time::SystemTime,
 };
 
@@ -21,7 +21,7 @@ use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMa
 use crate::{
   observation::{Mutation, Observations, Scan, ScanEpoch},
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
-  watcher_manager::{MemberKind, WatcherManager},
+  watcher_manager::{ContextChange, MemberKind, WatcherManager},
 };
 
 /// An iterator that chains together references to all files, directories, and missing paths
@@ -308,39 +308,9 @@ struct FileRecord {
   time: Option<FileTime>,
   /// State the build already knows from registration or a reported event.
   reported: ReportedBaseline,
-  /// Scans that owe a notification for this mtime share one queued change.
-  /// Only the queue and the scans themselves keep it alive.
-  pending_change: Weak<PendingFileChange>,
-}
-
-pub(super) struct PendingFileChange {
-  first: Scan,
-  overlapping: Mutex<Vec<Scan>>,
-}
-
-pub(super) enum ContextChange {
-  Entry(Scan),
-  File(Arc<PendingFileChange>),
 }
 
 impl FileRecord {
-  fn queue_change(&mut self, scan: &Scan) -> ContextChange {
-    if let Some(change) = self.pending_change.upgrade() {
-      change
-        .overlapping
-        .lock()
-        .expect("context change poisoned")
-        .push(scan.clone());
-      return ContextChange::File(change);
-    }
-    let change = Arc::new(PendingFileChange {
-      first: scan.clone(),
-      overlapping: Mutex::default(),
-    });
-    self.pending_change = Arc::downgrade(&change);
-    ContextChange::File(change)
-  }
-
   fn set_time(&mut self, mtime: SystemTime, initial: bool, ignore_when_equal: bool) -> bool {
     // Seeing the file again clears a reported absence. A scan that only
     // records its time must still let the file's first event through.
@@ -348,7 +318,6 @@ impl FileRecord {
     if ignore_when_equal && self.time.is_some_and(|time| time.mtime == mtime) {
       return false;
     }
-    self.pending_change = Weak::new();
     self.time = Some(if initial {
       FileTime::initial(mtime)
     } else {
@@ -377,7 +346,6 @@ impl FileRecord {
 
   fn clear_present(&mut self) {
     self.time = None;
-    self.pending_change = Weak::new();
     if matches!(self.reported, ReportedBaseline::Present(_)) {
       self.reported = ReportedBaseline::Unknown;
     }
@@ -489,7 +457,7 @@ impl PathManager {
     }
   }
 
-  // A directory walk indexes shared members. A queued event belongs to its original subscription.
+  // A directory walk can still update shared members while any original context covers them.
   fn scan_has_subscription(
     &self,
     state: &Observations,
@@ -508,49 +476,6 @@ impl PathManager {
       })
   }
 
-  pub(super) fn with_current<R>(
-    &self,
-    scan: &Scan,
-    path: &InternedPath,
-    action: impl FnOnce() -> R,
-  ) -> Option<R> {
-    let state = self.watchers.lock_observations();
-    (self.scan_has_subscription(&state, scan, None) && state.accepts(scan, path)).then(action)
-  }
-
-  pub(super) fn with_file_change<R>(
-    &self,
-    path: &InternedPath,
-    pending: &Arc<PendingFileChange>,
-    consume: bool,
-    action: impl FnOnce(&Scan, &dyn Fn(&InternedPath) -> bool) -> R,
-  ) -> Option<R> {
-    let state = self.watchers.lock_observations();
-    let overlapping = pending.overlapping.lock().expect("context change poisoned");
-    let current = |scan: &Scan| {
-      self.scan_has_subscription(&state, scan, None) && state.covers_subtree(scan, path)
-    };
-    let scan = overlapping
-      .iter()
-      .rev()
-      .chain(std::iter::once(&pending.first))
-      .find(|scan| current(scan));
-    let mut record = self.file_times.records.get_mut(path)?;
-    if !record.pending_change.ptr_eq(&Arc::downgrade(pending)) {
-      return None;
-    }
-    if consume || scan.is_none() {
-      record.pending_change = Weak::new();
-    }
-    drop(record);
-    Some(action(scan?, &|context| {
-      state.same_subscription(&pending.first, context)
-        || overlapping
-          .iter()
-          .any(|scan| &scan.root == context && current(scan))
-    }))
-  }
-
   fn can_scan_children(&self, scan: &Scan, path: &InternedPath) -> bool {
     let state = self.watchers.lock_observations();
     self.scan_has_subscription(&state, scan, Some(path)) && state.covers_subtree(scan, path)
@@ -563,7 +488,7 @@ impl PathManager {
     scan: Option<&Scan>,
     write: impl FnOnce() -> (R, Mutation),
   ) -> Option<R> {
-    self.observe_in_directory(path, scan, None, write)
+    self.observe_in_directory(path, scan, None, |_| write())
   }
 
   fn observe_in_directory<R>(
@@ -571,7 +496,7 @@ impl PathManager {
     path: &InternedPath,
     scan: Option<&Scan>,
     directory: Option<&Path>,
-    write: impl FnOnce() -> (R, Mutation),
+    write: impl FnOnce(&Observations) -> (R, Mutation),
   ) -> Option<R> {
     let mut state = self.watchers.lock_observations();
     if scan
@@ -579,7 +504,7 @@ impl PathManager {
     {
       return None;
     }
-    let (result, mutation) = write();
+    let (result, mutation) = write(&state);
     state.observe(path, scan, mutation);
     Some(result)
   }
@@ -765,7 +690,7 @@ impl PathManager {
 
   fn holds_record(&self, path: &InternedPath) -> bool {
     self.file_times.get(path).is_some()
-      || self.watchers.member(path).is_some()
+      || self.watchers.has_member(path, |_| true)
       || self.last_watch_events.contains_key(path)
   }
 
@@ -878,7 +803,7 @@ impl PathManager {
         let Ok((metadata, symlink)) = Self::scan_metadata(ancestry.last(), &path) else {
           continue;
         };
-        let Some((_, file_change)) = self.observe_member(
+        let Some((_, change)) = self.observe_member(
           &path,
           &metadata,
           symlink,
@@ -888,41 +813,20 @@ impl PathManager {
             changed_since,
           },
         ) else {
-          if metadata.is_dir()
-            && self
-              .watchers
-              .member(&path)
-              .is_some_and(|member| member.directory)
-          {
+          if metadata.is_dir() && self.watchers.has_member(&path, |member| member.directory) {
             pending.push((path, ancestry.clone(), false, scan.clone()));
           }
           continue;
         };
+        if let Some(change) = change {
+          changed.push((path.clone(), change));
+        }
         if metadata.is_dir() {
-          if let Ok(mtime) = metadata.modified() {
-            mtime_accuracy(mtime);
-          }
-          // watchpack's initial `setDirectory` checks the birthtime.
-          if changed_since.is_some_and(|since| {
-            metadata
-              .created()
-              .or_else(|_| metadata.modified())
-              .is_ok_and(|birthtime| mtime_safe_time(birthtime) >= since)
-          }) {
-            changed.push((path.clone(), ContextChange::Entry(scan.clone())));
-          }
           pending.push((path, ancestry.clone(), false, scan.clone()));
-        } else if let Some(change) = file_change {
-          changed.push((path, change));
         }
       }
     }
-    changed.retain(|(path, change)| match change {
-      ContextChange::Entry(scan) => self.with_current(scan, path, || ()).is_some(),
-      ContextChange::File(change) => self
-        .with_file_change(path, change, false, |_, _| ())
-        .is_some(),
-    });
+    changed.retain(|(_, change)| change.pending.has_subscribers());
     changed
   }
 
@@ -938,7 +842,7 @@ impl PathManager {
       ContextObservation::Scan { .. } => path.parent(),
       _ => None,
     };
-    self.observe_in_directory(path, scan, directory, || {
+    self.observe_in_directory(path, scan, directory, |state| {
       if scan.is_none() && !self.is_below_context(path) {
         return ((false, None), Mutation::Entry);
       }
@@ -947,8 +851,7 @@ impl PathManager {
       let replaced = !symlink
         && self
           .watchers
-          .member(path)
-          .is_some_and(|old| if directory { old.file } else { old.directory });
+          .has_member(path, |old| if directory { old.file } else { old.directory });
       if replaced {
         // A registered file's baseline has already advanced for this event.
         let keep_file = matches!(origin, ContextObservation::Reported)
@@ -959,47 +862,45 @@ impl PathManager {
           self.remove_file_times_under(path, keep_file);
         }
       }
-      let interested = match (&origin, scan) {
+      let mtime = metadata.modified().or_else(|_| metadata.created()).ok();
+      let updated = self.record(path, || {
+        if directory {
+          if let Some(mtime) = mtime {
+            mtime_accuracy(mtime);
+          }
+          return self.watchers.add_member(path, MemberKind::Directory);
+        }
+        self.watchers.add_member(path, MemberKind::File);
+        matches!(origin, ContextObservation::Reported)
+          || mtime.is_none_or(|mtime| self.file_times.record(path).observe_member(mtime, &origin))
+      });
+      let change = match (&origin, scan) {
         (
           ContextObservation::Scan {
             changed_since: Some(since),
             ..
           },
           Some(scan),
-        ) if !directory && !self.files.all.contains(path) && !self.missing.all.contains(path) => {
-          Some((*since, scan))
+        ) => {
+          let changed_at = if directory {
+            metadata.created().ok().or(mtime)
+          } else if self.files.all.contains(path) || self.missing.all.contains(path) {
+            None
+          } else {
+            mtime
+          };
+          changed_at
+            .filter(|time| mtime_safe_time(*time) >= *since)
+            .and_then(|_| {
+              self
+                .watchers
+                .queue_context_change(path, directory, scan, state)
+            })
         }
         _ => None,
       };
-      let mut file_change = None;
-      let updated = self.record(path, || {
-        if directory {
-          return self.watchers.add_member(path, MemberKind::Directory);
-        }
-        self.watchers.add_member(path, MemberKind::File);
-        if matches!(origin, ContextObservation::Reported) {
-          return true;
-        }
-        metadata
-          .modified()
-          .or_else(|_| metadata.created())
-          .map_or(true, |mtime| {
-            let mut record = self.file_times.record(path);
-            let updated = record.observe_member(mtime, &origin);
-            if let Some((since, scan)) = interested
-              && mtime_safe_time(mtime) >= since
-            {
-              file_change = Some(if !symlink && metadata.is_file() {
-                record.queue_change(scan)
-              } else {
-                ContextChange::Entry(scan.clone())
-              });
-            }
-            updated
-          })
-      });
       (
-        (updated, file_change),
+        (updated, change),
         if !directory && !updated && !replaced {
           Mutation::Unchanged
         } else if replaced {
@@ -1304,7 +1205,6 @@ impl PathManager {
       }
       if !below_context {
         record.time = None;
-        record.pending_change = Weak::new();
       }
     });
     if !below_context && !keep_reported {
