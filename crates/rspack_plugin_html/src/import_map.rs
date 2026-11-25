@@ -14,7 +14,7 @@ use crate::{
 
 pub(crate) fn add_integrity_to_import_map(
   document: &mut CompiledDocument,
-  mut integrity: BTreeMap<String, String>,
+  integrity: BTreeMap<String, String>,
 ) -> Result<()> {
   let children = match document {
     CompiledDocument::Document(document) | CompiledDocument::DocumentWithoutDoctype(document) => {
@@ -24,12 +24,18 @@ pub(crate) fn add_integrity_to_import_map(
   };
   let (nonce, late_base) = find_import_map_context(children);
   let nonce = nonce.map(str::to_owned);
-  if let Some(base) = late_base {
-    add_base_integrity_urls(&mut integrity, base);
-  }
+  let base_integrity = late_base.map_or_else(BTreeMap::new, |base| {
+    rebase_integrity_urls(&integrity, base)
+  });
 
   let mut seen_module_fetch = false;
-  if merge_existing_map(children, &integrity, &mut seen_module_fetch)? || !seen_module_fetch {
+  if merge_existing_map(
+    children,
+    &integrity,
+    &base_integrity,
+    &mut seen_module_fetch,
+  )? || !seen_module_fetch
+  {
     return Ok(());
   }
 
@@ -87,9 +93,10 @@ fn find_import_map_context(children: &[Child]) -> (Option<&str>, Option<&str>) {
     pending.push(element.children.iter());
 
     if starts_module_fetch(element) {
+      let first_module_fetch = !seen_module_fetch;
       seen_module_fetch = true;
       if let Some(nonce) = attribute(element, "nonce").filter(|nonce| !nonce.is_empty()) {
-        if is_script(element, "module") {
+        if first_module_fetch || is_script(element, "module") {
           return (Some(nonce), late_base);
         }
         preload_nonce.get_or_insert(nonce);
@@ -115,17 +122,19 @@ fn find_import_map_context(children: &[Child]) -> (Option<&str>, Option<&str>) {
 
 // Preserve the authored map's base URL. Only its generated integrity keys
 // need to refer to the base URL in effect when the modules are fetched.
-fn add_base_integrity_urls(integrity: &mut BTreeMap<String, String>, base: &str) {
+fn rebase_integrity_urls(
+  integrity: &BTreeMap<String, String>,
+  base: &str,
+) -> BTreeMap<String, String> {
   let base = base
     .trim_matches(|c: char| c <= ' ')
     .cow_replace(&['\t', '\r', '\n'][..], "");
   match Url::parse(&base) {
     Ok(base) if !base.cannot_be_a_base() => {
-      add_integrity_aliases(integrity, |url| base.join(url).ok().map(String::from));
-      return;
+      return integrity_aliases(integrity, |url| base.join(url).ok().map(String::from));
     }
     Err(ParseError::RelativeUrlWithoutBase) => {}
-    _ => return,
+    _ => return BTreeMap::new(),
   }
 
   // Keep relative bases independent of the document's deployment URL.
@@ -140,7 +149,7 @@ fn add_base_integrity_urls(integrity: &mut BTreeMap<String, String>, base: &str)
       .split_once('/')
       .unwrap_or((authority_and_path, ""));
     if Url::parse(&format!("https://{authority}")).is_err() {
-      return;
+      return BTreeMap::new();
     }
     // Keep explicit ports because the document's scheme is unknown.
     (format!("//{authority}"), Cow::Owned(format!("/{path}")))
@@ -157,7 +166,7 @@ fn add_base_integrity_urls(integrity: &mut BTreeMap<String, String>, base: &str)
     Cow::Borrowed(path.rfind('/').map_or("", |end| &path[..=end]))
   };
   if directory.is_empty() {
-    return;
+    return BTreeMap::new();
   }
 
   // The browser normalizes dot segments when it parses the import map.
@@ -170,7 +179,7 @@ fn add_base_integrity_urls(integrity: &mut BTreeMap<String, String>, base: &str)
   } else {
     ""
   };
-  add_integrity_aliases(integrity, |url| {
+  integrity_aliases(integrity, |url| {
     if url.starts_with("//") || Url::parse(url).is_ok() {
       None
     } else if url.starts_with('/') {
@@ -179,30 +188,27 @@ fn add_base_integrity_urls(integrity: &mut BTreeMap<String, String>, base: &str)
       let path = url.strip_prefix("./").unwrap_or(url);
       Some(format!("{prefix}{authority}{directory}{path}"))
     }
-  });
+  })
 }
 
-fn add_integrity_aliases(
-  integrity: &mut BTreeMap<String, String>,
+fn integrity_aliases(
+  integrity: &BTreeMap<String, String>,
   resolve: impl Fn(&str) -> Option<String>,
-) {
-  let aliases = integrity
+) -> BTreeMap<String, String> {
+  integrity
     .iter()
     .filter_map(|(url, hash)| {
       resolve(url)
         .filter(|resolved| resolved != url)
         .map(|resolved| (resolved, hash.clone()))
     })
-    .collect::<Vec<_>>();
-  // The original URLs still apply if CSP blocks the base element.
-  for (url, hash) in aliases {
-    integrity.entry(url).or_insert(hash);
-  }
+    .collect()
 }
 
 fn merge_existing_map(
   children: &mut [Child],
   integrity: &BTreeMap<String, String>,
+  base_integrity: &BTreeMap<String, String>,
   seen_module_fetch: &mut bool,
 ) -> Result<bool> {
   for child in children {
@@ -231,11 +237,19 @@ fn merge_existing_map(
         .or_insert_with(|| Value::Object(Map::new()))
         .as_object_mut()
         .ok_or_else(|| error!("The import map integrity field must be an object."))?;
-      for (url, hash) in integrity {
-        entries
-          .entry(url)
-          .or_insert_with(|| Value::String(hash.clone()));
-      }
+      let authored = std::mem::take(entries);
+      // The browser applies the last entry for a resolved URL. Keep the
+      // fallback URLs first, the URLs using the late base next, and the
+      // authored entries last in their original order.
+      entries.extend(
+        integrity
+          .iter()
+          .filter(|(url, _)| !base_integrity.contains_key(*url))
+          .chain(base_integrity)
+          .filter(|(url, _)| !authored.contains_key(*url))
+          .map(|(url, hash)| (url.clone(), Value::String(hash.clone()))),
+      );
+      entries.extend(authored);
       element.children = vec![Child::Text(Text {
         span: DUMMY_SP,
         data: serialize_map(&Value::Object(map))?.into(),
@@ -244,7 +258,12 @@ fn merge_existing_map(
       return Ok(true);
     }
     *seen_module_fetch |= starts_module_fetch(element);
-    if merge_existing_map(&mut element.children, integrity, seen_module_fetch)? {
+    if merge_existing_map(
+      &mut element.children,
+      integrity,
+      base_integrity,
+      seen_module_fetch,
+    )? {
       return Ok(true);
     }
   }

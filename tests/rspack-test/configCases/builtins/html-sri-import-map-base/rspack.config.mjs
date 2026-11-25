@@ -5,14 +5,16 @@ const baseURLs = {
   'relative.html': '../assets/nested/..',
   'root-relative.html': '/assets/',
   'scheme-relative.html': '//cdn.example.test:443/assets/',
+  'collision.html': './assets/',
+  'normalized-collision.html': './assets/a/..',
 };
 
 export default {
   target: 'web',
   output: {
     module: true,
-    filename: '[name].mjs',
-    chunkFilename: '[name].mjs',
+    filename: 'assets/bundle.mjs',
+    chunkFilename: 'bundle.mjs',
     publicPath: './',
     crossOriginLoading: 'anonymous',
   },
@@ -32,6 +34,19 @@ export default {
           </head><body></body></html>`,
         }),
     ),
+    new HtmlRspackPlugin({
+      filename: 'authored.html',
+      publicPath: '/',
+      scriptLoading: 'module',
+      templateContent: `<!DOCTYPE html><html><head>
+        <script type="importmap">{
+          "integrity": {
+            "/assets/../bundle.mjs": "sha384-first",
+            "./bundle.mjs": "sha384-authored"
+          }
+        }</script>
+      </head><body></body></html>`,
+    }),
     new SubresourceIntegrityPlugin(),
   ],
 };

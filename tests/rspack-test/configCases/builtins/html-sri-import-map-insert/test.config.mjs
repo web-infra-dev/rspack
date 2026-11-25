@@ -15,14 +15,16 @@ export default {
 		expect(mapScript[0]).toContain("test-nonce");
 		expect(mapScript.index).toBeLessThan(html.indexOf("modulepreload"));
 
-		const nonceHtml = readFileSync(
-			path.join(outputPath, "pages/nonce.html"),
-			"utf-8"
-		);
-		const nonceMap = nonceHtml.match(/<script\b[^>]*type=["']?importmap["']?[^>]*>/);
-		expect(nonceMap).toBeTruthy();
-		expect(nonceMap[0]).toMatch(/\bnonce=["']?module-nonce["']?(?=[\s>])/);
-		expect(nonceMap.index).toBeLessThan(nonceHtml.indexOf("modulepreload"));
+		for (const [page, nonce] of [
+			["pages/nonce.html", "module-nonce"],
+			["pages/nonce-precedence.html", "preload-nonce"]
+		]) {
+			const html = readFileSync(path.join(outputPath, page), "utf-8");
+			const nonceMap = html.match(/<script\b[^>]*type=["']?importmap["']?[^>]*>/);
+			expect(nonceMap).toBeTruthy();
+			expect(nonceMap[0].match(/\bnonce=["']?([^"'\s>]+)/)?.[1]).toBe(nonce);
+			expect(nonceMap.index).toBeLessThan(html.indexOf("modulepreload"));
+		}
 
 		const chunks = readdirSync(outputPath).filter(
 			file => file.endsWith(".mjs") && file !== "main.mjs"
