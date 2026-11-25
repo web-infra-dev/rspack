@@ -44,7 +44,7 @@
     "bench:prepare": "node ./scripts/bench/setup.mjs"
   },
   "engines": {
-    "pnpm": "11.28.13"
+    "pnpm": "12.23.0"
   },
   "devDependencies": {
     "@types/node": "catalog:",
@@ -57,5 +57,5 @@
     "typescript": "catalog:",
     "zx": "catalog:"
   },
-  "packageManager": "pnpm@11.28.13"
+  "packageManager": "pnpm@12.23.0"
 }
