@@ -86,7 +86,7 @@ pub struct ModuleGraphUpdateResult {
 pub async fn update_module_graph(
   compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
-  mut exports_info_artifact: ExportsInfoArtifact,
+  exports_info_artifact: ExportsInfoArtifact,
   params: Vec<UpdateParam>,
 ) -> ModuleGraphUpdateResult {
   // Also covers rebuildModule and entry additions outside the make phase.
@@ -100,14 +100,14 @@ pub async fn update_module_graph(
   let build_dependencies =
     cutout.cutout_artifact(compilation, &mut artifact, params, &mut force_build_modules);
 
-  let revoked_modules = artifact.revoked_modules().copied().collect();
-  let result = compilation
-    .plugin_driver
-    .compilation_hooks
-    .revoked_modules
-    .call(compilation, &revoked_modules)
-    .await;
-  if let Err(error) = result {
+  let revoked_modules_hook = &compilation.plugin_driver.compilation_hooks.revoked_modules;
+  // Notify only about modules removed by this cutout, before repair can create
+  // new wrappers for the same identifiers. The cumulative affected set still
+  // includes modules that were already rebuilt by earlier graph updates.
+  if let Err(error) = revoked_modules_hook
+    .call(compilation, &force_build_modules)
+    .await
+  {
     return ModuleGraphUpdateResult {
       artifact,
       exports_info_artifact,
@@ -115,8 +115,7 @@ pub async fn update_module_graph(
     };
   }
 
-  let result;
-  (artifact, exports_info_artifact, result) = repair(
+  let (mut artifact, exports_info_artifact, mut result) = repair(
     compilation,
     artifact,
     exports_info_artifact,
@@ -125,12 +124,17 @@ pub async fn update_module_graph(
   )
   .await;
   if result.is_ok() {
-    cutout.fix_artifact(&mut artifact);
+    let revoked_modules = cutout.fix_artifact(&mut artifact);
     let module_graph = artifact.get_module_graph();
     for id in artifact.affected_modules.active() {
       if let Some(module) = module_graph.module_by_identifier(id) {
         module.freeze_build_meta();
       }
+    }
+    if !revoked_modules.is_empty() {
+      result = revoked_modules_hook
+        .call(compilation, &revoked_modules)
+        .await;
     }
   }
   ModuleGraphUpdateResult {

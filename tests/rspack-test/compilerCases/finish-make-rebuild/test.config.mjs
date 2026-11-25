@@ -23,6 +23,21 @@ const request = (compilation, module) =>
       resolve({ error, module: result }),
     );
   });
+const addEntry = (compilation, name) =>
+  new Promise((resolve, reject) => {
+    const { compiler } = compilation;
+    const dependency = compiler.webpack.EntryPlugin.createDependency(
+      `./${name}.js`,
+    );
+    compilation.addEntry(
+      compiler.context,
+      dependency,
+      { name, filename: `${name}.js` },
+      (error) => (error ? reject(error) : resolve()),
+    );
+  });
+const findModule = (compilation, resource) =>
+  [...compilation.modules].find((module) => module.resource === resource);
 function value(compilation) {
   expect(compilation.errors).toHaveLength(0);
   const module = { exports: {} };
@@ -144,6 +159,95 @@ for (const kind of ['rule-gained', 'rule-lost', 'removed', 'added']) {
     });
   }
 }
+
+for (const operation of ['rebuildModule', 'addEntry']) {
+  cases.push({
+    description: `finishMake keeps the rebuilt module wrapper after an unrelated ${operation}`,
+    options,
+    async compiler(context, compiler) {
+      let round = 0;
+      compiler.hooks.finishMake.tapPromise('Test', async (compilation) => {
+        if (++round !== 2) return;
+
+        const resource = context.getSource('a.js');
+        const original = findModule(compilation, resource);
+        const rebuilt = await request(compilation, original);
+        expect(rebuilt.error).toBeNull();
+        expect(rebuilt.module).not.toBe(original);
+
+        if (operation === 'addEntry') {
+          await addEntry(compilation, 'extra');
+        } else {
+          const other = await request(
+            compilation,
+            findModule(compilation, context.getSource('k.js')),
+          );
+          expect(other.error).toBeNull();
+        }
+
+        expect(rebuilt.module.buildInfo).toBeDefined();
+        expect(findModule(compilation, resource)).toBe(rebuilt.module);
+      });
+    },
+    async build(context, compiler) {
+      const initial = await run(compiler);
+      expect(initial.error).toBeNull();
+      const updated = await rebuild(compiler);
+      expect(updated.error).toBeFalsy();
+      expect(value(updated.compilation)).toEqual(['h', 'k']);
+    },
+  });
+}
+
+cases.push({
+  description: 'finishMake releases the wrapper of an orphaned module',
+  options(context) {
+    return {
+      ...options(context, false),
+      module: {
+        rules: [{ test: /[\\/]a\.js$/, use: context.getSource('loader.cjs') }],
+      },
+    };
+  },
+  async compiler(context, compiler) {
+    const state = { drop: false };
+    let round = 0;
+    compiler.hooks.thisCompilation.tap('Test', (compilation) => {
+      NormalModule.getCompilationHooks(compilation).loader.tap(
+        'Test',
+        (loader) => {
+          loader.rebuildState = state;
+        },
+      );
+    });
+    compiler.hooks.finishMake.tapPromise('Test', async (compilation) => {
+      if (++round !== 2) return;
+
+      const resource = context.getSource('h.js');
+      const orphan = findModule(compilation, resource);
+      expect(orphan).toBeDefined();
+      state.drop = true;
+      const rebuilt = await request(
+        compilation,
+        findModule(compilation, context.getSource('a.js')),
+      );
+      expect(rebuilt.error).toBeNull();
+      expect(findModule(compilation, resource)).toBeUndefined();
+
+      await addEntry(compilation, 'h');
+      const readded = findModule(compilation, resource);
+      expect(readded).toBeDefined();
+      expect(readded).not.toBe(orphan);
+    });
+  },
+  async build(context, compiler) {
+    const initial = await run(compiler);
+    expect(initial.error).toBeNull();
+    const updated = await rebuild(compiler);
+    expect(updated.error).toBeFalsy();
+    expect(value(updated.compilation)).toEqual(['removed', 'k']);
+  },
+});
 
 for (const hook of ['make', 'finishMake', 'rebuildModule']) {
   for (const failFirst of [true, false]) {
