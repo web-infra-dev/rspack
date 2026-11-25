@@ -77,6 +77,7 @@ pub struct KnownAssetInfo {
 pub struct AssetInfo {
   known: KnownAssetInfo,
   extras: Map<String, Value>,
+  file_attributes: Option<Box<AssetFileAttributes>>,
 }
 
 impl FromNapiValue for AssetInfo {
@@ -99,7 +100,12 @@ impl FromNapiValue for AssetInfo {
         }
       }
 
-      Ok(Self { known, extras })
+      let file_attributes = take_file_attributes(&mut extras);
+      Ok(Self {
+        known,
+        extras,
+        file_attributes,
+      })
     }
   }
 }
@@ -111,6 +117,20 @@ impl ToNapiValue for AssetInfo {
       let mut js_object = Object::from_napi_value(env, napi_value)?;
       for (key, value) in val.extras {
         js_object.set_named_property(&key, value)?;
+      }
+      if let Some(attributes) = val.file_attributes {
+        if let Some(mode) = attributes.mode {
+          js_object.set_named_property("mode", u32::from(mode))?;
+          if !attributes.permissions_required {
+            js_object.set_named_property(LEGACY_COPY_PERMISSIONS, true)?;
+          }
+        }
+        if let Some((atime, mtime)) = attributes.timestamps {
+          let mut timestamps = Object::new(&Env::from_raw(env))?;
+          timestamps.set_named_property("atime", atime as f64)?;
+          timestamps.set_named_property("mtime", mtime as f64)?;
+          js_object.set_named_property("timestamps", timestamps)?;
+        }
       }
       Ok(napi_value)
     }
@@ -130,8 +150,11 @@ impl ValidateNapiValue for AssetInfo {}
 
 impl From<AssetInfo> for rspack_core::AssetInfo {
   fn from(js_value: AssetInfo) -> Self {
-    let AssetInfo { known, mut extras } = js_value;
-    let file_attributes = take_file_attributes(&mut extras);
+    let AssetInfo {
+      known,
+      extras,
+      file_attributes,
+    } = js_value;
 
     let KnownAssetInfo {
       immutable,
@@ -206,7 +229,10 @@ fn take_file_attributes(extras: &mut Map<String, Value>) -> Option<Box<AssetFile
     return None;
   }
 
-  let legacy_permissions = extras.remove(LEGACY_COPY_PERMISSIONS) == Some(Value::Bool(true));
+  let legacy_permissions = matches!(
+    extras.remove(LEGACY_COPY_PERMISSIONS),
+    Some(Value::Bool(true))
+  );
   if mode.is_some() {
     extras.remove("mode");
   }
@@ -264,24 +290,9 @@ impl From<rspack_core::AssetInfo> for AssetInfo {
       is_over_size_limit,
       asset_type,
       file_attributes,
-      mut extras,
+      extras,
       ..
     } = value;
-
-    if let Some(attributes) = file_attributes {
-      if let Some(mode) = attributes.mode {
-        extras.insert("mode".into(), mode.into());
-        if !attributes.permissions_required {
-          extras.insert(LEGACY_COPY_PERMISSIONS.into(), Value::Bool(true));
-        }
-      }
-      if let Some((atime, mtime)) = attributes.timestamps {
-        extras.insert(
-          "timestamps".into(),
-          serde_json::json!({ "atime": atime, "mtime": mtime }),
-        );
-      }
-    }
 
     Self {
       known: KnownAssetInfo {
@@ -301,6 +312,7 @@ impl From<rspack_core::AssetInfo> for AssetInfo {
         asset_type: Some(asset_type.to_string()),
       },
       extras,
+      file_attributes,
     }
   }
 }

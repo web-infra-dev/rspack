@@ -385,7 +385,8 @@ opt-level = "s"
 opt-level = "z"
 
 [profile.release.package.rspack_plugin_copy]
-opt-level = "s"
+codegen-units = 1
+opt-level     = "z"
 
 [profile.release.package.swc_ecma_loader]
 opt-level = "s"
