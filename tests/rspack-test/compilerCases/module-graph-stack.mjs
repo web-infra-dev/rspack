@@ -1,28 +1,28 @@
 import assert from 'node:assert/strict';
 
-function stackThroughPluginCall(error) {
+function stackThroughPluginCall(error, method) {
   assert(error instanceof Error);
   const lines = error.stack.split('\n');
+  const firstFrame =
+    method === undefined
+      ? 1
+      : lines.findIndex((line) => line.startsWith(`    at ${method} (`));
   const pluginFrame = lines.findIndex((line) =>
     /^\s+at .*module-graph-stack\.mjs:\d+:\d+\)$/.test(line),
   );
-  assert(pluginFrame > 0, error.stack);
-  return lines
-    .slice(0, pluginFrame + 1)
+  assert(firstFrame > 0 && pluginFrame > firstFrame, error.stack);
+  return [lines[0], ...lines.slice(firstFrame, pluginFrame + 1)]
     .map((line) =>
-      line
-        // Node 22 displays the receiver of this static method as Function.
-        .replace('at Function.__from_binding (', 'at EntryData.__from_binding (')
-        .replace(/\(.*[/\\]([^/\\]+):\d+:\d+\)$/, '($1:<line>:<column>)'),
+      line.replace(/\(.*[/\\]([^/\\]+):\d+:\d+\)$/, '($1:<line>:<column>)'),
     )
     .join('\n');
 }
 
-function thrownStack(fn) {
+function thrownStack(fn, method) {
   try {
     fn();
   } catch (error) {
-    return stackThroughPluginCall(error);
+    return stackThroughPluginCall(error, method);
   }
   assert.fail('Expected the graph API to throw');
 }
@@ -47,13 +47,14 @@ export default [
                 at readIssuerDuringMake (module-graph-stack.mjs:<line>:<column>)
           `);
           expect(
-            thrownStack(function readEntryDuringMake() {
-              compilation.entries.get('main');
-            }),
+            thrownStack(
+              function readEntryDuringMake() {
+                compilation.entries.get('main');
+              },
+              'Entries.get',
+            ),
           ).toMatchInlineSnapshot(`
             Error: ModuleGraph is not available during module graph building phase
-                at new EntryData (index.js:<line>:<column>)
-                at EntryData.__from_binding (index.js:<line>:<column>)
                 at Entries.get (index.js:<line>:<column>)
                 at readEntryDuringMake (module-graph-stack.mjs:<line>:<column>)
           `);
