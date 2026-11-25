@@ -15,6 +15,7 @@ const baseURLs = {
   'preload-before-base.html': '/assets/',
   'preload-before-colliding-base.html': './assets/',
   'inline-before-base.html': './assets/',
+  'absolute-deferred-before-base.html': 'https://cdn.example.test/assets/',
 };
 
 export default {
@@ -40,6 +41,7 @@ export default {
             }</script>
             ${filename.startsWith('preload-') ? preload : ''}
             ${filename === 'inline-before-base.html' ? inlineModule : ''}
+            ${filename === 'absolute-deferred-before-base.html' ? `<script type="module">import('${baseURL}bundle.mjs');</script>` : ''}
             <base href="${baseURL}">
           </head><body></body></html>`,
         }),
@@ -77,6 +79,25 @@ export default {
       scriptLoading: 'module',
       templateContent: `<!DOCTYPE html><html><head>
         <script type="module" id="deferred-module">import('./bundle.mjs');</script>
+        <script type="importmap">{}</script>
+      </head><body></body></html>`,
+    }),
+    new HtmlRspackPlugin({
+      filename: 'deferred-import-before-two-maps.html',
+      inject: false,
+      scriptLoading: 'module',
+      templateContent: `<!DOCTYPE html><html><head>
+        <script type="module">import('./main+entry.mjs');</script>
+        <script type="importmap">{"imports":{"one":"./one.mjs"}}</script>
+        <script type="importmap" nonce="author-nonce">{"imports":{"two":"./two.mjs"}}</script>
+      </head><body></body></html>`,
+    }),
+    new HtmlRspackPlugin({
+      filename: 'different-query-preload.html',
+      scriptLoading: 'module',
+      hash: true,
+      templateContent: `<!DOCTYPE html><html><head>
+        <link rel="modulepreload" href="./main%2Bentry.mjs?variant=vendor">
         <script type="importmap">{}</script>
       </head><body></body></html>`,
     }),

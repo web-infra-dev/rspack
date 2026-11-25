@@ -6,7 +6,7 @@ use serde_json::{Map, Value};
 use swc_core::common::DUMMY_SP;
 use swc_html::ast::{Child, Element, Namespace, Text};
 use swc_next_allocator::Allocator;
-use swc_next_ecma_ast::{Lang, NodeId, NodeKindData, SourceType};
+use swc_next_ecma_ast::{ExprData, Lang, NodeId, NodeKindData, SourceType};
 use swc_next_ecma_parser::{CommentMode, NoTokenParserConfig, Options, Parser};
 use url::Url;
 
@@ -17,12 +17,16 @@ use crate::{
 
 enum Placement<'a> {
   Merge(usize),
-  Insert(usize, Option<&'a str>),
+  Insert {
+    index: usize,
+    after: bool,
+    nonce: Option<&'a str>,
+  },
 }
 
 enum ImportMapUpdate {
   Merge(Map<String, Value>),
-  Insert(HtmlPluginTag),
+  Insert { tag: HtmlPluginTag, after: bool },
 }
 
 pub(crate) fn add_integrity_to_import_map(
@@ -40,7 +44,11 @@ pub(crate) fn add_integrity_to_import_map(
   };
   let (mut position, update) = match placement {
     Placement::Merge(position) => (position, ImportMapUpdate::Merge(integrity)),
-    Placement::Insert(position, nonce) => {
+    Placement::Insert {
+      index,
+      after,
+      nonce,
+    } => {
       let mut map = Map::new();
       map.insert("integrity".into(), Value::Object(integrity));
       let mut attributes = vec![HtmlPluginAttribute {
@@ -59,7 +67,7 @@ pub(crate) fn add_integrity_to_import_map(
         inner_html: Some(serialize_map(&Value::Object(map))?),
         ..Default::default()
       };
-      (position, ImportMapUpdate::Insert(tag))
+      (index, ImportMapUpdate::Insert { tag, after })
     }
   };
   apply_at(children, &mut position, &mut Some(update))?;
@@ -204,7 +212,7 @@ fn path_matches(path: &str, other: &str, allow_suffix: bool) -> bool {
 #[derive(PartialEq)]
 enum InlineModuleImports {
   None,
-  Deferred,
+  Deferred { uses_base: bool },
   Immediate,
 }
 
@@ -248,11 +256,21 @@ fn inline_module_imports(element: &Element) -> InlineModuleImports {
       NodeKindData::ExportNamedDeclaration(export) if export.source(ast).is_some() => {
         return InlineModuleImports::Immediate;
       }
-      NodeKindData::ImportExpression(_) => {
+      NodeKindData::ImportExpression(import) => {
         if is_async {
           return InlineModuleImports::Immediate;
         }
-        imports = InlineModuleImports::Deferred;
+        let absolute = match ast.expr_data(import.source(ast)) {
+          ExprData::StringLiteral(literal) => ast
+            .get_wtf8(literal.value(ast))
+            .as_str()
+            .is_some_and(|specifier| Url::parse(specifier).is_ok()),
+          _ => false,
+        };
+        imports = InlineModuleImports::Deferred {
+          uses_base: !absolute
+            || matches!(imports, InlineModuleImports::Deferred { uses_base: true }),
+        };
       }
       _ => {}
     }
@@ -279,6 +297,7 @@ fn find_placement<'a>(
   let mut preload_nonce = None;
   let mut first_fetch_after_base = None;
   let mut bundled_fetch_after_base = false;
+  let mut has_deferred_import = false;
   let mut deferred_import_before_base = false;
   let root = Url::parse("https://rspack.invalid/").expect("valid URL");
   let document = root.join("document/").expect("valid URL");
@@ -362,8 +381,12 @@ fn find_placement<'a>(
       InlineModuleImports::None
     };
     let bundled = if let Some(url) = url {
-      ModuleUrl::parse(url, &root, &document)
-        .is_some_and(|url| urls.iter().any(|key| url.could_match(key)))
+      ModuleUrl::parse(url, &root, &document).is_some_and(|url| {
+        urls.iter().any(|key| {
+          // Injected module scripts can have a cache-busting query from `hash: true`.
+          (module_script || url.url.query() == key.url.query()) && url.could_match(key)
+        })
+      })
     } else {
       inline_imports == InlineModuleImports::Immediate
     };
@@ -371,16 +394,22 @@ fn find_placement<'a>(
       first_bundled_fetch.get_or_insert(index);
       bundled_nonce = bundled_nonce.or(element_nonce);
     }
+    let deferred = matches!(inline_imports, InlineModuleImports::Deferred { .. });
+    has_deferred_import |= deferred;
     if base.is_some() {
       first_fetch_after_base.get_or_insert(index);
-      bundled_fetch_after_base |= bundled || inline_imports == InlineModuleImports::Deferred;
+      bundled_fetch_after_base |= bundled || deferred;
     } else {
-      // Deferred imports still resolve against the base captured by the inline module.
-      deferred_import_before_base |= inline_imports == InlineModuleImports::Deferred;
+      // Relative imports resolve against the base captured by the inline module.
+      deferred_import_before_base |= matches!(
+        inline_imports,
+        InlineModuleImports::Deferred { uses_base: true }
+      );
     }
   }
 
   let generated_nonce = map_nonce.or(bundled_nonce).or(nonce).or(preload_nonce);
+  let after_last_map = if has_deferred_import { last_map } else { None };
   // Register the integrity-only map under the browser's effective base. One
   // earlier map cannot describe both outcomes if CSP rejects a later base.
   if let (Some((base_index, base)), Some(after_base)) = (base, first_fetch_after_base)
@@ -395,12 +424,12 @@ fn find_placement<'a>(
         "Place the base element before module scripts and preloads of bundled modules to enable Subresource Integrity."
       ));
     }
-    let anchor = if last_map.is_some_and(|index| index > base_index) {
+    let before = if last_map.is_some_and(|index| index > base_index) {
       first_fetch_after_map
     } else {
       Some(after_base)
     };
-    return Ok(anchor.map(|index| Placement::Insert(index, generated_nonce)));
+    return Ok(insert_placement(before, after_last_map, generated_nonce));
   }
 
   if first_map == last_map
@@ -411,7 +440,27 @@ fn find_placement<'a>(
 
   // The browser keeps the first matching integrity rule across import maps.
   // Register generated rules after any authored maps.
-  Ok(first_fetch_after_map.map(|index| Placement::Insert(index, generated_nonce)))
+  Ok(insert_placement(
+    first_fetch_after_map,
+    after_last_map,
+    generated_nonce,
+  ))
+}
+
+fn insert_placement(
+  before: Option<usize>,
+  after: Option<usize>,
+  nonce: Option<&str>,
+) -> Option<Placement<'_>> {
+  let (index, after) = match before {
+    Some(index) => (index, false),
+    None => (after?, true),
+  };
+  Some(Placement::Insert {
+    index,
+    after,
+    nonce,
+  })
 }
 
 fn apply_at(
@@ -428,8 +477,8 @@ fn apply_at(
     }
     if *position == 0 {
       match update.take() {
-        Some(ImportMapUpdate::Insert(tag)) => {
-          children.insert(index, Child::Element(tag.into()));
+        Some(ImportMapUpdate::Insert { tag, after }) => {
+          children.insert(index + usize::from(after), Child::Element(tag.into()));
         }
         Some(ImportMapUpdate::Merge(integrity)) => merge_integrity(element, integrity)?,
         None => return Ok(false),

@@ -8,6 +8,15 @@ export default {
     app: { import: './app.js', dependOn: 'vendor' },
     other: { import: './other.js', dependOn: 'vendor' },
     sync: { import: './sync.js', dependOn: 'shared' },
+    percentShared: {
+      import: './percent-shared.js',
+      filename: 'chunks%2Bv1/shared.mjs',
+    },
+    percentSync: {
+      import: './percent-sync.js',
+      dependOn: 'percentShared',
+      filename: 'chunks%2Bv1/sync.mjs',
+    },
   },
   output: {
     module: true,
@@ -24,6 +33,11 @@ export default {
     new HtmlRspackPlugin({
       chunks: ['sync'],
       filename: 'sync.html',
+      scriptLoading: 'module',
+    }),
+    new HtmlRspackPlugin({
+      chunks: ['sync', 'percentSync'],
+      filename: 'encoded-collision.html',
       scriptLoading: 'module',
     }),
     new SubresourceIntegrityPlugin(),

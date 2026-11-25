@@ -39,6 +39,7 @@ export default {
 			["preload-before-base.html", "http://page.example.test/assets/"],
 			["preload-before-colliding-base.html", "http://page.example.test/site/pages/assets/"],
 			["inline-before-base.html", "http://page.example.test/site/pages/assets/"],
+			["absolute-deferred-before-base.html", "https://cdn.example.test/assets/"],
 			["generated-before-base.html", "http://page.example.test/assets/"]
 		]) {
 			const pageURL = new URL(page, "http://page.example.test/site/pages/");
@@ -94,6 +95,20 @@ export default {
 		expect(deferredMaps[0].index).toBeGreaterThan(inlineModule);
 		expect(deferredMaps[0].index).toBeLessThan(deferred.indexOf('src="./main%2Bentry.mjs"'));
 		expect(resolveIntegrity(JSON.parse(deferredMaps[0][1]), pageURL)).toEqual(integrityFor(pageURL));
+
+		const manualMaps = maps(read("deferred-import-before-two-maps.html"));
+		expect(manualMaps).toHaveLength(3);
+		expect(JSON.parse(manualMaps[0][1])).toEqual({ imports: { one: "./one.mjs" } });
+		expect(JSON.parse(manualMaps[1][1])).toEqual({ imports: { two: "./two.mjs" } });
+		expect(manualMaps[2][0]).toContain("author-nonce");
+		expect(resolveIntegrity(JSON.parse(manualMaps[2][1]), pageURL)).toEqual(integrityFor(pageURL));
+
+		const withQuery = read("different-query-preload.html");
+		const queryMaps = maps(withQuery);
+		expect(queryMaps).toHaveLength(1);
+		expect(queryMaps[0].index).toBeGreaterThan(withQuery.indexOf("modulepreload"));
+		expect(queryMaps[0].index).toBeLessThan(withQuery.indexOf('src="./main%2Bentry.mjs?'));
+		expect(resolveIntegrity(JSON.parse(queryMaps[0][1]), pageURL)).toEqual(integrityFor(pageURL));
 
 		const authored = JSON.parse(maps(read("authored.html"))[0][1]);
 		const authoredURL = "http://page.example.test/authored.html";

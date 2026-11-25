@@ -424,7 +424,7 @@ fn insert_import_map_urls(
           encoded_dir.push('/');
         }
         start = end + 1;
-        if changed {
+        if changed && url_path_matches_asset(&pathname[start..]) {
           let mut alias = encoded_dir.clone();
           alias.push_str(&file[start..]);
           if !integrity.contains_key(&alias) {
@@ -432,10 +432,26 @@ fn insert_import_map_urls(
           }
         }
       }
-      // Keep the original URL if it also appeared as an encoding alias.
-      integrity.insert(url, Value::String(hash.clone()));
+      let filename = &pathname[start..];
+      if !url_path_matches_asset(filename) {
+        if encoded_dir.is_empty() {
+          encoded_dir.push_str(prefix);
+          encoded_dir.push_str(&file[..start]);
+        }
+        encoded_dir.push_str(&urlencoding::encode(filename));
+        encoded_dir.push_str(&file[pathname.len()..]);
+        integrity.insert(encoded_dir, Value::String(hash.clone()));
+      }
+      if url_path_matches_asset(pathname) {
+        integrity.insert(url, Value::String(hash.clone()));
+      }
     }
   }
+}
+
+fn url_path_matches_asset(path: &str) -> bool {
+  // A literal escape sequence in an asset name must be encoded in its URL.
+  !path.contains('%') || urlencoding::decode(path).is_ok_and(|decoded| decoded == path)
 }
 
 #[plugin_hook(HtmlPluginCollectImportMapIntegrity for SubresourceIntegrityPlugin)]
