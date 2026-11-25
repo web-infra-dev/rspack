@@ -404,6 +404,8 @@ fn add_import_map_integrity(
       insert_import_map_urls(prefix, &files, integrities, integrity);
     }
   }
+  // Keep generated HTML stable across chunk graph iteration orders.
+  integrity.sort_keys();
 }
 
 fn module_script_public_path<'a>(
