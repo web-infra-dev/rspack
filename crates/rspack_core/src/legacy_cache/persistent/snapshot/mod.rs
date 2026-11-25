@@ -182,15 +182,29 @@ impl Snapshot {
 mod tests {
   use std::sync::Arc;
 
-  use rspack_fs::{MemoryFileSystem, WritableFileSystem};
+  use cow_utils::CowUtils;
+  use rspack_fs::{AbsPath, MemoryFileSystem};
   use rspack_paths::InternedPath;
 
   use super::{super::storage::MemoryStorage, Snapshot, SnapshotScope};
   use crate::{PathMatcher, SnapshotOptions, SnapshotStrategyOptions, cache::CacheCodec};
 
+  fn test_str(posix: &str) -> String {
+    if cfg!(windows) {
+      let rest = posix.trim_start_matches('/').cow_replace('/', "\\");
+      format!("C:\\{rest}")
+    } else {
+      posix.to_string()
+    }
+  }
+
+  fn test_abs(posix: &str) -> AbsPath {
+    AbsPath::new(&test_str(posix)).expect("valid test AbsPath")
+  }
+
   macro_rules! p {
     ($tt:tt) => {
-      InternedPath::from(std::path::Path::new($tt))
+      InternedPath::from(test_str($tt).as_str())
     };
   }
 
@@ -200,9 +214,9 @@ mod tests {
     let mut storage = MemoryStorage::default();
     let codec = Arc::new(CacheCodec::new(None));
     let options = SnapshotOptions {
-      immutable_paths: vec![PathMatcher::String("/constant".into())],
-      unmanaged_paths: vec![PathMatcher::String("/node_modules/project".into())],
-      managed_paths: vec![PathMatcher::String("/node_modules".into())],
+      immutable_paths: vec![PathMatcher::String(test_str("/constant"))],
+      unmanaged_paths: vec![PathMatcher::String(test_str("/node_modules/project"))],
+      managed_paths: vec![PathMatcher::String(test_str("/node_modules"))],
       resolve_build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
       build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
       resolve: SnapshotStrategyOptions::hash_and_timestamp(),
@@ -210,34 +224,27 @@ mod tests {
       context_module: SnapshotStrategyOptions::timestamp(),
     };
 
-    fs.create_dir_all("/node_modules/project".into())
-      .await
+    fs.create_dir_all(&test_abs("/node_modules/project"))
       .unwrap();
-    fs.create_dir_all("/node_modules/lib".into()).await.unwrap();
-    fs.write("/file1".into(), "abc".as_bytes()).await.unwrap();
-    fs.write("/constant".into(), "abc".as_bytes())
-      .await
+    fs.create_dir_all(&test_abs("/node_modules/lib")).unwrap();
+    fs.write(&test_abs("/file1"), b"abc").unwrap();
+    fs.write(&test_abs("/constant"), b"abc").unwrap();
+    fs.write(
+      &test_abs("/node_modules/project/package.json"),
+      br#"{"name":"project","version":"1.0.0"}"#,
+    )
+    .unwrap();
+    fs.write(&test_abs("/node_modules/project/file1"), b"abc")
       .unwrap();
     fs.write(
-      "/node_modules/project/package.json".into(),
-      r#"{"name":"project","version":"1.0.0"}"#.as_bytes(),
+      &test_abs("/node_modules/lib/package.json"),
+      br#"{"name":"lib","version":"1.1.0"}"#,
     )
-    .await
     .unwrap();
-    fs.write("/node_modules/project/file1".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-    fs.write(
-      "/node_modules/lib/package.json".into(),
-      r#"{"name":"lib","version":"1.1.0"}"#.as_bytes(),
-    )
-    .await
-    .unwrap();
-    fs.write("/node_modules/lib/file1".into(), "abc".as_bytes())
-      .await
+    fs.write(&test_abs("/node_modules/lib/file1"), b"abc")
       .unwrap();
 
-    let snapshot = Snapshot::new(options, "/".into(), fs.clone(), codec);
+    let snapshot = Snapshot::new(options, test_str("/").into(), fs.clone(), codec);
 
     snapshot
       .add(
@@ -253,15 +260,11 @@ mod tests {
       )
       .await;
     std::thread::sleep(std::time::Duration::from_millis(100));
-    fs.write("/file1".into(), "abcd".as_bytes()).await.unwrap();
-    fs.write("/constant".into(), "abcd".as_bytes())
-      .await
+    fs.write(&test_abs("/file1"), b"abcd").unwrap();
+    fs.write(&test_abs("/constant"), b"abcd").unwrap();
+    fs.write(&test_abs("/node_modules/project/file1"), b"abcd")
       .unwrap();
-    fs.write("/node_modules/project/file1".into(), "abcd".as_bytes())
-      .await
-      .unwrap();
-    fs.write("/node_modules/lib/file1".into(), "abcd".as_bytes())
-      .await
+    fs.write(&test_abs("/node_modules/lib/file1"), b"abcd")
       .unwrap();
 
     let (is_hot_start, modified_paths, deleted_paths, no_change_paths) = snapshot
@@ -277,10 +280,9 @@ mod tests {
     assert_eq!(no_change_paths.len(), 1);
 
     fs.write(
-      "/node_modules/lib/package.json".into(),
-      r#"{"name":"lib","version":"1.3.0"}"#.as_bytes(),
+      &test_abs("/node_modules/lib/package.json"),
+      br#"{"name":"lib","version":"1.3.0"}"#,
     )
-    .await
     .unwrap();
     snapshot
       .add(

@@ -1,103 +1,69 @@
-use std::{
-  fmt::Debug,
-  sync::{Arc, RwLock},
+use std::sync::Arc;
+
+use rspack_fs::{
+  AbsPath, Error, FileMetadata, FilePermissions, MemoryFileSystem, ReadableFileSystem, Result,
 };
 
-use rspack_fs::{Error, FileMetadata, FilePermissions, ReadableFileSystem, Result};
-use rspack_paths::{Utf8Path, Utf8PathBuf};
-
-use crate::virtual_modules::VirtualFileStore;
-
+#[derive(Debug)]
 pub struct VirtualFileSystem {
   real_fs: Arc<dyn ReadableFileSystem>,
-  virtual_file_store: Arc<RwLock<dyn VirtualFileStore>>,
+  memory_fs: MemoryFileSystem,
 }
 
 impl VirtualFileSystem {
-  pub fn new(
-    real_fs: Arc<dyn ReadableFileSystem>,
-    virtual_file_store: Arc<RwLock<dyn VirtualFileStore>>,
-  ) -> Self {
-    Self {
-      real_fs,
-      virtual_file_store,
-    }
-  }
-}
-
-impl Debug for VirtualFileSystem {
-  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    f.debug_struct("VirtualFileSystem")
-      .field("virtual_file_store", &"<VirtualFileStore>")
-      .field("real_fs", &"<ReadableFileSystem>")
-      .finish()
+  pub fn new(real_fs: Arc<dyn ReadableFileSystem>, memory_fs: MemoryFileSystem) -> Self {
+    Self { real_fs, memory_fs }
   }
 }
 
 #[async_trait::async_trait]
 impl ReadableFileSystem for VirtualFileSystem {
-  async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
-    if let Ok(store) = self.virtual_file_store.read()
-      && let Some(content) = store.get_file_content(path)
-    {
-      return Ok(content.clone());
+  async fn read(&self, path: &AbsPath) -> Result<Vec<u8>> {
+    if let Ok(content) = self.memory_fs.read_sync(path) {
+      return Ok(content);
     }
 
     self.real_fs.read(path).await
   }
 
-  fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
-    if let Ok(store) = self.virtual_file_store.read()
-      && let Some(content) = store.get_file_content(path)
-    {
-      return Ok(content.clone());
+  fn read_sync(&self, path: &AbsPath) -> Result<Vec<u8>> {
+    if let Ok(content) = self.memory_fs.read_sync(path) {
+      return Ok(content);
     }
 
     self.real_fs.read_sync(path)
   }
 
-  fn is_virtual(&self, path: &Utf8Path) -> bool {
-    self
-      .virtual_file_store
-      .read()
-      .is_ok_and(|store| store.contains(path))
-      || self.real_fs.is_virtual(path)
+  fn is_virtual(&self, path: &AbsPath) -> bool {
+    self.memory_fs.exists(path) || self.real_fs.is_virtual(path)
   }
 
-  async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    if let Ok(store) = self.virtual_file_store.read()
-      && let Some(metadata) = store.get_file_metadata(path)
-    {
+  async fn metadata(&self, path: &AbsPath) -> Result<FileMetadata> {
+    if let Ok(metadata) = self.memory_fs.metadata_sync(path) {
       return Ok(metadata);
     }
 
     self.real_fs.metadata(path).await
   }
 
-  fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    if let Ok(store) = self.virtual_file_store.read()
-      && let Some(metadata) = store.get_file_metadata(path)
-    {
+  fn metadata_sync(&self, path: &AbsPath) -> Result<FileMetadata> {
+    if let Ok(metadata) = self.memory_fs.metadata_sync(path) {
       return Ok(metadata);
     }
 
     self.real_fs.metadata_sync(path)
   }
 
-  async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    if let Ok(store) = self.virtual_file_store.read()
-      && let Some(metadata) = store.get_file_metadata(path)
-    {
+  async fn symlink_metadata(&self, path: &AbsPath) -> Result<FileMetadata> {
+    if let Ok(metadata) = self.memory_fs.metadata_sync(path) {
       return Ok(metadata);
     }
 
     self.real_fs.symlink_metadata(path).await
   }
 
-  async fn read_link(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
-    if let Ok(store) = self.virtual_file_store.read()
-      && store.contains(path)
-    {
+  async fn read_link(&self, path: &AbsPath) -> Result<String> {
+    if self.memory_fs.exists(path) {
       return Err(Error::new(
         std::io::ErrorKind::InvalidInput,
         "virtual file is not a symbolic link",
@@ -107,23 +73,24 @@ impl ReadableFileSystem for VirtualFileSystem {
     self.real_fs.read_link(path).await
   }
 
-  async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
-    if let Ok(store) = self.virtual_file_store.read()
-      && store.contains(path)
-    {
-      return Ok(path.to_path_buf());
+  async fn canonicalize(&self, path: &AbsPath) -> Result<AbsPath> {
+    if self.memory_fs.exists(path) {
+      return Ok(path.clone());
     }
 
     self.real_fs.canonicalize(path).await
   }
 
-  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    if let Some(mut vlist) = self
-      .virtual_file_store
-      .read()
-      .ok()
-      .and_then(|store| store.read_dir(dir))
-    {
+  fn canonicalize_sync(&self, path: &AbsPath) -> Result<AbsPath> {
+    if self.memory_fs.exists(path) {
+      return Ok(path.clone());
+    }
+
+    self.real_fs.canonicalize_sync(path)
+  }
+
+  async fn read_dir(&self, dir: &AbsPath) -> Result<Vec<String>> {
+    if let Ok(mut vlist) = self.memory_fs.read_dir_sync(dir) {
       let mut list = self.real_fs.read_dir(dir).await.unwrap_or_default();
       list.append(&mut vlist);
       Ok(list)
@@ -132,13 +99,8 @@ impl ReadableFileSystem for VirtualFileSystem {
     }
   }
 
-  fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    if let Some(mut vlist) = self
-      .virtual_file_store
-      .read()
-      .ok()
-      .and_then(|store| store.read_dir(dir))
-    {
+  fn read_dir_sync(&self, dir: &AbsPath) -> Result<Vec<String>> {
+    if let Ok(mut vlist) = self.memory_fs.read_dir_sync(dir) {
       let mut list = self.real_fs.read_dir_sync(dir).unwrap_or_default();
       list.append(&mut vlist);
       Ok(list)
@@ -147,10 +109,8 @@ impl ReadableFileSystem for VirtualFileSystem {
     }
   }
 
-  async fn permissions(&self, path: &Utf8Path) -> Result<Option<FilePermissions>> {
-    if let Ok(store) = self.virtual_file_store.read()
-      && store.contains(path)
-    {
+  async fn permissions(&self, path: &AbsPath) -> Result<Option<FilePermissions>> {
+    if self.memory_fs.exists(path) {
       return Ok(Some(FilePermissions::from_mode(0o700)));
     }
 

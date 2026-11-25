@@ -4,7 +4,7 @@ use std::{
 };
 
 use camino::{Utf8Path, Utf8PathBuf};
-use rspack_fs::ReadableFileSystem;
+use rspack_fs::{AbsPath, ReadableFileSystem};
 use rustc_hash::FxHashSet;
 
 pub mod collect_shared_entry_plugin;
@@ -77,7 +77,10 @@ async fn get_description_file(
   for description_file in collect_description_file_paths(dir.as_std_path()) {
     let description_file = Utf8PathBuf::from_path_buf(description_file)
       .expect("description file path should remain utf8");
-    let data = fs.read(&description_file).await;
+    let Ok(abs_description_file) = AbsPath::new(description_file.as_str()) else {
+      continue;
+    };
+    let data = fs.read(&abs_description_file).await;
 
     if let Ok(data) = data
       && let Ok(data) = serde_json::from_slice::<serde_json::Value>(&data)

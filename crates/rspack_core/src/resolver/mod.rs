@@ -11,7 +11,7 @@ use std::{
 use regex::Regex;
 use rspack_cacheable::{cacheable, with::AsPreset};
 use rspack_error::Error;
-use rspack_fs::ReadableFileSystem;
+use rspack_fs::{AbsPath, ReadableFileSystem};
 use rspack_loader_runner::{DescriptionData, ResourceData};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
 use rspack_util::identifier::format_resolved_resource;
@@ -211,16 +211,19 @@ which tries to resolve these kind of requests in the current directory too.",
     let utf8_normalized_path = Utf8PathBuf::from_path_buf(normalized_path.to_path_buf())
       .expect("should be a valid utf8 path");
 
-    let parent_path = match fs.metadata(&utf8_normalized_path).await {
-      Ok(metadata) => {
-        // if the path is not directory, we need to resolve the parent directory
-        if !metadata.is_directory {
-          normalized_path.parent()
-        } else {
-          is_resolving_dir = true;
-          Some(normalized_path.borrow())
+    let parent_path = match AbsPath::new(utf8_normalized_path.as_str()) {
+      Ok(abs) => match fs.metadata(&abs).await {
+        Ok(metadata) => {
+          // if the path is not directory, we need to resolve the parent directory
+          if !metadata.is_directory {
+            normalized_path.parent()
+          } else {
+            is_resolving_dir = true;
+            Some(normalized_path.borrow())
+          }
         }
-      }
+        Err(_) => normalized_path.parent(),
+      },
       Err(_) => normalized_path.parent(),
     };
 
@@ -229,7 +232,9 @@ which tries to resolve these kind of requests in the current directory too.",
         parent_path.and_then(|path| Utf8PathBuf::from_path_buf(path.to_path_buf()).ok())
     {
       // read the files in the parent directory
-      if let Ok(files) = fs.read_dir(&parent_path).await {
+      if let Ok(abs_parent) = AbsPath::new(parent_path.as_str())
+        && let Ok(files) = fs.read_dir(&abs_parent).await
+      {
         let mut requested_names = vec![file_name.to_str().map_or_default(|f| f.to_string())];
         if is_resolving_dir {
           // The request maybe is like `./` or `./dir` to resolve the main file (e.g.: index) in directory

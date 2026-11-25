@@ -2,7 +2,7 @@ use std::{
   cmp::Ordering,
   fmt,
   hash::{Hash, Hasher},
-  path::Path,
+  path::{Path, PathBuf},
 };
 
 use rspack_intern::{InternSliceStorage, InternedSlice, SliceInternable};
@@ -61,6 +61,11 @@ impl AbsPath {
   }
 
   #[inline]
+  pub fn try_from_utf8_path(path: &camino::Utf8Path) -> Result<Self> {
+    Self::new(path.as_str())
+  }
+
+  #[inline]
   pub(crate) fn from_normalized(normalized: &str) -> Self {
     let bytes = normalized.as_bytes();
     Self(InternedSlice::new(fx_hash_bytes(bytes), bytes))
@@ -75,6 +80,31 @@ impl AbsPath {
   #[inline]
   pub fn as_std_path(&self) -> &Path {
     Path::new(self.as_str())
+  }
+
+  #[inline]
+  pub fn as_utf8_path(&self) -> &camino::Utf8Path {
+    camino::Utf8Path::new(self.as_str())
+  }
+
+  #[inline]
+  pub fn to_utf8_path_buf(&self) -> camino::Utf8PathBuf {
+    camino::Utf8PathBuf::from(self.as_str())
+  }
+
+  #[inline]
+  pub fn to_std_path_buf(&self) -> PathBuf {
+    PathBuf::from(self.as_str())
+  }
+
+  #[inline]
+  pub fn file_name(&self) -> Option<&str> {
+    self.as_utf8_path().file_name()
+  }
+
+  #[inline]
+  pub fn extension(&self) -> Option<&str> {
+    self.as_utf8_path().extension()
   }
 
   #[inline]
@@ -190,5 +220,105 @@ impl AsRef<Path> for AbsPath {
   #[inline]
   fn as_ref(&self) -> &Path {
     self.as_std_path()
+  }
+}
+
+impl AsRef<camino::Utf8Path> for AbsPath {
+  #[inline]
+  fn as_ref(&self) -> &camino::Utf8Path {
+    self.as_utf8_path()
+  }
+}
+
+impl std::str::FromStr for AbsPath {
+  type Err = Error;
+
+  #[inline]
+  fn from_str(value: &str) -> Result<Self> {
+    Self::new(value)
+  }
+}
+
+impl TryFrom<&str> for AbsPath {
+  type Error = Error;
+
+  #[inline]
+  fn try_from(value: &str) -> Result<Self> {
+    Self::new(value)
+  }
+}
+
+impl TryFrom<&camino::Utf8Path> for AbsPath {
+  type Error = Error;
+
+  #[inline]
+  fn try_from(value: &camino::Utf8Path) -> Result<Self> {
+    Self::try_from_utf8_path(value)
+  }
+}
+
+impl TryFrom<&camino::Utf8PathBuf> for AbsPath {
+  type Error = Error;
+
+  #[inline]
+  fn try_from(value: &camino::Utf8PathBuf) -> Result<Self> {
+    Self::try_from_utf8_path(value.as_path())
+  }
+}
+
+impl TryFrom<camino::Utf8PathBuf> for AbsPath {
+  type Error = Error;
+
+  #[inline]
+  fn try_from(value: camino::Utf8PathBuf) -> Result<Self> {
+    Self::try_from_utf8_path(value.as_path())
+  }
+}
+
+impl TryFrom<&Path> for AbsPath {
+  type Error = Error;
+
+  #[inline]
+  fn try_from(value: &Path) -> Result<Self> {
+    Self::try_from_std_path(value)
+  }
+}
+
+impl TryFrom<&PathBuf> for AbsPath {
+  type Error = Error;
+
+  #[inline]
+  fn try_from(value: &PathBuf) -> Result<Self> {
+    Self::try_from_std_path(value.as_path())
+  }
+}
+
+impl TryFrom<PathBuf> for AbsPath {
+  type Error = Error;
+
+  #[inline]
+  fn try_from(value: PathBuf) -> Result<Self> {
+    Self::try_from_std_path(value.as_path())
+  }
+}
+
+impl From<AbsPath> for camino::Utf8PathBuf {
+  #[inline]
+  fn from(value: AbsPath) -> Self {
+    value.to_utf8_path_buf()
+  }
+}
+
+impl From<&AbsPath> for PathBuf {
+  #[inline]
+  fn from(value: &AbsPath) -> Self {
+    value.to_std_path_buf()
+  }
+}
+
+impl From<AbsPath> for PathBuf {
+  #[inline]
+  fn from(value: AbsPath) -> Self {
+    value.to_std_path_buf()
   }
 }

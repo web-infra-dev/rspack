@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rspack_fs::ReadableFileSystem;
+use rspack_fs::{AbsPath, ReadableFileSystem};
 use rspack_paths::{AssertUtf8, InternedPath, InternedPathDashMap};
 use simd_json::prelude::{ValueAsScalar, ValueObjectAccess};
 
@@ -32,7 +32,9 @@ impl PackageHelper {
     }
 
     let mut res = None;
-    if let Ok(mut content) = self.fs.read(&path.join("package.json").assert_utf8()).await
+    let package_json_path = path.join("package.json");
+    if let Ok(abs_path) = AbsPath::try_from_std_path(&package_json_path)
+      && let Ok(mut content) = self.fs.read(&abs_path).await
       && let Ok(package_json) = simd_json::to_borrowed_value(&mut content)
       && let Some(name) = package_json.get("name").and_then(|v| v.as_str())
       && !name.is_empty()
@@ -60,40 +62,53 @@ impl PackageHelper {
 mod tests {
   use std::sync::Arc;
 
-  use rspack_fs::{MemoryFileSystem, WritableFileSystem};
+  use cow_utils::CowUtils;
+  use rspack_fs::{AbsPath, MemoryFileSystem};
   use rspack_paths::InternedPath;
 
   use super::PackageHelper;
 
+  fn test_str(posix: &str) -> String {
+    if cfg!(windows) {
+      let rest = posix.trim_start_matches('/').cow_replace('/', "\\");
+      format!("C:\\{rest}")
+    } else {
+      posix.to_string()
+    }
+  }
+
+  fn test_abs(posix: &str) -> AbsPath {
+    AbsPath::new(&test_str(posix)).expect("valid test AbsPath")
+  }
+
   #[tokio::test]
   async fn package_version() {
     let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/packages/p1".into()).await.unwrap();
-    fs.write(
-      "/packages/p1/package.json".into(),
-      r#"{"name": "p1"}"#.as_bytes(),
-    )
-    .await
-    .unwrap();
+    fs.create_dir_all(&test_abs("/packages/p1")).unwrap();
+    fs.write(&test_abs("/packages/p1/package.json"), br#"{"name": "p1"}"#)
+      .unwrap();
 
     // A package above the compiler context must not supply a fallback identity.
     fs.write(
-      "/package.json".into(),
-      r#"{"name": "root", "version": "9.9.9"}"#.as_bytes(),
+      &test_abs("/package.json"),
+      br#"{"name": "root", "version": "9.9.9"}"#,
     )
-    .await
     .unwrap();
 
-    let helper = PackageHelper::new(fs.clone(), "/packages".into());
+    let helper = PackageHelper::new(fs.clone(), test_str("/packages").into());
     assert_eq!(
       helper
-        .package_version(&InternedPath::from("/packages/p1/file.js"))
+        .package_version(&InternedPath::from(
+          test_str("/packages/p1/file.js").as_str()
+        ))
         .await,
       Some("p1@".into())
     );
     assert_eq!(
       helper
-        .package_version(&InternedPath::from("/packages/p2/file.js"))
+        .package_version(&InternedPath::from(
+          test_str("/packages/p2/file.js").as_str()
+        ))
         .await,
       None
     );

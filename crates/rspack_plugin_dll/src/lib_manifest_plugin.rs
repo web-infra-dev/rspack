@@ -3,8 +3,8 @@ use rspack_core::{
   PathData, Plugin, ProvidedExports, SourceType,
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
+use rspack_fs::AbsPath;
 use rspack_hook::{plugin, plugin_hook};
-use rspack_paths::Utf8Path;
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -177,11 +177,20 @@ async fn emit(&self, compilation: &mut Compilation) -> Result<()> {
 
   let intermediate_filesystem = compilation.intermediate_filesystem.as_ref();
   for (filename, json) in manifests {
-    let path = Utf8Path::new(&filename);
+    let path = match AbsPath::new(&filename) {
+      Ok(abs) => abs,
+      Err(rspack_fs::Error::NotAbsolutePath(_)) => {
+        let joined = std::env::current_dir().to_rspack_result()?.join(&filename);
+        AbsPath::try_from_std_path(&joined)?
+      }
+      Err(err) => return Err(err.into()),
+    };
     if let Some(dir) = path.parent() {
-      intermediate_filesystem.create_dir_all(dir).await?;
+      intermediate_filesystem.create_dir_all(&dir).await?;
     }
-    intermediate_filesystem.write(path, json.as_bytes()).await?;
+    intermediate_filesystem
+      .write(&path, json.as_bytes())
+      .await?;
   }
 
   Ok(())

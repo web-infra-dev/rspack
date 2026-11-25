@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use rspack_fs::{FileMetadata, IntermediateFileSystem, ReadStream, WriteStream};
+#[cfg(test)]
+use cow_utils::CowUtils;
+use rspack_fs::{AbsPath, FileMetadata, IntermediateFileSystem, ReadStream, WriteStream};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 
 use crate::{Error, Result};
@@ -30,6 +32,19 @@ impl ScopeFileSystem {
   /// Creates a memory-based file system
   #[cfg(test)]
   pub fn new_memory_fs(workspace: Utf8PathBuf) -> Self {
+    let workspace = if cfg!(windows) && workspace.as_str().starts_with('/') {
+      if workspace.as_str() == "/" {
+        Utf8PathBuf::from(r"C:\")
+      } else {
+        let rest = workspace
+          .as_str()
+          .trim_start_matches('/')
+          .cow_replace('/', "\\");
+        Utf8PathBuf::from(format!("C:\\{rest}"))
+      }
+    } else {
+      workspace
+    };
     Self {
       workspace,
       fs: Arc::new(rspack_fs::MemoryFileSystem::default()),
@@ -41,15 +56,32 @@ impl ScopeFileSystem {
     Self { workspace, fs }
   }
 
+  fn workspace_abs(&self) -> Result<AbsPath> {
+    Ok(AbsPath::try_from_utf8_path(&self.workspace)?)
+  }
+
+  fn resolve_path(&self, relative_path: &Utf8Path) -> Result<AbsPath> {
+    let joined = if cfg!(windows) && relative_path.as_str().starts_with('/') {
+      self
+        .workspace
+        .join(relative_path.as_str().trim_start_matches('/'))
+    } else {
+      self.workspace.join(relative_path)
+    };
+    Ok(AbsPath::try_from_utf8_path(&joined)?)
+  }
+
   /// Ensures the workspace directory exists, creates it if not
   pub async fn ensure_exist(&self) -> Result<()> {
-    self.fs.create_dir_all(&self.workspace).await?;
+    let workspace = self.workspace_abs()?;
+    self.fs.create_dir_all(&workspace).await?;
     Ok(())
   }
 
   /// Removes the entire workspace directory and its contents
   pub async fn remove(&self) -> Result<()> {
-    if let Err(e) = self.fs.remove_dir_all(&self.workspace).await {
+    let workspace = self.workspace_abs()?;
+    if let Err(e) = self.fs.remove_dir_all(&workspace).await {
       let e: Error = e.into();
       if !e.is_not_found() {
         return Err(e);
@@ -69,8 +101,9 @@ impl ScopeFileSystem {
     to: &ScopeFileSystem,
     relative_path: impl AsRef<Utf8Path>,
   ) -> Result<()> {
-    let from_file = from.workspace.join(relative_path.as_ref());
-    let to_file = to.workspace.join(relative_path.as_ref());
+    let relative = relative_path.as_ref();
+    let from_file = from.resolve_path(relative)?;
+    let to_file = to.resolve_path(relative)?;
     if let Err(e) = from.fs.rename(&from_file, &to_file).await {
       // If the source file is not found, ignore the error.
       let e: Error = e.into();
@@ -94,7 +127,7 @@ impl ScopeFileSystem {
 
   /// Gets file or directory metadata
   pub async fn stat(&self, relative_path: impl AsRef<Utf8Path>) -> Result<FileMetadata> {
-    let path = self.workspace.join(relative_path);
+    let path = self.resolve_path(relative_path.as_ref())?;
     let stat = self.fs.stat(&path).await?;
     Ok(stat)
   }
@@ -103,7 +136,7 @@ impl ScopeFileSystem {
   ///
   /// Does not return an error if the file doesn't exist
   pub async fn remove_file(&self, relative_path: impl AsRef<Utf8Path>) -> Result<()> {
-    let path = self.workspace.join(relative_path);
+    let path = self.resolve_path(relative_path.as_ref())?;
     if let Err(e) = self.fs.remove_file(&path).await {
       let e: Error = e.into();
       if !e.is_not_found() {
@@ -116,11 +149,10 @@ impl ScopeFileSystem {
   /// Writes file content
   #[cfg(test)]
   pub async fn write(&self, relative_path: impl AsRef<Utf8Path>, bytes: &[u8]) -> Result<()> {
-    let path = self.workspace.join(relative_path);
-    self
-      .fs
-      .create_dir_all(path.parent().expect("should have parent"))
-      .await?;
+    let path = self.resolve_path(relative_path.as_ref())?;
+    if let Some(parent) = path.parent() {
+      self.fs.create_dir_all(&parent).await?;
+    }
     self.fs.write(&path, bytes).await?;
     Ok(())
   }
@@ -128,14 +160,14 @@ impl ScopeFileSystem {
   /// Reads entire file content
   #[cfg(test)]
   pub async fn read(&self, relative_path: impl AsRef<Utf8Path>) -> Result<Vec<u8>> {
-    let path = self.workspace.join(relative_path);
+    let path = self.resolve_path(relative_path.as_ref())?;
     let data = self.fs.read_file(&path).await?;
     Ok(data)
   }
 
   /// Creates a file read stream (for large files)
   pub async fn stream_read(&self, relative_path: impl AsRef<Utf8Path>) -> Result<Reader> {
-    let path = self.workspace.join(relative_path);
+    let path = self.resolve_path(relative_path.as_ref())?;
     let reader = self.fs.create_read_stream(&path).await?;
     Ok(reader)
   }
@@ -146,18 +178,18 @@ impl ScopeFileSystem {
   pub async fn stream_write(&self, relative_path: impl AsRef<Utf8Path>) -> Result<Writer> {
     let _ = self.remove_file(&relative_path).await;
 
-    let path = self.workspace.join(relative_path);
-    self
-      .fs
-      .create_dir_all(path.parent().expect("should have parent"))
-      .await?;
+    let path = self.resolve_path(relative_path.as_ref())?;
+    if let Some(parent) = path.parent() {
+      self.fs.create_dir_all(&parent).await?;
+    }
     let writer = self.fs.create_write_stream(&path).await?;
     Ok(writer)
   }
 
   /// Lists all direct children in the workspace directory
   pub async fn list_child(&self) -> Result<Vec<String>> {
-    let children = self.fs.read_dir(&self.workspace).await?;
+    let workspace = self.workspace_abs()?;
+    let children = self.fs.read_dir(&workspace).await?;
     Ok(children)
   }
 }

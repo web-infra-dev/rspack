@@ -1,10 +1,8 @@
 use std::fs::{Metadata, Permissions};
 
-use cfg_if::cfg_if;
-
 use crate::{Error, IoResultToFsResultExt, Result};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FileMetadata {
   pub is_file: bool,
   pub is_directory: bool,
@@ -25,7 +23,6 @@ impl FileMetadata {
       let ctime_ms = ctime * 1000 + ctime_nsec / 1_000_000;
       return ctime_ms as u64;
     }
-    // windows not support ctime
     #[allow(unreachable_code)]
     0u64
   }
@@ -61,48 +58,46 @@ impl TryFrom<Metadata> for FileMetadata {
   }
 }
 
-/// This is a target-agnostic file permission abstraction.
-/// Currently we only support getting and setting file permissions on unix target.
-/// If we are supporting more targets, organizing the code like [std::sys::fs] will be a better choice.
-#[derive(Debug, Clone)]
+/// Target-agnostic file permission abstraction.
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FilePermissions(#[cfg(target_family = "unix")] u32);
 
+#[cfg(target_family = "unix")]
 impl FilePermissions {
-  cfg_if! {
-      if #[cfg(target_family = "unix")] {
-        pub fn from_mode(mode: u32) -> Self {
-          Self(mode)
-        }
+  pub fn from_mode(mode: u32) -> Self {
+    Self(mode)
+  }
 
-        pub fn into_mode(self) -> Option<u32> {
-          Some(self.0)
-        }
+  pub fn into_mode(self) -> Option<u32> {
+    Some(self.0)
+  }
 
-        pub fn from_std(perm: Permissions) -> Self {
-          use std::os::unix::fs::PermissionsExt;
-          Self(perm.mode())
-        }
+  pub fn from_std(perm: Permissions) -> Self {
+    use std::os::unix::fs::PermissionsExt;
+    Self(perm.mode())
+  }
 
-        pub fn into_std(self) -> Option<Permissions> {
-          use std::os::unix::fs::PermissionsExt;
-          Some(Permissions::from_mode(self.0))
-        }
-      } else {
-        pub fn from_mode(_mode: u32) -> Self {
-          Self()
-        }
+  pub fn into_std(self) -> Option<Permissions> {
+    use std::os::unix::fs::PermissionsExt;
+    Some(Permissions::from_mode(self.0))
+  }
+}
 
-        pub fn into_mode(self) -> Option<u32> {
-          None
-        }
+#[cfg(not(target_family = "unix"))]
+impl FilePermissions {
+  pub fn from_mode(_mode: u32) -> Self {
+    Self()
+  }
 
-        pub fn from_std(_perm: Permissions) -> Self {
-          Self()
-        }
+  pub fn into_mode(self) -> Option<u32> {
+    None
+  }
 
-        pub fn into_std(self) -> Option<Permissions> {
-          None
-        }
-      }
+  pub fn from_std(_perm: Permissions) -> Self {
+    Self()
+  }
+
+  pub fn into_std(self) -> Option<Permissions> {
+    None
   }
 }

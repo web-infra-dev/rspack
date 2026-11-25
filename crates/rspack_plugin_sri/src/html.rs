@@ -272,7 +272,8 @@ async fn compute_file_integrity(
   fs: &ArcFs,
   hash_func_names: &Vec<SubresourceIntegrityHashFunction>,
 ) -> Result<String> {
-  let file = fs.read_file(path).await?;
+  let abs_path = rspack_fs::AbsPath::try_from_utf8_path(path)?;
+  let file = fs.read_file(&abs_path).await?;
   let content = String::from_utf8(file).to_rspack_result()?;
   let integrity = compute_integrity(hash_func_names, &content);
   Ok(integrity)

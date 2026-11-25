@@ -48,7 +48,6 @@ fn ownership_traits(crate_name: &str) -> &'static [&'static str] {
     "rspack_storage" => &["Storage"],
     "rspack_fs" => &["ReadableFileSystem", "WritableFileSystem"],
     "rspack_loader_runner" => &["Loader", "ParseMetaValue"],
-    "rspack_binding_api" => &["VirtualFileStore"],
     "rspack_plugin_lazy_compilation" => &["Backend", "LazyCompilationTestCheck"],
     "rspack_plugin_javascript" => &["JavascriptParserPlugin"],
     _ => &[],

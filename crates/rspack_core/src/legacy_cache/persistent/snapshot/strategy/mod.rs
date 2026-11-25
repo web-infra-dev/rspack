@@ -3,8 +3,8 @@ mod hash_helper;
 use std::sync::Arc;
 
 use rspack_cacheable::cacheable;
-use rspack_fs::ReadableFileSystem;
-use rspack_paths::{AssertUtf8, InternedPath};
+use rspack_fs::{AbsPath, ReadableFileSystem};
+use rspack_paths::InternedPath;
 
 use self::hash_helper::{ContentHash, HashHelper, TimestampHash};
 use crate::{Context, SnapshotOptions, SnapshotStrategyOptions, cache::PackageHelper};
@@ -114,7 +114,9 @@ impl StrategyHelper {
 
   /// get path file modified time
   async fn modified_time(&self, path: &InternedPath) -> Option<u64> {
-    if let Ok(info) = self.fs.metadata(path.assert_utf8()).await {
+    if let Ok(abs) = AbsPath::try_from_std_path(path.as_path())
+      && let Ok(info) = self.fs.metadata(&abs).await
+    {
       // return the larger of ctime and mtime
       if info.ctime_ms > info.mtime_ms {
         Some(info.ctime_ms)

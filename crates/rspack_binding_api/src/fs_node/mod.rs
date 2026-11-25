@@ -1,5 +1,6 @@
 #![allow(clippy::unwrap_in_result)]
 
+mod read;
 mod write;
 pub use write::NodeFileSystem;
 

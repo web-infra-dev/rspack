@@ -19,7 +19,7 @@ use rspack_core::{
   incremental::{self, IncrementalPasses, Mutation},
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_fs::FsResultToIoResultExt;
+use rspack_fs::{AbsPath, FsResultToIoResultExt};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{AssertUtf8, InternedPath, Utf8Path, Utf8PathBuf};
 use rustc_hash::FxHashMap;
@@ -146,7 +146,10 @@ impl SideEffectsFlagPlugin {
       }
 
       let description_file = current.join("package.json");
-      match fs.read(&description_file).await.to_io_result() {
+      let Ok(abs_description_file) = AbsPath::new(description_file.as_str()) else {
+        break;
+      };
+      match fs.read(&abs_description_file).await.to_io_result() {
         Ok(content) => {
           result
             .file_dependencies

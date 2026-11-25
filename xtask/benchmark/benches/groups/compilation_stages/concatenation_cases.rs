@@ -1,6 +1,6 @@
 #![allow(clippy::unwrap_used)]
 
-use rspack_fs::{MemoryFileSystem, WritableFileSystem};
+use rspack_fs::{AbsPath, MemoryFileSystem};
 
 const CONCAT_GROUPS: usize = 160;
 const CONCAT_MODULES_PER_GROUP: usize = 12;
@@ -172,13 +172,14 @@ async fn prepare_large_concatenation_case(
   modules_per_group: usize,
   fs: &MemoryFileSystem,
 ) {
-  fs.create_dir_all("/src".into()).await.unwrap();
+  fs.create_dir_all(&AbsPath::new("/src").unwrap()).unwrap();
   let mut root_imports = Vec::with_capacity(groups);
   let mut root_values = Vec::with_capacity(groups);
 
   for group in 0..groups {
     let group_dir = format!("/src/group-{group}");
-    fs.create_dir_all(group_dir.as_str().into()).await.unwrap();
+    fs.create_dir_all(&AbsPath::new(&group_dir).unwrap())
+      .unwrap();
 
     let mut group_imports = Vec::with_capacity(modules_per_group);
     let mut group_values = Vec::with_capacity(modules_per_group);
@@ -194,8 +195,7 @@ async fn prepare_large_concatenation_case(
           module
         )
       };
-      fs.write(file.as_str().into(), code.as_bytes())
-        .await
+      fs.write(&AbsPath::new(&file).unwrap(), code.as_bytes())
         .unwrap();
       group_imports.push(format!(
         "import {{ value as v{module} }} from './module-{module}.js';"
@@ -209,10 +209,9 @@ async fn prepare_large_concatenation_case(
       group_values.join(" + ")
     );
     fs.write(
-      format!("/src/group-{group}/entry.js").as_str().into(),
+      &AbsPath::new(&format!("/src/group-{group}/entry.js")).unwrap(),
       group_entry.as_bytes(),
     )
-    .await
     .unwrap();
 
     root_imports.push(format!(
@@ -226,29 +225,30 @@ async fn prepare_large_concatenation_case(
     root_imports.join("\n"),
     root_values.join(" + ")
   );
-  fs.write("/src/index.js".into(), entry.as_bytes())
-    .await
+  fs.write(&AbsPath::new("/src/index.js").unwrap(), entry.as_bytes())
     .unwrap();
 }
 
 async fn prepare_shared_concatenation_case(topology: SharedRootsTopology, fs: &MemoryFileSystem) {
-  fs.create_dir_all("/src/shared".into()).await.unwrap();
-  fs.create_dir_all("/src/routes".into()).await.unwrap();
+  fs.create_dir_all(&AbsPath::new("/src/shared").unwrap())
+    .unwrap();
+  fs.create_dir_all(&AbsPath::new("/src/routes").unwrap())
+    .unwrap();
 
   for module in 0..CONCAT_SHARED_MODULES {
     let source = format!("export default {module};");
     fs.write(
-      format!("/src/shared/shared-{module}.js").as_str().into(),
+      &AbsPath::new(&format!("/src/shared/shared-{module}.js")).unwrap(),
       source.as_bytes(),
     )
-    .await
     .unwrap();
   }
 
   let mut route_imports = Vec::with_capacity(CONCAT_SHARED_ROOTS);
   for root in 0..CONCAT_SHARED_ROOTS {
     let route_dir = format!("/src/routes/route-{root}");
-    fs.create_dir_all(route_dir.as_str().into()).await.unwrap();
+    fs.create_dir_all(&AbsPath::new(&route_dir).unwrap())
+      .unwrap();
 
     for module in 0..CONCAT_LOCAL_MODULES_PER_ROOT {
       let source = if module == 0 {
@@ -261,10 +261,9 @@ async fn prepare_shared_concatenation_case(topology: SharedRootsTopology, fs: &M
         )
       };
       fs.write(
-        format!("{route_dir}/local-{module}.js").as_str().into(),
+        &AbsPath::new(&format!("{route_dir}/local-{module}.js")).unwrap(),
         source.as_bytes(),
       )
-      .await
       .unwrap();
     }
 
@@ -275,10 +274,9 @@ async fn prepare_shared_concatenation_case(topology: SharedRootsTopology, fs: &M
           CONCAT_LOCAL_MODULES_PER_ROOT - 1
         );
         fs.write(
-          format!("{route_dir}/blocker.js").as_str().into(),
+          &AbsPath::new(&format!("{route_dir}/blocker.js")).unwrap(),
           blocker_source.as_bytes(),
         )
-        .await
         .unwrap();
 
         let mut imports = Vec::with_capacity(CONCAT_LAZY_PANELS_PER_ROOT);
@@ -289,10 +287,9 @@ async fn prepare_shared_concatenation_case(topology: SharedRootsTopology, fs: &M
             "import left from './local-{left}.js'; import right from './local-{right}.js'; export default left + right;"
           );
           fs.write(
-            format!("{route_dir}/panel-{panel}.js").as_str().into(),
+            &AbsPath::new(&format!("{route_dir}/panel-{panel}.js")).unwrap(),
             source.as_bytes(),
           )
-          .await
           .unwrap();
           imports.push(format!("import('./panel-{panel}.js')"));
         }
@@ -333,10 +330,9 @@ async fn prepare_shared_concatenation_case(topology: SharedRootsTopology, fs: &M
       ),
     };
     fs.write(
-      format!("{route_dir}/entry.js").as_str().into(),
+      &AbsPath::new(&format!("{route_dir}/entry.js")).unwrap(),
       source.as_bytes(),
     )
-    .await
     .unwrap();
     route_imports.push(format!("import('/src/routes/route-{root}/entry.js')"));
   }
@@ -345,7 +341,6 @@ async fn prepare_shared_concatenation_case(topology: SharedRootsTopology, fs: &M
     "Promise.all([{}]).then(routes => console.log(routes));",
     route_imports.join(",\n")
   );
-  fs.write("/src/index.js".into(), entry.as_bytes())
-    .await
+  fs.write(&AbsPath::new("/src/index.js").unwrap(), entry.as_bytes())
     .unwrap();
 }

@@ -4,11 +4,6 @@ package = "rspack_node"
 reason  = "shipped Node-API native library"
 
 [[production]]
-bin     = "rspack_tools"
-package = "rspack_tools"
-reason  = "workspace developer tool"
-
-[[production]]
 bin     = "xtask"
 package = "xtask"
 reason  = "workspace maintenance tool"

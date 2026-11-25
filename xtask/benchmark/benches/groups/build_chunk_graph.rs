@@ -13,7 +13,7 @@ use rspack_core::{
   incremental::{Incremental, IncrementalOptions},
 };
 use rspack_error::Diagnostic;
-use rspack_fs::{MemoryFileSystem, WritableFileSystem};
+use rspack_fs::{AbsPath, MemoryFileSystem};
 use rspack_regex::RspackRegex;
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, within_compiler_context_for_testing_sync};
 use serde_json::json;
@@ -30,12 +30,12 @@ pub(crate) async fn prepare_large_code_splitting_case(
   let mut ctx: Vec<(String, String)> = vec![];
   gen_dynamic_module(num, 0, random_table, &mut ctx);
 
-  fs.create_dir_all("/src".into()).await.unwrap();
-  fs.create_dir_all("/src/leaves".into()).await.unwrap();
+  fs.create_dir_all(&AbsPath::new("/src").unwrap()).unwrap();
+  fs.create_dir_all(&AbsPath::new("/src/leaves").unwrap())
+    .unwrap();
 
   for (name, code) in ctx {
-    fs.write(name.as_str().into(), code.as_bytes())
-      .await
+    fs.write(&AbsPath::new(&name).unwrap(), code.as_bytes())
       .unwrap();
   }
 }
@@ -128,8 +128,7 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
   reset_compilation_state(&mut compiler);
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(NUM_MODULES, &random_table, &fs).await;
 
@@ -238,8 +237,7 @@ pub fn build_module_graph_benchmark_inner(c: &mut Criterion) {
     serde_json::from_str::<Vec<Vec<usize>>>(include_str!("../build_chunk_graph/random_table.json"))
       .expect("should not fail to parse random table json");
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(NUM_MODULES, &random_table, &fs).await;
   });

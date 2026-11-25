@@ -108,11 +108,7 @@ mod trace_event;
 mod utils;
 mod virtual_modules;
 
-use std::{
-  cell::RefCell,
-  mem::ManuallyDrop,
-  sync::{Arc, RwLock},
-};
+use std::{cell::RefCell, mem::ManuallyDrop, sync::Arc};
 
 use napi::{CallContext, bindgen_prelude::*};
 pub use raw_options::{CustomPluginBuilder, register_custom_plugin};
@@ -121,7 +117,7 @@ use rspack_core::{
   ModuleIdentifier, Plugin, PluginExt,
 };
 use rspack_error::Diagnostic;
-use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem};
+use rspack_fs::{IntermediateFileSystem, MemoryFileSystem, NativeFileSystem, ReadableFileSystem};
 use rspack_tasks::{CURRENT_COMPILER_CONTEXT, CompilerContext, within_compiler_context_sync};
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_core::common::util::take::Take;
@@ -150,9 +146,7 @@ use crate::{
   resolver_factory::JsResolverFactory,
   trace_event::RawTraceEvent,
   utils::callbackify,
-  virtual_modules::{
-    JsVirtualFileStore, TrieVirtualFileStore, VirtualFileStore, VirtualFileSystem,
-  },
+  virtual_modules::{JsVirtualFileStore, VirtualFileSystem, write_virtual_file},
 };
 
 // Export expected @rspack/core version
@@ -264,7 +258,7 @@ struct JsCompiler {
   include_dependencies_map: FxHashMap<EntryDependencyCacheKey, DependencyRef>,
   entry_dependencies_map: FxHashMap<EntryDependencyCacheKey, DependencyRef>,
   compiler_context: Arc<CompilerContext>,
-  virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>>,
+  virtual_file_store: Option<MemoryFileSystem>,
 }
 
 #[napi]
@@ -375,15 +369,12 @@ impl JsCompiler {
         })
         .unwrap_or_else(|| Arc::new(NativeFileSystem::new(pnp)));
 
-      let mut virtual_file_store: Option<Arc<RwLock<dyn VirtualFileStore>>> = None;
+      let mut virtual_file_store = None;
       if let Some(list) = virtual_files {
-        let store = {
-          let mut store = TrieVirtualFileStore::new();
-          for f in list {
-            store.write_file(f.path.as_str().into(), f.content.into());
-          }
-          Arc::new(RwLock::new(store))
-        };
+        let store = MemoryFileSystem::new();
+        for f in list {
+          write_virtual_file(&store, &f.path, f.content.as_bytes());
+        }
         input_file_system = Arc::new(VirtualFileSystem::new(input_file_system, store.clone()));
         virtual_file_store = Some(store);
       }

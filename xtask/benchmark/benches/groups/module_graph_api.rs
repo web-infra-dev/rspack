@@ -8,7 +8,7 @@ use rspack_core::{
   Compiler, Optimization, build_module_graph::build_module_graph_pass,
   incremental::IncrementalOptions,
 };
-use rspack_fs::{MemoryFileSystem, WritableFileSystem};
+use rspack_fs::{AbsPath, MemoryFileSystem};
 use rspack_tasks::within_compiler_context_for_testing_sync;
 
 use crate::groups::{
@@ -41,8 +41,7 @@ pub fn module_graph_api_benchmark_inner(c: &mut Criterion) {
     .unwrap();
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(NUM_MODULES, &random_table, &fs).await;
 

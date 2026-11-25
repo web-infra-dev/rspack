@@ -3,7 +3,7 @@ use std::{fmt::Debug, sync::Arc};
 use async_trait::async_trait;
 use napi::bindgen_prelude::{Buffer, Either, FnArgs, Promise};
 use napi_derive::napi;
-use rspack_fs::WritableFileSystem;
+use rspack_fs::{NativeFileSystem, WritableFileSystem};
 use rspack_plugin_schemes::{
   HttpClient, HttpResponse, HttpUriOptionsAllowedUris, HttpUriPlugin, HttpUriPluginOptions,
 };
@@ -102,7 +102,7 @@ fn create_http_uri_plugin_options(
 
 pub fn get_http_uri_plugin(options: RawHttpUriPluginOptions) -> Box<dyn rspack_core::Plugin> {
   // Use NativeFileSystem for HTTP caching
-  let fs = Arc::new(rspack_fs::NativeFileSystem::new(false));
+  let fs = Arc::new(NativeFileSystem::new(false));
 
   // Create the plugin with the provided options
   let options = create_http_uri_plugin_options(options, fs);

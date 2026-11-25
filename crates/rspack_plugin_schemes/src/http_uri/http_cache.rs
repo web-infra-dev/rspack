@@ -4,8 +4,7 @@ use async_trait::async_trait;
 use cow_utils::CowUtils;
 use napi::bindgen_prelude::Buffer;
 use rspack_error::{Result, error};
-use rspack_fs::{FsResultToIoResultExt, WritableFileSystem};
-use rspack_paths::Utf8Path;
+use rspack_fs::{AbsPath, FsResultToIoResultExt, WritableFileSystem};
 use rspack_util::{
   base64, current_time,
   fx_hash::{FxDashMap, FxHashMap},
@@ -379,9 +378,9 @@ impl HttpCache {
     if let Some(cache_location) = &self.cache_location {
       let cache_key = self.get_cache_key(&entry.resolved);
       let cache_path_buf = cache_location.join(&cache_key);
-      let cache_path = Utf8Path::from_path(&cache_path_buf).expect("Invalid cache path");
+      let cache_path = to_abs_cache_path(&cache_path_buf)?;
 
-      match self.filesystem.read_file(cache_path).await.to_io_result() {
+      match self.filesystem.read_file(&cache_path).await.to_io_result() {
         Ok(content) => {
           let mut meta = self
             .fetch_metadata
@@ -420,18 +419,16 @@ impl HttpCache {
       let cache_key = self.get_cache_key(resource);
 
       // Create the full path to the cache file
-      let cache_path_buf = PathBuf::from(cache_location).join(&cache_key);
-      let cache_path = Utf8Path::from_path(&cache_path_buf).expect("Invalid cache path");
+      let cache_path_buf = cache_location.join(&cache_key);
+      let cache_path = to_abs_cache_path(&cache_path_buf)?;
 
       // Create parent directories
       if let Some(parent) = cache_path.parent() {
-        let parent_path = parent.to_string();
-        let parent_utf8_path = Utf8Path::new(&parent_path);
-        self.filesystem.create_dir_all(parent_utf8_path).await?;
+        self.filesystem.create_dir_all(&parent).await?;
       }
 
       // Write the cache file
-      self.filesystem.write(cache_path, content).await?;
+      self.filesystem.write(&cache_path, content).await?;
     }
     Ok(())
   }
@@ -570,4 +567,17 @@ fn compute_integrity(content: &[u8]) -> String {
   let digest = hasher.finalize();
   // Use base64 for integrity as that's the standard format
   format!("sha512-{}", base64::encode_to_string(digest))
+}
+
+fn to_abs_cache_path(path: &std::path::Path) -> Result<AbsPath> {
+  match AbsPath::try_from_std_path(path) {
+    Ok(abs) => Ok(abs),
+    Err(rspack_fs::Error::NotAbsolutePath(_)) => {
+      let joined = std::env::current_dir()
+        .map_err(|e| error!("Failed to resolve current directory: {e}"))?
+        .join(path);
+      AbsPath::try_from_std_path(&joined).map_err(Into::into)
+    }
+    Err(err) => Err(err.into()),
+  }
 }

@@ -1,22 +1,7 @@
-use std::sync::{Arc, RwLock};
-
-use rspack_fs::FileMetadata;
-use rspack_paths::Utf8Path;
-
-pub trait VirtualFileStore: Send + Sync {
-  fn write_file(&mut self, path: &Utf8Path, content: Vec<u8>);
-
-  fn get_file_content(&self, path: &Utf8Path) -> Option<&Vec<u8>>;
-
-  fn get_file_metadata(&self, path: &Utf8Path) -> Option<FileMetadata>;
-
-  fn read_dir(&self, path: &Utf8Path) -> Option<Vec<String>>;
-
-  fn contains(&self, path: &Utf8Path) -> bool;
-}
+use rspack_fs::{AbsPath, MemoryFileSystem};
 
 #[napi(js_name = "VirtualFileStore")]
-pub struct JsVirtualFileStore(Arc<RwLock<dyn VirtualFileStore>>);
+pub struct JsVirtualFileStore(MemoryFileSystem);
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false)]
@@ -25,31 +10,35 @@ pub struct JsVirtualFile {
   pub content: String,
 }
 
+pub(crate) fn write_virtual_file(fs: &MemoryFileSystem, path: &str, content: &[u8]) {
+  if let Ok(abs) = AbsPath::new(path) {
+    if let Some(parent) = abs.parent()
+      && fs.create_dir_all(&parent).is_err()
+    {
+      return;
+    }
+    let _ = fs.write(&abs, content);
+  }
+}
+
 #[napi]
 impl JsVirtualFileStore {
-  pub fn new(store: Arc<RwLock<dyn VirtualFileStore>>) -> Self {
+  pub fn new(store: MemoryFileSystem) -> Self {
     Self(store)
   }
 
   #[napi]
   pub fn write_virtual_file_sync(&self, path: String, content: String) {
-    if let Ok(mut store) = self.0.write() {
-      store.write_file(path.as_str().into(), content.into());
-    }
+    write_virtual_file(&self.0, &path, content.as_bytes());
   }
 
   #[napi]
   pub fn batch_write_virtual_files_sync(&self, files: Vec<JsVirtualFile>) {
-    if let Ok(mut store) = self.0.write() {
-      for f in files {
-        store.write_file(f.path.as_str().into(), f.content.into());
-      }
+    for f in files {
+      write_virtual_file(&self.0, &f.path, f.content.as_bytes());
     }
   }
 }
 
 mod fs;
 pub use fs::VirtualFileSystem;
-
-mod trie_store;
-pub use trie_store::TrieVirtualFileStore;

@@ -1,6 +1,6 @@
 use cow_utils::CowUtils;
 use rspack_error::Result;
-use rspack_fs::{Result as FsResult, WritableFileSystem};
+use rspack_fs::{AbsPath, Result as FsResult, WritableFileSystem};
 use rspack_paths::Utf8Path;
 use rspack_regex::RspackRegex;
 
@@ -13,7 +13,7 @@ pub enum KeepPattern<'a> {
 }
 
 impl<'a> KeepPattern<'a> {
-  pub async fn try_match(&self, path: &'a Utf8Path) -> Result<bool> {
+  pub async fn try_match(&self, path: &Utf8Path) -> Result<bool> {
     match self {
       KeepPattern::Path(p) => Ok(path.starts_with(p)),
       KeepPattern::Regex(r) => Ok(r.test(path.as_str().cow_replace("\\", "/").as_ref())),
@@ -29,32 +29,36 @@ impl<'a> KeepPattern<'a> {
 /// #[tokio::test]
 /// async fn remove_dir_except() {
 ///   use crate::{
-///     rspack_fs::{ReadableFileSystem, WritableFileSystem, WritableFileSystemExt},
+///     rspack_fs::{AbsPath, NativeFileSystem, WritableFileSystem},
 ///     rspack_paths::Utf8Path,
 ///   };
-///   let fs = crate::rspack_fs::NativeFileSystem;
+///   let fs = NativeFileSystem::new(false);
 ///
 ///   // adding files and directories
-///   fs.create_dir_all(&Utf8Path::new("path/to/dir/except"))
+///   fs.create_dir_all(&AbsPath::new("/path/to/dir/except").unwrap())
 ///     .await
 ///     .unwrap();
-///   fs.create_dir_all(&Utf8Path::new("path/to/dir/rm1"))
+///   fs.create_dir_all(&AbsPath::new("/path/to/dir/rm1").unwrap())
 ///     .await
 ///     .unwrap();
-///   fs.create_dir_all(&Utf8Path::new("path/to/dir/rm2"))
+///   fs.create_dir_all(&AbsPath::new("/path/to/dir/rm2").unwrap())
 ///     .await
 ///     .unwrap();
 ///
-///   let dir = Utf8Path::new("path/to/dir");
-///   let except = Utf8Path::new("path/to/dir/except");
+///   let dir = Utf8Path::new("/path/to/dir");
+///   let except = Utf8Path::new("/path/to/dir/except");
 ///
-///   trim_dir(fs, &dir, &except).await.unwrap();
+///   trim_dir(&fs, dir, KeepPattern::Path(except)).await.unwrap();
 ///   assert_eq!(
-///     fs.read_dir(&dir).await.unwrap(),
-///     vec![String::from("path/to/dir/except")]
+///     fs.read_dir(&AbsPath::try_from_utf8_path(dir).unwrap())
+///       .await
+///       .unwrap(),
+///     vec![String::from("except")]
 ///   );
 ///
-///   fs.remove_dir_all(&dir).await.unwrap();
+///   fs.remove_dir_all(&AbsPath::try_from_utf8_path(dir).unwrap())
+///     .await
+///     .unwrap();
 /// }
 /// ```
 pub async fn trim_dir<'a>(
@@ -62,11 +66,12 @@ pub async fn trim_dir<'a>(
   dir: &'a Utf8Path,
   keep: KeepPattern<'a>,
 ) -> FsResult<()> {
-  if let Ok(metadata) = fs.stat(dir).await {
+  let abs_dir = AbsPath::try_from_utf8_path(dir)?;
+  if let Ok(metadata) = fs.stat(&abs_dir).await {
     // not a directory, try to remove it
     if !metadata.is_directory {
-      if !keep.try_match(dir).await? {
-        fs.remove_file(dir).await?;
+      if !keep.try_match(abs_dir.as_utf8_path()).await? {
+        fs.remove_file(&abs_dir).await?;
       }
       return Ok(());
     }
@@ -75,19 +80,19 @@ pub async fn trim_dir<'a>(
     return Ok(());
   }
 
-  let mut queue = vec![dir.to_owned()];
+  let mut queue = vec![abs_dir];
   let mut visited = vec![];
   while let Some(current_dir) = queue.pop() {
-    if keep.try_match(&current_dir).await? {
+    if keep.try_match(current_dir.as_utf8_path()).await? {
       visited.push(current_dir);
       continue;
     }
     let items = fs.read_dir(&current_dir).await?;
     for item in &items {
-      let path = current_dir.join(item);
+      let path = current_dir.join(item)?;
       if fs.stat(&path).await?.is_directory {
         queue.push(path);
-      } else if !keep.try_match(&path).await? {
+      } else if !keep.try_match(path.as_utf8_path()).await? {
         fs.remove_file(&path).await?;
       }
     }
@@ -107,49 +112,65 @@ pub async fn trim_dir<'a>(
 
 #[cfg(test)]
 mod test {
-  use rspack_fs::{MemoryFileSystem, WritableFileSystem};
+  use cow_utils::CowUtils;
+  use rspack_fs::{AbsPath, MemoryFileSystem, WritableFileSystem};
   use rspack_paths::Utf8Path;
 
   use crate::{KeepPattern, trim_dir};
+
+  fn test_str(posix: &str) -> String {
+    if cfg!(windows) {
+      let rest = posix.trim_start_matches('/').cow_replace('/', "\\");
+      format!("C:\\{rest}")
+    } else {
+      posix.to_string()
+    }
+  }
+
+  fn test_abs(posix: &str) -> AbsPath {
+    AbsPath::new(&test_str(posix)).expect("valid test AbsPath")
+  }
 
   #[tokio::test]
   async fn async_fs_test() {
     let fs = MemoryFileSystem::default();
     assert!(
-      WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/ex/a1/b1"))
+      WritableFileSystem::create_dir_all(&fs, &test_abs("/ex/a1/b1"))
         .await
         .is_ok()
     );
 
     assert!(
-      WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/ex/a2/b1"))
+      WritableFileSystem::create_dir_all(&fs, &test_abs("/ex/a2/b1"))
         .await
         .is_ok()
     );
 
     assert!(
-      WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/ex/a2/b2"))
+      WritableFileSystem::create_dir_all(&fs, &test_abs("/ex/a2/b2"))
         .await
         .is_ok()
     );
 
     assert!(
-      WritableFileSystem::create_dir_all(&fs, Utf8Path::new("/ex/a3/b1"))
+      WritableFileSystem::create_dir_all(&fs, &test_abs("/ex/a3/b1"))
         .await
         .is_ok()
     );
 
+    let ex = test_str("/ex");
+    let keep = test_str("/ex/a2");
     assert!(
       trim_dir(
         &fs,
-        Utf8Path::new("/ex"),
-        KeepPattern::Path(Utf8Path::new("/ex/a2"))
+        Utf8Path::new(&ex),
+        KeepPattern::Path(Utf8Path::new(&keep))
       )
       .await
       .is_ok()
     );
 
-    let children = WritableFileSystem::read_dir(&fs, Utf8Path::new("/ex"))
+    let children = WritableFileSystem::read_dir(&fs, &test_abs("/ex"))
       .await
       .unwrap();
     assert_eq!(children, vec!["a2"]);

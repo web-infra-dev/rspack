@@ -3,16 +3,14 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use napi::{Either, bindgen_prelude::Either3};
 use rspack_fs::{
-  Error, FileMetadata, FilePermissions, IntermediateFileSystem, IntermediateFileSystemExtras,
-  ReadStream, ReadableFileSystem, Result, RspackResultToFsResultExt, WritableFileSystem,
+  AbsPath, Error, FileMetadata, FilePermissions, IntermediateFileSystem,
+  IntermediateFileSystemExtras, ReadStream, Result, RspackResultToFsResultExt, WritableFileSystem,
   WriteStream,
 };
-use rspack_paths::{Utf8Path, Utf8PathBuf};
-use tracing::instrument;
 
 use super::node::ThreadsafeNodeFS;
 
-pub struct NodeFileSystem(Arc<ThreadsafeNodeFS>);
+pub struct NodeFileSystem(pub(super) Arc<ThreadsafeNodeFS>);
 
 impl std::fmt::Debug for NodeFileSystem {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -27,12 +25,12 @@ impl NodeFileSystem {
 }
 #[async_trait]
 impl WritableFileSystem for NodeFileSystem {
-  async fn create_dir(&self, dir: &Utf8Path) -> Result<()> {
+  async fn create_dir(&self, dir: &AbsPath) -> Result<()> {
     let dir = dir.as_str().to_string();
     self.0.mkdir.call_with_promise(dir).await.to_fs_result()
   }
 
-  async fn create_dir_all(&self, dir: &Utf8Path) -> Result<()> {
+  async fn create_dir_all(&self, dir: &AbsPath) -> Result<()> {
     let dir = dir.as_str().to_string();
     self
       .0
@@ -43,7 +41,7 @@ impl WritableFileSystem for NodeFileSystem {
       .map(|_| ())
   }
 
-  async fn write(&self, file: &Utf8Path, data: &[u8]) -> Result<()> {
+  async fn write(&self, file: &AbsPath, data: &[u8]) -> Result<()> {
     let file = file.as_str().to_string();
     let data = data.to_vec();
     self
@@ -54,7 +52,7 @@ impl WritableFileSystem for NodeFileSystem {
       .to_fs_result()
   }
 
-  async fn remove_file(&self, file: &Utf8Path) -> Result<()> {
+  async fn remove_file(&self, file: &AbsPath) -> Result<()> {
     let file = file.as_str().to_string();
     self
       .0
@@ -65,7 +63,7 @@ impl WritableFileSystem for NodeFileSystem {
       .map(|_| ())
   }
 
-  async fn remove_dir_all(&self, dir: &Utf8Path) -> Result<()> {
+  async fn remove_dir_all(&self, dir: &AbsPath) -> Result<()> {
     let dir = dir.as_str().to_string();
     self
       .0
@@ -77,7 +75,7 @@ impl WritableFileSystem for NodeFileSystem {
   }
 
   // TODO: support read_dir options
-  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
+  async fn read_dir(&self, dir: &AbsPath) -> Result<Vec<String>> {
     let dir = dir.as_str().to_string();
     let res = self
       .0
@@ -95,7 +93,7 @@ impl WritableFileSystem for NodeFileSystem {
   }
 
   // TODO: support read_file options
-  async fn read_file(&self, file: &Utf8Path) -> Result<Vec<u8>> {
+  async fn read_file(&self, file: &AbsPath) -> Result<Vec<u8>> {
     let file = file.as_str().to_string();
     let res = self
       .0
@@ -114,7 +112,7 @@ impl WritableFileSystem for NodeFileSystem {
     }
   }
 
-  async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata> {
+  async fn stat(&self, file: &AbsPath) -> Result<FileMetadata> {
     let file = file.as_str().to_string();
     let res = self.0.stat.call_with_promise(file).await.to_fs_result()?;
     match res {
@@ -126,7 +124,7 @@ impl WritableFileSystem for NodeFileSystem {
     }
   }
 
-  async fn set_permissions(&self, path: &Utf8Path, perm: FilePermissions) -> Result<()> {
+  async fn set_permissions(&self, path: &AbsPath, perm: FilePermissions) -> Result<()> {
     if let Some(mode) = perm.into_mode()
       && let Some(chmod) = &self.0.chmod
     {
@@ -142,7 +140,7 @@ impl WritableFileSystem for NodeFileSystem {
 
 #[async_trait]
 impl IntermediateFileSystemExtras for NodeFileSystem {
-  async fn rename(&self, from: &Utf8Path, to: &Utf8Path) -> Result<()> {
+  async fn rename(&self, from: &AbsPath, to: &AbsPath) -> Result<()> {
     let from = from.as_str().to_string();
     let to = to.as_str().to_string();
     self
@@ -153,154 +151,18 @@ impl IntermediateFileSystemExtras for NodeFileSystem {
       .to_fs_result()
   }
 
-  async fn create_read_stream(&self, file: &Utf8Path) -> Result<Box<dyn ReadStream>> {
+  async fn create_read_stream(&self, file: &AbsPath) -> Result<Box<dyn ReadStream>> {
     let reader = NodeReadStream::try_new(file, self.0.clone()).await?;
     Ok(Box::new(reader))
   }
 
-  async fn create_write_stream(&self, file: &Utf8Path) -> Result<Box<dyn WriteStream>> {
+  async fn create_write_stream(&self, file: &AbsPath) -> Result<Box<dyn WriteStream>> {
     let writer = NodeWriteStream::try_new(file, self.0.clone()).await?;
     Ok(Box::new(writer))
   }
 }
 
 impl IntermediateFileSystem for NodeFileSystem {}
-
-#[async_trait]
-impl ReadableFileSystem for NodeFileSystem {
-  #[instrument(skip(self), level = "debug")]
-  async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
-    self
-      .0
-      .read_file
-      .call_with_promise(path.as_str().to_string())
-      .await
-      .to_fs_result()
-      // TODO: simplify the return value?
-      .map(|result| match result {
-        Either3::A(buf) => buf.into(),
-        Either3::B(str) => str.into(),
-        Either3::C(_) => vec![],
-      })
-  }
-  #[instrument(skip(self), level = "debug")]
-  fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
-    #[allow(clippy::disallowed_methods)]
-    rspack_napi::runtime::block_on(self.read(path))
-  }
-
-  #[instrument(skip(self), level = "debug")]
-  async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    let res = self
-      .0
-      .stat
-      .call_with_promise(path.as_str().to_string())
-      .await
-      .to_fs_result()?;
-    match res {
-      Either::A(stats) => Ok(stats.into()),
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "input file system call stat failed",
-      )),
-    }
-  }
-
-  #[instrument(skip(self), level = "debug")]
-  fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    #[allow(clippy::disallowed_methods)]
-    rspack_napi::runtime::block_on(self.metadata(path))
-  }
-
-  #[instrument(skip(self), level = "debug")]
-  async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    let res = self
-      .0
-      .lstat
-      .call_with_promise(path.as_str().to_string())
-      .await
-      .to_fs_result()?;
-    match res {
-      Either::A(stats) => Ok(stats.into()),
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "input file system call lstat failed",
-      )),
-    }
-  }
-
-  #[instrument(skip(self), level = "debug")]
-  async fn read_link(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
-    let res = self
-      .0
-      .readlink
-      .call_with_promise(path.as_str().to_string())
-      .await
-      .to_fs_result()?;
-    match res {
-      Either::A(target) => Ok(Utf8PathBuf::from(target)),
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "input file system call readlink failed",
-      )),
-    }
-  }
-
-  #[instrument(skip(self), level = "debug")]
-  async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
-    let res = self
-      .0
-      .realpath
-      .call_with_promise(path.as_str().to_string())
-      .await
-      .to_fs_result()?;
-    match res {
-      Either::A(str) => Ok(Utf8PathBuf::from(str)),
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "input file system call realpath failed",
-      )),
-    }
-  }
-
-  #[instrument(skip(self), level = "debug")]
-  async fn read_dir(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    let res = self
-      .0
-      .read_dir
-      .call_with_promise(dir.as_str().to_string())
-      .await
-      .to_fs_result()?;
-    match res {
-      Either::A(list) => Ok(list),
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "input file system call read_dir failed",
-      )),
-    }
-  }
-  #[instrument(skip(self), level = "debug")]
-  fn read_dir_sync(&self, dir: &Utf8Path) -> Result<Vec<String>> {
-    #[allow(clippy::disallowed_methods)]
-    rspack_napi::runtime::block_on(ReadableFileSystem::read_dir(self, dir))
-  }
-  #[instrument(skip(self), level = "debug")]
-  async fn permissions(&self, path: &Utf8Path) -> Result<Option<FilePermissions>> {
-    let res = self
-      .0
-      .stat
-      .call_with_promise(path.as_str().to_string())
-      .await
-      .to_fs_result()?;
-    match res {
-      Either::A(stats) => Ok(Some(FilePermissions::from_mode(stats.mode))),
-      Either::B(_) => Err(Error::new(
-        std::io::ErrorKind::Other,
-        "input file system call stat failed",
-      )),
-    }
-  }
-}
 
 #[derive(Debug)]
 pub struct NodeReadStream {
@@ -310,7 +172,7 @@ pub struct NodeReadStream {
 }
 
 impl NodeReadStream {
-  pub async fn try_new(file: &Utf8Path, fs: Arc<ThreadsafeNodeFS>) -> Result<Self> {
+  pub async fn try_new(file: &AbsPath, fs: Arc<ThreadsafeNodeFS>) -> Result<Self> {
     let res = fs
       .open
       .call_with_promise((file.as_str().to_string(), "r".to_string()).into())
@@ -409,7 +271,7 @@ pub struct NodeWriteStream {
 }
 
 impl NodeWriteStream {
-  pub async fn try_new(file: &Utf8Path, fs: Arc<ThreadsafeNodeFS>) -> Result<Self> {
+  pub async fn try_new(file: &AbsPath, fs: Arc<ThreadsafeNodeFS>) -> Result<Self> {
     let res = fs
       .open
       .call_with_promise((file.as_str().to_string(), "w+".to_string()).into())

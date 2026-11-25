@@ -3,7 +3,7 @@ mod visitor;
 
 use std::sync::Arc;
 
-use rspack_fs::ReadableFileSystem;
+use rspack_fs::{AbsPath, ReadableFileSystem};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
 use rspack_resolver::ResolveError;
@@ -58,7 +58,16 @@ impl<L: Logger> Helper<L> {
   ///
   /// Return the sub dir and files.
   async fn resolve_directory(&mut self, dir: &Utf8Path) -> Option<HashSet<Utf8PathBuf>> {
-    let entries = self.resolver.inner_fs().read_dir(dir).await;
+    let abs_dir = match AbsPath::new(dir.as_str()) {
+      Ok(abs) => abs,
+      Err(err) => {
+        self.logger.warn(format!(
+          "BuildDependencies: can't read directory {dir}.\n  - {err}"
+        ));
+        return None;
+      }
+    };
+    let entries = self.resolver.inner_fs().read_dir(&abs_dir).await;
     match entries {
       Ok(entries) => Some(entries.into_iter().map(|item| dir.join(item)).collect()),
       Err(err) => {
@@ -87,7 +96,16 @@ impl<L: Logger> Helper<L> {
         return None;
       }
     };
-    let source = match self.resolver.inner_fs().read_to_string(file).await {
+    let abs_file = match AbsPath::new(file.as_str()) {
+      Ok(abs) => abs,
+      Err(err) => {
+        self.logger.warn(format!(
+          "BuildDependencies: can't read file {file}.\n  - {err}"
+        ));
+        return None;
+      }
+    };
+    let source = match self.resolver.inner_fs().read_to_string(&abs_file).await {
       Ok(source) => source,
       Err(err) => {
         self.logger.warn(format!(
@@ -154,7 +172,16 @@ impl<L: Logger> Helper<L> {
   ///
   /// Use the corresponding resolve method according to the type of input file.
   pub async fn resolve(&mut self, path: &Utf8Path) -> Option<HashSet<Utf8PathBuf>> {
-    let metadata = match self.resolver.inner_fs().metadata(path).await {
+    let abs_path = match AbsPath::new(path.as_str()) {
+      Ok(abs) => abs,
+      Err(err) => {
+        self.logger.warn(format!(
+          "BuildDependencies: can't resolve {path}.\n  - {err}"
+        ));
+        return None;
+      }
+    };
+    let metadata = match self.resolver.inner_fs().metadata(&abs_path).await {
       Ok(metadata) => metadata,
       Err(err) => {
         self.logger.warn(format!(
@@ -175,10 +202,25 @@ impl<L: Logger> Helper<L> {
 mod test {
   use std::sync::Arc;
 
-  use rspack_fs::{MemoryFileSystem, WritableFileSystem};
+  use cow_utils::CowUtils;
+  use rspack_fs::{AbsPath, MemoryFileSystem};
+  use rspack_paths::Utf8PathBuf;
 
   use super::Helper;
   use crate::{CompilationLogger, CompilationLogging, LogType};
+
+  fn test_str(posix: &str) -> String {
+    if cfg!(windows) {
+      let rest = posix.trim_start_matches('/').cow_replace('/', "\\");
+      format!("C:\\{rest}")
+    } else {
+      posix.to_string()
+    }
+  }
+
+  fn test_abs(posix: &str) -> AbsPath {
+    AbsPath::new(&test_str(posix)).expect("valid test AbsPath")
+  }
 
   fn test_logger(name: &str) -> (CompilationLogger, CompilationLogging) {
     let logging = CompilationLogging::default();
@@ -200,55 +242,39 @@ mod test {
   #[tokio::test]
   async fn helper_file_test() {
     let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/".into()).await.unwrap();
-    fs.write("/a.js".into(), r#"console.log("a")"#.as_bytes())
-      .await
+    fs.create_dir_all(&test_abs("/")).unwrap();
+    fs.write(&test_abs("/a.js"), br#"console.log("a")"#)
       .unwrap();
-    fs.write("/a1.jsx".into(), r#"console.log('a1')"#.as_bytes())
-      .await
+    fs.write(&test_abs("/a1.jsx"), br#"console.log('a1')"#)
       .unwrap();
-    fs.write("/b.js".into(), r#"console.log('b')"#.as_bytes())
-      .await
+    fs.write(&test_abs("/b.js"), br#"console.log('b')"#)
       .unwrap();
-    fs.write("/c.txt".into(), r#"123"#.as_bytes())
-      .await
+    fs.write(&test_abs("/c.txt"), b"123").unwrap();
+    fs.write(&test_abs("/e.ts"), br#"console.log("e")"#)
       .unwrap();
-    fs.write("/e.ts".into(), r#"console.log("e")"#.as_bytes())
-      .await
+    fs.write(&test_abs("/e1.tsx"), br#"console.log("e1")"#)
       .unwrap();
-    fs.write("/e1.tsx".into(), r#"console.log("e1")"#.as_bytes())
-      .await
+    fs.write(&test_abs("/f.json"), br#"{"name":"f"}"#).unwrap();
+    fs.write(&test_abs("/g.cjs"), br#"console.log("g")"#)
       .unwrap();
-    fs.write("/f.json".into(), r#"{"name":"f"}"#.as_bytes())
-      .await
+    fs.write(&test_abs("/h.mjs"), br#"console.log("h")"#)
       .unwrap();
-    fs.write("/g.cjs".into(), r#"console.log("g")"#.as_bytes())
-      .await
-      .unwrap();
-    fs.write("/h.mjs".into(), r#"console.log("h")"#.as_bytes())
-      .await
-      .unwrap();
-    fs.write("/i.node".into(), r#""#.as_bytes()).await.unwrap();
-    fs.create_dir_all("/node_modules/lib1/".into())
-      .await
-      .unwrap();
+    fs.write(&test_abs("/i.node"), b"").unwrap();
+    fs.create_dir_all(&test_abs("/node_modules/lib1/")).unwrap();
     fs.write(
-      "/node_modules/lib1/package.json".into(),
-      r#"{"name":"lib1","version": "1.0.0","main":"./index.js"}"#.as_bytes(),
+      &test_abs("/node_modules/lib1/package.json"),
+      br#"{"name":"lib1","version": "1.0.0","main":"./index.js"}"#,
     )
-    .await
     .unwrap();
-    fs.write("/node_modules/lib1/index.js".into(), r#""#.as_bytes())
-      .await
+    fs.write(&test_abs("/node_modules/lib1/index.js"), b"")
       .unwrap();
     fs.write(
-      "/package.json".into(),
-      r#"{"name":"project","version": "1.0.0","main":"./index.js"}"#.as_bytes(),
+      &test_abs("/package.json"),
+      br#"{"name":"project","version": "1.0.0","main":"./index.js"}"#,
     )
-    .await
     .unwrap();
     fs.write(
-      "/index.js".into(),
+      &test_abs("/index.js"),
       r#"
 import "./a";
 import "./a1";
@@ -267,15 +293,12 @@ require("lib1");
 "#
       .as_bytes(),
     )
-    .await
     .unwrap();
 
     let (logger, logging) = test_logger("test");
     let mut helper = Helper::new(fs, logger);
-    let deps = helper
-      .resolve("/index.js".into())
-      .await
-      .expect("should have deps");
+    let entry = Utf8PathBuf::from(test_str("/index.js"));
+    let deps = helper.resolve(&entry).await.expect("should have deps");
     assert_eq!(deps.len(), 10);
     assert_eq!(warn_count(&logging, "test"), 3);
   }
@@ -283,35 +306,21 @@ require("lib1");
   #[tokio::test]
   async fn helper_dir_test() {
     let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/configs/test".into()).await.unwrap();
-    fs.write("/configs/a.js".into(), r#"console.log('a')"#.as_bytes())
-      .await
+    fs.create_dir_all(&test_abs("/configs/test")).unwrap();
+    fs.write(&test_abs("/configs/a.js"), br#"console.log('a')"#)
       .unwrap();
-    fs.write(
-      "/configs/test/b.js".into(),
-      r#"console.log('b')"#.as_bytes(),
-    )
-    .await
-    .unwrap();
-    fs.write(
-      "/configs/test/b1.js".into(),
-      r#"console.log('b1')"#.as_bytes(),
-    )
-    .await
-    .unwrap();
-    fs.write("/configs/c.txt".into(), r#"123"#.as_bytes())
-      .await
+    fs.write(&test_abs("/configs/test/b.js"), br#"console.log('b')"#)
       .unwrap();
-    fs.write("/index.js".into(), r#"console.log('index')"#.as_bytes())
-      .await
+    fs.write(&test_abs("/configs/test/b1.js"), br#"console.log('b1')"#)
+      .unwrap();
+    fs.write(&test_abs("/configs/c.txt"), b"123").unwrap();
+    fs.write(&test_abs("/index.js"), br#"console.log('index')"#)
       .unwrap();
 
     let (logger, logging) = test_logger("test");
     let mut helper = Helper::new(fs, logger);
-    let deps = helper
-      .resolve("/configs/".into())
-      .await
-      .expect("should have deps");
+    let dir = Utf8PathBuf::from(test_str("/configs/"));
+    let deps = helper.resolve(&dir).await.expect("should have deps");
     assert_eq!(deps.len(), 3);
     assert_eq!(warn_count(&logging, "test"), 0);
   }

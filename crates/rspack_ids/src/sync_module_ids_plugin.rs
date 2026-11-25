@@ -6,10 +6,22 @@ use rspack_core::{
   ModuleId, ModuleIdsArtifact, Plugin,
 };
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
+use rspack_fs::AbsPath;
 use rspack_hook::{plugin, plugin_hook};
 use serde_json::Value;
 
 use crate::id_helpers::ModuleFilterFn;
+
+fn resolve_abs_path(raw: &str) -> Result<AbsPath> {
+  match AbsPath::new(raw) {
+    Ok(abs) => Ok(abs),
+    Err(rspack_fs::Error::NotAbsolutePath(_)) => {
+      let joined = std::env::current_dir().to_rspack_result()?.join(raw);
+      AbsPath::try_from_std_path(&joined).map_err(Into::into)
+    }
+    Err(err) => Err(err.into()),
+  }
+}
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum SyncModuleIdsPluginMode {
@@ -108,8 +120,8 @@ async fn revive_modules(
     return Ok(());
   }
 
-  let path = rspack_paths::Utf8Path::new(&self.path);
-  let Some(data) = (match compilation.intermediate_filesystem.read_file(path).await {
+  let path = resolve_abs_path(&self.path)?;
+  let Some(data) = (match compilation.intermediate_filesystem.read_file(&path).await {
     Ok(buffer) => Some(parse_module_ids(&buffer)?),
     Err(rspack_fs::Error::Io(err)) if err.kind() == std::io::ErrorKind::NotFound => None,
     Err(err) => return Err(err.into()),
@@ -226,16 +238,16 @@ async fn record_modules(
   }
 
   if let Some(json) = json {
-    let path = rspack_paths::Utf8Path::new(&self.path);
+    let path = resolve_abs_path(&self.path)?;
     if let Some(dir) = path.parent() {
       compilation
         .intermediate_filesystem
-        .create_dir_all(dir)
+        .create_dir_all(&dir)
         .await?;
     }
     compilation
       .intermediate_filesystem
-      .write(path, json.as_bytes())
+      .write(&path, json.as_bytes())
       .await?;
   }
 

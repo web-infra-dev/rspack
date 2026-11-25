@@ -20,6 +20,7 @@ use rspack_core::{
   unescape_glob_path,
 };
 use rspack_error::{Diagnostic, Error, Result, ToStringResultToRspackResultExt};
+use rspack_fs::AbsPath;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
@@ -313,7 +314,10 @@ impl CopyRspackPlugin {
     // TODO cache
 
     logger.debug(format!("reading '{absolute_filename}'..."));
-    let data = compilation.input_filesystem.read(&absolute_filename).await;
+    let data = match AbsPath::new(absolute_filename.as_str()) {
+      Ok(abs_filename) => compilation.input_filesystem.read(&abs_filename).await,
+      Err(err) => Err(err),
+    };
 
     let source_vec = match data {
       Ok(data) => {
@@ -434,7 +438,9 @@ impl CopyRspackPlugin {
 
     logger.debug(format!("getting stats for '{abs_from}'..."));
 
-    let from_type = if let Ok(meta) = compilation.input_filesystem.metadata(&abs_from).await {
+    let from_type = if let Ok(abs_from_path) = AbsPath::new(abs_from.as_str())
+      && let Ok(meta) = compilation.input_filesystem.metadata(&abs_from_path).await
+    {
       if meta.is_directory {
         logger.debug(format!("determined '{abs_from}' is a directory"));
         FromType::Dir
@@ -511,11 +517,15 @@ impl CopyRspackPlugin {
 
     if matches!(from_type, FromType::Glob) {
       let glob_base_dir = unescape_glob_path(extract_glob_base_dir(&glob_query));
-      let glob_base_dir_exists = compilation
-        .input_filesystem
-        .metadata(Utf8Path::new(&glob_base_dir))
-        .await
-        .is_ok();
+      let glob_base_dir_exists = if let Ok(abs_dir) = AbsPath::new(&glob_base_dir) {
+        compilation
+          .input_filesystem
+          .metadata(&abs_dir)
+          .await
+          .is_ok()
+      } else {
+        false
+      };
       let glob_base_dir = PathBuf::from(glob_base_dir).normalize().into_owned();
       // Align with copy-webpack-plugin: a glob base dir that does not exist yet is
       // a missing dependency, not a context dependency. The watcher reports a
@@ -873,12 +883,18 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
   // Handle permission copying after all assets are emitted
   for (source_path, dest_path) in permission_copies.iter() {
-    if let Ok(Some(permissions)) = compilation.input_filesystem.permissions(source_path).await {
+    if let Ok(abs_source_path) = AbsPath::new(source_path.as_str())
+      && let Ok(abs_dest_path) = AbsPath::try_from_utf8_path(dest_path)
+      && let Ok(Some(permissions)) = compilation
+        .input_filesystem
+        .permissions(&abs_source_path)
+        .await
+    {
       // Make sure the output directory exists
-      if let Some(parent) = dest_path.parent() {
+      if let Some(parent) = abs_dest_path.parent() {
         compilation
           .output_filesystem
-          .create_dir_all(parent)
+          .create_dir_all(&parent)
           .await
           .unwrap_or_else(|e| {
             logger.warn(format!("Failed to create directory {parent:?}: {e}"));
@@ -895,7 +911,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       if let Err(e) = compilation
         .output_filesystem
-        .set_permissions(dest_path, permissions)
+        .set_permissions(&abs_dest_path, permissions)
         .await
       {
         logger.warn(format!(

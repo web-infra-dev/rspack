@@ -5,6 +5,7 @@ use rspack_core::{
   ResolveResult, TsconfigOptions, TsconfigReferences, diagnostics::ModuleBuildError,
 };
 use rspack_error::{Diagnostic, Error, Result};
+use rspack_fs::{AbsPath, ReadableFileSystem};
 use rspack_javascript_compiler::JavaScriptCompiler;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_util::{identifier::absolute_to_request, node_path::NodePath};
@@ -143,7 +144,8 @@ pub(crate) async fn complete_isolated_dts_outputs(
         .file_dependencies
         .insert(std_resource_path.clone().into());
 
-      let source = fs.read_to_string(&resource_path).await?;
+      let abs_resource_path = AbsPath::new(resource_path.as_str())?;
+      let source = fs.read_to_string(&abs_resource_path).await?;
       // Declaration completion only needs to parse TypeScript sources for fast dts.
       // Keep this intentionally minimal instead of reusing swc-loader transform options.
       let syntax = Syntax::Typescript(TsSyntax {
@@ -212,14 +214,18 @@ fn resolve_path(base: &Utf8Path, value: &str) -> Utf8PathBuf {
 async fn default_tsconfig_options(
   compilation: &mut Compilation,
   compiler_root: &Utf8Path,
-  fs: &Arc<dyn rspack_fs::ReadableFileSystem>,
+  fs: &Arc<dyn ReadableFileSystem>,
 ) -> Option<TsconfigOptions> {
   if compilation.options.resolve.tsconfig.is_some() {
     return None;
   }
 
   let tsconfig = compiler_root.node_join("tsconfig.json");
-  match fs.metadata(&tsconfig).await {
+  let metadata = match AbsPath::new(tsconfig.as_str()) {
+    Ok(abs_tsconfig) => fs.metadata(&abs_tsconfig).await,
+    Err(err) => Err(err),
+  };
+  match metadata {
     Ok(metadata) if metadata.is_file => {
       compilation
         .file_dependencies

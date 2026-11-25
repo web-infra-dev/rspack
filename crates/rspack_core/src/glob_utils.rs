@@ -5,7 +5,7 @@ use async_recursion::async_recursion;
 use cow_utils::CowUtils;
 use fast_glob::glob_match;
 use rspack_error::Result;
-use rspack_fs::ReadableFileSystem;
+use rspack_fs::{AbsPath, ReadableFileSystem};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 
 #[derive(Debug)]
@@ -207,12 +207,17 @@ pub(crate) async fn walk_dir(
   should_enter_dir: &mut (impl FnMut(&Utf8Path, &str) -> bool + Send),
   on_file: &mut (impl FnMut(Utf8PathBuf, String) + Send),
 ) -> Result<()> {
-  if !fs.metadata(root).await.is_ok_and(|m| m.is_directory) {
+  let Ok(abs_root) = AbsPath::new(root.as_str()) else {
+    return Ok(());
+  };
+  if !fs.metadata(&abs_root).await.is_ok_and(|m| m.is_directory) {
     return Ok(());
   }
-  for filename in fs.read_dir(root).await? {
+  for filename in fs.read_dir(&abs_root).await? {
     let path = root.join(&filename);
-    if fs.metadata(&path).await.is_ok_and(|m| m.is_directory) {
+    if let Ok(abs_path) = AbsPath::new(path.as_str())
+      && fs.metadata(&abs_path).await.is_ok_and(|m| m.is_directory)
+    {
       if recursive && should_enter_dir(&path, &filename) {
         walk_dir(
           &path,
@@ -249,10 +254,14 @@ pub async fn find_files_by_glob(
   // work. Case-insensitive matching still needs the walk to find the real spelling on disk.
   if options.case_sensitive && first_glob_metacharacter_index(&normalized_pattern).is_none() {
     let path = Utf8PathBuf::from(unescape_glob_path(&normalized_pattern));
-    let matched = fs
-      .metadata(&path)
-      .await
-      .is_ok_and(|meta| !meta.is_directory)
+    let exists_non_dir = match AbsPath::new(path.as_str()) {
+      Ok(abs_path) => fs
+        .metadata(&abs_path)
+        .await
+        .is_ok_and(|meta| !meta.is_directory),
+      Err(_) => false,
+    };
+    let matched = exists_non_dir
       && glob_match_normalized_with_explicit_dot(
         &normalized_pattern,
         path.as_str(),
@@ -352,9 +361,22 @@ fn pattern_has_explicit_dot_for(
 mod tests {
   use std::sync::atomic::{AtomicUsize, Ordering};
 
-  use rspack_fs::{FileMetadata, FilePermissions, MemoryFileSystem, WritableFileSystem};
+  use rspack_fs::{AbsPath, FileMetadata, MemoryFileSystem};
 
   use super::*;
+
+  fn test_str(posix: &str) -> String {
+    if cfg!(windows) {
+      let rest = posix.trim_start_matches('/').cow_replace('/', "\\");
+      format!("C:\\{rest}")
+    } else {
+      posix.to_string()
+    }
+  }
+
+  fn test_abs(posix: &str) -> AbsPath {
+    AbsPath::new(&test_str(posix)).expect("valid test AbsPath")
+  }
 
   #[derive(Debug, Default)]
   struct ReadDirCountingFileSystem {
@@ -364,84 +386,83 @@ mod tests {
 
   #[async_trait::async_trait]
   impl ReadableFileSystem for ReadDirCountingFileSystem {
-    async fn read(&self, path: &Utf8Path) -> rspack_fs::Result<Vec<u8>> {
+    async fn read(&self, path: &AbsPath) -> rspack_fs::Result<Vec<u8>> {
       self.inner.read(path).await
     }
 
-    fn read_sync(&self, path: &Utf8Path) -> rspack_fs::Result<Vec<u8>> {
+    fn read_sync(&self, path: &AbsPath) -> rspack_fs::Result<Vec<u8>> {
       self.inner.read_sync(path)
     }
 
-    async fn metadata(&self, path: &Utf8Path) -> rspack_fs::Result<FileMetadata> {
+    async fn metadata(&self, path: &AbsPath) -> rspack_fs::Result<FileMetadata> {
       self.inner.metadata(path).await
     }
 
-    fn metadata_sync(&self, path: &Utf8Path) -> rspack_fs::Result<FileMetadata> {
+    fn metadata_sync(&self, path: &AbsPath) -> rspack_fs::Result<FileMetadata> {
       self.inner.metadata_sync(path)
     }
 
-    async fn symlink_metadata(&self, path: &Utf8Path) -> rspack_fs::Result<FileMetadata> {
+    async fn symlink_metadata(&self, path: &AbsPath) -> rspack_fs::Result<FileMetadata> {
       self.inner.symlink_metadata(path).await
     }
 
-    async fn read_link(&self, path: &Utf8Path) -> rspack_fs::Result<Utf8PathBuf> {
+    async fn read_link(&self, path: &AbsPath) -> rspack_fs::Result<String> {
       self.inner.read_link(path).await
     }
 
-    async fn canonicalize(&self, path: &Utf8Path) -> rspack_fs::Result<Utf8PathBuf> {
+    async fn canonicalize(&self, path: &AbsPath) -> rspack_fs::Result<AbsPath> {
       self.inner.canonicalize(path).await
     }
 
-    async fn read_dir(&self, dir: &Utf8Path) -> rspack_fs::Result<Vec<String>> {
+    fn canonicalize_sync(&self, path: &AbsPath) -> rspack_fs::Result<AbsPath> {
+      self.inner.canonicalize_sync(path)
+    }
+
+    async fn read_dir(&self, dir: &AbsPath) -> rspack_fs::Result<Vec<String>> {
       self.read_dir_count.fetch_add(1, Ordering::Relaxed);
       ReadableFileSystem::read_dir(&self.inner, dir).await
     }
 
-    fn read_dir_sync(&self, dir: &Utf8Path) -> rspack_fs::Result<Vec<String>> {
+    fn read_dir_sync(&self, dir: &AbsPath) -> rspack_fs::Result<Vec<String>> {
       self.read_dir_count.fetch_add(1, Ordering::Relaxed);
       self.inner.read_dir_sync(dir)
-    }
-
-    async fn permissions(&self, path: &Utf8Path) -> rspack_fs::Result<Option<FilePermissions>> {
-      self.inner.permissions(path).await
     }
   }
 
   #[tokio::test]
   async fn literal_pattern_does_not_walk_its_base_directory() {
     let fs = Arc::new(ReadDirCountingFileSystem::default());
+    fs.inner.create_dir_all(&test_abs("/project/deps")).unwrap();
     fs.inner
-      .create_dir_all("/project/deps".into())
-      .await
+      .write(&test_abs("/project/index.html"), b"abc")
       .unwrap();
     fs.inner
-      .write("/project/index.html".into(), "abc".as_bytes())
-      .await
-      .unwrap();
-    fs.inner
-      .write("/project/deps/other.html".into(), "abc".as_bytes())
-      .await
+      .write(&test_abs("/project/deps/other.html"), b"abc")
       .unwrap();
 
+    let target = test_str("/project/index.html");
     let entries = find_files_by_glob(
-      "/project/index.html",
+      &target,
       &GlobMatchOptions::default(),
       fs.clone() as Arc<dyn ReadableFileSystem>,
     )
     .await
     .unwrap();
 
-    assert_eq!(entries, vec![Utf8PathBuf::from("/project/index.html")]);
+    assert_eq!(
+      entries,
+      vec![Utf8PathBuf::from(test_abs("/project/index.html").as_str())]
+    );
     assert_eq!(fs.read_dir_count.load(Ordering::Relaxed), 0);
   }
 
   #[tokio::test]
   async fn literal_pattern_returns_nothing_when_the_file_is_missing() {
     let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/project".into()).await.unwrap();
+    fs.create_dir_all(&test_abs("/project")).unwrap();
 
     let entries = find_files_by_glob(
-      "/project/index.html",
+      &test_str("/project/index.html"),
       &GlobMatchOptions::default(),
       fs as Arc<dyn ReadableFileSystem>,
     )

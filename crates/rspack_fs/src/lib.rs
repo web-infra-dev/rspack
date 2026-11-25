@@ -1,28 +1,17 @@
-mod read;
-pub use read::ReadableFileSystem;
-
-mod write;
-pub use write::WritableFileSystem;
-mod intermediate;
-pub use intermediate::{
-  IntermediateFileSystem, IntermediateFileSystemExtras, ReadStream, WriteStream,
-};
-
-mod file_metadata;
-pub use file_metadata::{FileMetadata, FilePermissions};
-
-mod macros;
-
-mod native_fs;
-pub use native_fs::{NativeFileSystem, NativeReadStream, NativeWriteStream};
-
-mod memory_fs;
-pub use memory_fs::{MemoryFileSystem, MemoryReadStream, MemoryWriteStream};
-
-mod noop_fs;
-pub use noop_fs::NoopFileSystem;
-
 mod error;
+pub mod fs;
+pub mod path;
+
 pub use error::{
   Error, FsResultToIoResultExt, IoResultToFsResultExt, Result, RspackResultToFsResultExt,
+};
+pub use fs::{
+  FileMetadata, FilePermissions, IntermediateFileSystem, IntermediateFileSystemExtras,
+  MemoryFileSystem, MemoryReadStream, MemoryWriteStream, NativeFileSystem, NativeReadStream,
+  NativeWriteStream, NoopFileSystem, ReadStream, ReadableFileSystem, RootTable, WritableFileSystem,
+  WriteStream,
+};
+pub use path::{
+  AbsPath, AbsPathMap, AbsPathSet, AsProjectPath, IdentityHasher, ProjectPath, ProjectPathMap,
+  ProjectPathParts, ProjectPathSet,
 };

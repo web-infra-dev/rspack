@@ -6,7 +6,7 @@ use std::{
 use napi::bindgen_prelude::*;
 use napi_derive::napi;
 use rspack_core::{Cache, CompilerOptions, InfrastructureLogSink, create_cache};
-use rspack_fs::{NativeFileSystem, ReadableFileSystem};
+use rspack_fs::ReadableFileSystem;
 
 /// One shared cache, initialized from the first compiler that uses it.
 #[napi]

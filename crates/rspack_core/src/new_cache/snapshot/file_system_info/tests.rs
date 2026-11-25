@@ -19,10 +19,10 @@ use std::{
   time::Duration,
 };
 
-use fs::{Operation, TestFileSystem};
+use fs::{Operation, TestFileSystem, host_abs, host_str};
 use rspack_cacheable::{from_bytes, to_bytes};
 use rspack_hash::HashFunction;
-use rspack_paths::{InternedPath, InternedPathSet, Utf8Path};
+use rspack_paths::{InternedPath, InternedPathSet};
 use rspack_regex::RspackRegex;
 
 use super::{FileHash, FileSystemInfo, PathClassification, Snapshot, SnapshotValidationResult};
@@ -155,7 +155,7 @@ fn create_fs() -> Arc<TestFileSystem> {
     ),
     ("/path/folder/nested", "/path/nested/deep/symlink"),
   ] {
-    fs.symlink(target, link);
+    fs.symlink(&host_str(target), link);
   }
   fs
 }
@@ -163,7 +163,7 @@ fn create_fs() -> Arc<TestFileSystem> {
 fn paths(values: &[&str]) -> InternedPathSet {
   values
     .iter()
-    .map(|path| InternedPath::from(*path))
+    .map(|path| InternedPath::from(host_str(path).as_str()))
     .collect()
 }
 
@@ -171,10 +171,10 @@ fn options() -> SnapshotOptions {
   SnapshotOptions {
     unmanaged_paths: UNMANAGED_PATHS
       .iter()
-      .map(|path| PathMatcher::String((*path).into()))
+      .map(|path| PathMatcher::String(host_str(path)))
       .collect(),
-    managed_paths: vec![PathMatcher::String("/path/node_modules".into())],
-    immutable_paths: vec![PathMatcher::String("/path/cache".into())],
+    managed_paths: vec![PathMatcher::String(host_str("/path/node_modules"))],
+    immutable_paths: vec![PathMatcher::String(host_str("/path/cache"))],
     module: SnapshotStrategyOptions::timestamp(),
     context_module: SnapshotStrategyOptions::timestamp(),
     resolve: SnapshotStrategyOptions::timestamp(),
@@ -190,7 +190,13 @@ fn fs_info_with_options(
   let log = Arc::new(TestLog::default());
   let logger = InfrastructureLogger::new("FileSystemInfo.unittest", log.clone());
   (
-    FileSystemInfo::new(fs, logger, options, "/".into(), HashFunction::SHA256),
+    FileSystemInfo::new(
+      fs,
+      logger,
+      options,
+      host_str("/").into(),
+      HashFunction::SHA256,
+    ),
     log,
   )
 }
@@ -262,7 +268,7 @@ async fn expect_snapshot_state(fs: Arc<TestFileSystem>, snapshot: &Snapshot, exp
 fn update_file(fs: &TestFileSystem, filename: &str) {
   use rspack_fs::ReadableFileSystem;
   let content = fs
-    .read_to_string_sync(Utf8Path::new(filename))
+    .read_to_string_sync(&host_abs(filename))
     .expect("fixture file");
   if filename.ends_with(".json") {
     let mut data: serde_json::Value = serde_json::from_str(&content).expect("fixture JSON");
@@ -361,17 +367,38 @@ mod path_classification_cache {
   async fn should_memoize_reg_exp_path_classification_across_snapshots() {
     let fs = create_fs();
     let mut options = options();
+    let escape_regex = |s: &str| -> String {
+      let mut out = String::with_capacity(s.len());
+      for ch in s.chars() {
+        if matches!(
+          ch,
+          '\\' | '.' | '+' | '*' | '?' | '(' | ')' | '|' | '[' | ']' | '{' | '}' | '^' | '$'
+        ) {
+          out.push('\\');
+        }
+        out.push(ch);
+      }
+      out
+    };
     options.unmanaged_paths = UNMANAGED_PATHS
       .iter()
       .map(|path| {
-        PathMatcher::Regexp(RspackRegex::new(&format!("^{path}/")).expect("unmanaged regexp"))
+        PathMatcher::Regexp(
+          RspackRegex::new(&format!("^{}[\\\\/]", escape_regex(&host_str(path))))
+            .expect("unmanaged regexp"),
+        )
       })
       .collect();
     options.managed_paths = vec![PathMatcher::Regexp(
-      RspackRegex::new(r"^(/path/node_modules/)").expect("managed regexp"),
+      RspackRegex::new(&format!(
+        "^({})",
+        escape_regex(&host_str("/path/node_modules/"))
+      ))
+      .expect("managed regexp"),
     )];
     options.immutable_paths = vec![PathMatcher::Regexp(
-      RspackRegex::new(r"^/path/cache/").expect("immutable regexp"),
+      RspackRegex::new(&format!("^{}", escape_regex(&host_str("/path/cache/"))))
+        .expect("immutable regexp"),
     )];
     let (fs_info, _) = fs_info_with_options(fs, options);
     let first = snapshot(&fs_info, SnapshotStrategyOptions::timestamp()).await;
@@ -381,13 +408,17 @@ mod path_classification_cache {
       "/path/node_modules/@foo/package1/index.js",
     ] {
       assert!(matches!(
-        *cache.get(&InternedPath::from(path)).expect("classified"),
+        *cache
+          .get(&InternedPath::from(host_str(path).as_str()))
+          .expect("classified"),
         PathClassification::Unmanaged
       ));
     }
     assert!(matches!(
       *cache
-        .get(&InternedPath::from("/path/cache/package-1234/file.txt"))
+        .get(&InternedPath::from(
+          host_str("/path/cache/package-1234/file.txt").as_str()
+        ))
         .expect("classified"),
       PathClassification::Immutable
     ));
@@ -395,13 +426,19 @@ mod path_classification_cache {
     // runs after classification, so this cache only records the Managed category.
     assert!(matches!(
       &*cache
-        .get(&InternedPath::from("/path/node_modules/package/file.txt"))
+        .get(&InternedPath::from(
+          host_str("/path/node_modules/package/file.txt").as_str()
+        ))
         .expect("classified"),
       PathClassification::Managed
     ));
     let managed = first.managed_files.as_ref().expect("managed files");
-    assert!(managed.contains(&InternedPath::from("/path/node_modules/package/file.txt")));
-    assert!(managed.contains(&InternedPath::from("/path/cache/package-1234/file.txt")));
+    assert!(managed.contains(&InternedPath::from(
+      host_str("/path/node_modules/package/file.txt").as_str()
+    )));
+    assert!(managed.contains(&InternedPath::from(
+      host_str("/path/cache/package-1234/file.txt").as_str()
+    )));
     let cache_size = cache.len();
     let second = snapshot(&fs_info, SnapshotStrategyOptions::timestamp()).await;
     assert_eq!(cache.len(), cache_size);
@@ -485,7 +522,7 @@ mod symlinks {
   async fn should_work_with_symlinks_with_errors() {
     let fs = create_fs();
     let link = "/path/context/sub/symlink-error";
-    fs.symlink("/path/folder/context", link);
+    fs.symlink(&host_str("/path/folder/context"), link);
     // webpack L650: fail the first two readlink calls before the link becomes readable.
     fs.fail(Operation::ReadLink, link, ErrorKind::Other, 2);
     let fs_info = create_fs_info(fs.clone());
@@ -515,7 +552,7 @@ mod symlinks {
     fs.symlink("../b", "/path/cycle/a/link");
     fs.symlink("../a", "/path/cycle/b/link");
     let fs_info = create_fs_info(fs);
-    let path = InternedPath::from("/path/cycle/a");
+    let path = InternedPath::from(host_str("/path/cycle/a").as_str());
     let hash = tokio::time::timeout(Duration::from_secs(5), fs_info.context_hash(&path))
       .await
       .expect("cyclic symlink graph must terminate")
@@ -542,9 +579,9 @@ mod symlinks {
   #[tokio::test]
   async fn should_not_crash_on_a_symlink_whose_target_directory_is_missing() {
     let fs = create_fs();
-    fs.symlink("/path/missing", "/path/context/sub/dangling");
+    fs.symlink(&host_str("/path/missing"), "/path/context/sub/dangling");
     let fs_info = create_fs_info(fs);
-    let missing = InternedPath::from("/path/missing");
+    let missing = InternedPath::from(host_str("/path/missing").as_str());
     assert!(
       fs_info
         .context_timestamp(&missing)
@@ -560,7 +597,7 @@ mod symlinks {
         .is_none()
     );
     let tsh = fs_info
-      .context_timestamp_and_hash(&InternedPath::from("/path/context/sub"))
+      .context_timestamp_and_hash(&InternedPath::from(host_str("/path/context/sub").as_str()))
       .await
       .expect("dangling symlink must not abort context hashing")
       .expect("context exists");
@@ -571,7 +608,7 @@ mod symlinks {
   async fn should_invalidate_a_snapshot_when_a_missing_directory_is_created() {
     let fs = create_fs();
     let fs_info = create_fs_info(fs.clone());
-    let missing = InternedPath::from("/path/missing");
+    let missing = InternedPath::from(host_str("/path/missing").as_str());
     assert!(
       fs_info
         .context_timestamp(&missing)
@@ -610,7 +647,7 @@ mod unsupported_directory_entries {
     // The upstream fixture likewise overrides the file's lstat type while
     // leaving the empty file readable, rather than opening a real FIFO/socket.
     fs.special("/path/special/socket");
-    let path = InternedPath::from("/path/special");
+    let path = InternedPath::from(host_str("/path/special").as_str());
     let hash = create_fs_info(fs.clone())
       .context_hash(&path)
       .await
@@ -992,7 +1029,9 @@ mod resolve_build_dependencies {
       "/proj/node_modules/dep/index.js",
     ] {
       assert!(
-        result.files.contains(&InternedPath::from(path)),
+        result
+          .files
+          .contains(&InternedPath::from(host_str(path).as_str())),
         "missing build dependency {path}"
       );
     }
@@ -1063,7 +1102,7 @@ mod resolve_build_dependencies {
     assert!(
       result
         .files
-        .contains(&InternedPath::from("/proj/entry.mjs"))
+        .contains(&InternedPath::from(host_str("/proj/entry.mjs").as_str()))
     );
   }
 }
@@ -1080,7 +1119,7 @@ mod managed_item_info {
     );
     extra(&fs);
     let mut options = options();
-    options.managed_paths = vec![PathMatcher::String("/root/node_modules".into())];
+    options.managed_paths = vec![PathMatcher::String(host_str("/root/node_modules"))];
     options.unmanaged_paths.clear();
     options.immutable_paths.clear();
     fs_info_with_options(fs, options)
@@ -1106,7 +1145,9 @@ mod managed_item_info {
     let info = snapshot.managed_item_info.expect("managed info");
     assert_eq!(
       info
-        .get(&InternedPath::from("/root/node_modules/normal/index.js"))
+        .get(&InternedPath::from(
+          host_str("/root/node_modules/normal/index.js").as_str()
+        ))
         .map(String::as_str),
       Some("normal@1.0.0")
     );
@@ -1114,7 +1155,9 @@ mod managed_item_info {
       snapshot
         .file_timestamps
         .expect("normal snapshots")
-        .get(&InternedPath::from("/root/node_modules/group/index.js")),
+        .get(&InternedPath::from(
+          host_str("/root/node_modules/group/index.js").as_str()
+        )),
       Some(&None)
     );
   }
@@ -1137,7 +1180,9 @@ mod managed_item_info {
       snapshot
         .file_timestamps
         .expect("normal snapshots")
-        .contains_key(&InternedPath::from("/root/node_modules/sub/node_modules"))
+        .contains_key(&InternedPath::from(
+          host_str("/root/node_modules/sub/node_modules").as_str()
+        ))
     );
   }
 
@@ -1169,7 +1214,10 @@ mod managed_item_info {
       "/root/node_modules/noname/index.js",
       "/root/node_modules/bare/index.js",
     ] {
-      assert_eq!(timestamps.get(&InternedPath::from(path)), Some(&None));
+      assert_eq!(
+        timestamps.get(&InternedPath::from(host_str(path).as_str())),
+        Some(&None)
+      );
     }
     assert!(log.0.lock().expect("log lock").is_empty());
   }
@@ -1191,8 +1239,8 @@ mod cached_getters {
       snapshot(&fs_info, mode).await;
     }
     let before = fs.calls();
-    let file = InternedPath::from("/path/file.txt");
-    let dir = InternedPath::from("/path/context");
+    let file = InternedPath::from(host_str("/path/file.txt").as_str());
+    let dir = InternedPath::from(host_str("/path/context").as_str());
     assert!(
       fs_info
         .file_timestamp(&file)
@@ -1311,25 +1359,39 @@ mod serialization_and_iteration {
     )
     .await;
     let mut base = snapshot(&fs_info, SnapshotStrategyOptions::hash_and_timestamp()).await;
-    base.file_timestamps = Some([(InternedPath::from("/f"), None)].into_iter().collect());
+    base.file_timestamps = Some(
+      [(InternedPath::from(host_str("/f").as_str()), None)]
+        .into_iter()
+        .collect(),
+    );
     base.file_hashes = Some(
       [(
-        InternedPath::from("/f"),
+        InternedPath::from(host_str("/f").as_str()),
         Some(FileHash::Digest(fs_info.digest(b"h"))),
       )]
       .into_iter()
       .collect(),
     );
-    base.context_timestamps = Some([(InternedPath::from("/c"), None)].into_iter().collect());
-    base.context_hashes = Some(
-      [(InternedPath::from("/c"), Some(fs_info.digest(b"h")))]
+    base.context_timestamps = Some(
+      [(InternedPath::from(host_str("/c").as_str()), None)]
         .into_iter()
         .collect(),
     );
+    base.context_hashes = Some(
+      [(
+        InternedPath::from(host_str("/c").as_str()),
+        Some(fs_info.digest(b"h")),
+      )]
+      .into_iter()
+      .collect(),
+    );
     base.managed_item_info = Some(
-      [(InternedPath::from("/m"), "m@1.0.0".to_string())]
-        .into_iter()
-        .collect(),
+      [(
+        InternedPath::from(host_str("/m").as_str()),
+        "m@1.0.0".to_string(),
+      )]
+      .into_iter()
+      .collect(),
     );
     base.managed_files = Some(paths(&["/mf"]));
     base.managed_contexts = Some(paths(&["/mc"]));
@@ -1367,7 +1429,7 @@ mod read_errors_abort_snapshot_creation {
     let fs_info = create_fs_info(fs.clone());
     assert_eq!(
       fs_info
-        .file_hash(&InternedPath::from("/path/context"))
+        .file_hash(&InternedPath::from(host_str("/path/context").as_str()))
         .await
         .expect("directory sentinel"),
       Some(FileHash::Directory)

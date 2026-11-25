@@ -5,11 +5,11 @@ use std::{collections::VecDeque, fmt, sync::Arc};
 
 use futures::future::BoxFuture;
 use rspack_error::Result;
-use rspack_fs::{Error as FsError, FileMetadata, ReadableFileSystem};
+use rspack_fs::{AbsPath, Error as FsError, FileMetadata, ReadableFileSystem};
 use rspack_hash::{HashDigest, HashFunction, RspackHashDigest, RspackHasher};
 use rspack_parallel::TryFutureConsumer;
 use rspack_paths::{
-  AssertUtf8, InternedPath, InternedPathDashMap, InternedPathMap, InternedPathSet,
+  AssertUtf8, InternedPath, InternedPathDashMap, InternedPathMap, InternedPathSet, Utf8PathBuf,
 };
 use rspack_util::{node_path::NodePath, time::mtime_accuracy};
 
@@ -303,13 +303,18 @@ impl FileSystemInfo {
       if !visited.insert(dependency.clone()) {
         continue;
       }
-      match self.inner.fs.metadata(dependency.assert_utf8()).await {
-        Ok(metadata) if metadata.is_directory => {
-          resolved.contexts.insert(dependency.clone());
-        }
-        Ok(_) => {
-          resolved.files.insert(dependency.clone());
-        }
+      match AbsPath::try_from_std_path(dependency.as_path()) {
+        Ok(abs) => match self.inner.fs.metadata(&abs).await {
+          Ok(metadata) if metadata.is_directory => {
+            resolved.contexts.insert(dependency.clone());
+          }
+          Ok(_) => {
+            resolved.files.insert(dependency.clone());
+          }
+          Err(_) => {
+            resolved.missing.insert(dependency.clone());
+          }
+        },
         Err(_) => {
           resolved.missing.insert(dependency.clone());
         }
@@ -405,7 +410,9 @@ impl FileSystemInfo {
         let this = self.clone();
         async move {
           // Force content validation: virtual timestamps change with each compiler.
-          let mode = if this.inner.fs.is_virtual(path.assert_utf8()) {
+          let mode = if AbsPath::try_from_std_path(path.as_path())
+            .is_ok_and(|abs| this.inner.fs.is_virtual(&abs))
+          {
             SnapshotMode::Hash
           } else {
             mode
@@ -534,7 +541,12 @@ impl FileSystemInfo {
   }
 
   async fn metadata(&self, path: &InternedPath) -> Result<Option<FileMetadata>> {
-    match self.inner.fs.metadata(path.assert_utf8()).await {
+    let abs = match AbsPath::try_from_std_path(path.as_path()) {
+      Ok(abs) => abs,
+      Err(error) if is_not_found(&error) => return Ok(None),
+      Err(error) => return Err(error.into()),
+    };
+    match self.inner.fs.metadata(&abs).await {
       Ok(metadata) => Ok(Some(metadata)),
       Err(error) if is_not_found(&error) => Ok(None),
       Err(error) => Err(error.into()),
@@ -584,7 +596,8 @@ impl FileSystemInfo {
     let hash = if metadata.is_directory {
       FileHash::Directory
     } else {
-      let content = match self.inner.fs.read(path.assert_utf8()).await {
+      let abs = AbsPath::try_from_std_path(path.as_path())?;
+      let content = match self.inner.fs.read(&abs).await {
         Ok(content) => content,
         Err(error) if is_not_found(&error) => {
           self.inner.file_hashes.insert(path.clone(), None);
@@ -722,7 +735,12 @@ impl FileSystemInfo {
     mode: SnapshotMode,
     visiting: &mut InternedPathSet,
   ) -> Result<Option<ContextValue>> {
-    let symlink_metadata = match self.inner.fs.symlink_metadata(path.assert_utf8()).await {
+    let abs = match AbsPath::try_from_std_path(path.as_path()) {
+      Ok(abs) => abs,
+      Err(error) if is_not_found(&error) => return Ok(None),
+      Err(error) => return Err(error.into()),
+    };
+    let symlink_metadata = match self.inner.fs.symlink_metadata(&abs).await {
       Ok(metadata) => Some(metadata),
       Err(error) if is_not_found(&error) => None,
       Err(error) => return Err(error.into()),
@@ -732,7 +750,7 @@ impl FileSystemInfo {
     };
 
     if symlink_metadata.is_symlink {
-      let target = self.inner.fs.read_link(path.assert_utf8()).await?;
+      let target = Utf8PathBuf::from(self.inner.fs.read_link(&abs).await?);
       let target = if target.node_is_absolute() {
         target
       } else {
@@ -763,7 +781,7 @@ impl FileSystemInfo {
       return self.file_context_value(path, mode).await;
     }
 
-    let mut children = match self.inner.fs.read_dir(path.assert_utf8()).await {
+    let mut children = match self.inner.fs.read_dir(&abs).await {
       Ok(children) => children,
       Err(error) if is_not_found(&error) => return Ok(None),
       Err(error) => return Err(error.into()),
@@ -833,7 +851,8 @@ impl FileSystemInfo {
     path: &InternedPath,
     mode: SnapshotMode,
   ) -> Result<Option<ContextValue>> {
-    let is_virtual = self.inner.fs.is_virtual(path.assert_utf8());
+    let is_virtual =
+      AbsPath::try_from_std_path(path.as_path()).is_ok_and(|abs| self.inner.fs.is_virtual(&abs));
     let file_mode = if is_virtual { SnapshotMode::Hash } else { mode };
     let timestamp = if file_mode.uses_timestamp() {
       self.file_timestamp(path).await?
@@ -914,7 +933,8 @@ impl FileSystemInfo {
         let current = self.file_timestamp(path).await?;
         // A newly introduced virtual overlay cannot be validated using the
         // timestamp of the real file that previously occupied this path.
-        if self.inner.fs.is_virtual(path.assert_utf8())
+        if AbsPath::try_from_std_path(path.as_path())
+          .is_ok_and(|abs| self.inner.fs.is_virtual(&abs))
           || !file_timestamp_matches(current.as_ref(), expected.as_ref(), snapshot.start_time)
         {
           record_invalid(path, current.is_some(), modified_files, removed_files);
@@ -931,20 +951,22 @@ impl FileSystemInfo {
     }
     if let Some(entries) = &snapshot.file_timestamp_hashes {
       for (path, expected) in entries {
-        let timestamp_matches = !self.inner.fs.is_virtual(path.assert_utf8()) && {
-          let current_timestamp = self.file_timestamp(path).await?;
-          match expected {
-            Some(expected) => file_timestamp_matches(
-              current_timestamp.as_ref(),
-              Some(&FileSystemInfoEntry {
-                safe_time: expected.safe_time,
-                timestamp: expected.timestamp,
-              }),
-              snapshot.start_time,
-            ),
-            None => current_timestamp.is_none(),
-          }
-        };
+        let timestamp_matches = !AbsPath::try_from_std_path(path.as_path())
+          .is_ok_and(|abs| self.inner.fs.is_virtual(&abs))
+          && {
+            let current_timestamp = self.file_timestamp(path).await?;
+            match expected {
+              Some(expected) => file_timestamp_matches(
+                current_timestamp.as_ref(),
+                Some(&FileSystemInfoEntry {
+                  safe_time: expected.safe_time,
+                  timestamp: expected.timestamp,
+                }),
+                snapshot.start_time,
+              ),
+              None => current_timestamp.is_none(),
+            }
+          };
         if timestamp_matches {
           continue;
         }
@@ -1104,10 +1126,11 @@ fn is_not_found(error: &FsError) -> bool {
   const WINDOWS_ERROR_INVALID_NAME: i32 = 123;
   const WINDOWS_ERROR_BAD_PATHNAME: i32 = 161;
   const WINDOWS_ERROR_DIRECTORY: i32 = 267;
-  matches!(error, FsError::Io(error) if error.kind() == std::io::ErrorKind::NotFound
-  || cfg!(windows)
-    && matches!(
-      error.raw_os_error(),
-      Some(WINDOWS_ERROR_INVALID_NAME | WINDOWS_ERROR_BAD_PATHNAME | WINDOWS_ERROR_DIRECTORY)
-    ))
+  matches!(error, FsError::NotAbsolutePath(_))
+    || matches!(error, FsError::Io(error) if error.kind() == std::io::ErrorKind::NotFound
+    || cfg!(windows)
+      && matches!(
+        error.raw_os_error(),
+        Some(WINDOWS_ERROR_INVALID_NAME | WINDOWS_ERROR_BAD_PATHNAME | WINDOWS_ERROR_DIRECTORY)
+      ))
 }

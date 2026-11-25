@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use rustc_hash::FxHashMap;
 
 use super::ReadableFileSystem;
@@ -129,6 +131,21 @@ impl RootTable {
   pub fn to_project_path_str(&self, raw: &str) -> Result<ProjectPath> {
     let normalized = normalize_abs_path(raw, PathFlavor::HOST)?;
     Ok(self.to_project_path_normalized_str(normalized.as_ref()))
+  }
+
+  #[inline]
+  pub fn to_project_path_utf8(&self, path: &camino::Utf8Path) -> Result<ProjectPath> {
+    self.to_project_path_str(path.as_str())
+  }
+
+  #[inline]
+  pub fn to_utf8_path_buf(&self, path: &ProjectPath) -> Result<camino::Utf8PathBuf> {
+    Ok(self.to_abs_path(path)?.to_utf8_path_buf())
+  }
+
+  #[inline]
+  pub fn to_std_path_buf(&self, path: &ProjectPath) -> Result<PathBuf> {
+    Ok(self.to_abs_path(path)?.to_std_path_buf())
   }
 
   pub fn to_project_path(&self, abs: &AbsPath) -> ProjectPath {

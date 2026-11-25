@@ -6,10 +6,20 @@ use std::{
 };
 
 use async_trait::async_trait;
-use rspack_fs::{FsResultToIoResultExt, WritableFileSystem};
-use rspack_paths::Utf8Path;
+use rspack_fs::{AbsPath, FsResultToIoResultExt, WritableFileSystem};
 use serde::{Deserialize, Serialize};
 use tokio::sync::Mutex;
+
+fn to_abs_io_path(path: &Path) -> io::Result<AbsPath> {
+  match AbsPath::try_from_std_path(path) {
+    Ok(abs) => Ok(abs),
+    Err(rspack_fs::Error::NotAbsolutePath(_)) => {
+      let joined = std::env::current_dir()?.join(path);
+      AbsPath::try_from_std_path(&joined).to_io_result()
+    }
+    Err(err) => Err(err).to_io_result(),
+  }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -187,9 +197,8 @@ impl LockfileAsync for Lockfile {
     path: P,
     filesystem: &F,
   ) -> io::Result<Lockfile> {
-    let utf8_path = Utf8Path::from_path(path.as_ref())
-      .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid UTF-8 path"))?;
-    let content = filesystem.read_file(utf8_path).await.to_io_result()?;
+    let abs_path = to_abs_io_path(path.as_ref())?;
+    let content = filesystem.read_file(&abs_path).await.to_io_result()?;
     let content_str =
       String::from_utf8(content).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
     Lockfile::parse(&content_str).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
@@ -200,13 +209,12 @@ impl LockfileAsync for Lockfile {
     path: P,
     filesystem: &F,
   ) -> io::Result<()> {
-    let utf8_path = Utf8Path::from_path(path.as_ref())
-      .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid UTF-8 path"))?;
+    let abs_path = to_abs_io_path(path.as_ref())?;
     let content = self
       .to_json_string()
       .map_err(|e| io::Error::other(e.to_string()))?;
     filesystem
-      .write(utf8_path, content.as_bytes())
+      .write(&abs_path, content.as_bytes())
       .await
       .map_err(|e| io::Error::other(e.to_string()))?;
     Ok(())
@@ -256,23 +264,20 @@ impl LockfileCache {
     lockfile.set_entry(url, entry);
 
     if let Some(lockfile_path) = &self.lockfile_path {
-      if let Some(parent) = lockfile_path.parent() {
-        let utf8_parent = Utf8Path::from_path(parent)
-          .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid UTF-8 path"))?;
+      let abs_lockfile_path = to_abs_io_path(lockfile_path)?;
+      if let Some(parent) = abs_lockfile_path.parent() {
         self
           .filesystem
-          .create_dir_all(utf8_parent)
+          .create_dir_all(&parent)
           .await
           .map_err(|e| io::Error::other(e.to_string()))?;
       }
       let content = lockfile
         .to_json_string()
         .map_err(|e| io::Error::other(e.to_string()))?;
-      let utf8_lockfile_path = Utf8Path::from_path(lockfile_path)
-        .ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid UTF-8 path"))?;
       self
         .filesystem
-        .write(utf8_lockfile_path, content.as_bytes())
+        .write(&abs_lockfile_path, content.as_bytes())
         .await
         .map_err(|e| io::Error::other(e.to_string()))?;
     }

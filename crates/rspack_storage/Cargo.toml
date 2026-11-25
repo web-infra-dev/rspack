@@ -22,7 +22,10 @@ rspack_fs         = { workspace = true }
 rspack_parallel   = { workspace = true }
 rspack_paths      = { workspace = true }
 rustc-hash        = { workspace = true }
-tokio             = { workspace = true, features = ["time"] }
+tokio             = { workspace = true, features = ["sync", "time"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [lints]
 workspace = true

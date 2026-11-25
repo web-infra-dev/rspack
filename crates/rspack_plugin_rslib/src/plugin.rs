@@ -369,15 +369,14 @@ async fn asset_emitted(
   _filename: &str,
   info: &AssetEmittedInfo,
 ) -> Result<()> {
-  use rspack_fs::FilePermissions;
+  use rspack_fs::{AbsPath, FilePermissions};
 
   let content = info.source.source().into_string_lossy();
   if content.starts_with("#!") {
     let output_fs = &compilation.output_filesystem;
+    let abs_target = AbsPath::try_from_utf8_path(&info.target_path)?;
     let permissions = FilePermissions::from_mode(0o755);
-    output_fs
-      .set_permissions(&info.target_path, permissions)
-      .await?;
+    output_fs.set_permissions(&abs_target, permissions).await?;
   }
   Ok(())
 }

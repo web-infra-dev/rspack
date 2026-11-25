@@ -5,6 +5,7 @@ use itertools::Itertools;
 use rspack_core::{Compilation, Mode};
 use rspack_dojang::{Dojang, Operand, dojang::DojangOptions};
 use rspack_error::{AnyhowResultToRspackResultExt, Result, ToStringResultToRspackResultExt, error};
+use rspack_fs::AbsPath;
 use rspack_paths::AssertUtf8;
 use serde_json::Value;
 
@@ -64,10 +65,16 @@ impl HtmlTemplate {
           parameters: None,
         })
       } else {
-        compilation
-          .input_filesystem
-          .read_to_string(&resolved_template)
-          .await
+        let content = match AbsPath::new(resolved_template.as_str()) {
+          Ok(abs_template) => {
+            compilation
+              .input_filesystem
+              .read_to_string(&abs_template)
+              .await
+          }
+          Err(err) => Err(err),
+        };
+        content
           .map_err(|err| anyhow!(err))
           .context(format!(
             "HtmlRspackPlugin: could not load file `{}` from `{}`",
@@ -87,11 +94,17 @@ impl HtmlTemplate {
         path_clean::clean(compilation.options.context.as_path().join("src/index.ejs"))
           .assert_utf8();
 
-      if let Ok(content) = compilation
-        .input_filesystem
-        .read_to_string(&default_src_template)
-        .await
-      {
+      let default_template_content =
+        if let Ok(abs_default_template) = AbsPath::new(default_src_template.as_str()) {
+          compilation
+            .input_filesystem
+            .read_to_string(&abs_default_template)
+            .await
+            .ok()
+        } else {
+          None
+        };
+      if let Some(content) = default_template_content {
         Ok(Self {
           render: TemplateRender::Template(content),
           url: default_src_template.as_str().to_string(),

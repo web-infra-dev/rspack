@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_core::{CompilerId, Loader, LoaderContext, RunnerContext};
 use rspack_error::Result;
+use rspack_fs::AbsPath;
 use rspack_loader_runner::{DisplayWithSuffix, Identifier};
 use rspack_util::fx_hash::FxHashMap;
 use serde_json::json;
@@ -159,10 +160,11 @@ impl Loader<RunnerContext> for DependencyLoader {
         .iter()
         .any(|item| item.as_path() == dependency)
     );
+    let abs_dependency = AbsPath::new(dependency.as_str())?;
     let value = loader_context
       .context
       .fs
-      .read_to_string(&dependency)
+      .read_to_string(&abs_dependency)
       .await?;
     let runs = {
       let mut runs = DEPENDENCY_LOADER_RUNS

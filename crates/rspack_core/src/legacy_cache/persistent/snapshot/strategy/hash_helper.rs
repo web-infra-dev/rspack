@@ -3,8 +3,8 @@ use std::{
   sync::Arc,
 };
 
-use rspack_fs::{FileMetadata, ReadableFileSystem};
-use rspack_paths::{AssertUtf8, InternedPath, InternedPathDashMap};
+use rspack_fs::{AbsPath, FileMetadata, ReadableFileSystem};
+use rspack_paths::{InternedPath, InternedPathDashMap};
 use rustc_hash::FxHasher;
 
 use super::PackageHelper;
@@ -72,11 +72,14 @@ impl HashHelper {
       return hash.clone();
     }
 
-    let utf8_path = path.assert_utf8();
+    let Ok(abs_path) = AbsPath::try_from_std_path(path.as_path()) else {
+      self.file_cache.insert(path.into(), None);
+      return None;
+    };
     let metadata = if let Some(m) = metadata {
       m
     } else {
-      let Ok(metadata) = self.fs.metadata(utf8_path).await else {
+      let Ok(metadata) = self.fs.metadata(&abs_path).await else {
         self.file_cache.insert(path.into(), None);
         return None;
       };
@@ -86,11 +89,11 @@ impl HashHelper {
     let mtime = Self::modified_time_from_metadata(&metadata);
     let mut hasher = FxHasher::default();
     if metadata.is_symlink {
-      if let Ok(target) = self.fs.canonicalize(utf8_path).await {
-        target.hash(&mut hasher)
+      if let Ok(target) = self.fs.canonicalize(&abs_path).await {
+        target.as_str().hash(&mut hasher);
       }
     } else if metadata.is_file
-      && let Ok(content) = self.fs.read(utf8_path).await
+      && let Ok(content) = self.fs.read(&abs_path).await
     {
       content.hash(&mut hasher);
     };
@@ -114,14 +117,17 @@ impl HashHelper {
       return hash.clone();
     }
 
-    let utf8_path = path.assert_utf8();
-    let Ok(metadata) = self.fs.metadata(utf8_path).await else {
+    let Ok(abs_path) = AbsPath::try_from_std_path(path.as_path()) else {
+      self.dir_cache.insert(path.into(), None);
+      return None;
+    };
+    let Ok(metadata) = self.fs.metadata(&abs_path).await else {
       self.dir_cache.insert(path.into(), None);
       return None;
     };
 
     let hash = if metadata.is_directory && !metadata.is_symlink {
-      if let Ok(mut children) = self.fs.read_dir(utf8_path).await {
+      if let Ok(mut children) = self.fs.read_dir(&abs_path).await {
         let mut hasher = FxHasher::default();
         children.sort();
         for item in children {
@@ -165,14 +171,17 @@ impl HashHelper {
       return timestamp_hash.clone();
     }
 
-    let utf8_path = path.assert_utf8();
-    let Ok(metadata) = self.fs.metadata(utf8_path).await else {
+    let Ok(abs_path) = AbsPath::try_from_std_path(path.as_path()) else {
+      self.timestamp_hash_cache.insert(path.into(), None);
+      return None;
+    };
+    let Ok(metadata) = self.fs.metadata(&abs_path).await else {
       self.timestamp_hash_cache.insert(path.into(), None);
       return None;
     };
 
     let timestamp_hash = if metadata.is_directory && !metadata.is_symlink {
-      let Ok(mut children) = self.fs.read_dir(utf8_path).await else {
+      let Ok(mut children) = self.fs.read_dir(&abs_path).await else {
         self.timestamp_hash_cache.insert(path.into(), None);
         return None;
       };
@@ -229,48 +238,65 @@ impl HashHelper {
 mod tests {
   use std::sync::Arc;
 
-  use rspack_fs::{MemoryFileSystem, WritableFileSystem};
+  use cow_utils::CowUtils;
+  use rspack_fs::{AbsPath, MemoryFileSystem};
   use rspack_paths::InternedPath;
 
   use super::{HashHelper, PackageHelper};
   use crate::{PathMatcher, SnapshotOptions, SnapshotStrategyOptions};
 
+  fn test_str(posix: &str) -> String {
+    if cfg!(windows) {
+      let rest = posix.trim_start_matches('/').cow_replace('/', "\\");
+      format!("C:\\{rest}")
+    } else {
+      posix.to_string()
+    }
+  }
+
+  fn test_abs(posix: &str) -> AbsPath {
+    AbsPath::new(&test_str(posix)).expect("valid test AbsPath")
+  }
+
   fn new_helper(fs: Arc<MemoryFileSystem>) -> HashHelper {
     HashHelper::new(
       fs.clone(),
       Arc::new(SnapshotOptions {
-        immutable_paths: vec![PathMatcher::String("/immutable".into())],
+        immutable_paths: vec![PathMatcher::String(test_str("/immutable"))],
         unmanaged_paths: vec![],
-        managed_paths: vec![PathMatcher::String("/node_modules".into())],
+        managed_paths: vec![PathMatcher::String(test_str("/node_modules"))],
         resolve_build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
         build_dependencies: SnapshotStrategyOptions::hash_and_timestamp(),
         resolve: SnapshotStrategyOptions::hash_and_timestamp(),
         module: SnapshotStrategyOptions::hash_and_timestamp(),
         context_module: SnapshotStrategyOptions::timestamp(),
       }),
-      Arc::new(PackageHelper::new(fs, "/".into())),
+      Arc::new(PackageHelper::new(fs, test_str("/").into())),
     )
   }
 
   #[tokio::test]
   async fn file_hash() {
     let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/".into()).await.unwrap();
-    fs.write("/hash.js".into(), "abc".as_bytes()).await.unwrap();
+    fs.create_dir_all(&test_abs("/")).unwrap();
+    fs.write(&test_abs("/hash.js"), b"abc").unwrap();
 
     let helper = new_helper(fs.clone());
     assert!(
       helper
-        .file_hash(&InternedPath::from("/not_exist.js"))
+        .file_hash(&InternedPath::from(test_str("/not_exist.js").as_str()))
         .await
         .is_none()
     );
     // check directory
-    let hash0 = helper.file_hash(&InternedPath::from("/")).await.unwrap();
+    let hash0 = helper
+      .file_hash(&InternedPath::from(test_str("/").as_str()))
+      .await
+      .unwrap();
     assert_eq!(hash0.hash, 0);
 
     let hash1 = helper
-      .file_hash(&InternedPath::from("/hash.js"))
+      .file_hash(&InternedPath::from(test_str("/hash.js").as_str()))
       .await
       .unwrap();
 
@@ -278,7 +304,7 @@ mod tests {
     // do nothing
     let helper = new_helper(fs.clone());
     let hash2 = helper
-      .file_hash(&InternedPath::from("/hash.js"))
+      .file_hash(&InternedPath::from(test_str("/hash.js").as_str()))
       .await
       .unwrap();
     assert_eq!(hash1.hash, hash2.hash);
@@ -286,9 +312,9 @@ mod tests {
 
     // same content
     let helper = new_helper(fs.clone());
-    fs.write("/hash.js".into(), "abc".as_bytes()).await.unwrap();
+    fs.write(&test_abs("/hash.js"), b"abc").unwrap();
     let hash3 = helper
-      .file_hash(&InternedPath::from("/hash.js"))
+      .file_hash(&InternedPath::from(test_str("/hash.js").as_str()))
       .await
       .unwrap();
     assert_eq!(hash1.hash, hash3.hash);
@@ -296,11 +322,9 @@ mod tests {
 
     // diff content
     let helper = new_helper(fs.clone());
-    fs.write("/hash.js".into(), "abcd".as_bytes())
-      .await
-      .unwrap();
+    fs.write(&test_abs("/hash.js"), b"abcd").unwrap();
     let hash4 = helper
-      .file_hash(&InternedPath::from("/hash.js"))
+      .file_hash(&InternedPath::from(test_str("/hash.js").as_str()))
       .await
       .unwrap();
     assert_ne!(hash1.hash, hash4.hash);
@@ -310,36 +334,35 @@ mod tests {
   #[tokio::test]
   async fn dir_hash() {
     let fs = Arc::new(MemoryFileSystem::default());
-    fs.create_dir_all("/a".into()).await.unwrap();
-    fs.create_dir_all("/node_modules/lib".into()).await.unwrap();
-    fs.write("/a/a1.js".into(), "a1".as_bytes()).await.unwrap();
-    fs.write("/a/a2.js".into(), "a2".as_bytes()).await.unwrap();
-    fs.write("/b.js".into(), "b".as_bytes()).await.unwrap();
-    fs.write("/immutable.js".into(), "immut".as_bytes())
-      .await
+    fs.create_dir_all(&test_abs("/a")).unwrap();
+    fs.create_dir_all(&test_abs("/node_modules/lib")).unwrap();
+    fs.write(&test_abs("/a/a1.js"), b"a1").unwrap();
+    fs.write(&test_abs("/a/a2.js"), b"a2").unwrap();
+    fs.write(&test_abs("/b.js"), b"b").unwrap();
+    fs.write(&test_abs("/immutable.js"), b"immut").unwrap();
+    fs.write(&test_abs("/node_modules/lib/index.js"), b"const a = 1")
       .unwrap();
     fs.write(
-      "/node_modules/lib/index.js".into(),
-      "const a = 1".as_bytes(),
+      &test_abs("/node_modules/lib/package.json"),
+      br#"{"name": "lib", "version": "0.0.1"}"#,
     )
-    .await
-    .unwrap();
-    fs.write(
-      "/node_modules/lib/package.json".into(),
-      r#"{"name": "lib", "version": "0.0.1"}"#.as_bytes(),
-    )
-    .await
     .unwrap();
 
     let helper = new_helper(fs.clone());
-    let hash1 = helper.dir_hash(&InternedPath::from("/")).await.unwrap();
+    let hash1 = helper
+      .dir_hash(&InternedPath::from(test_str("/").as_str()))
+      .await
+      .unwrap();
     assert_eq!(hash1.mtime, 0);
 
     std::thread::sleep(std::time::Duration::from_millis(100));
 
     // do nothing
     let helper = new_helper(fs.clone());
-    let hash2 = helper.dir_hash(&InternedPath::from("/")).await.unwrap();
+    let hash2 = helper
+      .dir_hash(&InternedPath::from(test_str("/").as_str()))
+      .await
+      .unwrap();
     assert_eq!(hash1.hash, hash2.hash);
     assert_eq!(hash2.mtime, 0);
 
@@ -348,53 +371,48 @@ mod tests {
     // do something will not update hash
     let helper = new_helper(fs.clone());
     // write same content
-    fs.write("/a/a2.js".into(), "a2".as_bytes()).await.unwrap();
+    fs.write(&test_abs("/a/a2.js"), b"a2").unwrap();
     // edit immutable file
-    fs.write("/immutable.js".into(), "next".as_bytes())
-      .await
-      .unwrap();
+    fs.write(&test_abs("/immutable.js"), b"next").unwrap();
     // edit node_modules file
-    fs.write(
-      "/node_modules/lib/index.js".into(),
-      "const a = 2".as_bytes(),
-    )
-    .await
-    .unwrap();
+    fs.write(&test_abs("/node_modules/lib/index.js"), b"const a = 2")
+      .unwrap();
     // update package.json
     fs.write(
-      "/node_modules/lib/package.json".into(),
-      r#"{"name": "lib", "version": "0.0.2"}"#.as_bytes(),
+      &test_abs("/node_modules/lib/package.json"),
+      br#"{"name": "lib", "version": "0.0.2"}"#,
     )
-    .await
     .unwrap();
-    let hash3 = helper.dir_hash(&InternedPath::from("/")).await.unwrap();
+    let hash3 = helper
+      .dir_hash(&InternedPath::from(test_str("/").as_str()))
+      .await
+      .unwrap();
     assert_eq!(hash2.hash, hash3.hash);
     assert_eq!(hash3.mtime, 0);
 
     // update file content
     let helper = new_helper(fs.clone());
-    fs.write("/a/a2.js".into(), "a2a".as_bytes()).await.unwrap();
-    let hash4 = helper.dir_hash(&InternedPath::from("/")).await.unwrap();
+    fs.write(&test_abs("/a/a2.js"), b"a2a").unwrap();
+    let hash4 = helper
+      .dir_hash(&InternedPath::from(test_str("/").as_str()))
+      .await
+      .unwrap();
     assert_ne!(hash3.hash, hash4.hash);
     assert_eq!(hash4.mtime, 0);
 
     // node_modules lib test
     let helper = new_helper(fs.clone());
     let hash1 = helper
-      .dir_hash(&InternedPath::from("/node_modules/lib/"))
+      .dir_hash(&InternedPath::from(test_str("/node_modules/lib/").as_str()))
       .await
       .unwrap();
 
     // update lib content
     let helper = new_helper(fs.clone());
-    fs.write(
-      "/node_modules/lib/index.js".into(),
-      "const a = 3".as_bytes(),
-    )
-    .await
-    .unwrap();
+    fs.write(&test_abs("/node_modules/lib/index.js"), b"const a = 3")
+      .unwrap();
     let hash2 = helper
-      .dir_hash(&InternedPath::from("/node_modules/lib/"))
+      .dir_hash(&InternedPath::from(test_str("/node_modules/lib/").as_str()))
       .await
       .unwrap();
     assert_eq!(hash1.hash, hash2.hash);
@@ -402,13 +420,12 @@ mod tests {
     // update package.json
     let helper = new_helper(fs.clone());
     fs.write(
-      "/node_modules/lib/package.json".into(),
-      r#"{"name": "lib", "version": "0.0.3"}"#.as_bytes(),
+      &test_abs("/node_modules/lib/package.json"),
+      br#"{"name": "lib", "version": "0.0.3"}"#,
     )
-    .await
     .unwrap();
     let hash2 = helper
-      .dir_hash(&InternedPath::from("/node_modules/lib/"))
+      .dir_hash(&InternedPath::from(test_str("/node_modules/lib/").as_str()))
       .await
       .unwrap();
     assert_ne!(hash1.hash, hash2.hash);

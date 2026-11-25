@@ -9,8 +9,8 @@ use rspack_core::{
   UsageState, UsedByExports, UsedByExportsCondition, collect_referenced_export_items,
   rspack_sources::MapOptions,
 };
+use rspack_fs::AbsPath;
 use rspack_intern::Atom;
-use rspack_paths::Utf8PathBuf;
 use rspack_plugin_javascript::{
   dependency::{ESMExportImportedSpecifierDependency, ESMImportSpecifierDependency, URLDependency},
   has_impure_deferred_pure_checks,
@@ -215,7 +215,7 @@ pub fn collect_module_original_sources(
           })
         })
         .or_else(|| {
-          let resource = Utf8PathBuf::from(resource);
+          let resource = AbsPath::new(&resource).ok()?;
           let buffer = ifs.read_sync(&resource).ok()?;
           let content = String::from_utf8(buffer).ok()?;
           Some(RsdoctorModuleOriginalSource {

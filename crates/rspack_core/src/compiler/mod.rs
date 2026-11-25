@@ -5,7 +5,7 @@ use arc_swap::ArcSwapOption;
 use futures::future::join_all;
 use rspack_cacheable::cacheable;
 use rspack_error::{Error, Result};
-use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
+use rspack_fs::{AbsPath, IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
 use rspack_paths::{InternedPath, Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
@@ -519,12 +519,13 @@ impl Compiler {
     if let Some(source) = asset.get_source() {
       let (target_file, query) = filename.split_once('?').unwrap_or((filename, ""));
       let file_path = output_path.node_join(target_file);
+      let abs_file_path = AbsPath::try_from_utf8_path(&file_path)?;
       self
         .output_filesystem
         .create_dir_all(
-          file_path
+          &abs_file_path
             .parent()
-            .unwrap_or_else(|| panic!("The parent of {file_path} can't found")),
+            .unwrap_or_else(|| panic!("The parent of {abs_file_path} can't found")),
         )
         .await?;
 
@@ -542,11 +543,7 @@ impl Compiler {
             .any(|hash| target_file.contains(hash));
       }
 
-      let stat = self
-        .output_filesystem
-        .stat(file_path.as_path().as_ref())
-        .await
-        .ok();
+      let stat = self.output_filesystem.stat(&abs_file_path).await.ok();
 
       let need_write = if !self.options.output.compare_before_emit {
         // write when compare_before_emit is false
@@ -558,11 +555,7 @@ impl Compiler {
         // do not write when asset is immutable and the file exists
         false
       } else if (content.len() as u64) == stat.as_ref().unwrap_or_else(|| unreachable!()).size {
-        match self
-          .output_filesystem
-          .read_file(file_path.as_path().as_ref())
-          .await
-        {
+        match self.output_filesystem.read_file(&abs_file_path).await {
           // write when content is different
           Ok(c) => content != c,
           // write when file can not be read
@@ -574,7 +567,10 @@ impl Compiler {
       };
 
       if need_write {
-        self.output_filesystem.write(&file_path, &content).await?;
+        self
+          .output_filesystem
+          .write(&abs_file_path, &content)
+          .await?;
         self.compilation.emitted_assets.insert(filename.to_string());
       }
 
@@ -604,7 +600,11 @@ impl Compiler {
     if self.emitted_asset_versions.is_empty() {
       match clean_options {
         CleanOptions::CleanAll(true) => {
-          self.output_filesystem.remove_dir_all(output_path).await?;
+          let abs_output_path = AbsPath::try_from_utf8_path(output_path)?;
+          self
+            .output_filesystem
+            .remove_dir_all(&abs_output_path)
+            .await?;
         }
         CleanOptions::KeepPath(p) => {
           let path = output_path.join(p);
@@ -636,7 +636,9 @@ impl Compiler {
         Some(async {
           if !clean_options.keep(&filename).await {
             let filename = output_path.join(filename);
-            let _ = self.output_filesystem.remove_file(&filename).await;
+            if let Ok(abs_filename) = AbsPath::try_from_utf8_path(&filename) {
+              let _ = self.output_filesystem.remove_file(&abs_filename).await;
+            }
           }
         })
       } else {

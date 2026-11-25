@@ -13,6 +13,7 @@ use rspack_core::{
   rspack_sources::{RawBufferSource, RawStringSource, SourceExt},
 };
 use rspack_error::{AnyhowResultToRspackResultExt, Result};
+use rspack_fs::AbsPath;
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::Utf8PathBuf;
 use rspack_util::fx_hash::FxHashMap;
@@ -304,10 +305,11 @@ pub async fn create_favicon_asset(
 
   let resolved_favicon = compilation.options.context.as_path().join(favicon);
 
-  compilation
-    .input_filesystem
-    .read(&resolved_favicon)
-    .await
+  let content = match AbsPath::new(resolved_favicon.as_str()) {
+    Ok(abs_favicon) => compilation.input_filesystem.read(&abs_favicon).await,
+    Err(err) => Err(err),
+  };
+  content
     .map_err(|err| anyhow!(err))
     .context(format!(
       "HtmlRspackPlugin: could not load file `{}` from `{}`",

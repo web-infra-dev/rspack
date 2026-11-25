@@ -1,6 +1,7 @@
 use async_trait::async_trait;
-use rspack_fs::{FileMetadata, FilePermissions, NativeFileSystem, ReadableFileSystem, Result};
-use rspack_paths::{Utf8Path, Utf8PathBuf};
+use rspack_fs::{
+  AbsPath, FileMetadata, FilePermissions, NativeFileSystem, ReadableFileSystem, Result,
+};
 use rspack_regex::RspackRegex;
 
 use super::NodeFileSystem;
@@ -25,7 +26,7 @@ impl HybridFileSystem {
     }
   }
 
-  fn pick_fs_for_path(&self, path: &Utf8Path) -> &dyn ReadableFileSystem {
+  fn pick_fs_for_path(&self, path: &AbsPath) -> &dyn ReadableFileSystem {
     if self
       .allowlist
       .iter()
@@ -40,41 +41,49 @@ impl HybridFileSystem {
 
 #[async_trait]
 impl ReadableFileSystem for HybridFileSystem {
-  async fn read(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+  async fn read(&self, path: &AbsPath) -> Result<Vec<u8>> {
     self.pick_fs_for_path(path).read(path).await
   }
-  fn read_sync(&self, path: &Utf8Path) -> Result<Vec<u8>> {
+  fn read_sync(&self, path: &AbsPath) -> Result<Vec<u8>> {
     self.pick_fs_for_path(path).read_sync(path)
   }
 
-  async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+  fn is_virtual(&self, path: &AbsPath) -> bool {
+    self.pick_fs_for_path(path).is_virtual(path)
+  }
+
+  async fn metadata(&self, path: &AbsPath) -> Result<FileMetadata> {
     self.pick_fs_for_path(path).metadata(path).await
   }
-  fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
+  fn metadata_sync(&self, path: &AbsPath) -> Result<FileMetadata> {
     self.pick_fs_for_path(path).metadata_sync(path)
   }
 
-  async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
+  async fn symlink_metadata(&self, path: &AbsPath) -> Result<FileMetadata> {
     self.pick_fs_for_path(path).symlink_metadata(path).await
   }
 
-  async fn read_link(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+  async fn read_link(&self, path: &AbsPath) -> Result<String> {
     self.pick_fs_for_path(path).read_link(path).await
   }
 
-  async fn canonicalize(&self, path: &Utf8Path) -> Result<Utf8PathBuf> {
+  async fn canonicalize(&self, path: &AbsPath) -> Result<AbsPath> {
     self.pick_fs_for_path(path).canonicalize(path).await
   }
 
-  async fn read_dir(&self, path: &Utf8Path) -> Result<Vec<String>> {
+  fn canonicalize_sync(&self, path: &AbsPath) -> Result<AbsPath> {
+    self.pick_fs_for_path(path).canonicalize_sync(path)
+  }
+
+  async fn read_dir(&self, path: &AbsPath) -> Result<Vec<String>> {
     self.pick_fs_for_path(path).read_dir(path).await
   }
 
-  fn read_dir_sync(&self, path: &Utf8Path) -> Result<Vec<String>> {
+  fn read_dir_sync(&self, path: &AbsPath) -> Result<Vec<String>> {
     self.pick_fs_for_path(path).read_dir_sync(path)
   }
 
-  async fn permissions(&self, path: &Utf8Path) -> Result<Option<FilePermissions>> {
+  async fn permissions(&self, path: &AbsPath) -> Result<Option<FilePermissions>> {
     self.pick_fs_for_path(path).permissions(path).await
   }
 }

@@ -10,6 +10,7 @@ use rspack_core::{
   NormalModuleFactoryResolveLoader, ResolveResult, Resolver, Resource, RunnerContext,
 };
 use rspack_error::Result;
+use rspack_fs::AbsPath;
 use rspack_hash::{HashFunction, RspackHasher};
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
@@ -23,7 +24,8 @@ pub(crate) async fn loader_cache_version(
 ) -> Result<Option<String>> {
   // V1 fingerprints only the resolved loader entry file. Files that the
   // loader imports or requires are intentionally not included yet.
-  let contents = resolver.inner_fs().read(path).await?;
+  let abs_path = AbsPath::new(path.as_str())?;
+  let contents = resolver.inner_fs().read(&abs_path).await?;
   let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
   hasher.write(&contents);
   Ok(Some(format!("file:{:016x}", hasher.finish())))

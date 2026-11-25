@@ -8,8 +8,8 @@ use std::{borrow::Cow, ops::Range, path::PathBuf, sync::Arc};
 use futures::stream::{FuturesOrdered, StreamExt};
 use once_cell::sync::Lazy;
 use regex::Regex;
-use rspack_fs::ReadableFileSystem;
-use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
+use rspack_fs::{AbsPath, ReadableFileSystem};
+use rspack_paths::{Utf8Path, Utf8PathBuf};
 use rspack_sources::SourceMap;
 use rspack_util::{base64, node_path::NodePath};
 use rustc_hash::FxHashSet;
@@ -204,8 +204,9 @@ async fn fetch_from_filesystem(
     return Ok((source_url.to_string(), None));
   }
 
-  let path = PathBuf::from(source_url);
-  fs.read_to_string(&path.assert_utf8())
+  let path = AbsPath::new(source_url)
+    .map_err(|err| format!("Failed to read '{source_url}' while loading the source map: {err}"))?;
+  fs.read_to_string(&path)
     .await
     .map(|content| (source_url.to_string(), Some(content)))
     .map_err(|err| format!("Failed to read '{source_url}' while loading the source map: {err}"))

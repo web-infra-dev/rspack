@@ -28,7 +28,7 @@ use rspack_core::{
   rspack_sources::{RawStringSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
-use rspack_fs::{MemoryFileSystem, WritableFileSystem};
+use rspack_fs::{AbsPath, MemoryFileSystem};
 use rspack_hash::RspackHasher;
 use rspack_plugin_split_chunks::{
   CacheGroup, CacheGroupTest, ChunkNameGetter, FallbackCacheGroup, PluginOptions, SplitChunkSizes,
@@ -60,8 +60,7 @@ pub(crate) fn flag_dependency_exports_benchmark(c: &mut Criterion, rt: &Runtime)
   let mut compiler = create_general_stage_compiler(fs.clone());
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
     prepare_build_module_graph_phase(&mut compiler)
@@ -103,8 +102,7 @@ pub(crate) fn flag_dependency_usage_benchmark(c: &mut Criterion, rt: &Runtime) {
   let mut compiler = create_general_stage_compiler(fs.clone());
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
     prepare_build_module_graph_phase(&mut compiler)
@@ -160,8 +158,7 @@ pub(crate) fn create_module_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
   let mut compiler = create_general_stage_compiler(fs.clone());
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
     prepare_for_module_ids(&mut compiler).await.unwrap();
@@ -196,8 +193,7 @@ pub(crate) fn create_named_module_ids_benchmark(c: &mut Criterion, rt: &Runtime)
   let mut compiler = create_general_stage_compiler_with_ids(fs.clone(), "named", "deterministic");
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
     prepare_for_module_ids(&mut compiler).await.unwrap();
@@ -296,8 +292,7 @@ fn split_chunks_benchmark_with_min_size(
   let mut compiler = create_split_chunks_stage_compiler(fs.clone(), min_size, dedup_depth, case);
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_split_chunks_case(SPLIT_CHUNKS_ENTRY_COUNT, SPLIT_CHUNKS_SHARED_MODULES, &fs)
       .await;
@@ -423,8 +418,7 @@ pub(crate) fn create_chunk_ids_benchmark(c: &mut Criterion, rt: &Runtime) {
   let mut compiler = create_general_stage_compiler(fs.clone());
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
     prepare_for_chunk_ids(&mut compiler).await.unwrap();
@@ -470,8 +464,7 @@ pub(crate) fn create_named_chunk_ids_benchmark(c: &mut Criterion, rt: &Runtime) 
   let mut compiler = create_general_stage_compiler_with_ids(fs.clone(), "deterministic", "named");
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
     prepare_for_chunk_ids(&mut compiler).await.unwrap();
@@ -517,8 +510,7 @@ pub(crate) fn mangle_exports_benchmark(c: &mut Criterion, rt: &Runtime) {
   let mut compiler = create_mangle_exports_stage_compiler(fs.clone());
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
     prepare_for_optimize_code_generation(&mut compiler)
@@ -594,8 +586,7 @@ pub(crate) fn create_module_hashes_benchmark(c: &mut Criterion, rt: &Runtime) {
   let mut compiler = create_general_stage_compiler(fs.clone());
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
     prepare_for_module_hashes(&mut compiler).await.unwrap();
@@ -626,8 +617,7 @@ pub(crate) fn create_chunk_hashes_benchmark(c: &mut Criterion, rt: &Runtime) {
   let mut compiler = create_general_stage_compiler(fs.clone());
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
     compiler.build().await.unwrap();
@@ -652,8 +642,7 @@ pub(crate) fn runtime_requirements_benchmark(c: &mut Criterion, rt: &Runtime) {
   let mut compiler = create_general_stage_compiler(fs.clone());
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
     prepare_for_runtime_requirements(&mut compiler)
@@ -679,8 +668,7 @@ pub(crate) fn runtime_requirements_benchmark(c: &mut Criterion, rt: &Runtime) {
         let random_table = random_table.clone();
         let mut compiler = create_general_stage_compiler(fs.clone());
         rt.block_on(async {
-          fs.create_dir_all("/src".into())
-            .await
+          fs.create_dir_all(&AbsPath::new("/src").unwrap())
             .expect("should not fail to create dir");
           prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
           prepare_for_runtime_requirements(&mut compiler)
@@ -709,8 +697,7 @@ pub(crate) fn create_full_hash_benchmark(c: &mut Criterion, rt: &Runtime) {
   let mut compiler = create_general_stage_compiler(fs.clone());
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
     prepare_for_runtime_requirements(&mut compiler)
@@ -782,8 +769,7 @@ pub(crate) fn create_chunk_assets_benchmark(c: &mut Criterion, rt: &Runtime) {
   let mut compiler = create_general_stage_compiler(fs.clone());
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
     prepare_for_chunk_assets(&mut compiler).await.unwrap();
@@ -832,8 +818,7 @@ pub(crate) fn create_module_assets_benchmark(c: &mut Criterion, rt: &Runtime) {
   let mut compiler = create_general_stage_compiler(fs.clone());
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
     prepare_for_module_assets(&mut compiler).await.unwrap();
@@ -897,8 +882,7 @@ pub(crate) fn real_content_hash_benchmark(c: &mut Criterion, rt: &Runtime) {
   let mut compiler = create_real_content_hash_stage_compiler(fs.clone());
 
   rt.block_on(async {
-    fs.create_dir_all("/src".into())
-      .await
+    fs.create_dir_all(&AbsPath::new("/src").unwrap())
       .expect("should not fail to create dir");
     prepare_large_code_splitting_case(GENERAL_STAGE_NUM_MODULES, &random_table, &fs).await;
     prepare_for_real_content_hash(&mut compiler).await.unwrap();
@@ -1942,18 +1926,17 @@ async fn prepare_large_split_chunks_case(
   shared_modules: usize,
   fs: &MemoryFileSystem,
 ) {
-  fs.create_dir_all("/src/entries".into()).await.unwrap();
-  fs.create_dir_all("/src/shared".into()).await.unwrap();
+  fs.create_dir_all(&AbsPath::new("/src/entries").unwrap())
+    .unwrap();
+  fs.create_dir_all(&AbsPath::new("/src/shared").unwrap())
+    .unwrap();
 
   for module_index in 0..shared_modules {
     let code = format!("export default {module_index};");
     fs.write(
-      format!("/src/shared/shared-{module_index}.js")
-        .as_str()
-        .into(),
+      &AbsPath::new(&format!("/src/shared/shared-{module_index}.js")).unwrap(),
       code.as_bytes(),
     )
-    .await
     .unwrap();
   }
 
@@ -1984,12 +1967,9 @@ async fn prepare_large_split_chunks_case(
       values.join(" + ")
     );
     fs.write(
-      format!("/src/entries/entry-{entry_index}.js")
-        .as_str()
-        .into(),
+      &AbsPath::new(&format!("/src/entries/entry-{entry_index}.js")).unwrap(),
       source.as_bytes(),
     )
-    .await
     .unwrap();
   }
 }
