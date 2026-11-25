@@ -462,8 +462,8 @@ impl FsWatcherInner {
     }
     let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
     if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
-      for (path, scan) in changed_in_contexts {
-        trigger.on_scan_event(path, FsEventKind::Change, scan);
+      for (path, change) in changed_in_contexts {
+        trigger.on_context_change(path, change);
       }
     }
 
