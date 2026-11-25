@@ -7,7 +7,9 @@ it("should copy files and preserve attributes from the JavaScript input file sys
 	const stat = fs.statSync(direct);
 	expect(stat.atimeMs).toBe(1_600_000_000_000);
 	expect(stat.mtimeMs).toBe(1_500_000_000_000);
-	if (process.platform !== "win32") expect(stat.mode & 0o777).toBe(0o751);
+	if (process.platform !== "win32" && !process.env.WASM) {
+		expect(stat.mode & 0o777).toBe(0o751);
+	}
 
 	expect(fs.readFileSync(direct, "utf-8")).toBe("direct from js input fs");
 	expect(
