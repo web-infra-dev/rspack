@@ -183,6 +183,8 @@ impl<'a> PathUpdater<'a> {
 
       if watch_tracker.add(added.clone()) {
         if let Some((manager, Registration::Context)) = self.registration {
+          let mut state = manager.lock_observations();
+          state.registration_changed(&added, Registration::Context);
           manager.watchers.subscribe_context(&added);
         }
         registered.push(added);
@@ -200,7 +202,7 @@ impl<'a> PathUpdater<'a> {
         .map(|(manager, kind)| (manager.lock_observations(), kind));
       if watch_tracker.remove(removed.clone()) {
         if let Some((state, kind)) = &mut observations {
-          state.unregister(&removed, *kind);
+          state.registration_changed(&removed, *kind);
         }
         if let Some((manager, Registration::Context)) = self.registration {
           manager.watchers.unsubscribe_context(&removed);
@@ -473,12 +475,32 @@ impl PathManager {
     ScanEpoch::start(&self.observations)
   }
 
-  fn is_registered(&self, scan: &Scan) -> bool {
+  // A directory walk indexes shared members. A queued event belongs to its original subscription.
+  fn scan_has_subscription(
+    &self,
+    state: &Observations,
+    scan: &Scan,
+    directory: Option<&Path>,
+  ) -> bool {
     match scan.kind {
-      Registration::File => self.files.all.contains(&scan.root),
-      Registration::Context => self.watchers.is_explicit_context(&scan.root),
-      Registration::Missing => self.missing.all.contains(&scan.root),
+      Registration::File => {
+        return self.files.all.contains(&scan.root) && state.same_subscription(scan, &scan.root);
+      }
+      Registration::Missing => {
+        return self.missing.all.contains(&scan.root) && state.same_subscription(scan, &scan.root);
+      }
+      Registration::Context => {}
     }
+    let current = |context: &InternedPath| {
+      self.watchers.is_explicit_context(context) && state.same_subscription(scan, context)
+    };
+    current(&scan.root)
+      || directory.is_some_and(|dir| {
+        dir
+          .ancestors()
+          .map(InternedPath::from)
+          .any(|context| current(&context))
+      })
   }
 
   pub(super) fn with_current<R>(
@@ -488,12 +510,12 @@ impl PathManager {
     action: impl FnOnce() -> R,
   ) -> Option<R> {
     let state = self.lock_observations();
-    (self.is_registered(scan) && state.accepts(scan, path)).then(action)
+    (self.scan_has_subscription(&state, scan, None) && state.accepts(scan, path)).then(action)
   }
 
   fn can_scan_children(&self, scan: &Scan, path: &InternedPath) -> bool {
     let state = self.lock_observations();
-    self.is_registered(scan) && state.covers_subtree(scan, path)
+    self.scan_has_subscription(&state, scan, Some(path)) && state.covers_subtree(scan, path)
   }
 
   // Check and commit together, after reading metadata and awaiting ignored.
@@ -503,8 +525,20 @@ impl PathManager {
     scan: Option<&Scan>,
     write: impl FnOnce(&Observations) -> (R, Mutation),
   ) -> Option<R> {
+    self.observe_in_directory(path, scan, None, write)
+  }
+
+  fn observe_in_directory<R>(
+    &self,
+    path: &InternedPath,
+    scan: Option<&Scan>,
+    directory: Option<&Path>,
+    write: impl FnOnce(&Observations) -> (R, Mutation),
+  ) -> Option<R> {
     let mut state = self.lock_observations();
-    if scan.is_some_and(|s| !self.is_registered(s) || !state.accepts(s, path)) {
+    if scan
+      .is_some_and(|s| !self.scan_has_subscription(&state, s, directory) || !state.accepts(s, path))
+    {
       return None;
     }
     let (result, mutation) = write(&state);
@@ -860,7 +894,11 @@ impl PathManager {
     scan: Option<&Scan>,
     origin: ContextObservation,
   ) -> Option<bool> {
-    self.observe(path, scan, |state| {
+    let directory = match origin {
+      ContextObservation::Scan { .. } => path.parent(),
+      _ => None,
+    };
+    self.observe_in_directory(path, scan, directory, |state| {
       if scan.is_none_or(|s| !s.recursive) && !self.is_below_context(path) {
         return (false, Mutation::Entry);
       }

@@ -29,7 +29,7 @@ pub(super) struct Observations {
   entries: InternedPathMap<u64>,
   subtrees: InternedPathMap<u64>,
   scans: [InternedPathMap<(u64, Option<SystemTime>)>; 2],
-  unregistered: [InternedPathMap<u64>; 3],
+  registration_changes: [InternedPathMap<u64>; 3],
 }
 
 pub(super) struct ScanEpoch {
@@ -85,7 +85,7 @@ impl Drop for ScanEpoch {
         scans.retain(|_, (version, _)| *version > oldest);
       }
       state.subtrees.retain(|_, version| *version > oldest);
-      for registrations in &mut state.unregistered {
+      for registrations in &mut state.registration_changes {
         registrations.retain(|_, version| *version > oldest);
       }
     }
@@ -98,11 +98,17 @@ impl Observations {
     self.sequence
   }
 
-  pub(super) fn unregister(&mut self, path: &InternedPath, kind: Registration) {
+  pub(super) fn registration_changed(&mut self, path: &InternedPath, kind: Registration) {
     if !self.active.is_empty() {
       let version = self.advance();
-      self.unregistered[kind as usize].insert(path.clone(), version);
+      self.registration_changes[kind as usize].insert(path.clone(), version);
     }
+  }
+
+  pub(super) fn same_subscription(&self, scan: &Scan, path: &InternedPath) -> bool {
+    self.registration_changes[scan.kind as usize]
+      .get(path)
+      .is_none_or(|v| *v <= scan.epoch.sequence)
   }
 
   pub(super) fn accepts(&self, scan: &Scan, path: &InternedPath) -> bool {
@@ -116,16 +122,13 @@ impl Observations {
 
   pub(super) fn covers_subtree(&self, scan: &Scan, path: &InternedPath) -> bool {
     let version = scan.epoch.sequence;
-    self.unregistered[scan.kind as usize]
-      .get(&scan.root)
-      .is_none_or(|v| *v <= version)
-      && (self.subtrees.is_empty()
-        || !path.ancestors().any(|ancestor| {
-          self
-            .subtrees
-            .get(&InternedPath::from(ancestor))
-            .is_some_and(|v| *v > version)
-        }))
+    self.subtrees.is_empty()
+      || !path.ancestors().any(|ancestor| {
+        self
+          .subtrees
+          .get(&InternedPath::from(ancestor))
+          .is_some_and(|v| *v > version)
+      })
   }
 
   pub(super) fn newer_scan(
