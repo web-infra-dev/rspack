@@ -2,7 +2,7 @@ use std::{borrow::Cow, collections::BTreeMap};
 
 use cow_utils::CowUtils;
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
-use serde_json::{Map, Value, json};
+use serde_json::{Map, Value};
 use swc_core::common::DUMMY_SP;
 use swc_html::ast::{Child, Element, Namespace, Text};
 use swc_next_allocator::Allocator;
@@ -36,6 +36,10 @@ pub(crate) fn add_integrity_to_import_map(
   let (mut position, mut tag) = match placement {
     Placement::Merge(position) => (position, None),
     Placement::Insert(position, nonce) => {
+      let mut entries = Map::new();
+      prepend_integrity(&mut entries, &integrity);
+      let mut map = Map::new();
+      map.insert("integrity".into(), Value::Object(entries));
       let mut attributes = vec![HtmlPluginAttribute {
         attr_name: "type".into(),
         attr_value: Some("importmap".into()),
@@ -49,7 +53,7 @@ pub(crate) fn add_integrity_to_import_map(
       let tag = HtmlPluginTag {
         tag_name: "script".into(),
         attributes,
-        inner_html: Some(serialize_map(&json!({ "integrity": integrity }))?),
+        inner_html: Some(serialize_map(&Value::Object(map))?),
         ..Default::default()
       };
       (position, Some(tag))
@@ -450,21 +454,24 @@ fn merge_integrity(element: &mut Element, integrity: &BTreeMap<String, String>) 
     .or_insert_with(|| Value::Object(Map::new()))
     .as_object_mut()
     .ok_or_else(|| error!("The import map integrity field must be an object."))?;
-  let authored = std::mem::take(entries);
-  // The browser applies the last entry for a resolved URL within one map.
-  entries.extend(
-    integrity
-      .iter()
-      .filter(|(url, _)| !authored.contains_key(*url))
-      .map(|(url, hash)| (url.clone(), Value::String(hash.clone()))),
-  );
-  entries.extend(authored);
+  prepend_integrity(entries, integrity);
   element.children = vec![Child::Text(Text {
     span: DUMMY_SP,
     data: serialize_map(&Value::Object(map))?.into(),
     raw: None,
   })];
   Ok(())
+}
+
+fn prepend_integrity(entries: &mut Map<String, Value>, integrity: &BTreeMap<String, String>) {
+  let authored = std::mem::take(entries);
+  // The browser applies the last entry for a resolved URL within one map.
+  for (url, hash) in integrity {
+    if !authored.contains_key(url) {
+      entries.insert(url.clone(), Value::String(hash.clone()));
+    }
+  }
+  entries.extend(authored);
 }
 
 fn serialize_map(map: &Value) -> Result<String> {

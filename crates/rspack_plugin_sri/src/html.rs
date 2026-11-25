@@ -391,7 +391,6 @@ pub async fn collect_import_map_integrity(
 
   let integrities = SubresourceIntegrityPlugin::get_compilation_integrities(compilation.id());
   let integrities = integrities.read().await;
-  let mut aliases = Vec::new();
   for file in imported_files {
     if let Some(hash) = integrities.get(file) {
       let mut url = format!("{public_path}{file}");
@@ -414,6 +413,7 @@ pub async fn collect_import_map_integrity(
         let encoded = urlencoding::encode(segment);
         let changed = encoded != segment;
         if changed && encoded_dir.is_empty() {
+          encoded_dir.push_str(prefix);
           encoded_dir.push_str(&file[..start]);
         }
         if !encoded_dir.is_empty() || changed {
@@ -422,14 +422,20 @@ pub async fn collect_import_map_integrity(
         }
         start = end + 1;
         if changed {
-          aliases.push((format!("{prefix}{encoded_dir}{}", &file[start..]), hash));
+          let mut alias = encoded_dir.clone();
+          alias.push_str(&file[start..]);
+          #[allow(
+            clippy::map_entry,
+            reason = "Avoid instantiating the BTreeMap entry API for rare URL aliases"
+          )]
+          if !integrity.contains_key(&alias) {
+            integrity.insert(alias, hash.clone());
+          }
         }
       }
+      // Keep the original URL if it also appeared as an encoding alias.
       integrity.insert(url, hash.clone());
     }
-  }
-  for (url, hash) in aliases {
-    integrity.entry(url).or_insert_with(|| hash.clone());
   }
   Ok(())
 }
