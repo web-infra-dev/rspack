@@ -496,6 +496,7 @@ export function createRawModuleRuleUses(
   uses: RuleSetUseItem | RuleSetUseItem[],
   path: string,
   options: ComposeJsUseOptions,
+  isFuncUse = false,
 ): RawModuleRuleUse[] {
   const normalizeRuleSetUseItem = (
     item: RuleSetUseItem,
@@ -504,7 +505,7 @@ export function createRawModuleRuleUses(
   const allUses = Array.isArray(uses)
     ? [...uses].map(normalizeRuleSetUseItem)
     : [normalizeRuleSetUseItem(uses)];
-  return createRawModuleRuleUsesImpl(allUses, path, options);
+  return createRawModuleRuleUsesImpl(allUses, path, options, isFuncUse);
 }
 
 export type GetLoaderOptions = (
@@ -570,6 +571,7 @@ function createRawModuleRuleUsesImpl(
   uses: (RuleSetLoaderWithOptions | Falsy)[],
   path: string,
   options: ComposeJsUseOptions,
+  isFuncUse: boolean,
 ): RawModuleRuleUse[] {
   if (!uses.length) {
     return [];
@@ -617,6 +619,7 @@ function createRawModuleRuleUsesImpl(
       isBuiltin,
       fingerprintOptions,
       loaderMetadata,
+      isFuncUse,
     );
     return {
       loader,
@@ -647,6 +650,7 @@ function resolveStringifyLoaders(
   isBuiltin: boolean,
   normalizedOptions: RuleSetLoaderWithOptions['options'],
   loaderMetadata: LoaderMetadata,
+  isFuncUse: boolean,
 ): { loader: string; ident?: string } {
   const obj = parseResource(use.loader);
   let ident = use.ident;
@@ -657,7 +661,11 @@ function resolveStringifyLoaders(
     Boolean(loaderMetadata.parallel);
 
   if (use.options === null || use.options === undefined) {
-    if (!obj.query && hasLoaderMetadata) {
+    // Static rules snapshot loaderMetadata into CompilerOptions.__loader_metadata
+    // before compilation starts; functional Rule.use runs dynamically per module
+    // where a fallback path ident would not reach Rust's static map and could
+    // collide with object options sharing the same rule path.
+    if (!isFuncUse && !obj.query && hasLoaderMetadata) {
       ident = use.ident ?? path;
       fallbackIdent = ident;
     }
@@ -692,7 +700,7 @@ function resolveStringifyLoaders(
       );
     }
   } else if (fallbackIdent) {
-    // Avoid keeping stale object options when functional Rule.use reuses a path ident.
+    // Clear any previous options if an explicit ident is reused without options.
     compiler.__internal__ruleSet.references.delete(fallbackIdent);
     compiler.__internal__ruleSet.loaderMetadata.set(
       fallbackIdent,

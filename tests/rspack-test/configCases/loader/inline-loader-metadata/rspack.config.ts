@@ -74,6 +74,26 @@ export default defineConfig({
           },
         ],
       },
+      {
+        test: /\.func-shared\.js$/,
+        use: ({ issuer }) => {
+          if (issuer.endsWith('func-issuer-options.js')) {
+            return [
+              {
+                loader: './transform-loader.mjs',
+                options: { value: 'from-func-options' },
+                codeFilter: 'MARKER_FUNC',
+              },
+            ];
+          }
+          return [
+            {
+              loader: './transform-loader.mjs',
+              codeFilter: 'MARKER_FUNC',
+            },
+          ];
+        },
+      },
     ],
   },
 });

@@ -55,3 +55,16 @@ it("should apply metadata and override alias query for explicit ??ident inline r
 		original: "alias-inline-miss"
 	});
 });
+
+it("should keep functional Rule.use object-options and optionless metadata variants distinct", () => {
+	expect(require("./func-issuer-options.js")).toEqual({
+		value: "from-func-options",
+		parallel: false
+	});
+	expect(require("./func-issuer-meta-only.js")).toEqual({
+		parallel: false
+	});
+	expect(require("./miss.func-shared.js")).toEqual({
+		original: "func-miss"
+	});
+});

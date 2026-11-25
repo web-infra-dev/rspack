@@ -384,7 +384,7 @@ const getRawModuleRule = (
       };
       const uses = use(context);
 
-      return createRawModuleRuleUses(uses ?? [], `${path}.use`, options);
+      return createRawModuleRuleUses(uses ?? [], `${path}.use`, options, true);
     };
   }
 
