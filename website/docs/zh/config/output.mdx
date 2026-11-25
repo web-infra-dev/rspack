@@ -425,7 +425,9 @@ export default {
 | [resource-path]          | 不带任何查询参数，用于解析文件的路径                                                            |
 | [namespace]              | 模块命名空间。在构建成为一个 library 之后，通常也是 library 名称，否则为空                      |
 
-当使用一个函数，同样的选项要通过 `info` 参数并使用驼峰式：
+`[absolute-resource-path]` 和 `[relative-resource-path]` 按 POSIX 规则归一化普通文件路径，在 Windows 上会将 `\` 转为 `/`。对于对应普通文件的模块，绝对路径取自解析后的资源。
+
+函数模板通过 `info` 参数接收对应的驼峰式字段，其中 `info.absoluteResourcePath` 和 `info.relativeResourcePath` 也使用上述路径归一化规则。
 
 ```js title="rspack.config.mjs"
 export default {
