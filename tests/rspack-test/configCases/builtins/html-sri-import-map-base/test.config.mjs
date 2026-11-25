@@ -8,7 +8,7 @@ export default {
 		const config = Array.isArray(options) ? options[0] : options;
 		const outputPath = config.output.path;
 		const read = file => readFileSync(path.join(outputPath, file), "utf-8");
-		const hashes = ["main.mjs", "assets/bundle.mjs", "bundle.mjs"].map(file => [
+		const hashes = ["main+entry.mjs", "assets/bundle.mjs", "bundle.mjs"].map(file => [
 			file,
 			`sha384-${createHash("sha384").update(read(file)).digest("base64")}`
 		]);
@@ -38,6 +38,7 @@ export default {
 			["normalized-collision.html", "http://page.example.test/site/pages/assets/"],
 			["preload-before-base.html", "http://page.example.test/assets/"],
 			["preload-before-colliding-base.html", "http://page.example.test/site/pages/assets/"],
+			["inline-before-base.html", "http://page.example.test/site/pages/assets/"],
 			["generated-before-base.html", "http://page.example.test/assets/"]
 		]) {
 			const pageURL = new URL(page, "http://page.example.test/site/pages/");
@@ -56,7 +57,7 @@ export default {
 
 			const generated = mapScripts.at(-1);
 			expect(generated.index).toBeGreaterThan(html.indexOf("<base"));
-			expect(generated.index).toBeLessThan(html.search(/<script\b[^>]*type=["']?module\b/));
+			expect(generated.index).toBeLessThan(html.indexOf('src="./main%2Bentry.mjs"'));
 			if (html.includes("modulepreload")) {
 				expect(generated.index).toBeGreaterThan(html.indexOf("modulepreload"));
 				expect(generated[0]).toContain("preload-nonce");
@@ -66,6 +67,15 @@ export default {
 			// If CSP rejects the base, the same relative keys use the page URL.
 			expect(resolveIntegrity(map, pageURL)).toEqual(integrityFor(pageURL));
 		}
+
+		const sameBasename = read("same-basename-before-base.html");
+		const sameBasenameMaps = maps(sameBasename);
+		expect(sameBasenameMaps).toHaveLength(2);
+		expect(sameBasenameMaps[1].index).toBeGreaterThan(sameBasename.indexOf("<base"));
+		expect(sameBasenameMaps[1].index).toBeLessThan(sameBasename.indexOf('src="/app/main%2Bentry.mjs"'));
+		expect(resolveIntegrity(JSON.parse(sameBasenameMaps[1][1]), "https://cdn.example.test/assets/")).toEqual(
+			integrityFor("https://cdn.example.test/app/")
+		);
 
 		const early = read("base-after-module.html");
 		const earlyMaps = maps(early);
@@ -86,6 +96,8 @@ export default {
 		const multiple = read("multiple-authored.html");
 		const multipleMaps = maps(multiple);
 		expect(multipleMaps).toHaveLength(3);
+		expect(multipleMaps[0].index).toBeLessThan(multiple.indexOf("modulepreload"));
+		expect(multipleMaps[1].index).toBeGreaterThan(multiple.indexOf("modulepreload"));
 		expect(JSON.parse(multipleMaps[0][1])).toEqual({ imports: { external: "./external.mjs" } });
 		expect(JSON.parse(multipleMaps[1][1])).toEqual({ integrity: { "./bundle.mjs": "sha384-authored" } });
 		expect(multipleMaps[2][0]).toContain("authored-nonce");

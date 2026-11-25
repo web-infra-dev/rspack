@@ -2,6 +2,8 @@ import { HtmlRspackPlugin, SubresourceIntegrityPlugin } from '@rspack/core';
 
 const preload =
   '<link rel="modulepreload" href="/unrelated.mjs" nonce="preload-nonce">';
+const inlineModule =
+  '<script type="module">export const ready = "import map";</script>';
 
 const baseURLs = {
   'absolute.html': 'https://cdn.example.test/assets/',
@@ -12,13 +14,14 @@ const baseURLs = {
   'normalized-collision.html': './assets/a/..',
   'preload-before-base.html': '/assets/',
   'preload-before-colliding-base.html': './assets/',
+  'inline-before-base.html': './assets/',
 };
 
 export default {
   target: 'web',
   output: {
     module: true,
-    filename: 'main.mjs',
+    filename: 'main+entry.mjs',
     chunkFilename: '[name].mjs',
     publicPath: './',
     crossOriginLoading: 'anonymous',
@@ -36,10 +39,21 @@ export default {
               "integrity": {"./external.mjs": "sha384-external"}
             }</script>
             ${filename.startsWith('preload-') ? preload : ''}
+            ${filename === 'inline-before-base.html' ? inlineModule : ''}
             <base href="${baseURL}">
           </head><body></body></html>`,
         }),
     ),
+    new HtmlRspackPlugin({
+      filename: 'same-basename-before-base.html',
+      publicPath: '/app/',
+      scriptLoading: 'module',
+      templateContent: `<!DOCTYPE html><html><head>
+        <script type="importmap">{}</script>
+        <link rel="modulepreload" href="https://vendor.example.test/widgets/main+entry.mjs">
+        <base href="https://cdn.example.test/assets/">
+      </head><body></body></html>`,
+    }),
     new HtmlRspackPlugin({
       filename: 'generated-before-base.html',
       scriptLoading: 'module',
@@ -54,7 +68,7 @@ export default {
       inject: false,
       templateContent: `<!DOCTYPE html><html><head>
         <script type="importmap">{}</script>
-        <script src="./main.mjs" type="module"></script>
+        <script src="./main+entry.mjs" type="module"></script>
         <base href="/assets/">
       </head><body></body></html>`,
     }),
@@ -76,6 +90,7 @@ export default {
       scriptLoading: 'module',
       templateContent: `<!DOCTYPE html><html><head>
         <script type="importmap">{"imports":{"external":"./external.mjs"}}</script>
+        ${preload}
         <script type="importmap" nonce="authored-nonce">{
           "integrity": {"./bundle.mjs": "sha384-authored"}
         }</script>

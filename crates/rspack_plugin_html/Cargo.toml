@@ -28,7 +28,7 @@ serde             = { workspace = true, features = ["derive"] }
 serde_json        = { workspace = true, features = ["preserve_order"] }
 simd-json         = { workspace = true }
 sugar_path        = { workspace = true }
-swc_core          = { workspace = true }
+swc_core          = { workspace = true, features = ["ecma_ast", "ecma_parser", "ecma_visit"] }
 swc_html          = { workspace = true }
 swc_html_minifier = { workspace = true, features = ["custom-css-minifier"] }
 tracing           = { workspace = true }

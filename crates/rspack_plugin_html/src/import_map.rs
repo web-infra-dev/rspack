@@ -1,11 +1,18 @@
-use std::{borrow::Cow, collections::BTreeMap};
+use std::{borrow::Cow, collections::BTreeMap, sync::Arc};
 
 use cow_utils::CowUtils;
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use serde_json::{Map, Value, json};
-use swc_core::common::DUMMY_SP;
+use swc_core::{
+  common::{DUMMY_SP, FileName, SourceMap},
+  ecma::{
+    ast::{EsVersion, ExportAll, Import, ImportDecl, NamedExport},
+    parser::{Syntax, parse_file_as_module},
+    visit::{Visit, VisitWith},
+  },
+};
 use swc_html::ast::{Child, Element, Namespace, Text};
-use url::{ParseError, Url};
+use url::Url;
 
 use crate::{
   parser::CompiledDocument,
@@ -82,15 +89,138 @@ fn is_active_html_element(element: &Element) -> bool {
   element.namespace == Namespace::HTML && !matches!(&*element.tag_name, "template" | "noscript")
 }
 
-fn asset_basename(url: &str) -> Cow<'_, str> {
-  let name = url
-    .split(['?', '#'])
-    .next()
-    .unwrap_or_default()
-    .rsplit(['/', '\\'])
-    .next()
-    .unwrap_or_default();
-  urlencoding::decode(name).unwrap_or(Cow::Borrowed(name))
+struct ModuleUrl {
+  url: Url,
+  absolute: bool,
+  has_authority: bool,
+  path_relative: bool,
+  climbs: bool,
+}
+
+impl ModuleUrl {
+  fn parse(input: &str, root: &Url, document: &Url) -> Option<Self> {
+    let input = input.trim();
+    let url = root.join(input).ok()?;
+    let absolute = Url::parse(input).is_ok();
+    let starts_with_slash = input.starts_with(['/', '\\']);
+    let has_authority = absolute || (starts_with_slash && input[1..].starts_with(['/', '\\']));
+    let path_relative = !absolute && !starts_with_slash;
+    // An unknown deployment directory can affect comparisons involving `..`.
+    let climbs = path_relative
+      && document.join(input).ok().is_some_and(|joined| {
+        joined
+          .path()
+          .strip_prefix(document.path().trim_end_matches('/'))
+          != Some(url.path())
+      });
+    Some(Self {
+      url,
+      absolute,
+      has_authority,
+      path_relative,
+      climbs,
+    })
+  }
+
+  fn could_match(&self, other: &Self) -> bool {
+    if self.has_authority && other.has_authority && self.url.host_str() != other.url.host_str() {
+      return false;
+    }
+    if self.absolute && other.absolute && self.url.origin() != other.url.origin() {
+      return false;
+    }
+    let path = self.url.path();
+    let other_path = other.url.path();
+    path_matches(
+      path,
+      other_path,
+      self.path_relative && (!other.path_relative || self.climbs || other.climbs),
+    ) || (other.path_relative
+      && (!self.path_relative || self.climbs || other.climbs)
+      && path_matches(other_path, path, true))
+  }
+
+  fn changes_base_for(&self, key: &Self) -> bool {
+    if key.absolute {
+      return false;
+    }
+    if key.has_authority {
+      return self.absolute;
+    }
+    self.has_authority
+      || (key.path_relative
+        && (!self.path_relative
+          || self.climbs
+          || !self
+            .url
+            .path()
+            .rsplit_once('/')
+            .is_some_and(|(directory, _)| directory.is_empty())))
+  }
+}
+
+fn path_matches(path: &str, other: &str, allow_suffix: bool) -> bool {
+  let path = path.strip_prefix('/').unwrap_or(path);
+  let other = other.strip_prefix('/').unwrap_or(other);
+  let mut other_segments = other.rsplit('/');
+  // HTML encodes asset names segment by segment and can append a cache-busting query.
+  path.rsplit('/').all(|segment| {
+    other_segments.next().is_some_and(|other| {
+      segment == other
+        || (segment.contains('%') || other.contains('%'))
+          && urlencoding::decode(segment)
+            .ok()
+            .zip(urlencoding::decode(other).ok())
+            .is_some_and(|(segment, other)| segment == other)
+    })
+  }) && (allow_suffix || other_segments.next().is_none())
+}
+
+#[derive(Default)]
+struct ModuleImports(bool);
+
+impl Visit for ModuleImports {
+  fn visit_import_decl(&mut self, _: &ImportDecl) {
+    self.0 = true;
+  }
+
+  fn visit_export_all(&mut self, _: &ExportAll) {
+    self.0 = true;
+  }
+
+  fn visit_named_export(&mut self, export: &NamedExport) {
+    self.0 |= export.src.is_some();
+  }
+
+  fn visit_import(&mut self, _: &Import) {
+    self.0 = true;
+  }
+}
+
+fn inline_module_may_import(element: &Element) -> bool {
+  let mut source = String::new();
+  for child in &element.children {
+    if let Child::Text(text) = child {
+      source.push_str(&text.data);
+    }
+  }
+  if !source.contains("import") && !source.contains("export") {
+    return false;
+  }
+  let file = SourceMap::default().new_source_file(Arc::new(FileName::Anon), source);
+  let mut errors = Vec::new();
+  let Ok(module) = parse_file_as_module(
+    &file,
+    Syntax::default(),
+    EsVersion::latest(),
+    None,
+    &mut errors,
+  ) else {
+    return true;
+  };
+  let mut imports = ModuleImports::default();
+  module.visit_with(&mut imports);
+  imports.0 || !errors.is_empty()
 }
 
 fn find_placement<'a>(
@@ -102,14 +232,21 @@ fn find_placement<'a>(
   let mut seen_base = false;
   let mut base = None;
   let mut first_map = None;
-  let mut multiple_maps = false;
+  let mut last_map = None;
   let mut map_nonce = None;
   let mut first_fetch = None;
+  let mut first_bundled_fetch = None;
+  let mut first_fetch_after_map = None;
   let mut nonce = None;
   let mut preload_nonce = None;
-  let mut before_base = false;
   let mut first_fetch_after_base = None;
-  let mut relative_fetch_after_base = false;
+  let mut bundled_fetch_after_base = false;
+  let root = Url::parse("https://rspack.invalid/").expect("valid URL");
+  let document = root.join("document/").expect("valid URL");
+  let urls = integrity
+    .keys()
+    .filter_map(|url| ModuleUrl::parse(url, &root, &document))
+    .collect::<Vec<_>>();
 
   while let Some(children) = pending.last_mut() {
     let Some(child) = children.next() else {
@@ -132,23 +269,26 @@ fn find_placement<'a>(
     {
       seen_base = true;
       // A base without a path or authority cannot change the module's URL.
-      if href.value.as_deref().is_some_and(|value| {
-        let value = value.trim();
-        !value.is_empty() && !value.starts_with(['?', '#'])
-      }) {
-        base = Some(index);
+      if let Some(value) = href.value.as_deref().map(str::trim)
+        && !value.is_empty()
+        && !value.starts_with(['?', '#'])
+        && let Some(url) = ModuleUrl::parse(value, &root, &document)
+        && !matches!(url.url.scheme(), "data" | "javascript")
+      {
+        base = Some((index, url));
       }
     }
 
     let element_nonce = attribute(element, "nonce").filter(|value| !value.is_empty());
     if is_script(element, "importmap") {
-      if first_fetch.is_some() {
+      if first_bundled_fetch.is_some() {
         return Err(error!(
-          "Place import maps before module scripts and modulepreload links to enable Subresource Integrity."
+          "Place import maps before scripts and preloads of bundled modules to enable Subresource Integrity."
         ));
       }
-      multiple_maps |= first_map.is_some();
       first_map.get_or_insert(index);
+      last_map = Some(index);
+      first_fetch_after_map = None;
       map_nonce = element_nonce.or(map_nonce);
       continue;
     }
@@ -166,45 +306,64 @@ fn find_placement<'a>(
       }
     }
     first_fetch.get_or_insert(index);
+    first_fetch_after_map.get_or_insert(index);
 
-    let url = attribute(element, if module_script { "src" } else { "href" });
+    let attr = if module_script { "src" } else { "href" };
+    let source = element
+      .attributes
+      .iter()
+      .find(|attribute| attribute.name == attr);
+    let url = source
+      .and_then(|attribute| attribute.value.as_deref())
+      .map(str::trim)
+      .filter(|url| !url.is_empty());
+    let bundled = if let Some(url) = url {
+      ModuleUrl::parse(url, &root, &document)
+        .is_some_and(|url| urls.iter().any(|key| url.could_match(key)))
+    } else {
+      module_script && source.is_none() && inline_module_may_import(element)
+    };
+    if bundled {
+      first_bundled_fetch.get_or_insert(index);
+    }
     if base.is_some() {
       first_fetch_after_base.get_or_insert(index);
-      relative_fetch_after_base |= url.map_or(module_script, |url| {
-        matches!(Url::parse(url), Err(ParseError::RelativeUrlWithoutBase))
-      });
-    } else {
-      before_base |= module_script
-        || url.is_some_and(|url| {
-          let basename = asset_basename(url);
-          integrity.keys().any(|url| asset_basename(url) == basename)
-        });
+      bundled_fetch_after_base |= bundled;
     }
   }
 
   let generated_nonce = map_nonce.or(nonce).or(preload_nonce);
   // Register the integrity-only map under the browser's effective base. One
   // earlier map cannot describe both outcomes if CSP rejects a later base.
-  if let (Some(base), Some(after_base)) = (base, first_fetch_after_base)
-    && first_map.or(first_fetch).is_some_and(|index| index < base)
-    && relative_fetch_after_base
-    && integrity.keys().any(|url| url.starts_with(['.', '/']))
+  if let (Some((base_index, base)), Some(after_base)) = (base, first_fetch_after_base)
+    && first_map
+      .or(first_fetch)
+      .is_some_and(|index| index < base_index)
+    && bundled_fetch_after_base
+    && urls.iter().any(|url| base.changes_base_for(url))
   {
-    if before_base {
+    if first_bundled_fetch.is_some_and(|index| index < base_index) {
       return Err(error!(
         "Place the base element before module scripts and preloads of bundled modules to enable Subresource Integrity."
       ));
     }
-    return Ok(Some(Placement::Insert(after_base, generated_nonce)));
+    let anchor = if last_map.is_some_and(|index| index > base_index) {
+      first_fetch_after_map
+    } else {
+      Some(after_base)
+    };
+    return Ok(anchor.map(|index| Placement::Insert(index, generated_nonce)));
   }
 
-  if !multiple_maps && let Some(index) = first_map {
+  if first_map == last_map
+    && let Some(index) = first_map
+  {
     return Ok(Some(Placement::Merge(index)));
   }
 
   // The browser keeps the first matching integrity rule across import maps.
   // Register generated rules after any authored maps.
-  Ok(first_fetch.map(|index| Placement::Insert(index, generated_nonce)))
+  Ok(first_fetch_after_map.map(|index| Placement::Insert(index, generated_nonce)))
 }
 
 fn apply_at(
