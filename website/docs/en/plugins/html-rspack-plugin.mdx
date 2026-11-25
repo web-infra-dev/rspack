@@ -356,7 +356,7 @@ The `[name]` and function forms do not support a function-valued Rspack [`entry`
 
 Sets the template file. Relative paths are resolved from the Rspack [`context`](/config/context). [`templateContent`](#templatecontent) takes precedence when both options are set.
 
-When omitted, the plugin looks for `src/index.ejs` in `context` and falls back to its built-in HTML document if the file does not exist.
+When omitted, the plugin looks for `src/index.ejs` in `context` and falls back to its built-in HTML document if the file does not exist. If the file exists but cannot be read as UTF-8, the build fails.
 
 - **HTML file:** Reads the file as text, renders it with the built-in [template syntax](#template-syntax), and injects the generated tags.
 

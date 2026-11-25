@@ -356,7 +356,7 @@ new rspack.HtmlRspackPlugin({
 
 指定模板文件。相对路径基于 Rspack [`context`](/config/context) 解析。如果同时设置了 [`templateContent`](#templatecontent)，插件会优先使用 `templateContent`。
 
-未设置该选项时，插件会先查找 `context` 中的 `src/index.ejs`；如果文件不存在，则使用内置 HTML 文档。
+未设置该选项时，插件会在 `context` 中查找 `src/index.ejs`。如果文件不存在，插件会使用内置 HTML 文档。如果文件存在，但无法以 UTF-8 文本读取，构建会报错。
 
 - **HTML 文件：** 插件会读取文件内容，使用内置[模板语法](#模板语法)渲染，再注入生成的标签。
 
