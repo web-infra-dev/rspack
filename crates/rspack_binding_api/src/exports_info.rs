@@ -1,9 +1,24 @@
 use napi::Either;
 use napi_derive::napi;
-use rspack_core::{Compilation, CompilationId, ExportsInfo, ModuleGraph, RuntimeSpec};
+use rspack_core::{
+  Compilation, CompilationId, ExportsInfo, ExportsInfoArtifact, ModuleGraph, RuntimeSpec,
+};
 use rspack_intern::Atom;
 
 use crate::{runtime::JsRuntimeSpec, with_compilation, with_compilation_mut};
+
+fn exports_info_unavailable() -> napi::Error {
+  napi::Error::from_reason("Exports info is not available while a compilation pass is updating it")
+}
+
+pub(crate) fn get_exports_info_artifact(
+  compilation: &Compilation,
+) -> napi::Result<&ExportsInfoArtifact> {
+  compilation
+    .exports_info_artifact
+    .try_read()
+    .ok_or_else(exports_info_unavailable)
+}
 
 #[napi]
 pub struct JsExportsInfo {
@@ -46,7 +61,7 @@ impl JsExportsInfo {
       });
       Ok(
         exports_info
-          .as_data(&compilation.exports_info_artifact)
+          .as_data(get_exports_info_artifact(compilation)?)
           .is_used(runtime.as_ref()),
       )
     })
@@ -62,7 +77,7 @@ impl JsExportsInfo {
       });
       Ok(
         exports_info
-          .as_data(&compilation.exports_info_artifact)
+          .as_data(get_exports_info_artifact(compilation)?)
           .is_module_used(runtime.as_ref()),
       )
     })
@@ -72,13 +87,17 @@ impl JsExportsInfo {
   pub fn set_used_in_unknown_way(&mut self, js_runtime: JsRuntimeSpec) -> napi::Result<bool> {
     let exports_info = self.exports_info;
     self.with_compilation_mut(|compilation| {
+      let artifact = compilation
+        .exports_info_artifact
+        .try_write()
+        .ok_or_else(exports_info_unavailable)?;
       let runtime: Option<RuntimeSpec> = js_runtime.map(|js_rt| match js_rt {
         Either::A(str) => std::iter::once(str).map(Into::into).collect(),
         Either::B(vec) => vec.into_iter().map(Into::into).collect(),
       });
       Ok(
         exports_info
-          .as_data_mut(&mut compilation.exports_info_artifact)
+          .as_data_mut(artifact)
           .set_used_in_unknown_way(runtime.as_ref()),
       )
     })
@@ -103,9 +122,10 @@ impl JsExportsInfo {
         Either::A(s) => vec![Atom::from(s)],
         Either::B(v) => v.into_iter().map(Into::into).collect::<Vec<_>>(),
       };
+      let artifact = get_exports_info_artifact(compilation)?;
       let used = exports_info
-        .as_data(&compilation.exports_info_artifact)
-        .get_used(&compilation.exports_info_artifact, &names, runtime.as_ref());
+        .as_data(artifact)
+        .get_used(artifact, &names, runtime.as_ref());
       Ok(used as u32)
     })
   }

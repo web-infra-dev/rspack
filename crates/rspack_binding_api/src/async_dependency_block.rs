@@ -1,11 +1,13 @@
 use std::cell::RefCell;
 
 use napi_derive::napi;
-use rspack_core::{Compilation, CompilerId, DependenciesBlock as _, internal};
+use rspack_core::{Compilation, CompilerId, DependenciesBlock as _, ModuleGraph, internal};
 use rspack_napi::{OneShotRef, napi::bindgen_prelude::*};
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{COMPILER_REFERENCES, dependency::DependencyWrapper};
+use crate::{
+  COMPILER_REFERENCES, dependency::DependencyWrapper, module_graph::require_module_graph,
+};
 
 #[napi]
 pub struct AsyncDependenciesBlock {
@@ -49,12 +51,12 @@ impl AsyncDependenciesBlock {
 
   fn with_ref<R>(
     &self,
-    f: impl FnOnce(&Compilation, &rspack_core::AsyncDependenciesBlock) -> napi::Result<R>,
+    f: impl FnOnce(&Compilation, &ModuleGraph, &rspack_core::AsyncDependenciesBlock) -> napi::Result<R>,
   ) -> napi::Result<R> {
     self.with_compilation(|compilation| {
-      let module_graph = compilation.get_module_graph();
+      let module_graph = require_module_graph(compilation)?;
       if let Some(block) = module_graph.block_by_id(&self.block_id) {
-        f(compilation, block)
+        f(compilation, module_graph, block)
       } else {
         Err(self.block_removed_error())
       }
@@ -66,8 +68,7 @@ impl AsyncDependenciesBlock {
 impl AsyncDependenciesBlock {
   #[napi(getter, ts_return_type = "Dependency[]")]
   pub fn dependencies(&self) -> napi::Result<Vec<DependencyWrapper>> {
-    self.with_ref(|compilation, block| {
-      let module_graph = compilation.get_module_graph();
+    self.with_ref(|compilation, module_graph, block| {
       // Only expose dependencies that are still present in the current graph.
       Ok(
         block
@@ -83,8 +84,7 @@ impl AsyncDependenciesBlock {
 
   #[napi(getter, ts_return_type = "AsyncDependenciesBlock[]")]
   pub fn blocks(&self) -> napi::Result<Vec<AsyncDependenciesBlockWrapper>> {
-    self.with_ref(|compilation, block| {
-      let module_graph = compilation.get_module_graph();
+    self.with_ref(|compilation, module_graph, block| {
       Ok(
         block
           .get_blocks()

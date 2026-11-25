@@ -9,7 +9,10 @@ use rspack_core::{
 use rspack_napi::OneShotRef;
 use rustc_hash::FxHashMap;
 
-use crate::{dependency::DependencyWrapper, module::ModuleObject, symbols, with_compilation};
+use crate::{
+  dependency::DependencyWrapper, module::ModuleObject, module_graph::require_module_graph, symbols,
+  with_compilation,
+};
 
 /// Wrapper for ConnectionState that serializes to JS as `boolean | symbol`.
 pub enum JsConnectionState {
@@ -52,9 +55,7 @@ impl ModuleGraphConnection {
     f: impl FnOnce(&Compilation, &ModuleGraph) -> napi::Result<R>,
   ) -> napi::Result<R> {
     with_compilation(self.compilation_id, |compilation| {
-      let module_graph = compilation.get_module_graph();
-
-      f(compilation, module_graph)
+      f(compilation, require_module_graph(compilation)?)
     })
   }
 }

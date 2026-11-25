@@ -23,6 +23,17 @@ impl From<napi::Status> for ErrorCode {
   }
 }
 
+impl From<&Error> for ErrorCode {
+  fn from(error: &Error) -> Self {
+    error
+      .code
+      .as_ref()
+      .map_or(Self::Napi(napi::Status::GenericFailure), |code| {
+        Self::Custom(code.clone())
+      })
+  }
+}
+
 impl AsRef<str> for ErrorCode {
   fn as_ref(&self) -> &str {
     match self {
@@ -405,30 +416,12 @@ impl<T, E: ToString> RspackResultToNapiResultExt<T, E> for Result<T, E> {
 
 impl<T> RspackResultToNapiResultExt<T, Error, ErrorCode> for Result<T, Error> {
   fn to_napi_result(self) -> napi::Result<T, ErrorCode> {
-    self.map_err(|e| {
-      napi::Error::new(
-        e.code
-          .as_ref()
-          .map_or(ErrorCode::Napi(napi::Status::GenericFailure), |code| {
-            ErrorCode::Custom(code.clone())
-          }),
-        e.to_string(),
-      )
-    })
+    self.map_err(|e| napi::Error::new(ErrorCode::from(&e), e.to_string()))
   }
   fn to_napi_result_with_message(
     self,
     f: impl FnOnce(Error) -> String,
   ) -> napi::Result<T, ErrorCode> {
-    self.map_err(|e| {
-      napi::Error::new(
-        e.code
-          .as_ref()
-          .map_or(ErrorCode::Napi(napi::Status::GenericFailure), |code| {
-            ErrorCode::Custom(code.clone())
-          }),
-        f(e),
-      )
-    })
+    self.map_err(|e| napi::Error::new(ErrorCode::from(&e), f(e)))
   }
 }

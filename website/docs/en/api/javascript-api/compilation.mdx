@@ -825,7 +825,9 @@ Provides access to module dependencies:
 - `getOutgoingConnections(module)`: connections from this module to its dependencies; `connection.module` is the target module, or `null`.
 - `getIncomingConnections(module)`: connections from other modules to this module; `connection.originModule` is the importing module, or `null`.
 
-You can query these relationships in the `finishModules` hook, after modules have been built. For example, log each module and the modules it depends on:
+You can query these relationships in `compiler.hooks.finishMake` or `compilation.hooks.finishModules`. The module graph is temporarily unavailable while Rspack builds it during `make`. For example, querying the module graph in `compilation.hooks.buildModule` throws an exception. To query export information or module async status, use a hook that runs after `finishModules`, such as `compilation.hooks.afterOptimizeModules`.
+
+For example, log each module and the modules it depends on:
 
 ```js
 compiler.hooks.compilation.tap('InspectModules', (compilation) => {
