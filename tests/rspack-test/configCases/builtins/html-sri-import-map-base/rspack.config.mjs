@@ -18,8 +18,8 @@ export default {
   target: 'web',
   output: {
     module: true,
-    filename: 'assets/bundle.mjs',
-    chunkFilename: 'bundle.mjs',
+    filename: 'main.mjs',
+    chunkFilename: '[name].mjs',
     publicPath: './',
     crossOriginLoading: 'anonymous',
   },
@@ -54,7 +54,7 @@ export default {
       inject: false,
       templateContent: `<!DOCTYPE html><html><head>
         <script type="importmap">{}</script>
-        <script src="./assets/bundle.mjs" type="module"></script>
+        <script src="./main.mjs" type="module"></script>
         <base href="/assets/">
       </head><body></body></html>`,
     }),
@@ -68,6 +68,16 @@ export default {
             "/assets/../bundle.mjs": "sha384-first",
             "./bundle.mjs": "sha384-authored"
           }
+        }</script>
+      </head><body></body></html>`,
+    }),
+    new HtmlRspackPlugin({
+      filename: 'multiple-authored.html',
+      scriptLoading: 'module',
+      templateContent: `<!DOCTYPE html><html><head>
+        <script type="importmap">{"imports":{"external":"./external.mjs"}}</script>
+        <script type="importmap" nonce="authored-nonce">{
+          "integrity": {"./bundle.mjs": "sha384-authored"}
         }</script>
       </head><body></body></html>`,
     }),

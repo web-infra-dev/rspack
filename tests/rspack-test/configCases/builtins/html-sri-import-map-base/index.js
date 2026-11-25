@@ -1,1 +1,4 @@
-import("./route.js").then(({ default: value }) => console.log(value));
+Promise.all([
+	import(/* webpackChunkName: "bundle" */ "./route.js"),
+	import(/* webpackChunkName: "assets/bundle" */ "./other-route.js")
+]).then(([route, otherRoute]) => console.log(route.default, otherRoute.default));

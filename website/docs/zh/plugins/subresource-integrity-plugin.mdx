@@ -30,7 +30,9 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 使用 `output.chunkLoading: 'jsonp'` 时，插件会在加载异步 JavaScript chunk 的 script 标签上设置 `integrity` 和 `crossorigin` 属性。
 
-Web 应用使用原生 `import` 加载 chunk 时，可通过 [`HtmlRspackPlugin`](/plugins/html-rspack-plugin) 的 `scriptLoading: 'module'` 将模块 URL 和哈希写入页面的 import map，放在模块脚本和 `modulepreload` 链接之前。如果模板已有 import map，则保留已有条目。浏览器会在获取每个已列出的模块时校验哈希，按需加载的模块也一样。
+Web 应用使用原生 `import` 加载 chunk 时，可通过 [`HtmlRspackPlugin`](/plugins/html-rspack-plugin) 的 `scriptLoading: 'module'` 将模块 URL 和哈希写入页面的 import map，放在构建生成的模块脚本及其 `modulepreload` 链接之前。已有 import map 条目优先于生成的哈希。浏览器会在获取每个已列出的模块时校验哈希，按需加载的模块也一样。
+
+模板包含多张 import map，或在 import map 之后声明 `<base>` 时，Rspack 可以生成单独的完整性 import map。如果 `<base>` 前有无关的预加载链接，Rspack 可以在这些链接之后注册 import map。这些配置需要浏览器支持多张或后置的 import map。为兼容更多浏览器，请将 `<base>` 放在唯一的 import map、模块脚本和预加载链接之前。
 
 Import map 的完整性校验需要 Chrome 127+、Firefox 138+ 或 Safari 18+。如果使用内容安全策略（CSP），请通过 nonce 或哈希允许内联 import map。通过其他插件生成或在服务端渲染 HTML 时，请在相应 HTML 中提供 import map。页面 import map 适用于文档中的模块，Worker 模块需要独立的完整性校验机制。
 
