@@ -1,21 +1,11 @@
-#[cfg(not(target_family = "wasm"))]
-use std::{fmt, io, sync::Arc};
 use std::{
   fs::{self, File},
   io::{BufRead, BufReader, BufWriter, Read, Write},
   path::{Path, PathBuf},
 };
 
-#[cfg(not(target_family = "wasm"))]
-use cow_utils::CowUtils;
-#[cfg(not(target_family = "wasm"))]
-use once_cell::sync::OnceCell;
-#[cfg(not(target_family = "wasm"))]
-use parking_lot::Mutex;
 use pnp::fs::{FileType, LruZipCache, VPath, VPathInfo, ZipCache};
 use rspack_paths::{AssertUtf8, Utf8Path, Utf8PathBuf};
-#[cfg(not(target_family = "wasm"))]
-use rspack_util::{fx_hash::FxHashMap, node_path::NodePath};
 #[cfg(not(target_family = "wasm"))]
 use tokio::fs as tokio_fs;
 use tracing::instrument;
@@ -33,44 +23,13 @@ struct NativeFileSystemOptions {
 pub struct NativeFileSystem {
   options: NativeFileSystemOptions,
   pnp_lru: LruZipCache<Vec<u8>>,
-  #[cfg(not(target_family = "wasm"))]
-  pnp_zip_attributes: ZipAttributesCache,
 }
 impl NativeFileSystem {
   pub fn new(pnp: bool) -> Self {
     Self {
       options: NativeFileSystemOptions { pnp },
       pnp_lru: LruZipCache::new(50, pnp::fs::open_zip_via_read_p),
-      #[cfg(not(target_family = "wasm"))]
-      pnp_zip_attributes: ZipAttributesCache::default(),
     }
-  }
-
-  #[cfg(not(target_family = "wasm"))]
-  fn read_metadata(&self, path: &Utf8Path, include_zip_attributes: bool) -> Result<FileMetadata> {
-    if self.options.pnp {
-      match VPath::from(path.as_std_path())? {
-        VPath::Zip(info) => {
-          let archive = info.physical_base_path();
-          let mut metadata = FileMetadata::from(self.pnp_lru.file_type(&archive, &info.zip_path)?);
-          if include_zip_attributes
-            && metadata.is_file
-            && let Some(attributes) = self.pnp_zip_attributes.get(&archive, &info.zip_path)?
-          {
-            metadata.mode = cfg!(unix).then_some(attributes.mode);
-            // Yarn's ZipFS reports the entry's modification time for both fields.
-            if let Some(mtime) = attributes.mtime_ms {
-              metadata.atime_ms = Some(mtime);
-              metadata.mtime_ms = mtime;
-            }
-          }
-          return Ok(metadata);
-        }
-        VPath::Virtual(info) => return fs::metadata(info.physical_base_path())?.try_into(),
-        VPath::Native(path) => return fs::metadata(path)?.try_into(),
-      }
-    }
-    fs::metadata(path)?.try_into()
   }
 }
 
@@ -201,106 +160,6 @@ impl From<FileType> for FileMetadata {
 }
 
 #[cfg(not(target_family = "wasm"))]
-#[derive(Clone, Copy)]
-struct ZipFileAttributes {
-  mode: u16,
-  mtime_ms: Option<u64>,
-}
-
-#[cfg(not(target_family = "wasm"))]
-type ZipAttributes = FxHashMap<String, ZipFileAttributes>;
-
-#[cfg(not(target_family = "wasm"))]
-#[derive(Default)]
-struct ZipAttributesCache(Mutex<Vec<(PathBuf, Arc<OnceCell<ZipAttributes>>)>>);
-
-#[cfg(not(target_family = "wasm"))]
-impl fmt::Debug for ZipAttributesCache {
-  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.debug_struct("ZipAttributesCache").finish_non_exhaustive()
-  }
-}
-
-#[cfg(not(target_family = "wasm"))]
-impl ZipAttributesCache {
-  fn get(&self, path: &Path, entry: &str) -> io::Result<Option<ZipFileAttributes>> {
-    const CAPACITY: usize = 50;
-    let attributes = {
-      let mut archives = self.0.lock();
-      let cached = match archives.iter().position(|(archive, _)| archive == path) {
-        Some(index) => archives.remove(index),
-        None => {
-          if archives.len() == CAPACITY {
-            archives.remove(0);
-          }
-          (path.to_owned(), Arc::new(OnceCell::new()))
-        }
-      };
-      let attributes = Arc::clone(&cached.1);
-      archives.push(cached);
-      attributes
-    };
-
-    // Hold the cache lock only for the lookup, and share the archive read with
-    // concurrent callers copying files from the same archive.
-    let attributes = attributes.get_or_try_init(|| read_zip_file_attributes(path))?;
-    Ok(attributes.get(entry).copied())
-  }
-}
-
-#[cfg(not(target_family = "wasm"))]
-fn zip_attributes_error(error: rawzip::Error) -> io::Error {
-  match error.into_kind() {
-    rawzip::ErrorKind::IO(error) => error,
-    _ => io::Error::new(
-      io::ErrorKind::InvalidData,
-      "could not read ZIP file attributes",
-    ),
-  }
-}
-
-#[cfg(not(target_family = "wasm"))]
-fn read_zip_file_attributes(path: &Path) -> io::Result<ZipAttributes> {
-  let mut buffer = vec![0; rawzip::MAX_CENTRAL_DIRECTORY_RECORD_SIZE];
-  let archive =
-    rawzip::ZipArchive::from_file(File::open(path)?, &mut buffer).map_err(zip_attributes_error)?;
-  let mut records = archive.entries(&mut buffer);
-  let mut attributes = FxHashMap::default();
-  while let Some(entry) = records.next_entry().map_err(zip_attributes_error)? {
-    let entry_path = entry.file_path();
-    let Ok(name) = std::str::from_utf8(entry_path.as_ref()) else {
-      continue;
-    };
-    if name.ends_with('/') {
-      continue;
-    }
-    let name = name.cow_replace('\\', "/");
-    let name = Utf8Path::new(&name).node_normalize_posix().into_string();
-
-    // Match Yarn's ZipFS, which uses the DOS modification time and Unix mode.
-    let dos_time = entry.last_modified_dos();
-    let mtime_ms = rawzip::time::UtcDateTime::from_components(
-      dos_time.year(),
-      dos_time.month(),
-      dos_time.day(),
-      dos_time.hour(),
-      dos_time.minute(),
-      dos_time.second(),
-      0,
-    )
-    .and_then(|time| u64::try_from(time.to_unix()).ok())
-    .map(|time| time * 1000);
-    let mode = if entry.version_made_by().creator_system() == rawzip::CreatorSystem::UNIX {
-      ((entry.external_attributes() >> 16) & 0o777) as u16
-    } else {
-      0o644
-    };
-    attributes.insert(name, ZipFileAttributes { mode, mtime_ms });
-  }
-  Ok(attributes)
-}
-
-#[cfg(not(target_family = "wasm"))]
 #[async_trait::async_trait]
 impl ReadableFileSystem for NativeFileSystem {
   #[instrument(skip(self), level = "debug")]
@@ -336,13 +195,28 @@ impl ReadableFileSystem for NativeFileSystem {
   }
   #[instrument(skip(self), level = "debug")]
   fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    self.read_metadata(path, false)
-  }
+    if self.options.pnp {
+      let path = path.as_std_path();
+      return match VPath::from(path)? {
+        VPath::Zip(info) => self
+          .pnp_lru
+          .file_type(info.physical_base_path(), info.zip_path)
+          .map(FileMetadata::from)
+          .to_fs_result(),
 
-  async fn metadata_with_file_attributes(&self, path: &Utf8Path) -> Result<FileMetadata> {
-    self.read_metadata(path, true)
+        VPath::Virtual(info) => {
+          let meta = fs::metadata(info.physical_base_path())?;
+          FileMetadata::try_from(meta)
+        }
+        VPath::Native(path) => {
+          let meta = fs::metadata(path)?;
+          FileMetadata::try_from(meta)
+        }
+      };
+    }
+    let meta = fs::metadata(path)?;
+    meta.try_into()
   }
-
   #[instrument(skip(self), level = "debug")]
   async fn symlink_metadata(&self, path: &Utf8Path) -> Result<FileMetadata> {
     let meta = fs::symlink_metadata(path)?;

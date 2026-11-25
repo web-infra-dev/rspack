@@ -443,18 +443,14 @@ export default {
 - **类型：** `boolean`
 - **默认值：** `false`
 
-保留源文件在 Unix 上的读、写和执行权限。输出文件系统无法设置权限时，构建会报错。此选项在 Windows 上无效。
-
-复制 Yarn Plug'n'Play ZIP 归档内的文件时，Rspack 使用标记为 Unix 的条目记录的权限位。其他文件条目使用 `0644`。
+保留输入文件系统报告的源文件 Unix 读、写和执行权限。输出文件系统无法设置权限时，构建会报错。此选项在 Windows 上无效。
 
 ### preserveTimestamps
 
 - **类型：** `boolean`
 - **默认值：** `false`
 
-保留源文件的访问时间（`atime`）和修改时间（`mtime`）。文件内容相同时，Rspack 可以跳过内容写入，仅更新时间戳。自定义输出文件系统需要支持 `utimes`。
-
-复制 Yarn Plug'n'Play ZIP 归档内的文件时，访问时间和修改时间都取自归档条目的修改时间，与 Yarn 文件系统一致。
+保留输入文件系统报告的源文件访问时间（`atime`）和修改时间（`mtime`）。文件内容相同时，Rspack 可以跳过内容写入，仅更新时间戳。自定义输出文件系统需要支持 `utimes`。
 
 ```js title="rspack.config.mjs"
 export default {

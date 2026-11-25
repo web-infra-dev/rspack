@@ -443,18 +443,14 @@ export default {
 - **Type:** `boolean`
 - **Default:** `false`
 
-Preserve the source file's Unix read, write, and execute permissions. If the output file system cannot apply the permissions, the build fails. This option has no effect on Windows.
-
-For files in Yarn Plug'n'Play ZIP archives, Rspack uses the stored mode for entries marked as Unix. Other file entries use `0644`.
+Preserve the source file's Unix read, write, and execute permissions as reported by the input file system. If the output file system cannot apply the permissions, the build fails. This option has no effect on Windows.
 
 ### preserveTimestamps
 
 - **Type:** `boolean`
 - **Default:** `false`
 
-Preserve the source file's access time (`atime`) and modification time (`mtime`). Rspack can update the timestamps without rewriting the file when its contents match. A custom output file system needs to support `utimes`.
-
-For files inside Yarn Plug'n'Play ZIP archives, Rspack uses the archive entry's modification time for both timestamps, matching Yarn's file system.
+Preserve the source file's access time (`atime`) and modification time (`mtime`) as reported by the input file system. Rspack can update the timestamps without rewriting the file when its contents match. A custom output file system needs to support `utimes`.
 
 ```js title="rspack.config.mjs"
 export default {

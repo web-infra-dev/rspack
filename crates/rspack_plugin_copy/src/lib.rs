@@ -336,18 +336,11 @@ impl CopyRspackPlugin {
     };
 
     let copy_mode = pattern.copy_permissions || pattern.preserve_permissions;
-    let file_system = &compilation.input_filesystem;
-    let metadata = if pattern.preserve_permissions || pattern.preserve_timestamps {
-      file_system
-        .metadata_with_file_attributes(&absolute_filename)
+    let file_attributes = if (copy_mode || pattern.preserve_timestamps)
+      && let Ok(metadata) = compilation
+        .input_filesystem
+        .metadata(&absolute_filename)
         .await
-        .ok()
-    } else if pattern.copy_permissions {
-      file_system.metadata(&absolute_filename).await.ok()
-    } else {
-      None
-    };
-    let file_attributes = if let Some(metadata) = metadata
       && metadata.is_file
     {
       let mode = if copy_mode { metadata.mode } else { None };

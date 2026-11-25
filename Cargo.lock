@@ -3584,12 +3584,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "rawzip"
-version = "0.5.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ebe3170012078772481d436f07d89252ed3334a1173de1ea99247459a2931313"
-
-[[package]]
 name = "rayon"
 version = "1.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4313,13 +4307,9 @@ version = "0.103.4"
 dependencies = [
  "async-trait",
  "cfg-if",
- "cow-utils",
  "dunce",
  "filetime",
- "once_cell",
- "parking_lot",
  "pnp",
- "rawzip",
  "rspack_error",
  "rspack_paths",
  "rspack_util",
