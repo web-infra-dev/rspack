@@ -1,4 +1,11 @@
+use std::sync::{Arc, Mutex, Weak};
+
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap};
+
+use crate::{
+  FsEventKind,
+  observation::{Observations, Scan},
+};
 
 pub(super) enum MemberKind {
   File,
@@ -6,22 +13,76 @@ pub(super) enum MemberKind {
 }
 
 // An initial scan can follow a directory symlink that a live event records as a file.
-#[derive(Clone, Copy, Default)]
+#[derive(Default)]
 pub(super) struct ContextMember {
   pub(super) file: bool,
   pub(super) directory: bool,
+  pending: Weak<PendingContextChange>,
+}
+
+pub(super) struct PendingContextChange {
+  subscribers: Mutex<Vec<Weak<InternedPath>>>,
+}
+
+impl PendingContextChange {
+  fn merge(slot: &mut Weak<Self>, subscribers: Vec<Weak<InternedPath>>) -> Arc<Self> {
+    if let Some(pending) = slot.upgrade() {
+      let mut owed = pending.subscribers.lock().expect("context change poisoned");
+      owed.retain(|subscriber| subscriber.strong_count() != 0);
+      if !owed.is_empty() {
+        for subscriber in subscribers {
+          if !owed.iter().any(|old| old.ptr_eq(&subscriber)) {
+            owed.push(subscriber);
+          }
+        }
+        return Arc::clone(&pending);
+      }
+    }
+    let pending = Arc::new(Self {
+      subscribers: Mutex::new(subscribers),
+    });
+    *slot = Arc::downgrade(&pending);
+    pending
+  }
+
+  pub(super) fn has_subscribers(&self) -> bool {
+    self
+      .subscribers
+      .lock()
+      .expect("context change poisoned")
+      .iter()
+      .any(|s| s.strong_count() != 0)
+  }
+
+  pub(super) fn take_subscribers(&self) -> Vec<InternedPath> {
+    std::mem::take(&mut *self.subscribers.lock().expect("context change poisoned"))
+      .into_iter()
+      .filter_map(|s| s.upgrade().map(|path| (*path).clone()))
+      .collect()
+  }
+
+  pub(super) fn acknowledge(&self, delivered: &[(InternedPath, FsEventKind)]) {
+    self
+      .subscribers
+      .lock()
+      .expect("context change poisoned")
+      .retain(|s| {
+        s.upgrade()
+          .is_some_and(|path| !delivered.iter().any(|(dep, _)| dep == &*path))
+      });
+  }
+}
+
+pub(super) struct ContextChange {
+  pub(super) scan: Scan,
+  pub(super) directory: bool,
+  pub(super) pending: Arc<PendingContextChange>,
 }
 
 #[derive(Clone, Default)]
 pub(super) struct DirectorySubscriptions {
   pub(super) explicit: bool,
   pub(super) parent: Option<InternedPath>,
-}
-
-impl DirectorySubscriptions {
-  fn is_active(&self) -> bool {
-    self.explicit || self.parent.is_some()
-  }
 }
 
 pub(super) trait ContextLookup {
@@ -31,12 +92,14 @@ pub(super) trait ContextLookup {
 #[derive(Default)]
 pub(super) struct DirectoryWatcher {
   pub(super) members: InternedPathMap<ContextMember>,
-  subscriptions: DirectorySubscriptions,
+  // Each registration owns a distinct handle, including a re-registration of the same path.
+  explicit: Option<Arc<InternedPath>>,
+  parent: Option<InternedPath>,
 }
 
 impl DirectoryWatcher {
   fn is_unused(&self) -> bool {
-    self.members.is_empty() && !self.subscriptions.is_active()
+    self.members.is_empty() && self.explicit.is_none() && self.parent.is_none()
   }
 }
 
@@ -48,12 +111,12 @@ pub(super) struct WatcherManager {
 impl WatcherManager {
   pub(super) fn subscribe_context(&self, path: &InternedPath) {
     let mut watcher = self.directories.entry(path.clone()).or_default();
-    watcher.subscriptions.explicit = true;
+    watcher.explicit = Some(Arc::new(path.clone()));
   }
 
   pub(super) fn unsubscribe_context(&self, path: &InternedPath) {
     self.directories.remove_if_mut(path, |_, watcher| {
-      watcher.subscriptions.explicit = false;
+      watcher.explicit = None;
       watcher.is_unused()
     });
   }
@@ -62,14 +125,58 @@ impl WatcherManager {
     self
       .directories
       .get(path)
-      .is_some_and(|watcher| watcher.subscriptions.explicit)
+      .is_some_and(|watcher| watcher.explicit.is_some())
+  }
+
+  pub(super) fn queue_context_change(
+    &self,
+    path: &InternedPath,
+    directory: bool,
+    scan: &Scan,
+    state: &Observations,
+  ) -> Option<ContextChange> {
+    let subscribers = path
+      .ancestors()
+      .skip(usize::from(!directory))
+      .filter_map(|ancestor| {
+        let context = InternedPath::from(ancestor);
+        let watcher = self.directories.get(&context)?;
+        let subscription = watcher.explicit.as_ref()?;
+        state
+          .same_subscription(scan, &context)
+          .then(|| Arc::downgrade(subscription))
+      })
+      .collect::<Vec<_>>();
+    if subscribers.is_empty() {
+      return None;
+    }
+    let parent = InternedPath::from(path.parent()?);
+    let mut watcher = self.directories.get_mut(&parent)?;
+    let member = watcher.members.get_mut(path)?;
+    let pending = PendingContextChange::merge(&mut member.pending, subscribers);
+    Some(ContextChange {
+      scan: scan.clone(),
+      directory,
+      pending,
+    })
+  }
+
+  pub(super) fn pending_change(&self, path: &InternedPath) -> Option<Arc<PendingContextChange>> {
+    let parent = InternedPath::from(path.parent()?);
+    self
+      .directories
+      .get(&parent)?
+      .members
+      .get(path)?
+      .pending
+      .upgrade()
   }
 
   pub(super) fn is_watched_directory(&self, path: &InternedPath) -> bool {
     self
       .directories
       .get(path)
-      .is_some_and(|watcher| watcher.subscriptions.is_active())
+      .is_some_and(|watcher| watcher.explicit.is_some() || watcher.parent.is_some())
   }
 
   pub(super) fn add_member(&self, path: &InternedPath, kind: MemberKind) -> bool {
@@ -83,15 +190,23 @@ impl WatcherManager {
         let parent = watcher.key().clone();
         drop(watcher);
         let mut child = self.directories.entry(path.clone()).or_default();
-        child.subscriptions.parent = Some(parent);
+        child.parent = Some(parent);
         added
       }
     }
   }
 
-  pub(super) fn member(&self, path: &InternedPath) -> Option<ContextMember> {
-    let parent = InternedPath::from(path.parent()?);
-    self.directories.get(&parent)?.members.get(path).copied()
+  pub(super) fn has_member(
+    &self,
+    path: &InternedPath,
+    matches: impl FnOnce(&ContextMember) -> bool,
+  ) -> bool {
+    path.parent().is_some_and(|parent| {
+      self
+        .directories
+        .get(&InternedPath::from(parent))
+        .is_some_and(|watcher| watcher.members.get(path).is_some_and(matches))
+    })
   }
 
   pub(super) fn remove_member(&self, path: &InternedPath) -> ContextMember {
@@ -112,7 +227,7 @@ impl WatcherManager {
 
   pub(super) fn unsubscribe_parent(&self, path: &InternedPath) {
     self.directories.remove_if_mut(path, |_, watcher| {
-      watcher.subscriptions.parent = None;
+      watcher.parent = None;
       watcher.is_unused()
     });
   }
@@ -124,7 +239,10 @@ impl ContextLookup for WatcherManager {
       .directories
       .get(path)
       .map_or_else(DirectorySubscriptions::default, |watcher| {
-        watcher.subscriptions.clone()
+        DirectorySubscriptions {
+          explicit: watcher.explicit.is_some(),
+          parent: watcher.parent.clone(),
+        }
       })
   }
 }

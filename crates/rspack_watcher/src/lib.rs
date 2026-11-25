@@ -27,7 +27,7 @@ use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
 use executor::{Aggregated, Executor};
 pub use ignored::{FsWatcherIgnored, FsWatcherIgnoredItem, IgnoredFn};
-use observation::{Registration, Scan};
+use observation::{Mutation, Registration, Scan};
 use paths::PathManager;
 use rspack_error::Result;
 use rspack_paths::InternedPath;
@@ -499,10 +499,11 @@ impl FsWatcherInner {
         .and_then(|m| m.modified().or_else(|_| m.created()))
       {
         let scan = Scan::new(&epoch, Registration::File, &path);
-        self.path_manager.with_current(&scan, &path, || {
+        self.path_manager.observe(&path, Some(&scan), |_| {
           self
             .path_manager
-            .set_file_time_if_absent(path.clone(), mtime)
+            .set_file_time_if_absent(path.clone(), mtime);
+          ((), Mutation::Unchanged)
         });
       }
     }

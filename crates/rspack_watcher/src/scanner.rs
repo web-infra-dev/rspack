@@ -5,24 +5,24 @@ use rspack_util::time::system_time_to_millis;
 
 use super::{FsEvent, FsEventKind, PathManager};
 use crate::{
-  observation::{Mutation, Registration, Scan, ScanEpoch},
+  observation::{Mutation, RegisteredChange, Registration, Scan, ScanEpoch},
   time::{mtime_accuracy, mtime_safe_time},
   trigger::Trigger,
 };
 
 pub(super) trait ScanSink: Send + Sync {
-  fn send(&self, event: FsEvent, scan: Scan);
+  fn send(&self, event: FsEvent, change: RegisteredChange);
 }
 
 impl ScanSink for Arc<Trigger> {
-  fn send(&self, event: FsEvent, scan: Scan) {
-    self.on_scan_event(event.path, event.kind, scan);
+  fn send(&self, event: FsEvent, change: RegisteredChange) {
+    self.on_scan_event(event.path, event.kind, change);
   }
 }
 
 #[cfg(any(test, feature = "testing"))]
 impl ScanSink for tokio::sync::mpsc::UnboundedSender<super::EventBatch> {
-  fn send(&self, event: FsEvent, _: Scan) {
+  fn send(&self, event: FsEvent, _: RegisteredChange) {
     let _ = self.send(vec![event]);
   }
 }
@@ -196,7 +196,7 @@ impl<S: ScanSink> ScanJob<S> {
                 path: path.clone(),
                 kind,
               },
-              scan.clone(),
+              state.queue_notification(&scan),
             );
           }
           let mutation = if status.exists || newer.is_some() {

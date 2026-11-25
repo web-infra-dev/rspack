@@ -1,7 +1,7 @@
-//! Versions are needed only while an older scan can still commit or report an event.
+//! Tracks writes that could supersede a running scan’s file or directory observations.
 use std::{
   collections::BTreeSet,
-  sync::{Arc, Mutex},
+  sync::{Arc, Mutex, Weak},
   time::SystemTime,
 };
 
@@ -30,6 +30,7 @@ pub(super) struct Observations {
   subtrees: InternedPathMap<u64>,
   scans: [InternedPathMap<(u64, Option<SystemTime>)>; 2],
   registration_changes: [InternedPathMap<u64>; 3],
+  pending_notifications: [InternedPathMap<Arc<()>>; 3],
 }
 
 pub(super) struct ScanEpoch {
@@ -43,6 +44,17 @@ pub(super) struct Scan {
   pub(super) kind: Registration,
   pub(super) root: InternedPath,
   pub(super) recursive: bool,
+}
+
+pub(super) struct RegisteredChange {
+  pub(super) scan: Scan,
+  pending: Weak<()>,
+}
+
+impl RegisteredChange {
+  pub(super) fn is_pending(&self) -> bool {
+    self.pending.strong_count() != 0
+  }
 }
 
 impl Scan {
@@ -102,6 +114,31 @@ impl Observations {
     if !self.active.is_empty() {
       let version = self.advance();
       self.registration_changes[kind as usize].insert(path.clone(), version);
+      self.pending_notifications[kind as usize].remove(path);
+    }
+  }
+
+  pub(super) fn queue_notification(&mut self, scan: &Scan) -> RegisteredChange {
+    let pending = self.pending_notifications[scan.kind as usize]
+      .entry(scan.root.clone())
+      .or_default();
+    RegisteredChange {
+      scan: scan.clone(),
+      pending: Arc::downgrade(pending),
+    }
+  }
+
+  pub(super) fn take_notification(&mut self, change: &RegisteredChange) -> bool {
+    if !change.is_pending() {
+      return false;
+    }
+    self.pending_notifications[change.scan.kind as usize].remove(&change.scan.root);
+    true
+  }
+
+  pub(super) fn acknowledge_notifications(&mut self, path: &InternedPath) {
+    for pending in &mut self.pending_notifications {
+      pending.remove(path);
     }
   }
 
