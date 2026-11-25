@@ -400,7 +400,7 @@ impl JsCompilation {
   }
 
   #[napi(
-    ts_args_type = "filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null, childCompilation?: JsCompilation"
+    ts_args_type = "filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null"
   )]
   pub fn emit_asset(
     &mut self,
@@ -408,16 +408,7 @@ impl JsCompilation {
     filename: String,
     source: JsSourceFromJs,
     object: Option<Object>,
-    child_compilation: Option<ClassInstance<JsCompilation>>,
   ) -> Result<()> {
-    let file_attributes = if let Some(child) = child_compilation {
-      JsCompilation::as_ref(&child)?
-        .assets()
-        .get(&filename)
-        .and_then(|asset| asset.file_attributes.clone())
-    } else {
-      None
-    };
     let compilation = self.as_mut()?;
 
     let asset_info = if let Some(object) = object {
@@ -436,7 +427,6 @@ impl JsCompilation {
       rspack_core::CompilationAsset {
         source: Some(source.try_into()?),
         info: asset_info,
-        file_attributes,
       },
     );
     Ok(())

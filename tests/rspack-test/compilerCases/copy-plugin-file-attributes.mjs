@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { CopyRspackPlugin, Stats } from "@rspack/core";
+import { Compilation, CopyRspackPlugin, Stats } from "@rspack/core";
 import {
 	compile,
 	createProject,
@@ -148,12 +148,76 @@ function rejectChmod(_file, _mode, callback) {
 	callback(new Error(chmodError));
 }
 
+function afterCopy(processAssets) {
+	return {
+		apply(compiler) {
+			compiler.hooks.thisCompilation.tap("ReemitCopiedAsset", compilation => {
+				compilation.hooks.processAssets.tap(
+					{
+						name: "ReemitCopiedAsset",
+						stage: Compilation.PROCESS_ASSETS_STAGE_OPTIMIZE
+					},
+					() => processAssets(compilation)
+				);
+			});
+		}
+	};
+}
+
+function preserveReemittedFileAttributes() {
+	let root;
+
+	return {
+		description: "should preserve file attributes when re-emitting a copied asset",
+		options(context) {
+			const project = createProject(context, "reemit", [
+				{
+					from: "assets/copy.txt",
+					preservePermissions: true,
+					preserveTimestamps: true
+				}
+			]);
+			root = project.root;
+			const sourceFile = write(root, "assets/copy.txt", "copied\n");
+			fs.utimesSync(sourceFile, atime, initialMtime);
+			if (unix) fs.chmodSync(sourceFile, 0o751);
+			project.options.plugins.push(
+				afterCopy(compilation => {
+					const { source, info } = compilation.getAsset("copy.txt");
+					expect(info.timestamps.mtime).toBe(initialMtime.getTime());
+					if (unix) expect(info.mode).toBe(0o751);
+					compilation.emitAsset("copy.txt", source, { ...info });
+					compilation.emitAsset("copy.txt", source, {
+						timestamps: { ...info.timestamps, mtime: updatedMtime.getTime() }
+					});
+					compilation.emitAsset("renamed.txt", source, { ...info });
+				})
+			);
+			return project.options;
+		},
+		compiler: useRealOutputFileSystem,
+		async build(_context, compiler) {
+			await compile(compiler);
+			for (const [name, mtime] of [
+				["copy.txt", updatedMtime],
+				["renamed.txt", initialMtime]
+			]) {
+				const target = path.join(root, "dist", name);
+				const stat = fs.statSync(target);
+				expect(stat.mtimeMs).toBe(mtime.getTime());
+				if (unix) expect(stat.mode & 0o777).toBe(0o751);
+				expect(fs.readFileSync(target, "utf8")).toBe("copied\n");
+			}
+		}
+	};
+}
+
 function preserveChildCompilerFileAttributes() {
 	let root;
 
 	return {
 		description:
-			"should preserve file attributes when a child compiler copies an asset",
+			"should preserve child copy attributes through the parent emitAsset method",
 		options(context) {
 			const project = createProject(context, "child-compiler", []);
 			root = project.root;
@@ -166,6 +230,10 @@ function preserveChildCompilerFileAttributes() {
 						compiler.hooks.make.tapAsync(
 							"CopyInChildCompiler",
 							(compilation, callback) => {
+								const emitAsset = compilation.emitAsset.bind(compilation);
+								compilation.emitAsset = (name, source, info) => {
+									emitAsset(name === "child.txt" ? "routed.txt" : name, source, info);
+								};
 								const child = compilation.createChildCompiler("copy", {}, [
 									new CopyRspackPlugin({
 										patterns: [
@@ -188,7 +256,7 @@ function preserveChildCompilerFileAttributes() {
 		compiler: useRealOutputFileSystem,
 		async build(_context, compiler) {
 			await compile(compiler);
-			const target = path.join(root, "dist", "child.txt");
+			const target = path.join(root, "dist", "routed.txt");
 			const stat = fs.statSync(target);
 			expect(stat.mtimeMs).toBe(initialMtime.getTime());
 			if (unix) expect(stat.mode & 0o777).toBe(0o751);
@@ -214,6 +282,12 @@ function permissionFailureCase(option, chmod) {
 			const source = write(root, "assets/copy.txt", "copied\n");
 			fs.chmodSync(source, 0o751);
 			target = path.join(root, "dist", "copy.txt");
+			options.plugins.push(
+				afterCopy(compilation => {
+					const { source, info } = compilation.getAsset("copy.txt");
+					compilation.emitAsset("copy.txt", source, { ...info });
+				})
+			);
 			return options;
 		},
 		compiler(_context, compiler) {
@@ -251,6 +325,7 @@ export default [
 	preserveFileAttributes(false),
 	preserveFileAttributes(true),
 	preserveAttributesBeforeTransform(),
+	preserveReemittedFileAttributes(),
 	preserveChildCompilerFileAttributes(),
 	...["copyPermissions", "preservePermissions"].flatMap(option => [
 		permissionFailureCase(option, undefined),

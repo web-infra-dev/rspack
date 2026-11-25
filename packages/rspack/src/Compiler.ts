@@ -679,7 +679,13 @@ class Compiler {
       assertNotNill(compilation);
 
       this.parentCompilation!.children.push(compilation);
-      this.parentCompilation!.__internal__emitAssetsFromChild(compilation);
+      for (const { name, source, info } of compilation.getAssets()) {
+        // Do not emit asset if source is not available.
+        // Webpack will emit it anyway.
+        if (source) {
+          this.parentCompilation!.emitAsset(name, source, info);
+        }
+      }
 
       const entries = [];
       for (const ep of compilation.entrypoints.values()) {

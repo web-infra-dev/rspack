@@ -7,10 +7,14 @@ use napi::{
   sys,
 };
 use napi_derive::napi;
-use rspack_core::Reflector;
+use rspack_core::{AssetFileAttributes, Reflector};
 use rspack_napi::unknown_to_json_value;
 use rspack_napi_macros::field_names;
 use rustc_hash::FxHashSet;
+use serde_json::{Map, Value};
+
+// Keep the deprecated copyPermissions error policy when plugins pass AssetInfo back to Rust.
+const LEGACY_COPY_PERMISSIONS: &str = "__rspackLegacyCopyPermissions";
 
 #[derive(Clone)]
 #[napi(object)]
@@ -72,7 +76,7 @@ pub struct KnownAssetInfo {
 /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
 pub struct AssetInfo {
   known: KnownAssetInfo,
-  extras: serde_json::Map<String, serde_json::Value>,
+  extras: Map<String, Value>,
 }
 
 impl FromNapiValue for AssetInfo {
@@ -81,7 +85,7 @@ impl FromNapiValue for AssetInfo {
       let known = KnownAssetInfo::from_napi_value(env, napi_val)?;
       let known_field_names = FxHashSet::from_iter(KnownAssetInfo::field_names());
 
-      let mut extras = serde_json::Map::new();
+      let mut extras = Map::new();
       let object = Object::from_napi_value(env, napi_val)?;
       let names = Array::from_napi_value(env, object.get_property_names()?.raw())?;
       for index in 0..names.len() {
@@ -126,7 +130,8 @@ impl ValidateNapiValue for AssetInfo {}
 
 impl From<AssetInfo> for rspack_core::AssetInfo {
   fn from(js_value: AssetInfo) -> Self {
-    let AssetInfo { known, extras } = js_value;
+    let AssetInfo { known, mut extras } = js_value;
+    let file_attributes = take_file_attributes(&mut extras);
 
     let KnownAssetInfo {
       immutable,
@@ -176,9 +181,43 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
       css_unused_idents: css_unused_idents.map(|i| i.into_iter().map(Into::into).collect()),
       is_over_size_limit,
       asset_type: asset_type.map_or_default(Into::into),
+      file_attributes,
       extras,
     }
   }
+}
+
+fn take_file_attributes(extras: &mut Map<String, Value>) -> Option<Box<AssetFileAttributes>> {
+  let mode = if cfg!(unix) {
+    extras
+      .get("mode")
+      .and_then(Value::as_f64)
+      .filter(|mode| mode.fract() == 0.0 && (0.0..=f64::from(u16::MAX)).contains(mode))
+      .map(|mode| mode as u16)
+  } else {
+    None
+  };
+  let timestamps = extras.get("timestamps").and_then(|timestamps| {
+    let atime = timestamps.get("atime")?.as_f64()?;
+    let mtime = timestamps.get("mtime")?.as_f64()?;
+    (atime >= 0.0 && mtime >= 0.0).then_some((atime as u64, mtime as u64))
+  });
+  if mode.is_none() && timestamps.is_none() {
+    return None;
+  }
+
+  let legacy_permissions = extras.remove(LEGACY_COPY_PERMISSIONS) == Some(Value::Bool(true));
+  if mode.is_some() {
+    extras.remove("mode");
+  }
+  if timestamps.is_some() {
+    extras.remove("timestamps");
+  }
+  Some(Box::new(AssetFileAttributes {
+    mode,
+    permissions_required: !legacy_permissions,
+    timestamps,
+  }))
 }
 
 impl AssetInfo {
@@ -224,9 +263,25 @@ impl From<rspack_core::AssetInfo> for AssetInfo {
       css_unused_idents,
       is_over_size_limit,
       asset_type,
-      extras,
+      file_attributes,
+      mut extras,
       ..
     } = value;
+
+    if let Some(attributes) = file_attributes {
+      if let Some(mode) = attributes.mode {
+        extras.insert("mode".into(), mode.into());
+        if !attributes.permissions_required {
+          extras.insert(LEGACY_COPY_PERMISSIONS.into(), Value::Bool(true));
+        }
+      }
+      if let Some((atime, mtime)) = attributes.timestamps {
+        extras.insert(
+          "timestamps".into(),
+          serde_json::json!({ "atime": atime, "mtime": mtime }),
+        );
+      }
+    }
 
     Self {
       known: KnownAssetInfo {

@@ -8,7 +8,12 @@ export type JsFilename =
 
 export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
-export type AssetInfo = KnownAssetInfo & Record<string, any>;
+export type AssetInfo = KnownAssetInfo & {
+	/** Unix permissions applied when the asset is written. */
+	mode?: number;
+	/** Access and modification times in milliseconds since the Unix epoch. */
+	timestamps?: { atime: number; mtime: number };
+} & Record<string, any>;
 
 export type CustomPluginName = string;
 
@@ -240,7 +245,7 @@ export declare class JsCompilation {
   deleteAssetSource(name: string): void
   getAssetFilenames(): Array<string>
   hasAsset(name: string): boolean
-  emitAsset(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null, childCompilation?: JsCompilation): void
+  emitAsset(filename: string, source: JsSourceFromJs, assetInfo?: AssetInfo | undefined | null): void
   deleteAsset(filename: string): void
   renameAsset(filename: string, newName: string): void
   get entrypoints(): ChunkGroup[]

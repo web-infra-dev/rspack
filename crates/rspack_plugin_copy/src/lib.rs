@@ -725,7 +725,11 @@ impl CopyRspackPlugin {
           continue;
         }
         exist_asset.set_source(Some(Arc::new(result.source)));
-        exist_asset.file_attributes = result.file_attributes;
+        if exist_asset.info.file_attributes.is_some() {
+          // A forced replacement can remove properties from the previous asset's JS info.
+          exist_asset.info = exist_asset.info.clone();
+        }
+        exist_asset.info.file_attributes = result.file_attributes;
         if let Some(info) = result.info {
           set_info(&mut exist_asset.info, info);
         }
@@ -735,6 +739,7 @@ impl CopyRspackPlugin {
         let mut asset_info = AssetInfo {
           source_filename: Some(result.source_filename.to_string()),
           copied: Some(true),
+          file_attributes: result.file_attributes,
           ..Default::default()
         };
 
@@ -742,9 +747,10 @@ impl CopyRspackPlugin {
           set_info(&mut asset_info, info);
         }
 
-        let mut asset = CompilationAsset::new(Some(Arc::new(result.source)), asset_info);
-        asset.file_attributes = result.file_attributes;
-        compilation.emit_asset(result.filename, asset);
+        compilation.emit_asset(
+          result.filename,
+          CompilationAsset::new(Some(Arc::new(result.source)), asset_info),
+        );
       }
     }
   }

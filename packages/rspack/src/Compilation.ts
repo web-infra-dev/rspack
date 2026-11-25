@@ -767,20 +767,6 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     this.#inner.emitAsset(filename, SourceAdapter.toBinding(source), assetInfo);
   }
 
-  /** @internal */
-  __internal__emitAssetsFromChild(child: Compilation) {
-    for (const { name, source, info } of child.getAssets()) {
-      if (source) {
-        this.#inner.emitAsset(
-          name,
-          SourceAdapter.toBinding(source),
-          info,
-          child.#inner,
-        );
-      }
-    }
-  }
-
   deleteAsset(filename: string) {
     this.#inner.deleteAsset(filename);
   }

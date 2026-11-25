@@ -8,7 +8,12 @@ export type JsFilename =
 
 export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
-export type AssetInfo = KnownAssetInfo & Record<string, any>;
+export type AssetInfo = KnownAssetInfo & {
+	/** Unix permissions applied when the asset is written. */
+	mode?: number;
+	/** Access and modification times in milliseconds since the Unix epoch. */
+	timestamps?: { atime: number; mtime: number };
+} & Record<string, any>;
 
 export type CustomPluginName = string;
 

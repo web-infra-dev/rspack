@@ -804,14 +804,13 @@ impl Compilation {
   ) -> Result<()> {
     let assets = &mut self.assets;
 
-    let (old_info, new_source, new_info, file_attributes) = match assets.remove(filename) {
+    let (old_info, new_source, new_info) = match assets.remove(filename) {
       Some(CompilationAsset {
         source: Some(source),
         info: old_info,
-        file_attributes,
       }) => {
         let (new_source, new_info) = updater(source, old_info.clone())?;
-        (old_info, new_source, new_info, file_attributes)
+        (old_info, new_source, new_info)
       }
       _ => {
         return Err(rspack_error::error!(
@@ -826,13 +825,12 @@ impl Compilation {
       CompilationAsset {
         source: Some(new_source),
         info: new_info,
-        file_attributes,
       },
     );
     Ok(())
   }
   #[instrument("Compilation:emit_asset",skip_all, fields(filename = filename))]
-  pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
+  pub fn emit_asset(&mut self, filename: String, mut asset: CompilationAsset) {
     if let Some(mut original) = self.assets.remove(&filename)
       && let Some(original_source) = &original.source
       && let Some(asset_source) = asset.get_source()
@@ -864,9 +862,12 @@ impl Compilation {
         self.assets.insert(filename, asset);
         return;
       }
+      asset.info.file_attributes = AssetFileAttributes::merge(
+        original.info.file_attributes.take(),
+        asset.info.file_attributes.take(),
+      );
       self.set_asset_info(&filename, Some(asset.get_info()), Some(original.get_info()));
       original.info = asset.info;
-      original.file_attributes = asset.file_attributes;
       self.assets.insert(filename, original);
     } else {
       self.set_asset_info(&filename, Some(asset.get_info()), None);
@@ -1368,11 +1369,9 @@ pub struct CompilationAsset {
   #[cacheable(with=AsOption<AsPreset>)]
   pub source: Option<BoxSource>,
   pub info: BindingCell<AssetInfo>,
-  pub file_attributes: Option<Box<AssetFileAttributes>>,
 }
 
-/// File metadata applied when the asset is written. Asset clones carry these
-/// values so that copies of an asset retain the same output metadata.
+/// File metadata applied when the asset is written.
 #[cacheable]
 #[derive(Debug, Clone)]
 pub struct AssetFileAttributes {
@@ -1381,6 +1380,22 @@ pub struct AssetFileAttributes {
   pub permissions_required: bool,
   /// Access and modification times in milliseconds since the Unix epoch.
   pub timestamps: Option<(u64, u64)>,
+}
+
+impl AssetFileAttributes {
+  fn merge(old: Option<Box<Self>>, new: Option<Box<Self>>) -> Option<Box<Self>> {
+    let Some(mut new) = new else {
+      return old;
+    };
+    if let Some(old) = old {
+      if new.mode.is_none() {
+        new.mode = old.mode;
+        new.permissions_required = old.permissions_required;
+      }
+      new.timestamps = new.timestamps.or(old.timestamps);
+    }
+    Some(new)
+  }
 }
 
 impl From<BoxSource> for CompilationAsset {
@@ -1394,7 +1409,6 @@ impl CompilationAsset {
     Self {
       source,
       info: BindingCell::from(info),
-      file_attributes: None,
     }
   }
 
@@ -1454,6 +1468,8 @@ pub struct AssetInfo {
   pub is_over_size_limit: Option<bool>,
   /// the plugin that created the asset
   pub asset_type: ManifestAssetType,
+  /// Permissions and timestamps carried by this asset, including across JS re-emission.
+  pub file_attributes: Option<Box<AssetFileAttributes>>,
 
   /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
   /// This is a hack to store the additional fields in the rust struct.
@@ -1533,6 +1549,8 @@ impl AssetInfo {
       .or_else(|| self.source_filename.take());
     self.version = another.version;
     self.related.merge_another(another.related);
+    self.file_attributes =
+      AssetFileAttributes::merge(self.file_attributes.take(), another.file_attributes);
 
     // merge vec fields
     self.chunk_hash.extend(another.chunk_hash);

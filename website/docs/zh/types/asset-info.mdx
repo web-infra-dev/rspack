@@ -2,6 +2,8 @@
 
 产物元数据中常见字段的含义见[产物信息](/api/javascript-api/stats-json#asset-info)。
 
+`mode` 指定写入产物时应用的 Unix 权限。`timestamps` 指定产物的访问时间和修改时间，以 Unix 纪元起算的非负毫秒数表示。开启对应的保留选项后，CopyRspackPlugin 会填充这些字段。插件重新发射产物时，可以将原产物的 `info` 传给 `emitAsset` 来保留这些属性。
+
 ```ts
 type AssetInfo = {
   immutable?: boolean;
@@ -11,6 +13,8 @@ type AssetInfo = {
   contenthash?: string | Array<string>;
   sourceFilename?: string;
   copied?: boolean;
+  mode?: number;
+  timestamps?: { atime: number; mtime: number };
   development?: boolean;
   hotModuleReplacement?: boolean;
   javascriptModule?: boolean;

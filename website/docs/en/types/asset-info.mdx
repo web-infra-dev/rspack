@@ -2,6 +2,8 @@
 
 For descriptions of common asset metadata fields, see [Asset info](/api/javascript-api/stats-json#asset-info).
 
+`mode` specifies the Unix permissions applied when writing the asset. `timestamps` specifies its access and modification times in nonnegative milliseconds since the Unix epoch. CopyRspackPlugin populates these fields when the corresponding preservation options are enabled. A plugin can pass the asset's `info` to `emitAsset` to keep these attributes when emitting it again.
+
 ```ts
 type AssetInfo = {
   immutable?: boolean;
@@ -11,6 +13,8 @@ type AssetInfo = {
   contenthash?: string | Array<string>;
   sourceFilename?: string;
   copied?: boolean;
+  mode?: number;
+  timestamps?: { atime: number; mtime: number };
   development?: boolean;
   hotModuleReplacement?: boolean;
   javascriptModule?: boolean;

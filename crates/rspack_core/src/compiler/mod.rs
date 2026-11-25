@@ -475,7 +475,7 @@ impl Compiler {
           }
 
           if emit_assets_incremental
-            && asset.file_attributes.is_none()
+            && asset.info.file_attributes.is_none()
             && let Some(old_version) = self.emitted_asset_versions.get(filename)
             && old_version.as_str() == asset.info.version
             && !old_version.is_empty()
@@ -579,7 +579,7 @@ impl Compiler {
       }
 
       // Access times can change during the content comparison.
-      if let Some(attributes) = &asset.file_attributes
+      if let Some(attributes) = &asset.info.file_attributes
         && (need_write
           || stat.as_ref().is_none_or(|stat| {
             attributes.mode.is_some_and(|mode| stat.mode != Some(mode))
