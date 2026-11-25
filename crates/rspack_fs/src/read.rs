@@ -41,7 +41,10 @@ pub trait ReadableFileSystem: Debug + Send + Sync {
   async fn metadata(&self, path: &Utf8Path) -> Result<FileMetadata>;
   fn metadata_sync(&self, path: &Utf8Path) -> Result<FileMetadata>;
 
-  /// Read file metadata, including permissions and timestamps that require extra work to obtain.
+  /// Read metadata for preserving file attributes when copying a file.
+  ///
+  /// Native PnP reads ZIP entry attributes here so `metadata` can keep serving
+  /// resolution and snapshot probes from the archive's file types.
   async fn metadata_with_file_attributes(&self, path: &Utf8Path) -> Result<FileMetadata> {
     self.metadata(path).await
   }
