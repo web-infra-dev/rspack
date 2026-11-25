@@ -4,10 +4,9 @@ it("should not include layer or type in absoluteResourcePath", function () {
 	var source = fs.readFileSync(__filename + ".map", "utf-8");
 	var map = JSON.parse(source);
 	expect(map.sources).toContain(
-		path.resolve(
-			__TEST_PATH__,
-			"configCases/source-map/resource-path/test.js"
-		)
+		path
+			.resolve(__TEST_PATH__, "configCases/source-map/resource-path/test.js")
+			.replaceAll(path.sep, "/")
 	);
 });
 
