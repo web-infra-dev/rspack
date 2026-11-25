@@ -5,6 +5,7 @@ use rspack_error::{Result, ToStringResultToRspackResultExt, error};
 use serde_json::{Map, Value, json};
 use swc_core::common::DUMMY_SP;
 use swc_html::ast::{Child, Element, Namespace, Text};
+use url::{ParseError, Url};
 
 use crate::{
   parser::CompiledDocument,
@@ -13,7 +14,7 @@ use crate::{
 
 pub(crate) fn add_integrity_to_import_map(
   document: &mut CompiledDocument,
-  integrity: BTreeMap<String, String>,
+  mut integrity: BTreeMap<String, String>,
 ) -> Result<()> {
   let children = match document {
     CompiledDocument::Document(document) | CompiledDocument::DocumentWithoutDoctype(document) => {
@@ -21,13 +22,19 @@ pub(crate) fn add_integrity_to_import_map(
     }
     CompiledDocument::DocumentFragment(fragment) => &mut fragment.children,
   };
+  let (nonce, late_base) = find_import_map_context(children);
+  let nonce = nonce.map(str::to_owned);
+  if let Some(base) = late_base {
+    add_base_integrity_urls(&mut integrity, base);
+  }
+
   let mut seen_module_fetch = false;
   if merge_existing_map(children, &integrity, &mut seen_module_fetch)? || !seen_module_fetch {
     return Ok(());
   }
 
   let contents = serialize_map(&json!({ "integrity": integrity }))?;
-  insert_before_module_fetch(children, &contents);
+  insert_before_module_fetch(children, &contents, nonce.as_deref());
   Ok(())
 }
 
@@ -56,6 +63,141 @@ fn starts_module_fetch(element: &Element) -> bool {
 
 fn is_active_html_element(element: &Element) -> bool {
   element.namespace == Namespace::HTML && !matches!(&*element.tag_name, "template" | "noscript")
+}
+
+fn find_import_map_context(children: &[Child]) -> (Option<&str>, Option<&str>) {
+  let mut pending = vec![children.iter()];
+  let mut preload_nonce = None;
+  let mut seen_import_map = false;
+  let mut seen_module_fetch = false;
+  let mut base_href = None;
+  let mut late_base = None;
+
+  while let Some(children) = pending.last_mut() {
+    let Some(child) = children.next() else {
+      pending.pop();
+      continue;
+    };
+    let Child::Element(element) = child else {
+      continue;
+    };
+    if !is_active_html_element(element) {
+      continue;
+    }
+    pending.push(element.children.iter());
+
+    if starts_module_fetch(element) {
+      seen_module_fetch = true;
+      if let Some(nonce) = attribute(element, "nonce").filter(|nonce| !nonce.is_empty()) {
+        if is_script(element, "module") {
+          return (Some(nonce), late_base);
+        }
+        preload_nonce.get_or_insert(nonce);
+      }
+    } else if !seen_module_fetch {
+      if base_href.is_none() && element.tag_name == "base" {
+        // The first base with an href wins, including an empty href.
+        base_href = element
+          .attributes
+          .iter()
+          .find(|attribute| attribute.name == "href")
+          .map(|attribute| attribute.value.as_deref().unwrap_or_default());
+        if seen_import_map {
+          late_base = base_href;
+        }
+      }
+      seen_import_map |= is_script(element, "importmap");
+    }
+  }
+
+  (preload_nonce, late_base)
+}
+
+// Preserve the authored map's base URL. Only its generated integrity keys
+// need to refer to the base URL in effect when the modules are fetched.
+fn add_base_integrity_urls(integrity: &mut BTreeMap<String, String>, base: &str) {
+  let base = base
+    .trim_matches(|c: char| c <= ' ')
+    .cow_replace(&['\t', '\r', '\n'][..], "");
+  match Url::parse(&base) {
+    Ok(base) if !base.cannot_be_a_base() => {
+      add_integrity_aliases(integrity, |url| base.join(url).ok().map(String::from));
+      return;
+    }
+    Err(ParseError::RelativeUrlWithoutBase) => {}
+    _ => return,
+  }
+
+  // Keep relative bases independent of the document's deployment URL.
+  let path = base
+    .split(['?', '#'])
+    .next()
+    .unwrap_or_default()
+    .cow_replace('\\', "/");
+  let (authority, path) = if path.starts_with("//") {
+    let authority_and_path = path.trim_start_matches('/');
+    let (authority, path) = authority_and_path
+      .split_once('/')
+      .unwrap_or((authority_and_path, ""));
+    if Url::parse(&format!("https://{authority}")).is_err() {
+      return;
+    }
+    // Keep explicit ports because the document's scheme is unknown.
+    (format!("//{authority}"), Cow::Owned(format!("/{path}")))
+  } else {
+    (String::new(), path)
+  };
+  let filename = path.rsplit('/').next().unwrap_or_default();
+  let directory = if matches!(
+    filename.cow_to_ascii_lowercase().as_ref(),
+    "." | ".." | "%2e" | "%2e%2e" | "%2e." | ".%2e"
+  ) {
+    Cow::Owned(format!("{path}/"))
+  } else {
+    Cow::Borrowed(path.rfind('/').map_or("", |end| &path[..=end]))
+  };
+  if directory.is_empty() {
+    return;
+  }
+
+  // The browser normalizes dot segments when it parses the import map.
+  let prefix = if authority.is_empty()
+    && !directory.starts_with('/')
+    && !directory.starts_with("./")
+    && !directory.starts_with("../")
+  {
+    "./"
+  } else {
+    ""
+  };
+  add_integrity_aliases(integrity, |url| {
+    if url.starts_with("//") || Url::parse(url).is_ok() {
+      None
+    } else if url.starts_with('/') {
+      Some(format!("{authority}{url}"))
+    } else {
+      let path = url.strip_prefix("./").unwrap_or(url);
+      Some(format!("{prefix}{authority}{directory}{path}"))
+    }
+  });
+}
+
+fn add_integrity_aliases(
+  integrity: &mut BTreeMap<String, String>,
+  resolve: impl Fn(&str) -> Option<String>,
+) {
+  let aliases = integrity
+    .iter()
+    .filter_map(|(url, hash)| {
+      resolve(url)
+        .filter(|resolved| resolved != url)
+        .map(|resolved| (resolved, hash.clone()))
+    })
+    .collect::<Vec<_>>();
+  // The original URLs still apply if CSP blocks the base element.
+  for (url, hash) in aliases {
+    integrity.entry(url).or_insert(hash);
+  }
 }
 
 fn merge_existing_map(
@@ -109,7 +251,11 @@ fn merge_existing_map(
   Ok(false)
 }
 
-fn insert_before_module_fetch(children: &mut Vec<Child>, contents: &str) -> bool {
+fn insert_before_module_fetch(
+  children: &mut Vec<Child>,
+  contents: &str,
+  nonce: Option<&str>,
+) -> bool {
   for index in 0..children.len() {
     let Child::Element(element) = &mut children[index] else {
       continue;
@@ -122,7 +268,7 @@ fn insert_before_module_fetch(children: &mut Vec<Child>, contents: &str) -> bool
         attr_name: "type".into(),
         attr_value: Some("importmap".into()),
       }];
-      if let Some(nonce) = attribute(element, "nonce") {
+      if let Some(nonce) = nonce {
         attributes.push(HtmlPluginAttribute {
           attr_name: "nonce".into(),
           attr_value: Some(nonce.into()),
@@ -142,7 +288,7 @@ fn insert_before_module_fetch(children: &mut Vec<Child>, contents: &str) -> bool
       );
       return true;
     }
-    if insert_before_module_fetch(&mut element.children, contents) {
+    if insert_before_module_fetch(&mut element.children, contents, nonce) {
       return true;
     }
   }

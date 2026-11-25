@@ -15,6 +15,15 @@ export default {
 		expect(mapScript[0]).toContain("test-nonce");
 		expect(mapScript.index).toBeLessThan(html.indexOf("modulepreload"));
 
+		const nonceHtml = readFileSync(
+			path.join(outputPath, "pages/nonce.html"),
+			"utf-8"
+		);
+		const nonceMap = nonceHtml.match(/<script\b[^>]*type=["']?importmap["']?[^>]*>/);
+		expect(nonceMap).toBeTruthy();
+		expect(nonceMap[0]).toMatch(/\bnonce=["']?module-nonce["']?(?=[\s>])/);
+		expect(nonceMap.index).toBeLessThan(nonceHtml.indexOf("modulepreload"));
+
 		const chunks = readdirSync(outputPath).filter(
 			file => file.endsWith(".mjs") && file !== "main.mjs"
 		);
