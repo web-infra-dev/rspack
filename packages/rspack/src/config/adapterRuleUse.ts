@@ -31,6 +31,7 @@ export interface ComposeJsUseOptions {
   mode: RawOptions['mode'];
   experiments: RawOptions['experiments'];
   compiler: Compiler;
+  loaderCache: boolean;
 }
 
 export interface RawSourceMap {
@@ -593,9 +594,10 @@ function createRawModuleRuleUsesImpl(
       isBuiltin = true;
     }
 
-    const optionsCacheKey = use.cache
-      ? serializeLoaderOptionsForCache(fingerprintOptions)
-      : undefined;
+    const optionsCacheKey =
+      options.loaderCache && use.cache
+        ? serializeLoaderOptionsForCache(fingerprintOptions)
+        : undefined;
     const cache = optionsCacheKey !== undefined;
     const normalizedOptionsCacheKey = optionsCacheKey ?? '';
     const codeFilter = createRawLoaderCodeFilter(

@@ -413,17 +413,8 @@ module.exports = "data:,";
     };
     let mut resolved_inline_loaders = vec![];
     for l in inline_loaders {
-      resolved_inline_loaders.push(
-        resolve_each_with_options(
-          plugin_driver,
-          &self.options,
-          &context,
-          &loader_resolver,
-          &l,
-          data,
-        )
-        .await?,
-      )
+      resolved_inline_loaders
+        .push(resolve_each_with_options(plugin_driver, &context, &loader_resolver, &l, data).await?)
     }
 
     let user_request = {
@@ -493,7 +484,6 @@ module.exports = "data:,";
         all_loaders.push(
           resolve_each_with_options(
             plugin_driver,
-            &self.options,
             &self.options.context,
             &loader_resolver,
             &l,
@@ -508,7 +498,6 @@ module.exports = "data:,";
         resolved_normal_loaders.push(
           resolve_each_with_options(
             plugin_driver,
-            &self.options,
             &self.options.context,
             &loader_resolver,
             &l,
@@ -530,7 +519,6 @@ module.exports = "data:,";
         all_loaders.push(
           resolve_each_with_options(
             plugin_driver,
-            &self.options,
             &self.options.context,
             &loader_resolver,
             &l,
@@ -795,20 +783,18 @@ fn stringify_resolved_loaders_and_resource<'a>(
 
 async fn resolve_each_with_options(
   plugin_driver: &SharedPluginDriver,
-  options: &CompilerOptions,
   context: &Context,
   loader_resolver: &Resolver,
   loader: &ModuleRuleUseLoader,
   data: &mut ModuleFactoryCreateData,
 ) -> Result<ResolvedLoader> {
-  let cache_enabled = options.experiments.new_cache.loader && loader.cache();
   let resolved = resolve_each(plugin_driver, context, loader_resolver, loader, data).await?;
-  let metadata = if cache_enabled || loader.filter().is_some() {
-    loader.metadata.clone()
-  } else {
-    None
-  };
-  if !cache_enabled {
+  if !loader.cache() {
+    let metadata = if loader.filter().is_some() {
+      loader.metadata.clone()
+    } else {
+      None
+    };
     return Ok(ResolvedLoader {
       loader: resolved,
       options: LoaderRunnerOptions::default(),
@@ -830,7 +816,7 @@ async fn resolve_each_with_options(
       loader_name,
       loader_version,
     },
-    metadata,
+    metadata: loader.metadata.clone(),
   })
 }
 
