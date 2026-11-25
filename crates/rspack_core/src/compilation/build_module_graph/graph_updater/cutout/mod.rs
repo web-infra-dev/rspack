@@ -170,12 +170,13 @@ impl Cutout {
   }
 
   /// Fix artifact, the last step to incrementally update MakeArtifact.
-  pub fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) {
+  pub fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) -> IdentifierSet {
     let Self {
       fix_issuers,
       fix_build_meta,
     } = self;
-    fix_issuers.fix_artifact(artifact);
+    let revoked_modules = fix_issuers.fix_artifact(artifact);
     fix_build_meta.fix_artifact(artifact);
+    revoked_modules
   }
 }
