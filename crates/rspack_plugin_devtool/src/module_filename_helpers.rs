@@ -67,7 +67,10 @@ fn resolve_relative_resource_path(
       RuntimeMode::Webpack => "webpack",
       RuntimeMode::Rspack => "rspack",
     };
-    return Some(format!("{scheme}://{absolute_resource_path}"));
+    return Some(format!(
+      "{scheme}://{}",
+      absolute_resource_path.cow_replace('\\', "/")
+    ));
   }
 
   let Some(source_map_path) = source_map_path else {
@@ -173,7 +176,7 @@ impl ModuleFilenameHelpers {
           short_identifier,
           identifier,
           module_id,
-          absolute_resource_path,
+          absolute_resource_path: absolute_resource_path.cow_replace('\\', "/").into_owned(),
           relative_resource_path,
           hash,
           resource,
@@ -207,9 +210,9 @@ impl ModuleFilenameHelpers {
           resource[..resource.len().saturating_sub(q)].to_string()
         };
 
-        let absolute_resource_path = source.split('!').next_back().unwrap_or("").to_string();
+        let absolute_resource_path = source.split('!').next_back().unwrap_or("");
         let relative_resource_path = resolve_relative_resource_path(
-          &absolute_resource_path,
+          absolute_resource_path,
           unresolved_source_map_path,
           options.experiments.runtime_mode,
         );
@@ -218,7 +221,7 @@ impl ModuleFilenameHelpers {
           short_identifier,
           identifier,
           module_id: String::new(),
-          absolute_resource_path,
+          absolute_resource_path: absolute_resource_path.cow_replace('\\', "/").into_owned(),
           relative_resource_path,
           hash,
           resource,
@@ -442,7 +445,7 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
         // Eval devtool modes have no source map file path to resolve against.
         let resource_identifier = self.resource_identifier();
         let resource = resource_identifier.split('!').next_back().unwrap_or("");
-        Some(Cow::Owned(resource.to_string()))
+        Some(resource.cow_replace('\\', "/"))
       }
       (None, SourceReference::Source(_)) => None,
     }
@@ -578,7 +581,7 @@ fn template_replace<'a>(s: &str, ctx: &ModuleFilenameTemplateStringCtx<'a>) -> S
             b"[absolute-resourcepath]" |
             b"[abs-resourcepath]" |
             b"[absoluteresourcepath]" |
-            b"[absresourcepath]" => buf.push_str(ctx.absolute_resource_path()),
+            b"[absresourcepath]" => buf.push_str(&ctx.absolute_resource_path().cow_replace('\\', "/")),
 
             b"[relative-resource-path]" |
             b"[relativeresource-path]" |
