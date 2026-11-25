@@ -425,8 +425,6 @@ export default {
 | [resource-path]          | 不带任何查询参数，用于解析文件的路径                                                            |
 | [namespace]              | 模块命名空间。在构建成为一个 library 之后，通常也是 library 名称，否则为空                      |
 
-字符串模板中的 Windows 资源路径使用 `/` 作为分隔符。`[absolute-resource-path]` 和 `[relative-resource-path]` 都会保留资源的 query 和 fragment。对于 `require.context` 等生成的虚拟模块，这两个占位符会使用虚拟来源 URL，例如 `webpack:///./src|sync|/pattern/`。如果模板已指定 URL 协议，占位符会将模块名称填入该协议下。
-
 当使用一个函数，同样的选项要通过 `info` 参数并使用驼峰式：
 
 ```js title="rspack.config.mjs"

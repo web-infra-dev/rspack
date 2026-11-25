@@ -1,25 +1,18 @@
 import { defineConfig, definePlugin } from '@rspack/cli';
 import path from 'node:path';
 
-const libDir = path.join(import.meta.dirname, 'lib').replaceAll(path.sep, '/');
-const queryModule = path
-  .join(import.meta.dirname, 'app/query.js')
-  .replaceAll(path.sep, '/');
 const expectedSources = [
   [
-    'export const windowsPath: number = 4;',
-    String.raw`C:/repo/src/win.ts?variant=\raw#part`,
+    'export const n: number = 1;',
+    path.join(import.meta.dirname, 'lib/item.ts'),
   ],
-  ['module.exports = 42;', `${queryModule}?variant=a#part`],
-  ['module.exports = 42;', `${queryModule}?variant=b#part`],
-  ['export const n: number = 1;', `${libDir}/item.ts`],
   [
     'export const withQuery: number = 2;',
-    `${libDir}/query.ts?path=a/../b#section`,
+    path.join(import.meta.dirname, 'lib/query.ts') + '?path=a/../b#section',
   ],
   [
     'export const withFragment: number = 3;',
-    `${libDir}/fragment.ts#section/a/../b`,
+    path.join(import.meta.dirname, 'lib/fragment.ts') + '#section/a/../b',
   ],
 ];
 
@@ -67,12 +60,12 @@ export default defineConfig(
                     JSON.parse(Buffer.from(base64, 'base64').toString('utf8')),
                 );
           for (const [content, file] of expectedSources) {
-            const sources = maps.flatMap((map) =>
-              map.sources.filter(
-                (_, index) => map.sourcesContent[index]?.trimEnd() === content,
-              ),
+            const map = maps.find((map) =>
+              map.sourcesContent.includes(content),
             );
-            expect(sources).toContain(file);
+            expect(map?.sources[map.sourcesContent.indexOf(content)]).toBe(
+              file,
+            );
           }
         });
       }),

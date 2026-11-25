@@ -12,7 +12,7 @@ use regex::Regex;
 use rspack_core::{
   AssetInfo, CacheCount, CacheFacade, CacheValue, Chunk, ChunkUkey, Compilation, CompilationAsset,
   CompilationParams, CompilationProcessAssets, CompilerCompilation, Etag, Filename, Logger,
-  PathData, Plugin,
+  ModuleIdentifier, PathData, Plugin,
   cache::CachedSourceMapDevToolPluginEntry,
   legacy_cache::persistent::occasion::SourceMapDevToolPluginCache,
   rspack_sources::{
@@ -28,6 +28,7 @@ use rspack_util::{
   asset_condition::{AssetConditions, AssetConditionsObject, match_object},
   base64,
   fx_hash::FxIndexMap,
+  identifier::make_paths_absolute,
   node_path::NodePath,
   source_map::SourceMapKind,
 };
@@ -38,7 +39,7 @@ use url::Url;
 use crate::{
   ModuleFilenameTemplateFn, SourceReference, default_source_map_fallback_module_filename_template,
   default_source_map_module_filename_template, generate_debug_id::generate_debug_id,
-  module_filename_helpers::ModuleFilenameHelpers, resolve_source_reference,
+  module_filename_helpers::ModuleFilenameHelpers,
 };
 
 /// Check if a string starts with `data:`, `http:`, or `https:`
@@ -51,7 +52,7 @@ fn has_css_extension(s: &str) -> bool {
   s.ends_with(".css") || s.contains(".css?")
 }
 
-pub(super) fn starts_with_url_scheme(s: &str) -> bool {
+fn starts_with_url_scheme(s: &str) -> bool {
   let Some((scheme, _)) = s.split_once(':') else {
     return false;
   };
@@ -121,7 +122,24 @@ fn compute_source_references(
   source_map
     .sources()
     .iter()
-    .map(|source| resolve_source_reference(compilation, source))
+    .map(|source_name| {
+      if let Some(stripped) = source_name
+        .strip_prefix("webpack://")
+        .or_else(|| source_name.strip_prefix("rspack://"))
+      {
+        let source_name = make_paths_absolute(compilation.options.context.as_str(), stripped);
+        let identifier = ModuleIdentifier::from(source_name.as_str());
+        match compilation
+          .get_module_graph()
+          .module_by_identifier(&identifier)
+        {
+          Some(module) => SourceReference::Module(module.identifier()),
+          None => SourceReference::Source(Arc::from(source_name)),
+        }
+      } else {
+        SourceReference::Source(Arc::from(source_name.as_ref()))
+      }
+    })
     .collect()
 }
 
@@ -785,9 +803,20 @@ impl SourceMapDevToolPlugin {
     // `cssExtractLoader.js!css-loader!...!style.css`. Both can resolve to the same default source
     // name, so the shorter entry should claim it first and force the longer virtual module to use
     // the fallback template instead.
-    let sorted_iter = reference_to_source_name_mapping
-      .iter_mut()
-      .sorted_by_key(|(key, _)| key.as_str().len());
+    let sorted_iter =
+      reference_to_source_name_mapping
+        .iter_mut()
+        .sorted_by(|(key_a, _), (key_b, _)| {
+          let ident_a = match key_a {
+            SourceReference::Module(identifier) => identifier.as_str(),
+            SourceReference::Source(source) => source.as_ref(),
+          };
+          let ident_b = match key_b {
+            SourceReference::Module(identifier) => identifier.as_str(),
+            SourceReference::Source(source) => source.as_ref(),
+          };
+          ident_a.len().cmp(&ident_b.len())
+        });
 
     for (source_reference, source_name_entry) in sorted_iter {
       if used_names_set.insert(source_name_entry.source_name.clone()) {
