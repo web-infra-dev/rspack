@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import throwErrorPlugin from "../fixtures/errors/throw-error-plugin.mjs";
 
 /** @type {import('@rspack/test-tools').TErrorCaseConfig} */
@@ -9,18 +10,16 @@ export default {
 			plugins: [throwErrorPlugin]
 		};
 	},
-	async check(diagnostics) {
-		expect(diagnostics).toMatchInlineSnapshot(`
-			Object {
-			  "errors": Array [
-			    Object {
-			      "code": "GenericFailure",
-			      "message": "  × Error: foo  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │     at xxx  │ ",
-			      "stack": "Error: foo    at Object.fn (<ROOT>/tests/rspack-test/fixtures/errors/throw-error-plugin.mjs<LINE_COL>)    at SyncHook.callAsyncStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at SyncHook.callStageRange (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at QueriedHook.call (<RSPACK_ROOT>/dist/index.js<LINE_COL>)    at <RSPACK_ROOT>/dist/index.js<LINE_COL>    at last.function (<RSPACK_ROOT>/dist/index.js<LINE_COL>)",
-			    },
-			  ],
-			  "warnings": Array [],
-			}
-		`);
+	async check({ errors, warnings }) {
+		assert.equal(errors.length, 1);
+		assert.deepEqual(warnings, []);
+
+		const [error] = errors;
+		const pluginLocation = /[/\\]fixtures[/\\]errors[/\\]throw-error-plugin\.mjs:\d+:\d+/;
+		assert.equal(error.code, "GenericFailure");
+		assert.match(error.message, /^\s*× Error: foo\r?\n/);
+		assert.match(error.message, pluginLocation);
+		assert.match(error.stack, /^Error: foo\r?\n/);
+		assert.match(error.stack, pluginLocation);
 	}
 };

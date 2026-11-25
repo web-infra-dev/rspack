@@ -1,30 +1,30 @@
 import assert from 'node:assert/strict';
 
-function stackThroughPluginCall(error, method) {
+const moduleGraphUnavailable =
+  'ModuleGraph is not available during module graph building phase';
+const exportsInfoUnavailable =
+  'Exports info is not available while a compilation pass is updating it';
+
+function assertPluginStack(error, method, caller) {
   assert(error instanceof Error);
   const lines = error.stack.split('\n');
-  const firstFrame =
-    method === undefined
-      ? 1
-      : lines.findIndex((line) => line.startsWith(`    at ${method} (`));
-  const pluginFrame = lines.findIndex((line) =>
-    /^\s+at .*module-graph-stack\.mjs:\d+:\d+\)$/.test(line),
+  const apiFrame = lines.findIndex((line) =>
+    line.startsWith(`    at ${method} (`),
   );
-  assert(firstFrame > 0 && pluginFrame > firstFrame, error.stack);
-  return [lines[0], ...lines.slice(firstFrame, pluginFrame + 1)]
-    .map((line) =>
-      line.replace(/\(.*[/\\]([^/\\]+):\d+:\d+\)$/, '($1:<line>:<column>)'),
-    )
-    .join('\n');
+  const pluginFrame = lines.findIndex(
+    (line) =>
+      line.includes(caller) &&
+      /^\s+at .*[/\\]module-graph-stack\.mjs:\d+:\d+\)$/.test(line),
+  );
+  assert(apiFrame > 0 && pluginFrame > apiFrame, error.stack);
 }
 
-function thrownStack(fn, method) {
-  try {
-    fn();
-  } catch (error) {
-    return stackThroughPluginCall(error, method);
-  }
-  assert.fail('Expected the graph API to throw');
+function assertGraphError(method, message, fn) {
+  assert.throws(fn, (error) => {
+    assertPluginStack(error, method, fn.name);
+    assert.equal(error.message, message);
+    return true;
+  });
 }
 
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
@@ -37,27 +37,20 @@ export default [
       compiler.hooks.thisCompilation.tap('ModuleGraphStack', (compilation) => {
         compilation.hooks.buildModule.tap('ModuleGraphStack', (module) => {
           const { moduleGraph } = compilation;
-          expect(
-            thrownStack(function readIssuerDuringMake() {
+          assertGraphError(
+            'ModuleGraph.getIssuer',
+            moduleGraphUnavailable,
+            function readIssuerDuringMake() {
               moduleGraph.getIssuer(module);
-            }),
-          ).toMatchInlineSnapshot(`
-            Error: ModuleGraph is not available during module graph building phase
-                at ModuleGraph.getIssuer (index.js:<line>:<column>)
-                at readIssuerDuringMake (module-graph-stack.mjs:<line>:<column>)
-          `);
-          expect(
-            thrownStack(
-              function readEntryDuringMake() {
-                compilation.entries.get('main');
-              },
-              'Entries.get',
-            ),
-          ).toMatchInlineSnapshot(`
-            Error: ModuleGraph is not available during module graph building phase
-                at Entries.get (index.js:<line>:<column>)
-                at readEntryDuringMake (module-graph-stack.mjs:<line>:<column>)
-          `);
+            },
+          );
+          assertGraphError(
+            'Entries.get',
+            moduleGraphUnavailable,
+            function readEntryDuringMake() {
+              compilation.entries.get('main');
+            },
+          );
           checkedBuildModule = true;
         });
       });
@@ -89,13 +82,10 @@ export default [
         );
       });
       const error = await new Promise((resolve) => compiler.run(resolve));
-      expect(stackThroughPluginCall(error)).toMatchInlineSnapshot(`
-        Error: ModuleGraph is not available during module graph building phase
-            at ModuleGraph.getIssuer (index.js:<line>:<column>)
-            at Object.readIssuerDuringMake [as fn] (module-graph-stack.mjs:<line>:<column>)
-      `);
-      expect(error.message.split('\n', 1)[0].trim()).toMatchInlineSnapshot(
-        `× Error: ModuleGraph is not available during module graph building phase`,
+      assertPluginStack(error, 'ModuleGraph.getIssuer', 'readIssuerDuringMake');
+      assert.equal(
+        error.message.split('\n', 1)[0].trim(),
+        `× Error: ${moduleGraphUnavailable}`,
       );
       assert.equal(error.stack, originalStack);
     },
@@ -113,33 +103,27 @@ export default [
       });
       compiler.hooks.thisCompilation.tap('ModuleGraphStack', (compilation) => {
         compilation.hooks.finishModules.tap('ModuleGraphStack', () => {
-          expect(
-            thrownStack(function readAsyncStateDuringFinishModules() {
+          assertGraphError(
+            'ModuleGraph.isAsync',
+            'Module async state is not available while a compilation pass is updating it',
+            function readAsyncStateDuringFinishModules() {
               compilation.moduleGraph.isAsync(entryModule);
-            }),
-          ).toMatchInlineSnapshot(`
-            Error: Module async state is not available while a compilation pass is updating it
-                at ModuleGraph.isAsync (index.js:<line>:<column>)
-                at readAsyncStateDuringFinishModules (module-graph-stack.mjs:<line>:<column>)
-          `);
-          expect(
-            thrownStack(function readSavedExportsInfoDuringFinishModules() {
+            },
+          );
+          assertGraphError(
+            'ExportsInfo.isUsed',
+            exportsInfoUnavailable,
+            function readSavedExportsInfoDuringFinishModules() {
               exportsInfo.isUsed();
-            }),
-          ).toMatchInlineSnapshot(`
-            Error: Exports info is not available while a compilation pass is updating it
-                at ExportsInfo.isUsed (index.js:<line>:<column>)
-                at readSavedExportsInfoDuringFinishModules (module-graph-stack.mjs:<line>:<column>)
-          `);
-          expect(
-            thrownStack(function readProvidedExportsDuringFinishModules() {
+            },
+          );
+          assertGraphError(
+            'ModuleGraph.getProvidedExports',
+            exportsInfoUnavailable,
+            function readProvidedExportsDuringFinishModules() {
               compilation.moduleGraph.getProvidedExports(entryModule);
-            }),
-          ).toMatchInlineSnapshot(`
-            Error: Exports info is not available while a compilation pass is updating it
-                at ModuleGraph.getProvidedExports (index.js:<line>:<column>)
-                at readProvidedExportsDuringFinishModules (module-graph-stack.mjs:<line>:<column>)
-          `);
+            },
+          );
         });
         compilation.hooks.afterOptimizeModules.tap('ModuleGraphStack', () => {
           assert.doesNotThrow(() =>
