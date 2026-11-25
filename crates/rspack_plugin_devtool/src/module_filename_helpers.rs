@@ -1,16 +1,21 @@
 use std::{borrow::Cow, cell::OnceCell, path::Path, sync::LazyLock};
 
-use cow_utils::CowUtils;
 use regex::Regex;
 use rspack_core::{ChunkGraph, Compilation, OutputOptions, contextify, runtime_mode::RuntimeMode};
 use rspack_error::Result;
 use rspack_hash::{RspackHash, RspackHasher};
 use rspack_paths::Utf8Path;
-use rspack_util::identifier::split_at_query_mark;
+use rspack_util::{
+  identifier::{split_at_query_mark, split_resource},
+  node_path::normalize_path_to_posix,
+};
 use rustc_hash::FxHashMap as HashMap;
 use sugar_path::SugarPath;
 
-use crate::{ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, SourceReference};
+use crate::{
+  ModuleFilenameTemplateFn, ModuleFilenameTemplateFnCtx, SourceReference,
+  source_map_dev_tool_plugin::{starts_with_url_scheme, starts_with_windows_drive_letter},
+};
 
 fn get_before<'a>(s: &'a str, token: &str) -> &'a str {
   match s.rfind(token) {
@@ -49,12 +54,49 @@ fn default_resource_path_template_scheme(module_filename_template: &str) -> Opti
     .and_then(|captures| captures.get(1).map(|scheme| scheme.as_str()))
 }
 
-// sources in a source map should be relative/URL-style (not absolute filesystem paths)
-fn resolve_relative_resource_path(
+fn format_resource_path<'a>(path: &'a str, relative_to: Option<&Utf8Path>) -> Cow<'a, str> {
+  let windows_drive = starts_with_windows_drive_letter(path);
+  if path.is_empty()
+    || path.starts_with("//")
+    || path.starts_with(r"\\?\")
+    || path.starts_with(r"\\.\")
+    || (!windows_drive && starts_with_url_scheme(path))
+  {
+    return Cow::Borrowed(path);
+  }
+
+  let is_unc_path = path.starts_with(r"\\");
+  let relative = relative_to
+    .filter(|_| cfg!(windows) || (!windows_drive && !is_unc_path))
+    .map(|base| Path::new(path).relative(base));
+  let path = relative
+    .as_deref()
+    .map(Path::to_string_lossy)
+    .unwrap_or(Cow::Borrowed(path));
+  // A path can remain absolute when it is on a different Windows share.
+  let normalized = if path.starts_with("//") || path.starts_with(r"\\") {
+    path.into_owned()
+  } else {
+    normalize_path_to_posix(Utf8Path::new(path.as_ref())).into_string()
+  };
+  Cow::Owned(normalized)
+}
+
+fn format_resource_request<'a>(request: &'a str, relative_to: Option<&Utf8Path>) -> Cow<'a, str> {
+  let (path, _, _) = split_resource(request);
+  let Cow::Owned(mut normalized) = format_resource_path(path, relative_to) else {
+    return Cow::Borrowed(request);
+  };
+  normalized.push_str(&request[path.len()..]);
+  Cow::Owned(normalized)
+}
+
+fn resolve_relative_resource_path<'a>(
   absolute_resource_path: &str,
   source_map_path: Option<&Utf8Path>,
   runtime_mode: RuntimeMode,
-) -> Option<String> {
+  format: impl FnOnce(Option<&Utf8Path>) -> Cow<'a, str>,
+) -> Option<Cow<'a, str>> {
   if absolute_resource_path.starts_with("webpack/runtime")
     || absolute_resource_path.starts_with("rspack/runtime")
     || matches!(
@@ -67,35 +109,10 @@ fn resolve_relative_resource_path(
       RuntimeMode::Webpack => "webpack",
       RuntimeMode::Rspack => "rspack",
     };
-    return Some(format!(
-      "{scheme}://{}",
-      absolute_resource_path.cow_replace('\\', "/")
-    ));
+    return Some(Cow::Owned(format!("{scheme}://{absolute_resource_path}")));
   }
 
-  let Some(source_map_path) = source_map_path else {
-    // During the inline source map stage, the asset filename may not be available yet.
-    // In that case we cannot compute a relative path and must return None.
-    return None;
-  };
-
-  let Some(parent) = source_map_path.parent() else {
-    return Some(
-      absolute_resource_path
-        .normalize()
-        .to_string_lossy()
-        .cow_replace("\\", "/")
-        .to_string(),
-    );
-  };
-
-  Some(
-    Path::new(absolute_resource_path)
-      .relative(parent)
-      .to_string_lossy()
-      .cow_replace("\\", "/")
-      .to_string(),
-  )
+  source_map_path.map(|path| format(path.parent()))
 }
 
 impl ModuleFilenameHelpers {
@@ -128,25 +145,13 @@ impl ModuleFilenameHelpers {
         let module_id =
           ChunkGraph::get_module_id(&compilation.module_ids_artifact, *module_identifier)
             .map_or_default(|s| s.to_string());
-        let absolute_resource_path = match module.as_normal_module() {
-          Some(normal_module) => normal_module.resource_resolved_data().path().map_or_else(
-            || {
-              module
-                .identifier()
-                .split('!')
-                .next_back()
-                .unwrap_or("")
-                .to_string()
-            },
-            |p| p.to_string(),
-          ),
-          None => module
-            .identifier()
-            .split('!')
-            .next_back()
-            .unwrap_or("")
-            .to_string(),
-        };
+        let resolved_path = module
+          .as_normal_module()
+          .and_then(|module| module.resource_resolved_data().path());
+        let absolute_resource_path = resolved_path.map_or_else(
+          || module_identifier.rsplit('!').next().unwrap_or_default(),
+          Utf8Path::as_str,
+        );
 
         let hash = get_hash(&identifier, output_options);
 
@@ -156,10 +161,18 @@ impl ModuleFilenameHelpers {
           .unwrap_or("")
           .to_string();
         let relative_resource_path = resolve_relative_resource_path(
-          &absolute_resource_path,
+          absolute_resource_path,
           unresolved_source_map_path,
           options.experiments.runtime_mode,
-        );
+          |base| {
+            if resolved_path.is_some() {
+              format_resource_path(absolute_resource_path, base)
+            } else {
+              Cow::Borrowed(resource.as_str())
+            }
+          },
+        )
+        .map(Cow::into_owned);
 
         let loaders = get_before(&resource_identifier, "!").to_string();
         let all_loaders = get_before(&identifier, "!").to_string();
@@ -176,7 +189,11 @@ impl ModuleFilenameHelpers {
           short_identifier,
           identifier,
           module_id,
-          absolute_resource_path: absolute_resource_path.cow_replace('\\', "/").into_owned(),
+          absolute_resource_path: if resolved_path.is_some() {
+            format_resource_path(absolute_resource_path, None).into_owned()
+          } else {
+            absolute_resource_path.to_owned()
+          },
           relative_resource_path,
           hash,
           resource,
@@ -215,13 +232,16 @@ impl ModuleFilenameHelpers {
           absolute_resource_path,
           unresolved_source_map_path,
           options.experiments.runtime_mode,
-        );
+          |base| format_resource_request(absolute_resource_path, base),
+        )
+        .map(Cow::into_owned);
 
         ModuleFilenameTemplateFnCtx {
           short_identifier,
           identifier,
           module_id: String::new(),
-          absolute_resource_path: absolute_resource_path.cow_replace('\\', "/").into_owned(),
+          absolute_resource_path: format_resource_request(absolute_resource_path, None)
+            .into_owned(),
           relative_resource_path,
           hash,
           resource,
@@ -422,30 +442,63 @@ impl<'a> ModuleFilenameTemplateStringCtx<'a> {
     }
   }
 
-  pub fn absolute_resource_path(&self) -> &str {
+  fn absolute_resource_request(&self) -> (&str, bool) {
     match &self.source_reference {
       SourceReference::Module(module_identifier) => {
-        module_identifier.split('!').next_back().unwrap_or("")
+        let module_graph = self.compilation.get_module_graph();
+        let module = module_graph
+          .module_by_identifier(module_identifier)
+          .expect("source reference should resolve to a module");
+        if let Some(resource) = module
+          .as_normal_module()
+          .map(|module| module.resource_resolved_data())
+          .filter(|resource| resource.path().is_some())
+        {
+          return (resource.resource(), true);
+        }
+        (
+          module_identifier.rsplit('!').next().unwrap_or_default(),
+          false,
+        )
       }
-      SourceReference::Source(source) => source.split('!').next_back().unwrap_or(""),
+      SourceReference::Source(source) => (source.rsplit('!').next().unwrap_or_default(), true),
+    }
+  }
+
+  pub fn absolute_resource_path(&self) -> Cow<'_, str> {
+    let (request, is_file) = self.absolute_resource_request();
+    if is_file {
+      format_resource_request(request, None)
+    } else {
+      Cow::Borrowed(request)
     }
   }
 
   pub fn relative_resource_path(&self) -> Option<Cow<'_, str>> {
-    let absolute_resource_path = self.absolute_resource_path();
+    let (request, is_file) = self.absolute_resource_request();
     let resolved = resolve_relative_resource_path(
-      absolute_resource_path,
+      request,
       self.unresolved_source_map_path,
       self.compilation.options.experiments.runtime_mode,
+      |base| {
+        if is_file {
+          format_resource_request(request, base)
+        } else {
+          Cow::Borrowed(self.resource())
+        }
+      },
     );
 
     match (resolved, &self.source_reference) {
-      (Some(path), _) => Some(Cow::Owned(path)),
+      (Some(path), _) => Some(path),
       (None, SourceReference::Module(_)) => {
         // Eval devtool modes have no source map file path to resolve against.
-        let resource_identifier = self.resource_identifier();
-        let resource = resource_identifier.split('!').next_back().unwrap_or("");
-        Some(resource.cow_replace('\\', "/"))
+        let resource = self.resource();
+        Some(if is_file {
+          format_resource_request(resource, None)
+        } else {
+          Cow::Borrowed(resource)
+        })
       }
       (None, SourceReference::Source(_)) => None,
     }
@@ -581,7 +634,7 @@ fn template_replace<'a>(s: &str, ctx: &ModuleFilenameTemplateStringCtx<'a>) -> S
             b"[absolute-resourcepath]" |
             b"[abs-resourcepath]" |
             b"[absoluteresourcepath]" |
-            b"[absresourcepath]" => buf.push_str(&ctx.absolute_resource_path().cow_replace('\\', "/")),
+            b"[absresourcepath]" => buf.push_str(&ctx.absolute_resource_path()),
 
             b"[relative-resource-path]" |
             b"[relativeresource-path]" |
