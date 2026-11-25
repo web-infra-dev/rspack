@@ -19,7 +19,7 @@ use crate::{
   BeforeAssetTagGenerationData, BeforeEmitData, HtmlPluginHooks,
   asset::{HtmlPluginAssetTags, HtmlPluginAssets, create_favicon_asset, create_html_asset},
   config::{HtmlInject, HtmlRspackPluginOptions},
-  import_map::add_integrity_to_import_map,
+  import_map::{add_integrity_to_import_map, collect_module_scripts},
   injector::AssetInjector,
   parser::HtmlCompiler,
   template::HtmlTemplate,
@@ -177,15 +177,29 @@ async fn generate_html(
     current_ast.visit_mut_with(&mut visitor);
   }
 
-  let mut integrity = serde_json::Map::new();
-  hooks
-    .borrow()
-    .collect_import_map_integrity
-    .call(compilation, &entrypoints, &public_path, &mut integrity)
-    .await?;
-  if !integrity.is_empty() {
-    add_integrity_to_import_map(&mut current_ast, integrity)?;
+  let hooks = hooks.borrow();
+  if !hooks.collect_import_map_integrity.is_empty() {
+    let scripts = collect_module_scripts(
+      &current_ast,
+      &after_template_execution_data.head_tags,
+      &after_template_execution_data.body_tags,
+    );
+    let mut integrity = serde_json::Map::new();
+    hooks
+      .collect_import_map_integrity
+      .call(
+        compilation,
+        &entrypoints,
+        &public_path,
+        &scripts,
+        &mut integrity,
+      )
+      .await?;
+    if !integrity.is_empty() {
+      add_integrity_to_import_map(&mut current_ast, integrity)?;
+    }
   }
+  drop(hooks);
 
   let raw_html = parser.codegen(&mut current_ast, compilation)?;
   let html = raw_html.cow_replace("$$RSPACK_URL_AMP$$", "&");

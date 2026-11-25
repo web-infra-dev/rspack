@@ -33,10 +33,19 @@ export default {
 			);
 		}
 
-		expect(Object.keys(map.integrity).some(url => url.includes("/other."))).toBe(
+		expect(Object.keys(map.integrity).some(url => url.endsWith("/other.mjs"))).toBe(
 			false
 		);
 		const otherHtml = readFileSync(path.join(outputPath, "other.html"), "utf-8");
 		expect(otherHtml).not.toContain("importmap");
+
+		const manualHtml = readFileSync(path.join(outputPath, "manual-other.html"), "utf-8");
+		const manualMap = manualHtml.match(/<script\b[^>]*type=["']?importmap["']?[^>]*>([\s\S]*?)<\/script>/);
+		expect(manualMap).not.toBeNull();
+		const other = readFileSync(path.join(outputPath, "entries/other.mjs"));
+		expect(JSON.parse(manualMap[1]).integrity).toEqual({
+			"https://cdn.example.test/assets/entries/other.mjs":
+				"sha384-" + createHash("sha384").update(other).digest("base64")
+		});
 	}
 };

@@ -5,7 +5,10 @@ export default {
   entry: { main: './index.js', other: './other.js' },
   output: {
     module: true,
-    filename: 'entries/[name].[contenthash:8].mjs',
+    filename: ({ chunk }) =>
+      chunk.name === 'other'
+        ? 'entries/other.mjs'
+        : 'entries/[name].[contenthash:8].mjs',
     chunkFilename: 'chunks/[name].[contenthash:8].mjs',
     publicPath: 'https://cdn.example.test/assets/',
     crossOriginLoading: 'anonymous',
@@ -27,6 +30,17 @@ export default {
       chunks: ['other'],
       filename: 'other.html',
       scriptLoading: 'module',
+    }),
+    new HtmlRspackPlugin({
+      chunks: ['other'],
+      filename: 'manual-other.html',
+      inject: false,
+      scriptLoading: 'module',
+      templateContent:
+        '<!DOCTYPE html><html><head>' +
+        '<script type="importmap">{}</script>' +
+        '<script type="module">import("https://cdn.example.test/assets/entries/other.mjs");</script>' +
+        '</head><body></body></html>',
     }),
     new SubresourceIntegrityPlugin(),
   ],

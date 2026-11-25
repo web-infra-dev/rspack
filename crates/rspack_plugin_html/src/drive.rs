@@ -67,7 +67,14 @@ define_hook!(HtmlPluginAlterAssetTagGroups: SeriesWaterfall(data: AlterAssetTagG
 define_hook!(HtmlPluginAfterTemplateExecution: SeriesWaterfall(data: AfterTemplateExecutionData) -> AfterTemplateExecutionData);
 define_hook!(HtmlPluginBeforeEmit: SeriesWaterfall(data: BeforeEmitData) -> BeforeEmitData);
 define_hook!(HtmlPluginAfterEmit: SeriesWaterfall(data: AfterEmitData) -> AfterEmitData);
-define_hook!(HtmlPluginCollectImportMapIntegrity: Series(compilation: &Compilation, entrypoints: &[ChunkGroupUkey], public_path: &str, integrity: &mut Map<String, Value>));
+
+pub struct HtmlModuleScript<'a> {
+  pub src: &'a str,
+  pub asset: Option<&'a str>,
+  pub has_integrity: bool,
+}
+
+define_hook!(HtmlPluginCollectImportMapIntegrity: Series(compilation: &Compilation, entrypoints: &[ChunkGroupUkey], public_path: &str, scripts: &[HtmlModuleScript<'_>], integrity: &mut Map<String, Value>));
 
 #[derive(Debug, Default)]
 #[cfg_attr(allocative, derive(rspack_allocative::Allocative))]

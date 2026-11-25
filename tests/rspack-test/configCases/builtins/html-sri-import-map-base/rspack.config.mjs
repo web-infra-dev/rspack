@@ -93,6 +93,50 @@ export default {
       </head><body></body></html>`,
     }),
     new HtmlRspackPlugin({
+      filename: 'absolute-deferred-without-injection.html',
+      inject: false,
+      scriptLoading: 'module',
+      templateContent:
+        '<!DOCTYPE html><html><head>' +
+        '<script type="importmap">{"imports":{"external":"./external.mjs"}}</script>' +
+        '<script type="module">import("https://cdn.example.test/assets/main+entry.mjs");</script>' +
+        '<base href="https://cdn.example.test/assets/">' +
+        '</head><body></body></html>',
+    }),
+    new HtmlRspackPlugin({
+      filename: 'different-query-module.html',
+      scriptLoading: 'module',
+      hash: true,
+      templateContent:
+        '<!DOCTYPE html><html><head>' +
+        '<script type="module" src="./main%2Bentry.mjs?variant=vendor"></script>' +
+        '<script type="importmap">{}</script>' +
+        '</head><body></body></html>',
+    }),
+    new HtmlRspackPlugin({
+      filename: 'rewritten-module-src.html',
+      publicPath: '/',
+      scriptLoading: 'module',
+    }),
+    {
+      apply(compiler) {
+        compiler.hooks.compilation.tap('RewriteModuleSrc', (compilation) => {
+          HtmlRspackPlugin.getCompilationHooks(
+            compilation,
+          ).afterTemplateExecution.tap('RewriteModuleSrc', (data) => {
+            if (data.outputName === 'rewritten-module-src.html') {
+              for (const tag of [...data.headTags, ...data.bodyTags]) {
+                if (tag.attributes.type === 'module') {
+                  tag.attributes.src = '/served' + tag.attributes.src;
+                }
+              }
+            }
+            return data;
+          });
+        });
+      },
+    },
+    new HtmlRspackPlugin({
       filename: 'different-query-preload.html',
       scriptLoading: 'module',
       hash: true,

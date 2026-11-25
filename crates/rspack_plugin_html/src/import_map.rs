@@ -11,6 +11,7 @@ use swc_next_ecma_parser::{CommentMode, NoTokenParserConfig, Options, Parser};
 use url::Url;
 
 use crate::{
+  HtmlModuleScript,
   parser::CompiledDocument,
   tag::{HtmlPluginAttribute, HtmlPluginTag},
 };
@@ -98,6 +99,74 @@ fn is_modulepreload(element: &Element) -> bool {
 
 fn is_active_html_element(element: &Element) -> bool {
   element.namespace == Namespace::HTML && !matches!(&*element.tag_name, "template" | "noscript")
+}
+
+fn active_elements(children: &[Child]) -> impl Iterator<Item = &Element> {
+  let mut pending = vec![children.iter()];
+  std::iter::from_fn(move || {
+    while let Some(children) = pending.last_mut() {
+      match children.next() {
+        Some(Child::Element(element)) if is_active_html_element(element) => {
+          pending.push(element.children.iter());
+          return Some(element);
+        }
+        Some(_) => {}
+        None => {
+          pending.pop();
+        }
+      }
+    }
+    None
+  })
+}
+
+#[inline(never)]
+pub(crate) fn collect_module_scripts<'a>(
+  document: &'a CompiledDocument,
+  head_tags: &'a [HtmlPluginTag],
+  body_tags: &'a [HtmlPluginTag],
+) -> Vec<HtmlModuleScript<'a>> {
+  let children = match document {
+    CompiledDocument::Document(document) | CompiledDocument::DocumentWithoutDoctype(document) => {
+      &document.children
+    }
+    CompiledDocument::DocumentFragment(fragment) => &fragment.children,
+  };
+  let mut scripts = Vec::new();
+  for element in active_elements(children) {
+    if !is_script(element, "module") {
+      continue;
+    }
+    let Some(src) = attribute(element, "src") else {
+      continue;
+    };
+    let asset = if element.span.is_dummy() {
+      head_tags.iter().chain(body_tags).find_map(|tag| {
+        (tag.tag_name == "script"
+          && tag.attributes.iter().any(|attr| {
+            attr.attr_name == "type"
+              && attr
+                .attr_value
+                .as_deref()
+                .is_some_and(|value| value.eq_ignore_ascii_case("module"))
+          })
+          && tag
+            .attributes
+            .iter()
+            .any(|attr| attr.attr_name == "src" && attr.attr_value.as_deref() == Some(src)))
+        .then_some(tag.asset.as_deref())
+        .flatten()
+      })
+    } else {
+      None
+    };
+    scripts.push(HtmlModuleScript {
+      src: src.trim(),
+      asset,
+      has_integrity: attribute(element, "integrity").is_some_and(|value| !value.trim().is_empty()),
+    });
+  }
+  scripts
 }
 
 struct ModuleUrl<'a> {
@@ -216,7 +285,10 @@ enum InlineModuleImports {
   Immediate,
 }
 
-fn inline_module_imports(element: &Element) -> InlineModuleImports {
+fn inline_module_imports(
+  element: &Element,
+  mut deferred_absolute: Option<&mut Vec<Url>>,
+) -> InlineModuleImports {
   let mut source = String::new();
   for child in &element.children {
     if let Child::Text(text) = child {
@@ -264,13 +336,16 @@ fn inline_module_imports(element: &Element) -> InlineModuleImports {
           ExprData::StringLiteral(literal) => ast
             .get_wtf8(literal.value(ast))
             .as_str()
-            .is_some_and(|specifier| Url::parse(specifier).is_ok()),
-          _ => false,
+            .and_then(|specifier| Url::parse(specifier).ok()),
+          _ => None,
         };
         imports = InlineModuleImports::Deferred {
-          uses_base: !absolute
+          uses_base: absolute.is_none()
             || matches!(imports, InlineModuleImports::Deferred { uses_base: true }),
         };
+        if let (Some(url), Some(urls)) = (absolute, deferred_absolute.as_mut()) {
+          urls.push(url);
+        }
       }
       _ => {}
     }
@@ -282,8 +357,6 @@ fn find_placement<'a>(
   children: &'a [Child],
   integrity: &Map<String, Value>,
 ) -> Result<Option<Placement<'a>>> {
-  let mut pending = vec![children.iter()];
-  let mut position = 0;
   let mut seen_base = false;
   let mut base = None;
   let mut first_map = None;
@@ -299,6 +372,7 @@ fn find_placement<'a>(
   let mut bundled_fetch_after_base = false;
   let mut has_deferred_import = false;
   let mut deferred_import_before_base = false;
+  let mut deferred_absolute_before_base = Vec::new();
   let root = Url::parse("https://rspack.invalid/").expect("valid URL");
   let document = root.join("document/").expect("valid URL");
   let urls = integrity
@@ -306,21 +380,7 @@ fn find_placement<'a>(
     .filter_map(|url| ModuleUrl::parse(url, &root, &document))
     .collect::<Vec<_>>();
 
-  while let Some(children) = pending.last_mut() {
-    let Some(child) = children.next() else {
-      pending.pop();
-      continue;
-    };
-    let Child::Element(element) = child else {
-      continue;
-    };
-    if !is_active_html_element(element) {
-      continue;
-    }
-    pending.push(element.children.iter());
-    let index = position;
-    position += 1;
-
+  for (index, element) in active_elements(children).enumerate() {
     if !seen_base
       && element.tag_name == "base"
       && let Some(href) = element.attributes.iter().find(|attr| attr.name == "href")
@@ -376,7 +436,10 @@ fn find_placement<'a>(
       .map(str::trim)
       .filter(|url| !url.is_empty());
     let inline_imports = if module_script && source.is_none() {
-      inline_module_imports(element)
+      inline_module_imports(
+        element,
+        base.is_none().then_some(&mut deferred_absolute_before_base),
+      )
     } else {
       InlineModuleImports::None
     };
@@ -384,7 +447,8 @@ fn find_placement<'a>(
       ModuleUrl::parse(url, &root, &document).is_some_and(|url| {
         urls.iter().any(|key| {
           // Injected module scripts can have a cache-busting query from `hash: true`.
-          (module_script || url.url.query() == key.url.query()) && url.could_match(key)
+          ((module_script && element.span.is_dummy()) || url.url.query() == key.url.query())
+            && url.could_match(key)
         })
       })
     } else {
@@ -412,12 +476,21 @@ fn find_placement<'a>(
   let after_last_map = if has_deferred_import { last_map } else { None };
   // Register the integrity-only map under the browser's effective base. One
   // earlier map cannot describe both outcomes if CSP rejects a later base.
-  if let (Some((base_index, base)), Some(after_base)) = (base, first_fetch_after_base)
+  if let Some((base_index, base)) = base
     && first_map
       .or(first_fetch)
       .is_some_and(|index| index < base_index)
-    && bundled_fetch_after_base
-    && urls.iter().any(|url| base.changes_base_for(url))
+    && urls.iter().any(|key| {
+      base.changes_base_for(key)
+        && (bundled_fetch_after_base
+          || (base.has_authority
+            && deferred_absolute_before_base.iter().any(|specifier| {
+              specifier
+                .join(base.input)
+                .and_then(|base| base.join(key.input))
+                .is_ok_and(|key| key == *specifier)
+            })))
+    })
   {
     if deferred_import_before_base || first_bundled_fetch.is_some_and(|index| index < base_index) {
       return Err(error!(
@@ -427,9 +500,10 @@ fn find_placement<'a>(
     let before = if last_map.is_some_and(|index| index > base_index) {
       first_fetch_after_map
     } else {
-      Some(after_base)
+      first_fetch_after_base
     };
-    return Ok(insert_placement(before, after_last_map, generated_nonce));
+    let after = Some(last_map.unwrap_or(base_index).max(base_index));
+    return Ok(insert_placement(before, after, generated_nonce));
   }
 
   if first_map == last_map

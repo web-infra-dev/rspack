@@ -11,8 +11,9 @@ use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
 use rspack_plugin_html::{
-  AlterAssetTagGroupsData, BeforeAssetTagGenerationData, HtmlPluginAlterAssetTagGroups,
-  HtmlPluginBeforeAssetTagGeneration, HtmlPluginCollectImportMapIntegrity,
+  AlterAssetTagGroupsData, BeforeAssetTagGenerationData, HtmlModuleScript,
+  HtmlPluginAlterAssetTagGroups, HtmlPluginBeforeAssetTagGeneration,
+  HtmlPluginCollectImportMapIntegrity,
   tag::{HtmlPluginAttribute, HtmlPluginTag},
 };
 use rspack_plugin_runtime::is_enabled_for_chunk;
@@ -350,15 +351,17 @@ fn collect_import_map_chunks(
 
 // Share the synchronous work between the instrumented and uninstrumented hook futures.
 #[inline(never)]
-fn collect_import_map_files<'a>(
+fn collect_import_map_files<'a, 'b>(
   compilation: &'a Compilation,
   entrypoints: &[ChunkGroupUkey],
-) -> BTreeSet<&'a String> {
+  public_path: &'b str,
+  scripts: &[HtmlModuleScript<'b>],
+) -> Vec<(&'b str, BTreeSet<&'a String>)> {
   // The configured function name only affects dynamic imports.
   let include_async = compilation.options.output.import_function_name == "import";
   let graph = &compilation.build_chunk_graph_artifact;
   let import_loading = ChunkLoading::Enable(ChunkLoadingType::Import);
-  let mut imported_files = BTreeSet::new();
+  let mut imported_files = Vec::new();
   for entrypoint in entrypoints {
     let entry = graph.chunk_group_by_ukey.expect_get(entrypoint);
     let runtime_chunk = entry.get_runtime_chunk(&graph.chunk_group_by_ukey);
@@ -378,72 +381,132 @@ fn collect_import_map_files<'a>(
           .is_some_and(|asset| asset.get_info().asset_type == ManifestAssetType::JavaScript)
       })
       .collect::<Vec<_>>();
-    // A standalone entry script already has an integrity attribute in the HTML.
-    if files.len() > 1 {
-      imported_files.extend(files);
+    if files.is_empty() {
+      continue;
+    }
+    let mut matched_script = false;
+    for script in scripts {
+      let Some(prefix) = module_script_public_path(script, public_path, &files) else {
+        continue;
+      };
+      matched_script = true;
+      // A standalone entry only needs a rule when the HTML lacks a protected script.
+      if files.len() > 1 || !script.has_integrity {
+        add_import_map_files(&mut imported_files, prefix, &files);
+      }
+    }
+    if !matched_script {
+      add_import_map_files(&mut imported_files, public_path, &files);
     }
   }
 
   imported_files
 }
 
+fn module_script_public_path<'a>(
+  script: &HtmlModuleScript<'a>,
+  public_path: &'a str,
+  files: &[&String],
+) -> Option<&'a str> {
+  let asset = script
+    .asset
+    .unwrap_or(script.src)
+    .strip_prefix(public_path)?;
+  let asset = asset.split('#').next()?;
+  let (pathname, query) = asset
+    .split_once('?')
+    .map_or((asset, None), |(path, query)| (path, Some(query)));
+  let filename = urlencoding::decode(pathname).ok()?;
+  if !files.iter().any(|file| {
+    let (path, file_query) = file
+      .split_once('?')
+      .map_or((file.as_str(), None), |(path, query)| (path, Some(query)));
+    path == filename && (script.asset.is_some() || query == file_query)
+  }) {
+    return None;
+  }
+
+  // Generated tags retain their original asset URL through the HTML hooks.
+  // Relative imports follow a change to the deployment prefix of the entry.
+  let src_path = script.src.split(['?', '#']).next()?;
+  Some(
+    src_path
+      .strip_suffix(pathname)
+      .filter(|prefix| prefix.is_empty() || prefix.ends_with('/'))
+      .unwrap_or(public_path),
+  )
+}
+
+fn add_import_map_files<'a, 'b>(
+  imported_files: &mut Vec<(&'b str, BTreeSet<&'a String>)>,
+  prefix: &'b str,
+  files: &[&'a String],
+) {
+  if let Some((_, matching)) = imported_files.iter_mut().find(|(path, _)| *path == prefix) {
+    matching.extend(files.iter().copied());
+  } else {
+    imported_files.push((prefix, files.iter().copied().collect()));
+  }
+}
+
 #[inline(never)]
 fn insert_import_map_urls(
-  imported_files: BTreeSet<&String>,
+  imported_files: Vec<(&str, BTreeSet<&String>)>,
   integrities: &HashMap<String, String>,
-  public_path: &str,
   integrity: &mut Map<String, Value>,
 ) {
-  for file in imported_files {
-    if let Some(hash) = integrities.get(file) {
-      let mut url = format!("{public_path}{file}");
-      if !url.starts_with('/')
-        && !url.starts_with("./")
-        && !url.starts_with("../")
-        && Url::parse(&url).is_err()
-      {
-        url.insert_str(0, "./");
-      }
+  for (public_path, files) in imported_files {
+    for file in files {
+      if let Some(hash) = integrities.get(file) {
+        let mut url = format!("{public_path}{file}");
+        if !url.starts_with('/')
+          && !url.starts_with("./")
+          && !url.starts_with("../")
+          && Url::parse(&url).is_err()
+        {
+          url.insert_str(0, "./");
+        }
 
-      // Module tags encode their asset paths. A relative static import can inherit
-      // the encoded part of its parent's directory and use a raw path for the rest.
-      let pathname = file.split_once('?').map_or(file.as_str(), |(path, _)| path);
-      let prefix = &url[..url.len() - file.len()];
-      let mut encoded_dir = String::new();
-      let mut start = 0;
-      for (end, _) in pathname.match_indices('/') {
-        let segment = &file[start..end];
-        let encoded = urlencoding::encode(segment);
-        let changed = encoded != segment;
-        if changed && encoded_dir.is_empty() {
-          encoded_dir.push_str(prefix);
-          encoded_dir.push_str(&file[..start]);
-        }
-        if !encoded_dir.is_empty() || changed {
-          encoded_dir.push_str(&encoded);
-          encoded_dir.push('/');
-        }
-        start = end + 1;
-        if changed && url_path_matches_asset(&pathname[start..]) {
-          let mut alias = encoded_dir.clone();
-          alias.push_str(&file[start..]);
-          if !integrity.contains_key(&alias) {
-            integrity.insert(alias, Value::String(hash.clone()));
+        // Module tags encode their asset paths. A relative static import can inherit
+        // the encoded part of its parent's directory and use a raw path for the rest.
+        let pathname = file.split_once('?').map_or(file.as_str(), |(path, _)| path);
+        let prefix = &url[..url.len() - file.len()];
+        let mut encoded_dir = String::new();
+        let mut start = 0;
+        for (end, _) in pathname.match_indices('/') {
+          let segment = &file[start..end];
+          let encoded = urlencoding::encode(segment);
+          let changed = encoded != segment;
+          if changed && encoded_dir.is_empty() {
+            encoded_dir.push_str(prefix);
+            encoded_dir.push_str(&file[..start]);
+          }
+          if !encoded_dir.is_empty() || changed {
+            encoded_dir.push_str(&encoded);
+            encoded_dir.push('/');
+          }
+          start = end + 1;
+          if changed && url_path_matches_asset(&pathname[start..]) {
+            let mut alias = encoded_dir.clone();
+            alias.push_str(&file[start..]);
+            if !integrity.contains_key(&alias) {
+              integrity.insert(alias, Value::String(hash.clone()));
+            }
           }
         }
-      }
-      let filename = &pathname[start..];
-      if !url_path_matches_asset(filename) {
-        if encoded_dir.is_empty() {
-          encoded_dir.push_str(prefix);
-          encoded_dir.push_str(&file[..start]);
+        let filename = &pathname[start..];
+        if !url_path_matches_asset(filename) {
+          if encoded_dir.is_empty() {
+            encoded_dir.push_str(prefix);
+            encoded_dir.push_str(&file[..start]);
+          }
+          encoded_dir.push_str(&urlencoding::encode(filename));
+          encoded_dir.push_str(&file[pathname.len()..]);
+          integrity.insert(encoded_dir, Value::String(hash.clone()));
         }
-        encoded_dir.push_str(&urlencoding::encode(filename));
-        encoded_dir.push_str(&file[pathname.len()..]);
-        integrity.insert(encoded_dir, Value::String(hash.clone()));
-      }
-      if url_path_matches_asset(pathname) {
-        integrity.insert(url, Value::String(hash.clone()));
+        if url_path_matches_asset(pathname) {
+          integrity.insert(url, Value::String(hash.clone()));
+        }
       }
     }
   }
@@ -455,18 +518,19 @@ fn url_path_matches_asset(path: &str) -> bool {
 }
 
 #[plugin_hook(HtmlPluginCollectImportMapIntegrity for SubresourceIntegrityPlugin)]
-pub async fn collect_import_map_integrity(
+pub async fn collect_import_map_integrity<'a>(
   &self,
   compilation: &Compilation,
   entrypoints: &[ChunkGroupUkey],
   public_path: &str,
+  scripts: &[HtmlModuleScript<'a>],
   integrity: &mut Map<String, Value>,
 ) -> Result<()> {
-  let imported_files = collect_import_map_files(compilation, entrypoints);
+  let imported_files = collect_import_map_files(compilation, entrypoints, public_path, scripts);
   if !imported_files.is_empty() {
     let integrities = SubresourceIntegrityPlugin::get_compilation_integrities(compilation.id());
     let integrities = integrities.read().await;
-    insert_import_map_urls(imported_files, &integrities, public_path, integrity);
+    insert_import_map_urls(imported_files, &integrities, integrity);
   }
   Ok(())
 }

@@ -103,6 +103,30 @@ export default {
 		expect(manualMaps[2][0]).toContain("author-nonce");
 		expect(resolveIntegrity(JSON.parse(manualMaps[2][1]), pageURL)).toEqual(integrityFor(pageURL));
 
+		const absoluteDeferred = read("absolute-deferred-without-injection.html");
+		const absoluteDeferredMaps = maps(absoluteDeferred);
+		const lateBase = "https://cdn.example.test/assets/";
+		expect(absoluteDeferredMaps).toHaveLength(2);
+		expect(JSON.parse(absoluteDeferredMaps[0][1])).toEqual({ imports: { external: "./external.mjs" } });
+		expect(absoluteDeferredMaps[1].index).toBeGreaterThan(absoluteDeferred.indexOf("<base"));
+		expect(resolveIntegrity(JSON.parse(absoluteDeferredMaps[1][1]), lateBase)).toEqual(integrityFor(lateBase));
+
+		const queryModule = read("different-query-module.html");
+		const queryModuleMaps = maps(queryModule);
+		expect(queryModuleMaps).toHaveLength(1);
+		expect(queryModuleMaps[0].index).toBeGreaterThan(queryModule.indexOf("?variant=vendor"));
+		expect(queryModuleMaps[0].index).toBeLessThan(queryModule.lastIndexOf('src="./main%2Bentry.mjs?'));
+		expect(resolveIntegrity(JSON.parse(queryModuleMaps[0][1]), pageURL)).toEqual(integrityFor(pageURL));
+
+		const rewritten = read("rewritten-module-src.html");
+		const rewrittenMaps = maps(rewritten);
+		expect(rewrittenMaps).toHaveLength(1);
+		expect(rewritten).toContain('src="/served/main%2Bentry.mjs"');
+		expect(rewrittenMaps[0].index).toBeLessThan(rewritten.indexOf('src="/served/'));
+		expect(resolveIntegrity(JSON.parse(rewrittenMaps[0][1]), pageURL)).toEqual(
+			integrityFor("http://page.example.test/served/")
+		);
+
 		const withQuery = read("different-query-preload.html");
 		const queryMaps = maps(withQuery);
 		expect(queryMaps).toHaveLength(1);
