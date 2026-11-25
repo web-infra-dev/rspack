@@ -39,7 +39,7 @@ function diagnosticRecoveryCase() {
 			expect(
 				failed.errors.filter(error =>
 					error.name === "CopyRspackPlugin Error" &&
-					error.message.includes("CopyRspackPlugin: unable to locate")
+					error.message.includes("CopyRspackPlugin: No files matched")
 				)
 			).toHaveLength(1);
 			expect(reusedPatterns(failed)).toBe(0);
