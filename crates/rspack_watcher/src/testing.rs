@@ -86,8 +86,14 @@ impl DirectoryAnalyzer {
   }
 
   pub async fn queue_context_changes(&self) {
-    for (path, scan) in self.paths.scan_contexts(SystemTime::UNIX_EPOCH).await {
-      self.trigger.on_scan_event(path, FsEventKind::Change, scan);
+    self
+      .queue_context_changes_since(SystemTime::UNIX_EPOCH)
+      .await;
+  }
+
+  pub async fn queue_context_changes_since(&self, start: SystemTime) {
+    for (path, change) in self.paths.scan_contexts(start).await {
+      self.trigger.on_context_change(path, change);
     }
   }
 
@@ -168,14 +174,22 @@ impl DirectoryAnalyzer {
   }
 
   pub async fn next_events(&mut self) -> Vec<(InternedPath, FsEventKind)> {
-    self
+    self.next_events_with_raw().await.1
+  }
+
+  pub async fn next_events_with_raw(
+    &mut self,
+  ) -> (Option<InternedPath>, Vec<(InternedPath, FsEventKind)>) {
+    let events = self
       .events
       .recv()
       .await
-      .expect("event processor should remain active")
+      .expect("event processor should remain active");
+    let dependencies = events
       .dependencies
       .into_iter()
       .map(|event| (event.path, event.kind))
-      .collect()
+      .collect();
+    (events.raw.map(|event| event.path), dependencies)
   }
 }

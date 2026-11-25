@@ -10,7 +10,7 @@ use crate::{
   EventBatch, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
   observation::{Mutation, Scan},
-  paths::PathManager,
+  paths::{ContextChange, PathManager, PendingFileChange},
   watcher_manager::{ContextLookup, WatcherManager},
 };
 
@@ -126,7 +126,9 @@ pub struct Trigger {
 /// Where an event comes from.
 enum Origin {
   /// The OS watcher; `appeared` when it created or renamed the path into place.
-  Disk { appeared: bool },
+  Disk {
+    appeared: bool,
+  },
   /// An explicit event supplied through `FsWatcher::trigger_event`.
   Injected,
   /// A scan, for what changed while the watch was not active yet: a file a
@@ -134,6 +136,7 @@ enum Origin {
   /// registered path the scanner backfills. Already judged a change, it is
   /// never dropped as a duplicate or as attribute-only.
   Scan(Option<Scan>),
+  ContextFile(Arc<PendingFileChange>),
 }
 
 impl Trigger {
@@ -189,6 +192,17 @@ impl Trigger {
     let _ = self.pending.send((path, kind, Origin::Scan(Some(scan))));
   }
 
+  pub(crate) fn on_context_change(&self, path: InternedPath, change: ContextChange) {
+    match change {
+      ContextChange::Entry(scan) => self.on_scan_event(path, FsEventKind::Change, scan),
+      ContextChange::File(change) => {
+        let _ = self
+          .pending
+          .send((path, FsEventKind::Change, Origin::ContextFile(change)));
+      }
+    }
+  }
+
   #[cfg(feature = "testing")]
   pub(crate) fn on_scanned_change(&self, path: &InternedPath) {
     let _ = self
@@ -212,6 +226,41 @@ impl EventProcessor {
   /// - `/path`
   /// - `/path/to`
   async fn process(&self, path: &InternedPath, kind: FsEventKind, origin: Origin) {
+    let origin = match origin {
+      Origin::ContextFile(change) => {
+        let still_file = std::fs::symlink_metadata(path).is_ok_and(|m| m.is_file());
+        let scan = self
+          .path_manager
+          .with_file_change(path, &change, true, |scan, eligible| {
+            if !still_file {
+              return Some(scan.clone());
+            }
+            let mut dependencies = Vec::new();
+            self
+              .finder()
+              .collect_parent_dependencies(path, &mut dependencies);
+            dependencies.retain(|(dep, _)| eligible(dep));
+            self.path_manager.set_last_watch_events(path);
+            self.analyzer.invalidate_path(path);
+            for (dep, _) in &dependencies {
+              self.analyzer.invalidate_path(dep);
+            }
+            self.trigger_events(
+              dependencies,
+              Some(FsEvent {
+                path: path.clone(),
+                kind,
+              }),
+              Vec::new(),
+              None,
+            );
+            None
+          });
+        let Some(scan) = scan.flatten() else { return };
+        Origin::Scan(Some(scan))
+      }
+      origin => origin,
+    };
     let scan = match &origin {
       Origin::Scan(scan) => scan.as_ref(),
       _ => None,

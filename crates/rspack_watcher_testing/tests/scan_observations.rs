@@ -655,3 +655,76 @@ async fn an_older_file_check_cannot_restore_a_timestamp_from_before_a_symlink_re
     matches!(entry(&files, &child), Some(TimeInfoEntry::Entry {timestamp, ..}) if *timestamp > 1_600_000_000_000)
   );
 }
+
+#[tokio::test]
+async fn overlapping_context_scans_report_a_file_to_each_eligible_subscription_once() {
+  for (nested_eligible, retire_nested) in [(false, false), (true, false), (true, true)] {
+    let fixture = tempfile::tempdir().unwrap();
+    let dir = fixture.path().canonicalize().unwrap();
+    let root = dir.join("src");
+    let nested = root.join("sub");
+    let file = InternedPath::from(nested.join("f.js"));
+    let marker = InternedPath::from(dir.join("marker.js"));
+    let blocker = dir.join("blocker");
+    fs::create_dir_all(&nested).unwrap();
+    let mtime = UNIX_EPOCH + Duration::from_secs(1_600_000_000);
+    fs::File::create(&file)
+      .unwrap()
+      .set_modified(mtime)
+      .unwrap();
+    fs::write(&marker, "").unwrap();
+    let (ignored, waiting, release) = pause_at(&blocker);
+    let mut analyzer = DirectoryAnalyzer::with_ignored(ignored);
+    update(&analyzer, added(&marker), added(&root), empty()).await;
+    analyzer.on_native_event(Event::new(EventKind::Modify(ModifyKind::Any)).add_path(blocker));
+    timeout(Duration::from_secs(5), waiting)
+      .await
+      .unwrap()
+      .unwrap();
+
+    analyzer.queue_context_changes_since(mtime).await;
+    update(&analyzer, empty(), added(&nested), empty()).await;
+    let start = if nested_eligible {
+      mtime
+    } else {
+      mtime + Duration::from_secs(10)
+    };
+    analyzer.queue_context_changes_since(start).await;
+    if retire_nested {
+      update(&analyzer, empty(), removed(&nested), empty()).await;
+      update(&analyzer, empty(), added(&nested), empty()).await;
+      analyzer
+        .queue_context_changes_since(mtime + Duration::from_secs(10))
+        .await;
+    }
+    analyzer.on_scanned_change(&marker);
+    release.send(()).unwrap();
+
+    let (raw_count, mut notified) = timeout(Duration::from_secs(5), async {
+      let mut raw_count = 0;
+      let mut notified = Vec::new();
+      loop {
+        let (raw, deps) = analyzer.next_events_with_raw().await;
+        if raw.as_ref() == Some(&marker) {
+          return (raw_count, notified);
+        }
+        if raw.as_ref() == Some(&file) {
+          raw_count += 1;
+          notified.extend(deps);
+        }
+      }
+    })
+    .await
+    .unwrap();
+    assert_eq!(
+      raw_count, 1,
+      "nested eligible={nested_eligible}, retired={retire_nested}"
+    );
+    let mut expected = vec![(InternedPath::from(&root), FsEventKind::Change)];
+    if nested_eligible && !retire_nested {
+      expected.push((InternedPath::from(&nested), FsEventKind::Change));
+    }
+    notified.sort_by(|a, b| a.0.cmp(&b.0));
+    assert_eq!(notified, expected);
+  }
+}
