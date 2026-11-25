@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::{collections::BTreeSet, sync::Arc};
 
 use futures::future::join_all;
 use once_cell::sync::Lazy;
@@ -17,6 +17,7 @@ use rspack_plugin_html::{
 };
 use rspack_plugin_runtime::is_enabled_for_chunk;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet};
+use serde_json::{Map, Value};
 use tokio::sync::RwLock;
 use url::Url;
 
@@ -347,19 +348,17 @@ fn collect_import_map_chunks(
   chunks
 }
 
-#[plugin_hook(HtmlPluginCollectImportMapIntegrity for SubresourceIntegrityPlugin)]
-pub async fn collect_import_map_integrity(
-  &self,
-  compilation: &Compilation,
+// Share the synchronous work between the instrumented and uninstrumented hook futures.
+#[inline(never)]
+fn collect_import_map_files<'a>(
+  compilation: &'a Compilation,
   entrypoints: &[ChunkGroupUkey],
-  public_path: &str,
-  integrity: &mut BTreeMap<String, String>,
-) -> Result<()> {
+) -> BTreeSet<&'a String> {
   // The configured function name only affects dynamic imports.
   let include_async = compilation.options.output.import_function_name == "import";
   let graph = &compilation.build_chunk_graph_artifact;
   let import_loading = ChunkLoading::Enable(ChunkLoadingType::Import);
-  let mut imported_files = std::collections::BTreeSet::new();
+  let mut imported_files = BTreeSet::new();
   for entrypoint in entrypoints {
     let entry = graph.chunk_group_by_ukey.expect_get(entrypoint);
     let runtime_chunk = entry.get_runtime_chunk(&graph.chunk_group_by_ukey);
@@ -385,12 +384,16 @@ pub async fn collect_import_map_integrity(
     }
   }
 
-  if imported_files.is_empty() {
-    return Ok(());
-  }
+  imported_files
+}
 
-  let integrities = SubresourceIntegrityPlugin::get_compilation_integrities(compilation.id());
-  let integrities = integrities.read().await;
+#[inline(never)]
+fn insert_import_map_urls(
+  imported_files: BTreeSet<&String>,
+  integrities: &HashMap<String, String>,
+  public_path: &str,
+  integrity: &mut Map<String, Value>,
+) {
   for file in imported_files {
     if let Some(hash) = integrities.get(file) {
       let mut url = format!("{public_path}{file}");
@@ -424,18 +427,30 @@ pub async fn collect_import_map_integrity(
         if changed {
           let mut alias = encoded_dir.clone();
           alias.push_str(&file[start..]);
-          #[allow(
-            clippy::map_entry,
-            reason = "Avoid instantiating the BTreeMap entry API for rare URL aliases"
-          )]
           if !integrity.contains_key(&alias) {
-            integrity.insert(alias, hash.clone());
+            integrity.insert(alias, Value::String(hash.clone()));
           }
         }
       }
       // Keep the original URL if it also appeared as an encoding alias.
-      integrity.insert(url, hash.clone());
+      integrity.insert(url, Value::String(hash.clone()));
     }
+  }
+}
+
+#[plugin_hook(HtmlPluginCollectImportMapIntegrity for SubresourceIntegrityPlugin)]
+pub async fn collect_import_map_integrity(
+  &self,
+  compilation: &Compilation,
+  entrypoints: &[ChunkGroupUkey],
+  public_path: &str,
+  integrity: &mut Map<String, Value>,
+) -> Result<()> {
+  let imported_files = collect_import_map_files(compilation, entrypoints);
+  if !imported_files.is_empty() {
+    let integrities = SubresourceIntegrityPlugin::get_compilation_integrities(compilation.id());
+    let integrities = integrities.read().await;
+    insert_import_map_urls(imported_files, &integrities, public_path, integrity);
   }
   Ok(())
 }

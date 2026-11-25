@@ -1,6 +1,5 @@
 use std::{
   borrow::Cow,
-  collections::BTreeMap,
   path::{Path, PathBuf},
   sync::{Arc, LazyLock},
 };
@@ -178,7 +177,7 @@ async fn generate_html(
     current_ast.visit_mut_with(&mut visitor);
   }
 
-  let mut integrity = BTreeMap::new();
+  let mut integrity = serde_json::Map::new();
   hooks
     .borrow()
     .collect_import_map_integrity

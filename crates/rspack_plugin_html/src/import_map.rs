@@ -1,4 +1,4 @@
-use std::{borrow::Cow, collections::BTreeMap};
+use std::borrow::Cow;
 
 use cow_utils::CowUtils;
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
@@ -20,9 +20,14 @@ enum Placement<'a> {
   Insert(usize, Option<&'a str>),
 }
 
+enum ImportMapUpdate {
+  Merge(Map<String, Value>),
+  Insert(HtmlPluginTag),
+}
+
 pub(crate) fn add_integrity_to_import_map(
   document: &mut CompiledDocument,
-  integrity: BTreeMap<String, String>,
+  integrity: Map<String, Value>,
 ) -> Result<()> {
   let children = match document {
     CompiledDocument::Document(document) | CompiledDocument::DocumentWithoutDoctype(document) => {
@@ -33,13 +38,11 @@ pub(crate) fn add_integrity_to_import_map(
   let Some(placement) = find_placement(children, &integrity)? else {
     return Ok(());
   };
-  let (mut position, mut tag) = match placement {
-    Placement::Merge(position) => (position, None),
+  let (mut position, update) = match placement {
+    Placement::Merge(position) => (position, ImportMapUpdate::Merge(integrity)),
     Placement::Insert(position, nonce) => {
-      let mut entries = Map::new();
-      prepend_integrity(&mut entries, &integrity);
       let mut map = Map::new();
-      map.insert("integrity".into(), Value::Object(entries));
+      map.insert("integrity".into(), Value::Object(integrity));
       let mut attributes = vec![HtmlPluginAttribute {
         attr_name: "type".into(),
         attr_value: Some("importmap".into()),
@@ -56,10 +59,10 @@ pub(crate) fn add_integrity_to_import_map(
         inner_html: Some(serialize_map(&Value::Object(map))?),
         ..Default::default()
       };
-      (position, Some(tag))
+      (position, ImportMapUpdate::Insert(tag))
     }
   };
-  apply_at(children, &mut position, &mut tag, &integrity)?;
+  apply_at(children, &mut position, &mut Some(update))?;
   Ok(())
 }
 
@@ -259,7 +262,7 @@ fn inline_module_imports(element: &Element) -> InlineModuleImports {
 
 fn find_placement<'a>(
   children: &'a [Child],
-  integrity: &BTreeMap<String, String>,
+  integrity: &Map<String, Value>,
 ) -> Result<Option<Placement<'a>>> {
   let mut pending = vec![children.iter()];
   let mut position = 0;
@@ -414,8 +417,7 @@ fn find_placement<'a>(
 fn apply_at(
   children: &mut Vec<Child>,
   position: &mut usize,
-  tag: &mut Option<HtmlPluginTag>,
-  integrity: &BTreeMap<String, String>,
+  update: &mut Option<ImportMapUpdate>,
 ) -> Result<bool> {
   for index in 0..children.len() {
     let Child::Element(element) = &mut children[index] else {
@@ -425,22 +427,24 @@ fn apply_at(
       continue;
     }
     if *position == 0 {
-      if let Some(tag) = tag.take() {
-        children.insert(index, Child::Element(tag.into()));
-      } else {
-        merge_integrity(element, integrity)?;
+      match update.take() {
+        Some(ImportMapUpdate::Insert(tag)) => {
+          children.insert(index, Child::Element(tag.into()));
+        }
+        Some(ImportMapUpdate::Merge(integrity)) => merge_integrity(element, integrity)?,
+        None => return Ok(false),
       }
       return Ok(true);
     }
     *position -= 1;
-    if apply_at(&mut element.children, position, tag, integrity)? {
+    if apply_at(&mut element.children, position, update)? {
       return Ok(true);
     }
   }
   Ok(false)
 }
 
-fn merge_integrity(element: &mut Element, integrity: &BTreeMap<String, String>) -> Result<()> {
+fn merge_integrity(element: &mut Element, mut integrity: Map<String, Value>) -> Result<()> {
   let mut source = String::new();
   for child in &element.children {
     if let Child::Text(text) = child {
@@ -454,24 +458,16 @@ fn merge_integrity(element: &mut Element, integrity: &BTreeMap<String, String>) 
     .or_insert_with(|| Value::Object(Map::new()))
     .as_object_mut()
     .ok_or_else(|| error!("The import map integrity field must be an object."))?;
-  prepend_integrity(entries, integrity);
+  // The browser applies the last entry for a resolved URL within one map.
+  integrity.retain(|url, _| !entries.contains_key(url));
+  integrity.extend(std::mem::take(entries));
+  *entries = integrity;
   element.children = vec![Child::Text(Text {
     span: DUMMY_SP,
     data: serialize_map(&Value::Object(map))?.into(),
     raw: None,
   })];
   Ok(())
-}
-
-fn prepend_integrity(entries: &mut Map<String, Value>, integrity: &BTreeMap<String, String>) {
-  let authored = std::mem::take(entries);
-  // The browser applies the last entry for a resolved URL within one map.
-  for (url, hash) in integrity {
-    if !authored.contains_key(url) {
-      entries.insert(url.clone(), Value::String(hash.clone()));
-    }
-  }
-  entries.extend(authored);
 }
 
 fn serialize_map(map: &Value) -> Result<String> {
