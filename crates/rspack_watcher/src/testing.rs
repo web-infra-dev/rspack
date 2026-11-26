@@ -72,6 +72,15 @@ impl Default for DirectoryAnalyzer {
 }
 
 impl DirectoryAnalyzer {
+  pub fn scan_contexts(&self) -> tokio::task::JoinHandle<Vec<InternedPath>> {
+    let paths = Arc::clone(&self.paths);
+    tokio::spawn(async move { paths.scan_contexts(SystemTime::UNIX_EPOCH).await })
+  }
+
+  pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
+    self.paths.collect_time_info_entries()
+  }
+
   pub async fn update(
     &self,
     files: (Vec<InternedPath>, Vec<InternedPath>),

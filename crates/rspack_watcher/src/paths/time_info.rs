@@ -1,12 +1,12 @@
-use std::{ffi::OsStr, path::Path, time::SystemTime};
+use std::{ffi::OsStr, path::Path, sync::Arc, time::SystemTime};
 
-use dashmap::mapref::one::RefMut;
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathIndexSet};
 use rspack_util::{fx_hash::FxHashMap, time::current_time};
 
-use super::PathManager;
+use super::{PathManager, entries::ContextObservation};
 use crate::{
   TimeInfoEntries, TimeInfoEntry,
+  directory_watcher::{DirectoryWatcher, FileObservation},
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
 };
 
@@ -14,7 +14,7 @@ use crate::{
 /// a path was last seen with, plus the safe time and accuracy fixed at that
 /// observation.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct FileTime {
+pub(super) struct FileTime {
   pub(super) mtime: SystemTime,
   safe_time: u64,
   accuracy: u64,
@@ -71,7 +71,7 @@ pub(super) enum ReportedBaseline {
 }
 
 #[derive(Default)]
-pub(super) struct FileRecord {
+pub(crate) struct FileRecord {
   /// Last observation exported by `collect_time_info_entries`.
   pub(super) time: Option<FileTime>,
   /// State the build already knows from registration or a reported event.
@@ -79,6 +79,11 @@ pub(super) struct FileRecord {
 }
 
 impl FileRecord {
+  pub(super) fn report_change(&mut self, mtime: SystemTime) {
+    self.reported = ReportedBaseline::Present(mtime);
+    self.time = Some(FileTime::observed(mtime));
+  }
+
   pub(super) fn set_time(
     &mut self,
     mtime: SystemTime,
@@ -99,7 +104,48 @@ impl FileRecord {
     true
   }
 
-  pub(super) fn clear_present(&mut self) {
+  pub(crate) fn observe(&mut self, mtime: SystemTime, origin: FileObservation) -> bool {
+    let aged = || mtime_to_millis(mtime).saturating_add(mtime_accuracy(mtime)) < current_time();
+    match origin {
+      FileObservation::Member(ContextObservation::Scan { initial }) => {
+        self.set_time(mtime, initial, true)
+      }
+      FileObservation::Member(ContextObservation::Event) => {
+        if self.time.is_some_and(|old| old.mtime == mtime) && aged() {
+          return false;
+        }
+        self.set_time(mtime, false, false)
+      }
+      FileObservation::Member(ContextObservation::Reported) => true,
+      FileObservation::Registration => {
+        if !matches!(self.reported, ReportedBaseline::Present(_)) {
+          self.reported = ReportedBaseline::Present(mtime);
+        }
+        self.time.get_or_insert_with(|| FileTime::initial(mtime));
+        false
+      }
+      FileObservation::Backfill { changed } => {
+        self.set_time(mtime, true, true);
+        if changed {
+          self.reported = ReportedBaseline::Present(mtime);
+        }
+        changed
+      }
+      FileObservation::Live => {
+        if self.reported == ReportedBaseline::Present(mtime) && aged() {
+          return false;
+        }
+        self.report_change(mtime);
+        true
+      }
+    }
+  }
+
+  pub(crate) fn is_empty(&self) -> bool {
+    self.time.is_none() && self.reported == ReportedBaseline::Unknown
+  }
+
+  pub(crate) fn clear_present(&mut self) {
     self.time = None;
     if matches!(self.reported, ReportedBaseline::Present(_)) {
       self.reported = ReportedBaseline::Unknown;
@@ -113,32 +159,43 @@ impl FileRecord {
   }
 }
 
-#[derive(Default)]
-pub(super) struct FileTimes {
-  records: InternedPathDashMap<FileRecord>,
-}
+/// File records live with their parent watcher, including explicitly watched files outside a context.
+pub(super) struct FileTimes(pub(super) Arc<InternedPathDashMap<DirectoryWatcher>>);
 
 impl FileTimes {
   pub(super) fn get(&self, path: &InternedPath) -> Option<FileTime> {
-    self.records.get(path)?.time
+    self
+      .0
+      .get(&DirectoryWatcher::owner(path))?
+      .files
+      .get(path)?
+      .time
   }
 
   fn reported(&self, path: &InternedPath) -> ReportedBaseline {
     self
-      .records
-      .get(path)
-      .map_or(ReportedBaseline::Unknown, |record| record.reported)
+      .0
+      .get(&DirectoryWatcher::owner(path))
+      .and_then(|watcher| watcher.files.get(path).map(|r| r.reported))
+      .unwrap_or_default()
   }
 
-  pub(super) fn record(&self, path: &InternedPath) -> RefMut<'_, InternedPath, FileRecord> {
-    self.records.entry(path.clone()).or_default()
+  pub(super) fn update<R>(
+    &self,
+    path: &InternedPath,
+    write: impl FnOnce(&mut FileRecord) -> R,
+  ) -> R {
+    let mut watcher = self.0.entry(DirectoryWatcher::owner(path)).or_default();
+    write(watcher.files.entry(path.clone()).or_default())
   }
 
   pub(super) fn clear(&self, path: &InternedPath, clear: impl FnOnce(&mut FileRecord)) {
-    self.records.remove_if_mut(path, |_, record| {
-      clear(record);
-      record.time.is_none() && record.reported == ReportedBaseline::Unknown
-    });
+    self
+      .0
+      .remove_if_mut(&DirectoryWatcher::owner(path), |_, watcher| {
+        watcher.clear_file(path, clear);
+        watcher.is_unused()
+      });
   }
 }
 
@@ -146,7 +203,7 @@ impl PathManager {
   /// Record an initial baseline mtime for `path`, but only if no present
   /// baseline already exists. A reported absence counts as no
   /// baseline because the file is back. This is the "incremental" form used by
-  /// `FsWatcher::wait_for_event`: on the first `watch()` call we record
+  /// `FsWatcherInner::register_paths`: on the first `watch()` call we record
   /// mtimes for all newly-registered files; on subsequent `watch()` calls
   /// we MUST skip files that already have a baseline, otherwise we risk
   /// snapshotting a mtime that the user has just bumped via `writeFile`.
@@ -155,21 +212,17 @@ impl PathManager {
   /// baseline) to advance the recorded mtime in response to real events.
   pub fn set_file_time_if_absent(&self, path: InternedPath, mtime: SystemTime) {
     self.record(&path, || {
-      let mut record = self.file_times.record(&path);
-      if !matches!(record.reported, ReportedBaseline::Present(_)) {
-        record.reported = ReportedBaseline::Present(mtime);
-      }
-      record.time.get_or_insert_with(|| FileTime::initial(mtime));
+      self
+        .watchers
+        .set_file_time(&path, Some(mtime), FileObservation::Registration)
     });
   }
 
-  /// The scanner reported `path` as changed: the build will know this mtime,
-  /// so it becomes the deduplication baseline as well as the time info.
-  pub fn set_reported_file_time(&self, path: &InternedPath, mtime: SystemTime) {
+  pub(crate) fn set_backfill_time(&self, path: &InternedPath, mtime: SystemTime, changed: bool) {
     self.record(path, || {
-      let mut record = self.file_times.record(path);
-      record.reported = ReportedBaseline::Present(mtime);
-      record.set_time(mtime, true, true);
+      self
+        .watchers
+        .set_file_time(path, Some(mtime), FileObservation::Backfill { changed })
     });
   }
 
@@ -181,33 +234,15 @@ impl PathManager {
 
   /// Record a removal the caller is about to deliver. The scanner relies on
   /// this marker to mean the build was told about the absence.
-  pub fn set_reported_file_removal(&self, path: &InternedPath) {
-    self.file_times.record(path).reported = ReportedBaseline::Absent;
+  pub(super) fn set_reported_file_removal(&self, path: &InternedPath) {
+    self
+      .file_times
+      .update(path, |record| record.reported = ReportedBaseline::Absent);
     if (!self.files.all.contains(path) && !self.missing.all.contains(path))
       || std::fs::symlink_metadata(path).is_ok()
     {
       self.file_times.clear(path, FileRecord::clear_absent);
     }
-  }
-
-  /// watchpack's `setFileTime(filePath, mtime, initial, ignoreWhenEqual)`:
-  /// record `path` as seen with `mtime` — from a scan (`initial`, safe time
-  /// derived from the mtime) or from a live event (safe time = now). With
-  /// `ignore_when_equal`, a record already carrying this mtime is kept as is.
-  /// Returns whether a record was written.
-  pub fn set_file_time(
-    &self,
-    path: &InternedPath,
-    mtime: SystemTime,
-    initial: bool,
-    ignore_when_equal: bool,
-  ) -> bool {
-    self.record(path, || {
-      self
-        .file_times
-        .record(path)
-        .set_time(mtime, initial, ignore_when_equal)
-    })
   }
 
   /// An event reached `path` or something below it: advance the
@@ -217,8 +252,10 @@ impl PathManager {
     let now = current_time();
     for ancestor in path.ancestors() {
       let ancestor = InternedPath::from(ancestor);
-      if self.watchers.is_watched_directory(&ancestor) {
-        self.last_watch_events.insert(ancestor, now);
+      if let Some(mut watcher) = self.watchers.directories.get_mut(&ancestor)
+        && watcher.subscriptions.is_active()
+      {
+        watcher.last_watch_event = Some(now);
       }
     }
   }
@@ -246,13 +283,9 @@ impl PathManager {
       return false;
     }
     self.record(path, || {
-      let mut record = self.file_times.record(path);
-      if aged && record.reported == present {
-        return false;
-      }
-      record.reported = present;
-      record.time = Some(FileTime::observed(current_mtime));
-      true
+      self
+        .watchers
+        .set_file_time(path, Some(current_mtime), FileObservation::Live)
     })
   }
 }
@@ -354,14 +387,14 @@ impl PathManager {
       mut file_timestamps,
       mut file_safe_times,
     } = registered;
-    for watcher in &self.watchers.directories {
+    for watcher in self.watchers.directories.iter() {
       for (path, member) in &watcher.members {
         if member.directory {
           dir_paths.insert(path.clone());
         }
         if member.file
           && !file_paths.contains(path)
-          && let Some(time) = self.file_times.get(path)
+          && let Some(time) = watcher.files.get(path).and_then(|r| r.time)
         {
           file_safe_times.push((path.clone(), time.narrowed().safe_time));
           file_timestamps.push((path_to_string(path.as_path()), Self::entry(time)));
@@ -371,7 +404,7 @@ impl PathManager {
     let mut dir_safe_times: FxHashMap<InternedPath, Option<u64>> =
       FxHashMap::with_capacity_and_hasher(dir_paths.len(), Default::default());
     for dir in &dir_paths {
-      let last_watch_event = self.last_watch_events.get(dir).map(|time| *time);
+      let last_watch_event = self.watchers.event_time(dir);
       // An absent registered context reads null, where watchpack reports `{}`
       // or `{ safeTime: 0 }`: webpack then sees it as missing and rebuilds
       // once it appears, instead of trusting a time for a directory not there.

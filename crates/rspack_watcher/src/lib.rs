@@ -1,4 +1,5 @@
 mod analyzer;
+mod directory_watcher;
 mod disk_watcher;
 mod executor;
 mod ignored;
