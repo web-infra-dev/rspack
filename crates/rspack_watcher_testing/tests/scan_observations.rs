@@ -785,6 +785,48 @@ async fn releasing_a_missing_directory_then_its_context_forgets_the_timestamp() 
 }
 
 #[tokio::test]
+async fn a_queued_removal_clears_a_known_missing_timestamp_after_its_context_retires() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let root = dir.join("src");
+  let restored = InternedPath::from(root.join("restored"));
+  let marker = InternedPath::from(dir.join("marker.js"));
+  let blocker = dir.join("blocker");
+  fs::create_dir_all(&restored).unwrap();
+  fs::write(&marker, "").unwrap();
+  let (ignored, waiting, release) = pause_at(&blocker);
+  let mut analyzer = DirectoryAnalyzer::with_ignored(ignored);
+  update(&analyzer, added(&marker), added(&root), added(&restored)).await;
+  notify(&mut analyzer, &restored, EventKind::Modify(ModifyKind::Any)).await;
+  assert!(matches!(
+    entry(&analyzer.collect_time_info_entries().0, &restored),
+    Some(TimeInfoEntry::Entry { .. })
+  ));
+  analyzer.on_native_event(Event::new(EventKind::Modify(ModifyKind::Any)).add_path(blocker));
+  timeout(Duration::from_secs(5), waiting)
+    .await
+    .unwrap()
+    .unwrap();
+  analyzer.queue_context_changes().await;
+  update(&analyzer, empty(), removed(&root), empty()).await;
+  fs::remove_dir(&restored).unwrap();
+  analyzer.on_scanned_change(&marker);
+  release.send(()).unwrap();
+  let deliveries = deliveries_until(&mut analyzer, &marker).await;
+  assert_eq!(
+    deliveries,
+    vec![(
+      restored.clone(),
+      vec![(restored.clone(), FsEventKind::Remove)]
+    )]
+  );
+  assert_eq!(
+    entry(&analyzer.collect_time_info_entries().0, &restored),
+    Some(&TimeInfoEntry::Null)
+  );
+}
+
+#[tokio::test]
 async fn a_later_scan_updates_the_mtime_without_cancelling_the_outer_notification() {
   let fixture = tempfile::tempdir().unwrap();
   let dir = fixture.path().canonicalize().unwrap();

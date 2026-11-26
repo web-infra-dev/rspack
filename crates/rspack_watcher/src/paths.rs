@@ -17,7 +17,9 @@ use rspack_util::{
   time::{current_time, system_time_to_millis},
 };
 
-use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
+use super::{
+  FsEventKind, FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher,
+};
 use crate::{
   observation::{Mutation, Observations, Scan, ScanEpoch},
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
@@ -568,29 +570,53 @@ impl PathManager {
     });
   }
 
-  pub(super) fn record_missing_recovery(
+  pub(super) fn reconcile_missing_change(
     &self,
     path: &InternedPath,
     subscribers: &[Arc<InternedPath>],
     scanned_mtime: SystemTime,
-    metadata: &std::fs::Metadata,
+    kind: FsEventKind,
+    metadata: std::io::Result<std::fs::Metadata>,
   ) {
-    let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
+    let _index = self.lock_index();
+    let Some(registration) = self
+      .missing
+      .scan_subscribers
+      .get()
+      .and_then(|map| map.get(path))
+    else {
       return;
     };
-    let _index = self.lock_index();
-    if let Some(registrations) = self.missing.scan_subscribers.get()
-      && let Some(registration) = registrations.get(path)
-      && subscribers.iter().any(|s| Arc::ptr_eq(s, &registration))
-    {
-      let mut record = self.file_times.record(path);
-      if metadata.is_dir() && mtime == scanned_mtime {
-        record.report_change(mtime);
-      } else {
-        // The snapshot sees the replacement. Its own change is still due.
-        record.set_time(mtime, false, true);
+    if !subscribers.iter().any(|s| Arc::ptr_eq(s, &registration)) {
+      return;
+    }
+    match (kind, metadata) {
+      (FsEventKind::Change, Ok(metadata)) => {
+        let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
+          return;
+        };
+        let mut record = self.file_times.record(path);
+        if metadata.is_dir() && mtime == scanned_mtime {
+          record.report_change(mtime);
+        } else {
+          // The snapshot sees the replacement. Its own change is still due.
+          record.set_time(mtime, false, true);
+        }
+        self.link_record(path);
       }
-      self.link_record(path);
+      (FsEventKind::Remove, Err(error))
+        if matches!(
+          error.kind(),
+          std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
+        ) =>
+      {
+        *self.file_times.record(path) = FileRecord {
+          time: None,
+          reported: ReportedBaseline::Absent,
+        };
+        self.unlink_unrecorded(path);
+      }
+      _ => {}
     }
   }
 

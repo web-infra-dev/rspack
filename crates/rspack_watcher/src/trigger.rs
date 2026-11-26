@@ -438,11 +438,8 @@ impl EventProcessor {
       }
     }
 
-    let current_target = if context.is_some_and(|c| c.directory) && is_watched_path {
-      path.metadata().ok()
-    } else {
-      None
-    };
+    let current_target =
+      (context.is_some_and(|c| c.directory) && is_watched_path).then(|| path.metadata());
     let _state = self.path_manager.watchers.lock_observations();
     if let Some(change) = context {
       let (subscribers, restored_mtime) = change.pending.take_subscribers();
@@ -451,13 +448,15 @@ impl EventProcessor {
         return;
       }
       if let (Some(scanned_mtime), Some(current)) = (restored_mtime, current_target)
-        && associated_event
-          .iter()
-          .any(|(dep, kind)| dep == path && *kind == FsEventKind::Change)
+        && associated_event.iter().any(|(dep, _)| dep == path)
       {
-        self
-          .path_manager
-          .record_missing_recovery(path, &subscribers, scanned_mtime, &current);
+        self.path_manager.reconcile_missing_change(
+          path,
+          &subscribers,
+          scanned_mtime,
+          kind,
+          current,
+        );
       }
       self.path_manager.set_last_watch_events(path);
     } else {
