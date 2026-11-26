@@ -827,6 +827,62 @@ async fn a_queued_removal_clears_a_known_missing_timestamp_after_its_context_ret
 }
 
 #[tokio::test]
+async fn a_queued_directory_removal_clears_only_stale_registered_descendants() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let root = dir.join("src");
+  let pages = root.join("pages");
+  let generated = InternedPath::from(pages.join("generated"));
+  let nested = generated.join("nested");
+  let file = InternedPath::from(generated.join("entry.js"));
+  let missing = InternedPath::from(generated.join("old/chunk.js"));
+  let newer = InternedPath::from(nested.join("entry.js"));
+  fs::create_dir_all(&nested).unwrap();
+  fs::create_dir(generated.join("old")).unwrap();
+  for path in [&file, &missing, &newer] {
+    fs::write(path, "").unwrap();
+  }
+  let (mut analyzer, marker, release) = hold_event_processor(&dir, &dir.join("control")).await;
+  update(
+    &analyzer,
+    (vec![file.clone(), newer.clone()], vec![]),
+    added(&root),
+    (vec![generated.clone(), missing.clone()], vec![]),
+  )
+  .await;
+  analyzer.queue_context_changes().await;
+  update(&analyzer, empty(), removed(&root), empty()).await;
+
+  fs::File::create(&newer)
+    .unwrap()
+    .set_modified(UNIX_EPOCH + Duration::from_secs(1_600_000_010))
+    .unwrap();
+  update(&analyzer, empty(), added(&nested), empty()).await;
+  analyzer.scan_contexts().await.unwrap();
+  update(&analyzer, empty(), removed(&nested), empty()).await;
+  fs::rename(&pages, dir.join("archive")).unwrap();
+  analyzer.on_scanned_change(&marker);
+  release.send(()).unwrap();
+
+  let deliveries = deliveries_until(&mut analyzer, &marker).await;
+  assert!(deliveries.contains(&(
+    generated.clone(),
+    vec![(generated.clone(), FsEventKind::Remove)]
+  )));
+  let (files, _) = analyzer.collect_time_info_entries();
+  for path in [&generated, &file, &missing] {
+    assert_eq!(entry(&files, path), Some(&TimeInfoEntry::Null), "{path:?}");
+  }
+  assert!(matches!(
+    entry(&files, &newer),
+    Some(TimeInfoEntry::Entry {
+      timestamp: 1_600_000_010_000,
+      ..
+    })
+  ));
+}
+
+#[tokio::test]
 async fn a_later_scan_updates_the_mtime_without_cancelling_the_outer_notification() {
   let fixture = tempfile::tempdir().unwrap();
   let dir = fixture.path().canonicalize().unwrap();

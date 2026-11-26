@@ -440,7 +440,7 @@ impl EventProcessor {
 
     let current_target =
       (context.is_some_and(|c| c.directory) && is_watched_path).then(|| path.metadata());
-    let _state = self.path_manager.watchers.lock_observations();
+    let mut state = self.path_manager.watchers.lock_observations();
     if let Some(change) = context {
       let (subscribers, restored_mtime) = change.pending.take_subscribers();
       associated_event.retain(|(dep, _)| subscribers.iter().any(|s| s.as_ref() == dep));
@@ -456,6 +456,13 @@ impl EventProcessor {
           scanned_mtime,
           kind,
           current,
+          |child| {
+            if !state.accepts(&change.scan, child) {
+              return false;
+            }
+            state.observe(child, Some(&change.scan), Mutation::Entry);
+            true
+          },
         );
       }
       self.path_manager.set_last_watch_events(path);

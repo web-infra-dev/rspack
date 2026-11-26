@@ -577,6 +577,7 @@ impl PathManager {
     scanned_mtime: SystemTime,
     kind: FsEventKind,
     metadata: std::io::Result<std::fs::Metadata>,
+    mut observe_descendant_removal: impl FnMut(&InternedPath) -> bool,
   ) {
     let _index = self.lock_index();
     let Some(registration) = self
@@ -614,6 +615,16 @@ impl PathManager {
           time: None,
           reported: ReportedBaseline::Absent,
         };
+        // PathTracker::remove locks the registration set before the subscriber map.
+        drop(registration);
+        for child in self.recorded_subtree(path).into_iter().skip(1) {
+          if (self.files.all.contains(&child) || self.missing.all.contains(&child))
+            && observe_descendant_removal(&child)
+          {
+            self.file_times.clear(&child, FileRecord::clear_present);
+            self.unlink_unrecorded(&child);
+          }
+        }
         self.unlink_unrecorded(path);
       }
       _ => {}
@@ -1287,10 +1298,7 @@ impl PathManager {
     }
   }
 
-  /// A context was unregistered: forget what its scan found below it, except
-  /// what another still-registered context also covers.
-  fn forget_context_entries_under(&self, dir: &InternedPath) {
-    let _index = self.lock_index();
+  fn recorded_subtree(&self, dir: &InternedPath) -> Vec<InternedPath> {
     let mut subtree = Vec::new();
     let mut pending = vec![dir.clone()];
     while let Some(path) = pending.pop() {
@@ -1299,7 +1307,14 @@ impl PathManager {
       }
       subtree.push(path);
     }
-    for path in &subtree {
+    subtree
+  }
+
+  /// A context was unregistered: forget what its scan found below it, except
+  /// what another still-registered context also covers.
+  fn forget_context_entries_under(&self, dir: &InternedPath) {
+    let _index = self.lock_index();
+    for path in &self.recorded_subtree(dir) {
       if self.is_below_context(path) {
         continue;
       }
