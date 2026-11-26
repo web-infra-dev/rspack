@@ -16,6 +16,7 @@ afterAll(() => {
   delete globalThis.__CJS_DEFINE_PROPERTY_IMPURE_VALUE_COUNT__;
   delete globalThis.__CJS_DEFINE_PROPERTY_SHADOWED_COUNT__;
   delete globalThis.__CJS_DEFINE_PROPERTY_IMPURE_SEQUENCE__;
+  delete globalThis.__CJS_DEFINE_PROPERTY_VAR_INIT__;
   delete globalThis.__recordCjsDefinePropertyImpureValue;
 });
 
@@ -29,7 +30,6 @@ it('drops modules whose defineProperty calls only add data properties to exports
     ['DATA', 'DESCRIPTOR', 'SENTINEL'],
     ['MODULE', 'EXPORTS', 'TARGET', 'SENTINEL'],
     ['SEQUENCE', 'EXPORTS', 'SENTINEL'],
-    ['VAR', 'INIT', 'DEFINE', 'PROPERTY', 'SENTINEL'],
   ];
 
   for (const parts of sentinels) {
@@ -41,6 +41,7 @@ it('keeps defineProperty calls with observable effects', () => {
   expect(globalThis.__CJS_DEFINE_PROPERTY_IMPURE_VALUE_COUNT__).toBe(1);
   expect(globalThis.__CJS_DEFINE_PROPERTY_SHADOWED_COUNT__).toBe(1);
   expect(globalThis.__CJS_DEFINE_PROPERTY_IMPURE_SEQUENCE__).toBe(true);
+  expect(globalThis.__CJS_DEFINE_PROPERTY_VAR_INIT__).toBe(true);
 });
 
 it('keeps accessor descriptors and non-plain module.exports targets', () => {

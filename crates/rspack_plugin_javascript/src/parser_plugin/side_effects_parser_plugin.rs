@@ -1139,14 +1139,20 @@ struct ModuleEvalPureChecker<'a> {
 }
 
 impl ModuleEvalPureChecker<'_> {
-  fn is_own_exports_effect(&self, parser: &mut JavascriptParser, effect: &ExportsEffect) -> bool {
+  fn is_own_exports_effect(
+    &self,
+    parser: &mut JavascriptParser,
+    effect: &ExportsEffect,
+    in_variable_initializer: bool,
+  ) -> bool {
     if parser.is_esm
       || !parser.is_top_level_scope()
       || !is_free_variable(parser, effect.target().root_name())
     {
       return false;
     }
-    if matches!(effect, ExportsEffect::DefineProperty { .. }) && !is_free_variable(parser, "Object")
+    if matches!(effect, ExportsEffect::DefineProperty { .. })
+      && (in_variable_initializer || !is_free_variable(parser, "Object"))
     {
       return false;
     }
@@ -1173,25 +1179,41 @@ impl ModuleEvalPureChecker<'_> {
     &self,
     parser: &mut JavascriptParser,
     expression: Expr,
+    in_variable_initializer: bool,
     mut callees: Option<&mut Vec<(Atom, Span)>>,
   ) -> bool {
     let ast = parser.ast.ast;
     match ast.expr_data(expression) {
       ExprData::SequenceExpression(sequence) => {
         return ast.nodes(sequence.expressions(ast)).all(|expression| {
-          self.is_module_eval_pure_expression(parser, expression, callees.as_deref_mut())
+          self.is_module_eval_pure_expression(
+            parser,
+            expression,
+            in_variable_initializer,
+            callees.as_deref_mut(),
+          )
         });
       }
       ExprData::ParenthesizedExpression(parenthesized) => {
-        return self.is_module_eval_pure_expression(parser, parenthesized.expression(ast), callees);
+        return self.is_module_eval_pure_expression(
+          parser,
+          parenthesized.expression(ast),
+          in_variable_initializer,
+          callees,
+        );
       }
       _ => {}
     }
     if let Some(effect) = exports_effect(ast, expression)
-      && self.is_own_exports_effect(parser, &effect)
+      && self.is_own_exports_effect(parser, &effect, in_variable_initializer)
     {
       return effect.all_operands(ast, |operand| {
-        self.is_module_eval_pure_expression(parser, operand, callees.as_deref_mut())
+        self.is_module_eval_pure_expression(
+          parser,
+          operand,
+          in_variable_initializer,
+          callees.as_deref_mut(),
+        )
       });
     }
     is_pure_expression(
@@ -1218,7 +1240,7 @@ impl ModuleEvalPureChecker<'_> {
     }
     ast.nodes(variable.declarators(ast)).all(|declarator| {
       declarator.init(ast).is_none_or(|initializer| {
-        self.is_module_eval_pure_expression(parser, initializer, callees.as_deref_mut())
+        self.is_module_eval_pure_expression(parser, initializer, true, callees.as_deref_mut())
       })
     })
   }
@@ -1439,6 +1461,7 @@ impl SideEffectsParserPlugin {
       NodeKindData::ExpressionStatement(statement) => module_eval.is_module_eval_pure_expression(
         parser,
         statement.expression(ast),
+        false,
         Some(&mut callees),
       ),
       NodeKindData::SwitchStatement(statement) => is_pure_expression(
