@@ -26,7 +26,7 @@ use rustc_hash::FxHashMap;
 
 use crate::{
   COMPILER_REFERENCES,
-  asset::{AssetInfo, AssetInfoRelated, JsAsset},
+  asset::{AssetInfo, JsAsset, LEGACY_COPY_PERMISSIONS},
   chunk::{Chunk, ChunkWrapper},
   chunk_graph::ChunkGraph,
   chunk_group::ChunkGroupWrapper,
@@ -146,36 +146,25 @@ impl JsCompilation {
         })();
         let new_source = new_source.to_rspack_result()?;
 
-        let new_info: Option<(rspack_core::AssetInfo, Option<AssetInfoRelated>)> =
-          match asset_info_update_or_function {
-            Some(asset_info_update_or_function) => match asset_info_update_or_function {
-              Either::A(object) => {
-                let js_asset_info: AssetInfo = unsafe {
-                  FromNapiValue::from_napi_value(env.raw(), object.raw()).to_rspack_result()?
-                };
-                let new_related_to = js_asset_info.get_related();
-                Some((js_asset_info.into(), new_related_to))
-              }
-              Either::B(f) => {
-                let original_info_object = original_info.reflector();
-                let result = f.call(original_info_object).to_rspack_result()?;
-                match result {
-                  Some(object) => {
-                    let js_asset_info =
-                      AssetInfo::from_jsobject(env, &object).to_rspack_result()?;
-                    let new_related_to = js_asset_info.get_related();
-                    Some((js_asset_info.into(), new_related_to))
-                  }
-                  None => None,
-                }
-              }
-            },
-            None => None,
-          };
-        if let Some(new_info) = new_info {
-          original_info.merge_another_asset(new_info.0);
+        let object = match asset_info_update_or_function {
+          Some(Either::A(object)) => Some(object),
+          Some(Either::B(update)) => {
+            let result = update.call(original_info.reflector()).to_rspack_result()?;
+            if original_info.file_attributes.take().is_some() {
+              // The callback replaces the file attributes. Recreate the JS info so omitted
+              // properties cannot persist on the object passed to the callback.
+              original_info = original_info.clone();
+            }
+            result
+          }
+          None => None,
+        };
+        if let Some(object) = object {
+          let new_info = AssetInfo::from_jsobject(env, &object).to_rspack_result()?;
+          let new_related_to = new_info.get_related();
+          original_info.merge_another_asset(new_info.into());
           // if the new related is null, should remove it in the original info
-          if let Some(new_related_to) = new_info.1
+          if let Some(new_related_to) = new_related_to
             && new_related_to
               .source_map
               .is_some_and(|s| matches!(s, Either::B(_)))
@@ -411,23 +400,31 @@ impl JsCompilation {
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
-    let asset_info = if let Some(object) = object {
+    let (asset_info, removals) = if let Some(mut object) = object {
       let js_asset_info = AssetInfo::from_jsobject(env, &object)?;
+      let removals = js_asset_info.file_attribute_removals;
       let asset_info: rspack_core::AssetInfo = js_asset_info.into();
       let asset_info = BindingCell::from(asset_info);
+      if removals.mode && object.has_own_property(LEGACY_COPY_PERMISSIONS)? {
+        object.delete_named_property(LEGACY_COPY_PERMISSIONS)?;
+      }
       asset_info.reflector().set_jsobject(env, object)?;
 
-      asset_info
+      (asset_info, removals)
     } else {
-      BindingCell::from(rspack_core::AssetInfo::default())
+      (
+        BindingCell::from(rspack_core::AssetInfo::default()),
+        Default::default(),
+      )
     };
 
-    compilation.emit_asset(
+    compilation.emit_asset_with_file_attribute_removals(
       filename,
       rspack_core::CompilationAsset {
         source: Some(source.try_into()?),
         info: asset_info,
       },
+      removals,
     );
     Ok(())
   }

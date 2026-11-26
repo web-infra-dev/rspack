@@ -829,8 +829,17 @@ impl Compilation {
     );
     Ok(())
   }
+  pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
+    self.emit_asset_with_file_attribute_removals(filename, asset, Default::default());
+  }
+
   #[instrument("Compilation:emit_asset",skip_all, fields(filename = filename))]
-  pub fn emit_asset(&mut self, filename: String, mut asset: CompilationAsset) {
+  pub fn emit_asset_with_file_attribute_removals(
+    &mut self,
+    filename: String,
+    mut asset: CompilationAsset,
+    removals: AssetFileAttributeRemovals,
+  ) {
     if let Some(mut original) = self.assets.remove(&filename)
       && let Some(original_source) = &original.source
       && let Some(asset_source) = asset.get_source()
@@ -863,7 +872,7 @@ impl Compilation {
         return;
       }
       asset.info.file_attributes = AssetFileAttributes::merge(
-        original.info.file_attributes.take(),
+        removals.remove_from(original.info.file_attributes.take()),
         asset.info.file_attributes.take(),
       );
       self.set_asset_info(&filename, Some(asset.get_info()), Some(original.get_info()));
@@ -1395,6 +1404,29 @@ impl AssetFileAttributes {
       new.timestamps = new.timestamps.or(old.timestamps);
     }
     Some(new)
+  }
+}
+
+/// Fields explicitly cleared by an asset emission.
+#[derive(Clone, Copy, Default)]
+pub struct AssetFileAttributeRemovals {
+  pub mode: bool,
+  pub timestamps: bool,
+}
+
+impl AssetFileAttributeRemovals {
+  fn remove_from(
+    self,
+    mut attributes: Option<Box<AssetFileAttributes>>,
+  ) -> Option<Box<AssetFileAttributes>> {
+    let original = attributes.as_mut()?;
+    if self.mode {
+      original.mode = None;
+    }
+    if self.timestamps {
+      original.timestamps = None;
+    }
+    attributes.filter(|attributes| attributes.mode.is_some() || attributes.timestamps.is_some())
   }
 }
 

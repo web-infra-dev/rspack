@@ -133,6 +133,57 @@ function reemitChildAsset() {
 	};
 }
 
+function clearCopiedAttributes() {
+	const names = ["emit.txt", "update.txt"];
+	return {
+		description: "should clear copied file attributes through emitAsset and updateAsset",
+		options(context) {
+			const { root, options } = createProject(
+				context,
+				"clear-attributes",
+				names.map(to => ({ from: copySource, to, ...preserve }))
+			);
+			writeSource(root, copySource);
+			return options;
+		},
+		compiler(_context, compiler) {
+			compiler.outputFileSystem = { ...fs, chmod: undefined, utimes: undefined };
+			compiler.hooks.emit.tap("ClearCopiedAttributes", compilation => {
+				const emitted = compilation.getAsset("emit.txt");
+				compilation.emitAsset(emitted.name, emitted.source, { mode: undefined });
+				const { info } = compilation.getAsset(emitted.name);
+				expect(info.mode).toBeUndefined();
+				expect(info.timestamps.mtime).toBe(initialMtime.getTime());
+				compilation.emitAsset(emitted.name, emitted.source, { timestamps: undefined });
+
+				const updated = compilation.getAsset("update.txt");
+				compilation.updateAsset(updated.name, updated.source, { timestamps: undefined });
+				expect(compilation.getAsset(updated.name).info.timestamps.mtime).toBe(
+					initialMtime.getTime()
+				);
+				compilation.updateAsset(
+					updated.name,
+					updated.source,
+					({ mode, timestamps, ...info }) => info
+				);
+
+				for (const name of names) {
+					const { info } = compilation.getAsset(name);
+					expect(info.mode).toBeUndefined();
+					expect(info.timestamps).toBeUndefined();
+				}
+			});
+		},
+		async build(_context, compiler) {
+			await compile(compiler);
+			for (const name of names) {
+				const output = path.join(compiler.outputPath, name);
+				expect(fs.readFileSync(output, "utf8")).toBe("copied\n");
+			}
+		}
+	};
+}
+
 const chmodError = "fixture chmod failed";
 
 function rejectChmod(_file, _mode, callback) {
@@ -185,6 +236,7 @@ function permissionFailureCase(option, chmod) {
 export default [
 	preserveNativeAttributes(),
 	reemitChildAsset(),
+	clearCopiedAttributes(),
 	permissionFailureCase("copyPermissions", rejectChmod),
 	permissionFailureCase("preservePermissions", rejectChmod),
 	permissionFailureCase("preservePermissions", undefined)

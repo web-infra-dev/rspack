@@ -4,6 +4,8 @@
 
 `mode` 指定写入产物时应用的 Unix 权限。`timestamps` 指定产物的访问时间和修改时间，以 Unix 纪元起算的非负毫秒数表示。开启对应的保留选项后，CopyRspackPlugin 会填充这些字段。插件重新发射产物时，可以将原产物的 `info` 传给 `emitAsset` 来保留这些属性。
 
+重新发射同名且内容相同的产物时，省略的文件属性沿用原值。将 `mode` 或 `timestamps` 显式设为 `undefined` 可以清除对应属性。使用 `updateAsset` 的元数据回调时，文件属性以回调的返回值为准。
+
 ```ts
 type AssetInfo = {
   immutable?: boolean;
@@ -13,8 +15,8 @@ type AssetInfo = {
   contenthash?: string | Array<string>;
   sourceFilename?: string;
   copied?: boolean;
-  mode?: number;
-  timestamps?: { atime: number; mtime: number };
+  mode?: number | undefined;
+  timestamps?: { atime: number; mtime: number } | undefined;
   development?: boolean;
   hotModuleReplacement?: boolean;
   javascriptModule?: boolean;

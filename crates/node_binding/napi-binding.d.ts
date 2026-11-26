@@ -10,9 +10,9 @@ export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
 export type AssetInfo = KnownAssetInfo & {
 	/** Unix permissions applied when the asset is written. */
-	mode?: number;
+	mode?: number | undefined;
 	/** Access and modification times in milliseconds since the Unix epoch. */
-	timestamps?: { atime: number; mtime: number };
+	timestamps?: { atime: number; mtime: number } | undefined;
 } & Record<string, any>;
 
 export type CustomPluginName = string;

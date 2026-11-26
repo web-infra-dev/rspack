@@ -7,14 +7,14 @@ use napi::{
   sys,
 };
 use napi_derive::napi;
-use rspack_core::{AssetFileAttributes, Reflector};
+use rspack_core::{AssetFileAttributeRemovals, AssetFileAttributes, Reflector};
 use rspack_napi::unknown_to_json_value;
 use rspack_napi_macros::field_names;
 use rustc_hash::FxHashSet;
 use serde_json::{Map, Value};
 
 // Keep the deprecated copyPermissions error policy when plugins pass AssetInfo back to Rust.
-const LEGACY_COPY_PERMISSIONS: &str = "__rspackLegacyCopyPermissions";
+pub(crate) const LEGACY_COPY_PERMISSIONS: &str = "__rspackLegacyCopyPermissions";
 
 #[derive(Clone)]
 #[napi(object)]
@@ -78,6 +78,7 @@ pub struct AssetInfo {
   known: KnownAssetInfo,
   extras: Map<String, Value>,
   file_attributes: Option<Box<AssetFileAttributes>>,
+  pub(crate) file_attribute_removals: AssetFileAttributeRemovals,
 }
 
 impl FromNapiValue for AssetInfo {
@@ -87,6 +88,7 @@ impl FromNapiValue for AssetInfo {
       let known_field_names = FxHashSet::from_iter(KnownAssetInfo::field_names());
 
       let mut extras = Map::new();
+      let mut file_attribute_removals = AssetFileAttributeRemovals::default();
       let object = Object::from_napi_value(env, napi_val)?;
       let names = Array::from_napi_value(env, object.get_property_names()?.raw())?;
       for index in 0..names.len() {
@@ -94,6 +96,18 @@ impl FromNapiValue for AssetInfo {
           && !known_field_names.contains(&name)
         {
           let value = object.get_named_property::<Unknown>(&name)?;
+          let removal = match name.as_str() {
+            "mode" => Some(&mut file_attribute_removals.mode),
+            "timestamps" => Some(&mut file_attribute_removals.timestamps),
+            _ => None,
+          };
+          if let Some(removal) = removal
+            && value.get_type()? == napi::ValueType::Undefined
+            && object.has_own_property(&name)?
+          {
+            *removal = true;
+            continue;
+          }
           if let Some(json_value) = unknown_to_json_value(value)? {
             extras.insert(name, json_value);
           }
@@ -105,6 +119,7 @@ impl FromNapiValue for AssetInfo {
         known,
         extras,
         file_attributes,
+        file_attribute_removals,
       })
     }
   }
@@ -154,6 +169,7 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
       known,
       extras,
       file_attributes,
+      ..
     } = js_value;
 
     let KnownAssetInfo {
@@ -211,6 +227,10 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
 }
 
 fn take_file_attributes(extras: &mut Map<String, Value>) -> Option<Box<AssetFileAttributes>> {
+  let legacy_permissions = matches!(
+    extras.remove(LEGACY_COPY_PERMISSIONS),
+    Some(Value::Bool(true))
+  );
   let mode = if cfg!(unix) {
     extras
       .get("mode")
@@ -229,10 +249,6 @@ fn take_file_attributes(extras: &mut Map<String, Value>) -> Option<Box<AssetFile
     return None;
   }
 
-  let legacy_permissions = matches!(
-    extras.remove(LEGACY_COPY_PERMISSIONS),
-    Some(Value::Bool(true))
-  );
   if mode.is_some() {
     extras.remove("mode");
   }
@@ -313,6 +329,7 @@ impl From<rspack_core::AssetInfo> for AssetInfo {
       },
       extras,
       file_attributes,
+      file_attribute_removals: Default::default(),
     }
   }
 }
