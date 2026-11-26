@@ -332,6 +332,11 @@ struct FileRecord {
 }
 
 impl FileRecord {
+  fn report_change(&mut self, mtime: SystemTime) {
+    self.reported = ReportedBaseline::Present(mtime);
+    self.time = Some(FileTime::observed(mtime));
+  }
+
   fn set_time(&mut self, mtime: SystemTime, initial: bool, ignore_when_equal: bool) -> bool {
     // Seeing the file again clears a reported absence. A scan that only
     // records its time must still let the file's first event through.
@@ -563,17 +568,29 @@ impl PathManager {
     });
   }
 
-  pub(super) fn report_restored_directory(
+  pub(super) fn record_missing_recovery(
     &self,
     path: &InternedPath,
     subscribers: &[Arc<InternedPath>],
-    mtime: SystemTime,
+    scanned_mtime: SystemTime,
+    metadata: &std::fs::Metadata,
   ) {
+    let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
+      return;
+    };
+    let _index = self.lock_index();
     if let Some(registrations) = self.missing.scan_subscribers.get()
-      && let Some(current) = registrations.get(path)
-      && subscribers.iter().any(|s| Arc::ptr_eq(s, &current))
+      && let Some(registration) = registrations.get(path)
+      && subscribers.iter().any(|s| Arc::ptr_eq(s, &registration))
     {
-      self.file_times.record(path).reported = ReportedBaseline::Present(mtime);
+      let mut record = self.file_times.record(path);
+      if metadata.is_dir() && mtime == scanned_mtime {
+        record.report_change(mtime);
+      } else {
+        // The snapshot sees the replacement. Its own change is still due.
+        record.set_time(mtime, false, true);
+      }
+      self.link_record(path);
     }
   }
 
@@ -657,6 +674,11 @@ impl PathManager {
   fn record<R>(&self, path: &InternedPath, write: impl FnOnce() -> R) -> R {
     let _index = self.lock_index();
     let written = write();
+    self.link_record(path);
+    written
+  }
+
+  fn link_record(&self, path: &InternedPath) {
     let mut child = path.clone();
     while let Some(parent) = child.parent().map(InternedPath::from) {
       let indexed = !self
@@ -669,7 +691,6 @@ impl PathManager {
       }
       child = parent;
     }
-    written
   }
 
   /// `path` may no longer hold a record of its own: once it holds none and
@@ -1132,9 +1153,7 @@ impl PathManager {
           return (false, Mutation::Unchanged);
         }
         self.record(path, || {
-          let mut record = self.file_times.record(path);
-          record.reported = present;
-          record.time = Some(FileTime::observed(current_mtime));
+          self.file_times.record(path).report_change(current_mtime)
         });
         (true, Mutation::Entry)
       })
@@ -1224,11 +1243,16 @@ impl PathManager {
 
   fn prune_file_record(&self, path: &InternedPath, keep_reported: bool) {
     let below_context = self.is_below_context(path);
+    let keep_time = below_context
+      && (keep_reported
+        || !self
+          .watchers
+          .has_member(path, |member| member.directory && !member.file));
     self.file_times.clear(path, |record| {
       if !keep_reported {
         record.reported = ReportedBaseline::Unknown;
       }
-      if !below_context {
+      if !keep_time {
         record.time = None;
       }
     });

@@ -438,15 +438,8 @@ impl EventProcessor {
       }
     }
 
-    let current_directory_mtime = if context.is_some_and(|c| c.directory) && is_watched_path {
-      let target = metadata
-        .as_ref()
-        .filter(|m| m.is_symlink())
-        .and_then(|_| path.metadata().ok());
-      target
-        .or(metadata)
-        .filter(|m| m.is_dir())
-        .and_then(|m| m.modified().or_else(|_| m.created()).ok())
+    let current_target = if context.is_some_and(|c| c.directory) && is_watched_path {
+      path.metadata().ok()
     } else {
       None
     };
@@ -457,15 +450,14 @@ impl EventProcessor {
       if associated_event.is_empty() {
         return;
       }
-      if let Some(mtime) = restored_mtime
-        && Some(mtime) == current_directory_mtime
+      if let (Some(scanned_mtime), Some(current)) = (restored_mtime, current_target)
         && associated_event
           .iter()
           .any(|(dep, kind)| dep == path && *kind == FsEventKind::Change)
       {
         self
           .path_manager
-          .report_restored_directory(path, &subscribers, mtime);
+          .record_missing_recovery(path, &subscribers, scanned_mtime, &current);
       }
       self.path_manager.set_last_watch_events(path);
     } else {
