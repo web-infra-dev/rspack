@@ -43,7 +43,7 @@ impl PathManager {
             if updated {
               Mutation::Entry
             } else {
-              Mutation::FileTime
+              Mutation::Metadata
             },
           )
         }

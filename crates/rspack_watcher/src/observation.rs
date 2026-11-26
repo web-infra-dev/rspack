@@ -5,7 +5,7 @@ use rspack_paths::{InternedPath, InternedPathSet};
 use rspack_util::fx_hash::FxHashMap;
 
 pub(super) enum Mutation {
-  FileTime,
+  Metadata,
   Unchanged,
   Entry,
   Subtree,
@@ -13,7 +13,7 @@ pub(super) enum Mutation {
 
 #[derive(Default)]
 struct Invalidations {
-  file_times: InternedPathSet,
+  metadata_rechecks: InternedPathSet,
   entries: InternedPathSet,
   subtrees: InternedPathSet,
   subscriptions: InternedPathSet,
@@ -71,8 +71,8 @@ impl Observations {
     !self.active[&scan.walk.id].subscriptions.contains(context)
   }
 
-  pub(super) fn file_time_was_read(&self, scan: &Scan, path: &InternedPath) -> bool {
-    self.active[&scan.walk.id].file_times.contains(path)
+  pub(super) fn needs_metadata_recheck(&self, scan: &Scan, path: &InternedPath) -> bool {
+    self.active[&scan.walk.id].metadata_rechecks.contains(path)
   }
 
   pub(super) fn accepts(&self, scan: &Scan, path: &InternedPath) -> bool {
@@ -90,8 +90,8 @@ impl Observations {
   pub(super) fn observe_live(&mut self, path: &InternedPath, mutation: Mutation) {
     for walk in self.active.values_mut() {
       match mutation {
-        Mutation::FileTime => {
-          walk.file_times.insert(path.clone());
+        Mutation::Metadata => {
+          walk.metadata_rechecks.insert(path.clone());
         }
         Mutation::Entry => {
           walk.entries.insert(path.clone());

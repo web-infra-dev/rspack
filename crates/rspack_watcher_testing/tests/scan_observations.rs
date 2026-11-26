@@ -696,3 +696,30 @@ async fn a_duplicate_live_mtime_supersedes_an_older_scan_read() {
   }
   assert_eq!(timestamps, [1_600_000_000_000; 2]);
 }
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_live_event_on_a_directory_link_keeps_its_pending_file_observation() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let root = dir.join("src");
+  let target = dir.join("target");
+  let link = InternedPath::from(root.join("link"));
+  fs::create_dir(&root).unwrap();
+  fs::create_dir(&target).unwrap();
+  std::os::unix::fs::symlink(target, &link).unwrap();
+
+  let mut analyzer = DirectoryAnalyzer::default();
+  let mut contexts = added(&root);
+  contexts.0.push(link.clone());
+  update(&analyzer, empty(), contexts, empty()).await;
+  let finish = analyzer.hold_scanned_file(root.clone().into(), link.clone());
+  notify(&mut analyzer, &link, EventKind::Modify(ModifyKind::Any)).await;
+  finish();
+  update(&analyzer, empty(), removed(&root), empty()).await;
+
+  let (files, _) = analyzer.collect_time_info_entries();
+  assert!(files.iter().any(|(path, info)| {
+    Path::new(path) == link.as_path() && matches!(info, TimeInfoEntry::Entry { .. })
+  }));
+}

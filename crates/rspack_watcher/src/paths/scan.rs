@@ -327,7 +327,7 @@ impl PathManager {
     // newer mtime without updating membership. Recheck both together.
     let result = if requests
       .iter()
-      .any(|r| state.file_time_was_read(&r.scan, &path))
+      .any(|r| state.needs_metadata_recheck(&r.scan, &path))
     {
       Self::scan_metadata(real_dir, &path)
     } else {
@@ -431,7 +431,7 @@ impl PathManager {
     let recheck = directory
       || readers
         .clone()
-        .any(|r| state.file_time_was_read(&r.scan, path));
+        .any(|r| state.needs_metadata_recheck(&r.scan, path));
     if recheck && !std::fs::symlink_metadata(path).is_err_and(|e| is_absent(&e)) {
       return;
     }

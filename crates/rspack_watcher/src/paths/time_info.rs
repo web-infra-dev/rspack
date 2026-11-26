@@ -181,7 +181,7 @@ impl PathManager {
         }
         record.time.get_or_insert_with(|| FileTime::initial(mtime));
       });
-      ((), Mutation::FileTime)
+      ((), Mutation::Metadata)
     });
   }
 
@@ -194,7 +194,7 @@ impl PathManager {
         record.reported = ReportedBaseline::Present(mtime);
         record.set_time(mtime, true, true);
       });
-      ((), Mutation::FileTime)
+      ((), Mutation::Metadata)
     });
   }
 
@@ -228,7 +228,7 @@ impl PathManager {
     self.observe_live(path, || {
       (
         self.store_file_time(path, mtime, initial, ignore_when_equal),
-        Mutation::FileTime,
+        Mutation::Metadata,
       )
     })
   }
@@ -279,7 +279,7 @@ impl PathManager {
       let aged = mtime_to_millis(current_mtime).saturating_add(mtime_accuracy(current_mtime))
         < current_time();
       if aged && self.file_times.reported(path) == ReportedBaseline::Present(current_mtime) {
-        return (false, Mutation::FileTime);
+        return (false, Mutation::Metadata);
       }
       self.record(path, || {
         self.file_times.record(path).report_change(current_mtime)

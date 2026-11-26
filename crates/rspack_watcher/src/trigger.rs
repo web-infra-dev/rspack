@@ -412,10 +412,11 @@ impl EventProcessor {
     }
     self.path_manager.observe_live(path, || {
       self.path_manager.set_last_watch_events(path);
-      let mutation = if metadata.as_ref().is_some_and(|m| m.is_file()) {
-        Mutation::Subtree
-      } else {
-        Mutation::Entry
+      let mutation = match metadata.as_ref() {
+        Some(m) if m.is_file() => Mutation::Subtree,
+        // A link can be an explicit context before its parent indexes the link itself.
+        Some(m) if m.is_symlink() => Mutation::Metadata,
+        _ => Mutation::Entry,
       };
       ((), mutation)
     });

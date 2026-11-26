@@ -60,7 +60,7 @@ impl PathManager {
     (
       updated,
       if !directory && !updated && !replaced {
-        Mutation::FileTime
+        Mutation::Metadata
       } else if replaced {
         Mutation::Subtree
       } else {
