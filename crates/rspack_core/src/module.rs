@@ -45,6 +45,7 @@ pub struct BuildContext {
   pub compiler_options: Arc<CompilerOptions>,
   // Background task contexts can outlive a failed build and compiler.close().
   pub loader_cache: Weak<LoaderCache>,
+  pub loader_build_dependencies_cache: Option<Arc<crate::LoaderBuildDependenciesCache>>,
   pub loader_cache_counters: Arc<crate::CacheCounters>,
   pub value_cache_versions: ValueCacheVersions,
   pub file_system_info: FileSystemInfo,

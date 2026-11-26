@@ -1,7 +1,7 @@
 mod file_system_info;
 
 use rspack_cacheable::cacheable;
-use rspack_hash::RspackHashDigest;
+use rspack_hash::{HashFunction, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_paths::{InternedPathMap, InternedPathSet};
 
 pub use self::file_system_info::{FileSystemInfo, SnapshotValidationResult};
@@ -15,38 +15,45 @@ pub use self::file_system_info::{FileSystemInfo, SnapshotValidationResult};
 /// See webpack's filesystem entry data structures:
 /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L75-L132
 #[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, RspackHash)]
 pub struct FileSystemInfoEntry {
+  #[rspack_hash(skip)]
   safe_time: u64,
+  #[rspack_hash(null_if_none)]
   timestamp: Option<u64>,
 }
 
 #[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, RspackHash)]
 pub enum FileHash {
   Digest(RspackHashDigest),
   Directory,
 }
 
 #[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, RspackHash)]
 pub struct TimestampAndHash {
+  #[rspack_hash(skip)]
   safe_time: u64,
+  #[rspack_hash(skip)]
   timestamp: Option<u64>,
   hash: FileHash,
 }
 
 #[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, RspackHash)]
 pub struct ContextFileSystemInfoEntry {
+  #[rspack_hash(skip)]
   safe_time: u64,
   timestamp_hash: RspackHashDigest,
 }
 
 #[cacheable]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, RspackHash)]
 pub struct ContextTimestampAndHash {
+  #[rspack_hash(skip)]
   safe_time: u64,
+  #[rspack_hash(skip)]
   timestamp_hash: RspackHashDigest,
   hash: RspackHashDigest,
 }
@@ -61,8 +68,9 @@ pub struct ContextTimestampAndHash {
 /// See webpack's `Snapshot` data structure:
 /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L303-L665
 #[cacheable]
-#[derive(Debug, Default, Clone)]
+#[derive(Debug, Default, Clone, RspackHash)]
 pub struct Snapshot {
+  #[rspack_hash(skip)]
   pub(super) start_time: Option<u64>,
   pub(super) file_timestamps: Option<InternedPathMap<Option<FileSystemInfoEntry>>>,
   pub(super) file_hashes: Option<InternedPathMap<Option<FileHash>>>,
@@ -80,6 +88,13 @@ pub struct Snapshot {
 }
 
 impl Snapshot {
+  /// Folds snapshot entries into a deterministic fingerprint without `start_time` or `safe_time`.
+  pub(crate) fn fingerprint(&self) -> u64 {
+    let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+    self.hash(&mut hasher);
+    hasher.finish()
+  }
+
   /// See webpack's snapshot merge implementation:
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L3081-L3166
   pub(super) fn merge(&mut self, other: Self) {
@@ -102,7 +117,9 @@ impl Snapshot {
     merge_sets(&mut self.managed_contexts, other.managed_contexts);
     merge_sets(&mut self.managed_missing, other.managed_missing);
 
-    if let Some(children) = other.children {
+    if let Some(children) = other.children
+      && !children.is_empty()
+    {
       self.children.get_or_insert_default().extend(children);
     }
   }
@@ -112,6 +129,9 @@ fn merge_maps<T>(target: &mut Option<InternedPathMap<T>>, source: Option<Interne
   let Some(source) = source else {
     return;
   };
+  if source.is_empty() {
+    return;
+  }
   target.get_or_insert_default().extend(source);
 }
 
@@ -119,5 +139,8 @@ fn merge_sets(target: &mut Option<InternedPathSet>, source: Option<InternedPathS
   let Some(source) = source else {
     return;
   };
+  if source.is_empty() {
+    return;
+  }
   target.get_or_insert_default().extend(source);
 }
