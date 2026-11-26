@@ -1,0 +1,5 @@
+:global .foo {
+  --g: 1px;
+}
+--local-var: 1px;
+color: var(--local-var);

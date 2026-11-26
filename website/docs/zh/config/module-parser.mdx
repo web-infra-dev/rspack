@@ -1126,6 +1126,28 @@ export default {
 };
 ```
 
+### ["css/auto"].as
+
+- **类型：** `'stylesheet' | 'block-contents'`
+- **默认值：** `'stylesheet'`
+
+配置如何解析 CSS 源码：
+
+- `'stylesheet'`：将输入作为完整的 CSS 样式表进行解析（默认值）。
+- `'block-contents'`：将输入作为代码块内部内容进行解析（例如 HTML `style` 属性的内容），允许顶层直接出现声明而无需包裹在选择器块中。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        as: 'block-contents',
+      },
+    },
+  },
+};
+```
+
 ### ["css/auto"].exportType
 
 - **类型：** `'link' | 'text' | 'css-style-sheet' | 'style'`
@@ -1429,6 +1451,22 @@ export default {
 };
 ```
 
+### css.as
+
+和 [`module.parser["css/auto"].as`](#cssautoas) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        as: 'block-contents',
+      },
+    },
+  },
+};
+```
+
 ### css.exportType
 
 和 [`module.parser["css/auto"].exportType`](#cssautoexporttype) 一样。
@@ -1521,6 +1559,22 @@ export default {
     parser: {
       'css/global': {
         // options
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].as
+
+和 [`module.parser["css/auto"].as`](#cssautoas) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        as: 'block-contents',
       },
     },
   },
@@ -1715,6 +1769,22 @@ export default {
     parser: {
       'css/module': {
         // options
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].as
+
+和 [`module.parser["css/auto"].as`](#cssautoas) 一样。
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        as: 'block-contents',
       },
     },
   },

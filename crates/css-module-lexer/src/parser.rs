@@ -88,6 +88,7 @@ enum DeclarationState {
 struct DeclarationCandidate {
   state: DeclarationState,
   components: ComponentValues,
+  nested: bool,
 }
 
 impl DeclarationCandidate {
@@ -119,7 +120,8 @@ impl DeclarationCandidate {
       DeclarationState::Value { .. }
       | DeclarationState::AfterCurly
       | DeclarationState::AfterImportant
-        if RecoveryBoundary::at(token.kind, false).is_some() =>
+        if RecoveryBoundary::at(token.kind, false)
+          .is_some_and(|boundary| self.nested || boundary != RecoveryBoundary::RightCurly) =>
       {
         DeclarationState::Accepted
       }
@@ -193,11 +195,12 @@ pub(crate) struct BlockItemCandidates {
 }
 
 impl BlockItemCandidates {
-  pub(crate) fn new(custom: bool, has_mode: bool) -> Self {
+  pub(crate) fn new(custom: bool, has_mode: bool, nested: bool) -> Self {
     Self {
       declaration: DeclarationCandidate {
         state: DeclarationState::Colon,
         components: ComponentValues::default(),
+        nested,
       },
       rule: RuleCandidate::Prelude,
       custom,
@@ -288,6 +291,11 @@ impl BlockItemCandidates {
     }
     self.preserve_next_ident = false;
     self.retain_next_atom = false;
+  }
+
+  #[inline]
+  pub(crate) fn nested(&self) -> bool {
+    self.declaration.nested
   }
 
   #[inline]

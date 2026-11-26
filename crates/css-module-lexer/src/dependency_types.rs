@@ -123,6 +123,13 @@ pub enum Mode {
   Css,
 }
 
+#[derive(Debug, Default, Clone, Copy, Hash, PartialEq, Eq)]
+pub enum ParseAs {
+  #[default]
+  Stylesheet,
+  BlockContents,
+}
+
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub(crate) struct ValueAtRuleImportItem<'s> {
   local_name: &'s str,

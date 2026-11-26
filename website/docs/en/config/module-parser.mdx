@@ -1127,6 +1127,28 @@ export default {
 };
 ```
 
+### ["css/auto"].as
+
+- **Type:** `'stylesheet' | 'block-contents'`
+- **Default:** `'stylesheet'`
+
+Configure how the CSS source is parsed:
+
+- `'stylesheet'`: Parse the input as a full CSS stylesheet (default).
+- `'block-contents'`: Parse the input as a block's contents (e.g. the content of an HTML `style` attribute), allowing top-level declarations without an enclosing selector block.
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/auto': {
+        as: 'block-contents',
+      },
+    },
+  },
+};
+```
+
 ### ["css/auto"].exportType
 
 - **Type:** `'link' | 'text' | 'css-style-sheet' | 'style'`
@@ -1430,6 +1452,22 @@ export default {
 };
 ```
 
+### css.as
+
+Same as [`module.parser["css/auto"].as`](#cssautoas).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      css: {
+        as: 'block-contents',
+      },
+    },
+  },
+};
+```
+
 ### css.exportType
 
 Same as [`module.parser["css/auto"].exportType`](#cssautoexporttype).
@@ -1522,6 +1560,22 @@ export default {
     parser: {
       'css/global': {
         // options
+      },
+    },
+  },
+};
+```
+
+### ["css/global"].as
+
+Same as [`module.parser["css/auto"].as`](#cssautoas).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/global': {
+        as: 'block-contents',
       },
     },
   },
@@ -1716,6 +1770,22 @@ export default {
     parser: {
       'css/module': {
         // options
+      },
+    },
+  },
+};
+```
+
+### ["css/module"].as
+
+Same as [`module.parser["css/auto"].as`](#cssautoas).
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    parser: {
+      'css/module': {
+        as: 'block-contents',
       },
     },
   },

@@ -1083,6 +1083,7 @@ export type AssetParserOptions = {
 
 export type CssParserNamedExports = boolean;
 export type CssParserUrl = boolean;
+export type CssParserAs = 'stylesheet' | 'block-contents';
 export type CssParserExportType = 'link' | 'text' | 'css-style-sheet' | 'style';
 
 export type CssParserResolveImportContext = {
@@ -1098,6 +1099,13 @@ export type CssParserResolveImport =
 
 /** Options object for `css` modules. */
 export type CssParserOptions = {
+  /**
+   * Configure how the CSS source is parsed: as a full stylesheet (default) or as a block's contents (e.g. the content of an HTML `style` attribute).
+   *
+   * @default "stylesheet"
+   */
+  as?: CssParserAs;
+
   /**
    * Configure how CSS content is exported to JavaScript.
    *
@@ -1134,6 +1142,13 @@ export type CssParserOptions = {
 
 /** Options object for `css/global` modules. */
 export type CssModuleParserOptions = {
+  /**
+   * Configure how the CSS source is parsed: as a full stylesheet (default) or as a block's contents (e.g. the content of an HTML `style` attribute).
+   *
+   * @default "stylesheet"
+   */
+  as?: CssParserAs;
+
   /**
    * Configure how CSS content is exported to JavaScript.
    *

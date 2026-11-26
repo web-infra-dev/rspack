@@ -270,12 +270,13 @@ impl<'s> Lexer<'s> {
 
   /// A flat run has no semantic value events. Check short runs in one pass;
   /// use memchr for long runs, retaining the validated endpoint for the caller.
-  fn scan_flat_value(&self, start: usize) -> Option<usize> {
+  fn scan_flat_value(&self, start: usize, stop_at_right_curly: bool) -> Option<usize> {
     let rest = &self.value[start..];
     let short = rest.len().min(32);
     for (index, byte) in rest[..short].iter().copied().enumerate() {
       if matches!(byte, C_LEFT_CURLY | C_SEMICOLON | C_RIGHT_CURLY) {
-        return (byte != C_LEFT_CURLY).then_some(start + index);
+        return (byte != C_LEFT_CURLY && (stop_at_right_curly || byte != C_RIGHT_CURLY))
+          .then_some(start + index);
       }
       if is_non_flat_value_byte(byte) {
         return None;
@@ -283,7 +284,8 @@ impl<'s> Lexer<'s> {
     }
     let boundary = memchr3(C_LEFT_CURLY, C_SEMICOLON, C_RIGHT_CURLY, &rest[short..])
       .map_or(rest.len(), |index| short + index);
-    if rest.get(boundary) == Some(&C_LEFT_CURLY)
+    if matches!(rest.get(boundary), Some(&C_LEFT_CURLY))
+      || (!stop_at_right_curly && rest.get(boundary) == Some(&C_RIGHT_CURLY))
       || rest[short..boundary]
         .iter()
         .copied()
@@ -356,7 +358,7 @@ impl<'s> Lexer<'s> {
       && candidate.flat_probe_start != Some(position as Pos)
     {
       candidate.flat_probe_start = Some(position as Pos);
-      if let Some(end) = self.scan_flat_value(position) {
+      if let Some(end) = self.scan_flat_value(position, candidate.nested()) {
         if end > position {
           note_opaque_value(&mut block_item);
         }
@@ -2127,6 +2129,7 @@ impl<'a, 's> TokenStream<'a, 's> {
     ident: Token,
     custom: bool,
     flat: bool,
+    nested: bool,
   ) -> (bool, Option<Pos>) {
     let mut flat_probe_start = None;
     if self.byte_at(ident.range.end) != Some(C_COLON) {
@@ -2139,7 +2142,10 @@ impl<'a, 's> TokenStream<'a, 's> {
       None
     } else {
       flat_probe_start = Some(ident.range.end + 1);
-      let Some(end) = self.lexer.scan_flat_value(ident.range.end as usize + 1) else {
+      let Some(end) = self
+        .lexer
+        .scan_flat_value(ident.range.end as usize + 1, nested)
+      else {
         return (false, flat_probe_start);
       };
       Some(end as Pos)
@@ -2160,8 +2166,9 @@ impl<'a, 's> TokenStream<'a, 's> {
     custom: bool,
     has_mode: bool,
     flat_probe_start: Option<Pos>,
+    nested: bool,
   ) {
-    let mut candidate = BlockItemCandidates::new(custom, has_mode);
+    let mut candidate = BlockItemCandidates::new(custom, has_mode, nested);
     candidate.flat_probe_start = flat_probe_start;
     self.block_item = Some(candidate);
   }

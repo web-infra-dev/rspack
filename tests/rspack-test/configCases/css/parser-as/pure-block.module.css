@@ -1,0 +1,4 @@
+background: url(./pixel.png), url(./other.png);
+.btn {
+  color: red;
+}

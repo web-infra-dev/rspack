@@ -1,0 +1,9 @@
+color: red;
+&.active {
+  background: url(./pixel.png);
+}
+@media (min-width: 1px) {
+  background: url(./pixel.png);
+}
+--brand: red;
+color: var(--brand);

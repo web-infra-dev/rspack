@@ -2204,6 +2204,7 @@ export interface RawCopyRspackPluginOptions {
 }
 
 export interface RawCssAutoOrModuleParserOptions {
+  as?: "stylesheet" | "block-contents"
   exportType?: "link" | "text" | "css-style-sheet" | "style"
   namedExports?: boolean
   url?: boolean
@@ -2264,6 +2265,7 @@ export interface RawCssModuleGeneratorOptions {
 }
 
 export interface RawCssModuleParserOptions {
+  as?: "stylesheet" | "block-contents"
   exportType?: "link" | "text" | "css-style-sheet" | "style"
   namedExports?: boolean
   url?: boolean
@@ -2278,6 +2280,7 @@ export interface RawCssModuleParserOptions {
 }
 
 export interface RawCssParserOptions {
+  as?: "stylesheet" | "block-contents"
   exportType?: "link" | "text" | "css-style-sheet" | "style"
   namedExports?: boolean
   url?: boolean

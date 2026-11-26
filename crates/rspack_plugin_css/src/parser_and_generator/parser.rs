@@ -4,7 +4,7 @@ use once_cell::sync::OnceCell;
 use rspack_core::{
   BoxDependency, ConstDependency, CssAutoOrModuleParserOptions, CssExportType, CssExports,
   CssExportsConvention, CssLayer, CssLocalNames, CssModuleGeneratorOptions,
-  CssModuleRenderCondition, CssParserImport, CssParserImportContext, Dependency,
+  CssModuleRenderCondition, CssParserAs, CssParserImport, CssParserImportContext, Dependency,
   DependencyCodeGenerationRef, DependencyId, DependencyRange, ModuleType, ParseContext,
   ParseResult, ResourceData, StaticExportsDependency, StaticExportsSpec,
   diagnostics::map_box_diagnostics_to_module_parse_diagnostics, remove_bom, rspack_sources::Source,
@@ -314,8 +314,10 @@ impl<'context> CssModuleParser<'context> {
 
   pub async fn parse(mut self) -> Result<TWithDiagnosticArray<ParseResult>> {
     let mode = self.mode();
+    let parse_as = self.parse_as();
     let deps_source_code = self.source_code.clone();
-    let (deps, warnings) = css_module_lexer::collect_dependencies(&deps_source_code, mode);
+    let (deps, warnings) =
+      css_module_lexer::collect_dependencies_as(&deps_source_code, mode, parse_as);
     let local_css_ident_declarations =
       self.collect_local_css_ident_declarations(deps.dependencies());
 
@@ -362,6 +364,13 @@ impl<'context> CssModuleParser<'context> {
         self.parse_context.loaders,
       )),
     )
+  }
+
+  fn parse_as(&self) -> css_module_lexer::ParseAs {
+    match self.parser_options.r#as.unwrap_or_default() {
+      CssParserAs::Stylesheet => css_module_lexer::ParseAs::Stylesheet,
+      CssParserAs::BlockContents => css_module_lexer::ParseAs::BlockContents,
+    }
   }
 
   fn mode(&self) -> css_module_lexer::Mode {

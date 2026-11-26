@@ -7,7 +7,7 @@ mod parser;
 pub use dependencies::{LexDependencies, ModeData};
 pub use dependency_types::{
   Dependency, DependencyContext, DependencyIndex, DependencyListRange, ImportAttributes, Mode,
-  Range, UrlRangeKind, Warning, WarningKind,
+  ParseAs, Range, UrlRangeKind, Warning, WarningKind,
 };
 pub use lexer::{Lexer, Pos, Token, TokenFlags, TokenKind, TokenWithTrivia, Trivia};
 
@@ -24,11 +24,27 @@ impl<'s, F: FnMut(Warning<'s>)> HandleWarning<'s> for F {
 pub fn lex_dependencies<'s>(
   input: &'s str,
   mode: Mode,
+  handle_dependency: impl FnMut(&Dependency<'s>),
+  handle_warning: impl HandleWarning<'s>,
+) -> DependencyContext<'s> {
+  lex_dependencies_as(
+    input,
+    mode,
+    ParseAs::Stylesheet,
+    handle_dependency,
+    handle_warning,
+  )
+}
+
+pub fn lex_dependencies_as<'s>(
+  input: &'s str,
+  mode: Mode,
+  parse_as: ParseAs,
   mut handle_dependency: impl FnMut(&Dependency<'s>),
   handle_warning: impl HandleWarning<'s>,
 ) -> DependencyContext<'s> {
   let mut lexer = Lexer::new(input);
-  let mut visitor = LexDependencies::new(handle_warning, mode);
+  let mut visitor = LexDependencies::with_parse_as(handle_warning, mode, parse_as);
   visitor.lex_streaming(&mut lexer);
   let dependency_context = visitor.into_dependency_context();
   for dependency in dependency_context.iter() {
@@ -38,9 +54,17 @@ pub fn lex_dependencies<'s>(
 }
 
 pub fn collect_dependencies(input: &str, mode: Mode) -> (DependencyContext<'_>, Vec<Warning<'_>>) {
+  collect_dependencies_as(input, mode, ParseAs::Stylesheet)
+}
+
+pub fn collect_dependencies_as(
+  input: &str,
+  mode: Mode,
+  parse_as: ParseAs,
+) -> (DependencyContext<'_>, Vec<Warning<'_>>) {
   let mut warnings = Vec::with_capacity(estimate_warning_capacity(input.len(), mode));
   let mut lexer = Lexer::new(input);
-  let mut visitor = LexDependencies::new(|v| warnings.push(v), mode);
+  let mut visitor = LexDependencies::with_parse_as(|v| warnings.push(v), mode, parse_as);
   visitor.lex_streaming(&mut lexer);
   (visitor.into_dependency_context(), warnings)
 }

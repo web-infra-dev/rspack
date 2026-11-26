@@ -1,5 +1,6 @@
 mod support;
 
+mod block_contents;
 mod composes;
 mod exports;
 mod extract_imports;

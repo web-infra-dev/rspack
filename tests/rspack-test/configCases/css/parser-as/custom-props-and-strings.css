@@ -1,0 +1,5 @@
+--quote: '"';
+--custom: {a:b};
+--wrapper-shaped: a{color:red};
+content: '}';
+background: url(./pixel.png)

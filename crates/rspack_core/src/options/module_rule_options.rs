@@ -157,11 +157,9 @@ fn resolve_global_parser_options(
               Into::<CssAutoOrModuleParserOptions>::into(&a).merge_from(b),
             )
           }
-          (ParserOptions::Css(a), ParserOptions::CssModule(b)) => ParserOptions::CssAutoOrModule(
-            Into::<CssModuleParserOptions>::into(&a)
-              .merge_from(b)
-              .into(),
-          ),
+          (ParserOptions::Css(a), ParserOptions::CssModule(b)) => {
+            ParserOptions::CssModule(Into::<CssModuleParserOptions>::into(&a).merge_from(b))
+          }
           _ => unreachable!(),
         },
       )
@@ -354,6 +352,7 @@ mod tests {
       let parser = normalize_css_parser_options(
         &module_type,
         Some(ParserOptions::Css(CssParserOptions {
+          r#as: None,
           export_type: None,
           named_exports: Some(true),
           url: None,
