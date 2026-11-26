@@ -18,7 +18,7 @@ export default {
 		const src = path.join(root, "src");
 		const restored = path.join(src, "restored");
 		const marker = path.join(root, "marker");
-		const old = 1_600_000_000;
+		const old = 1_600_000_000.123;
 		fs.mkdirSync(src);
 		fs.mkdirSync(marker);
 		fs.utimesSync(marker, old, old);
