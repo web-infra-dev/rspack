@@ -1,7 +1,11 @@
 import fs from 'node:fs';
 import querystring from 'node:querystring';
 import { promisify } from 'node:util';
-import { type MessagePort, receiveMessageOnPort } from 'node:worker_threads';
+import {
+  MessageChannel,
+  type MessagePort,
+  receiveMessageOnPort,
+} from 'node:worker_threads';
 
 import { JsLoaderState } from '@rspack/binding';
 import type { NormalModule } from '../NormalModule';
@@ -45,7 +49,6 @@ interface WorkerOptions {
 
   workerData?: {
     workerPort: MessagePort;
-    workerSyncPort: MessagePort;
   };
 }
 
@@ -649,10 +652,7 @@ function createWaitForPendingRequest(
   };
 }
 
-function createSendRequest(
-  workerPort: MessagePort,
-  workerSyncPort: MessagePort,
-): SendRequestFunction {
+function createSendRequest(workerPort: MessagePort): SendRequestFunction {
   const sendRequest = ((requestType, ...args) => {
     const id = nextId++;
     workerPort.postMessage({
@@ -676,14 +676,12 @@ function createSendRequest(
     result.id = id;
     return result;
   }) as SendRequestFunction;
-  sendRequest.sync = createSendRequestSync(workerPort, workerSyncPort);
+  sendRequest.sync = createSendRequestSync(workerPort);
   return sendRequest;
 }
 
-function createSendRequestSync(
-  workerPort: MessagePort,
-  workerSyncPort: MessagePort,
-) {
+function createSendRequestSync(workerPort: MessagePort) {
+  let workerSyncPort: MessagePort | undefined;
   return (requestType: RequestSyncType, ...args: any[]) => {
     const id = nextId++;
 
@@ -692,13 +690,27 @@ function createSendRequestSync(
     const sharedBuffer = new SharedArrayBuffer(8);
     const sharedBufferView = new Int32Array(sharedBuffer);
 
-    workerPort.postMessage({
+    const request: WorkerRequestSyncMessage = {
       type: 'request-sync',
       id,
       requestType,
       data: args,
       sharedBuffer,
-    } satisfies WorkerRequestSyncMessage);
+    };
+    if (workerSyncPort) {
+      workerPort.postMessage(request);
+    } else {
+      const { port1, port2 } = new MessageChannel();
+      request.responsePort = port2;
+      try {
+        workerPort.postMessage(request, [port2]);
+      } catch (error) {
+        port1.close();
+        port2.close();
+        throw error;
+      }
+      workerSyncPort = port1;
+    }
 
     // Atomics.wait returns immediately with the value 'not-equal'
     // Otherwise, the thread is blocked until another thread calls Atomics.notify
@@ -731,10 +743,7 @@ function worker(workerOptions: WorkerOptions) {
   delete workerOptions.workerData;
 
   workerData.workerPort.on('message', handleIncomingResponses);
-  const sendRequest = createSendRequest(
-    workerData.workerPort,
-    workerData.workerSyncPort,
-  );
+  const sendRequest = createSendRequest(workerData.workerPort);
   const waitFor = createWaitForPendingRequest(sendRequest);
 
   loaderImpl(workerOptions, sendRequest, waitFor)
