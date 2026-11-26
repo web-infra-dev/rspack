@@ -53,6 +53,60 @@ jobs:
       - name: Verify rename aggregation and replacement
         run: pnpm --dir tests/rspack-test run test Compiler.test.mjs -t "native-watcher-rename"
 
+  watcher-physical-roots-windows:
+    name: Native watcher across drive letters (Windows)
+    if: inputs.target == 'x86_64-pc-windows-msvc'
+    runs-on: ${{ fromJSON(inputs.runner) }}
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: bash
+    env:
+      PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: true
+      PUPPETEER_SKIP_DOWNLOAD: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ inputs.ref }}
+          clean: ${{ runner.environment == 'github-hosted' }}
+
+      - name: Download bindings
+        uses: ./.github/actions/artifact/download
+        with:
+          name: bindings-${{ inputs.target }}
+          path: crates/node_binding/
+
+      - name: Setup Pnpm
+        timeout-minutes: 5
+        uses: ./.github/actions/pnpm/setup
+        with:
+          node-version: 22
+
+      - name: Pnpm Install
+        run: pnpm i
+
+      - name: Build JavaScript packages
+        run: pnpm run build:js
+
+      - name: Verify independent watch roots on two drive letters
+        shell: pwsh
+        run: |
+          $letter = 90..70 | ForEach-Object { [char]$_ } |
+            Where-Object { -not (Get-PSDrive -Name $_ -ErrorAction SilentlyContinue) } |
+            Select-Object -First 1
+          if (-not $letter) { throw "No free drive letter" }
+          $drive = "${letter}:"
+          subst $drive $env:RUNNER_TEMP
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          try {
+            $env:RSPACK_WATCHER_TEST_VOLUME = "$drive\"
+            pnpm --dir tests/rspack-test run test Compiler.test.mjs -t native-watcher-physical-roots
+            exit $LASTEXITCODE
+          } finally {
+            subst $drive /d
+          }
+
   e2e:
     name: E2E Testing
     if: inputs.target == 'x86_64-unknown-linux-gnu' || inputs.target == 'wasm32-wasip1-threads'
