@@ -2,7 +2,7 @@ use std::{
   borrow::Cow,
   hash::BuildHasherDefault,
   sync::{
-    Arc,
+    Arc, OnceLock,
     atomic::{AtomicU8, Ordering},
   },
 };
@@ -125,6 +125,10 @@ impl<'compilation> StatsContext<'compilation> {
 pub struct Stats<'compilation> {
   context: StatsContext<'compilation>,
   artifact_fallback_flags: AtomicU8,
+  /// Readable names of the module graph's modules, each computed on first
+  /// use. Reasons and issuer paths name the same modules over and over, and
+  /// shortening a request against the context is costly.
+  readable_names: OnceLock<IdentifierMap<OnceLock<Box<str>>>>,
 }
 
 impl<'compilation> Clone for Stats<'compilation> {
@@ -132,6 +136,7 @@ impl<'compilation> Clone for Stats<'compilation> {
     Self {
       context: self.context,
       artifact_fallback_flags: AtomicU8::new(self.artifact_fallback_flags.load(Ordering::Relaxed)),
+      readable_names: OnceLock::new(),
     }
   }
 }
@@ -141,7 +146,38 @@ impl<'compilation> Stats<'compilation> {
     Self {
       context,
       artifact_fallback_flags: AtomicU8::new(0),
+      readable_names: OnceLock::new(),
     }
+  }
+
+  fn readable_name<'a>(&'a self, module: &'a ModuleRef) -> Cow<'a, str> {
+    let names = self.readable_names.get_or_init(|| {
+      self
+        .context
+        .build_module_graph_artifact()
+        .try_read()
+        .map_or_default(|artifact| {
+          artifact
+            .get_module_graph()
+            .modules()
+            .map(|(identifier, _)| (*identifier, OnceLock::new()))
+            .collect()
+        })
+    });
+    let context = &self.options().context;
+    match names.get(&module.identifier()) {
+      Some(name) => Cow::Borrowed(name.get_or_init(|| module.readable_identifier(context).into())),
+      None => module.readable_identifier(context),
+    }
+  }
+
+  fn module_name_and_id<'a>(
+    &'a self,
+    module: &'a ModuleRef,
+    module_ids_artifact: &ModuleIdsArtifact,
+  ) -> (Cow<'a, str>, Option<ModuleId>) {
+    let id = ChunkGraph::get_module_id(module_ids_artifact, module.identifier()).cloned();
+    (self.readable_name(module), id)
   }
 
   fn mark_artifact_fallback(&self, artifact_flag: u8) {
@@ -1199,9 +1235,9 @@ impl Stats<'_> {
             break;
           }
           let (name, id) = if executed {
-            (current.readable_identifier(&self.options().context), None)
+            (self.readable_name(current), None)
           } else {
-            get_stats_module_name_and_id(current, module_ids_artifact, &self.options().context)
+            self.module_name_and_id(current, module_ids_artifact)
           };
           suffix.push((current.identifier(), name, id));
           current_issuer = module_graph.get_issuer(&current.identifier());
@@ -1229,9 +1265,9 @@ impl Stats<'_> {
       .or_else(|| {
         issuer.map(|issuer| {
           if executed {
-            (issuer.readable_identifier(&self.options().context), None)
+            (self.readable_name(issuer), None)
           } else {
-            get_stats_module_name_and_id(issuer, module_ids_artifact, &self.options().context)
+            self.module_name_and_id(issuer, module_ids_artifact)
           }
         })
       })
@@ -1310,7 +1346,7 @@ impl Stats<'_> {
         .count() as u32;
 
       stats.identifier = Some(identifier);
-      stats.name = Some(module.readable_identifier(&self.options().context));
+      stats.name = Some(self.readable_name(module));
       stats.name_for_condition = module.name_for_condition().map(|n| n.to_string());
       stats.pre_order_index = module_graph.get_pre_order_index(&identifier);
       stats.post_order_index = module_graph.get_post_order_index(&identifier);
@@ -1401,9 +1437,9 @@ impl Stats<'_> {
             .and_then(|i| module_graph.module_by_identifier(&i))
             .map(|m| {
               if executed {
-                (m.readable_identifier(&self.options().context), None)
+                (self.readable_name(m), None)
               } else {
-                get_stats_module_name_and_id(m, module_ids_artifact, &self.options().context)
+                self.module_name_and_id(m, module_ids_artifact)
               }
             })
             .unzip();
@@ -1412,9 +1448,9 @@ impl Stats<'_> {
             .and_then(|i| module_graph.module_by_identifier(&i))
             .map(|m| {
               if executed {
-                (m.readable_identifier(&self.options().context), None)
+                (self.readable_name(m), None)
               } else {
-                get_stats_module_name_and_id(m, module_ids_artifact, &self.options().context)
+                self.module_name_and_id(m, module_ids_artifact)
               }
             })
             .unzip();
