@@ -17,7 +17,9 @@ use rspack_util::{
   time::{current_time, system_time_to_millis},
 };
 
-use super::{FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher};
+use super::{
+  FsEventKind, FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher,
+};
 use crate::{
   observation::{Mutation, Observations, Registration, Scan, ScanEpoch},
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
@@ -340,6 +342,11 @@ struct FileRecord {
 }
 
 impl FileRecord {
+  fn report_change(&mut self, mtime: SystemTime) {
+    self.reported = ReportedBaseline::Present(mtime);
+    self.time = Some(FileTime::observed(mtime));
+  }
+
   fn set_time(&mut self, mtime: SystemTime, initial: bool, ignore_when_equal: bool) -> bool {
     // Seeing the file again clears a reported absence. A scan that only
     // records its time must still let the file's first event through.
@@ -594,17 +601,53 @@ impl PathManager {
     });
   }
 
-  pub(super) fn report_restored_directory(
+  pub(super) fn reconcile_missing_change(
     &self,
     path: &InternedPath,
     subscribers: &[Arc<InternedPath>],
-    mtime: SystemTime,
+    scanned_mtime: SystemTime,
+    kind: FsEventKind,
+    metadata: std::io::Result<std::fs::Metadata>,
   ) {
-    if let Some(registrations) = self.missing.scan_subscribers.get()
-      && let Some(current) = registrations.get(path)
-      && subscribers.iter().any(|s| Arc::ptr_eq(s, &current))
-    {
-      self.file_times.record(path).reported = ReportedBaseline::Present(mtime);
+    let _index = self.lock_index();
+    let Some(registration) = self
+      .missing
+      .scan_subscribers
+      .get()
+      .and_then(|map| map.get(path))
+    else {
+      return;
+    };
+    if !subscribers.iter().any(|s| Arc::ptr_eq(s, &registration)) {
+      return;
+    }
+    match (kind, metadata) {
+      (FsEventKind::Change, Ok(metadata)) => {
+        let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
+          return;
+        };
+        let mut record = self.file_times.record(path);
+        if metadata.is_dir() && mtime == scanned_mtime {
+          record.report_change(mtime);
+        } else {
+          // The snapshot sees the replacement. Its own change is still due.
+          record.set_time(mtime, false, true);
+        }
+        self.link_record(path);
+      }
+      (FsEventKind::Remove, Err(error))
+        if matches!(
+          error.kind(),
+          std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
+        ) =>
+      {
+        *self.file_times.record(path) = FileRecord {
+          time: None,
+          reported: ReportedBaseline::Absent,
+        };
+        self.unlink_unrecorded(path);
+      }
+      _ => {}
     }
   }
 
@@ -688,6 +731,11 @@ impl PathManager {
   fn record<R>(&self, path: &InternedPath, write: impl FnOnce() -> R) -> R {
     let _index = self.lock_index();
     let written = write();
+    self.link_record(path);
+    written
+  }
+
+  fn link_record(&self, path: &InternedPath) {
     let mut child = path.clone();
     while let Some(parent) = child.parent().map(InternedPath::from) {
       let indexed = !self
@@ -700,7 +748,6 @@ impl PathManager {
       }
       child = parent;
     }
-    written
   }
 
   /// `path` may no longer hold a record of its own: once it holds none and
@@ -1172,9 +1219,7 @@ impl PathManager {
           return (false, Mutation::Unchanged);
         }
         self.record(path, || {
-          let mut record = self.file_times.record(path);
-          record.reported = present;
-          record.time = Some(FileTime::observed(current_mtime));
+          self.file_times.record(path).report_change(current_mtime)
         });
         (true, Mutation::Entry)
       })
@@ -1272,11 +1317,16 @@ impl PathManager {
 
   fn prune_file_record(&self, path: &InternedPath, keep_reported: bool) {
     let below_context = self.is_below_context(path);
+    let keep_time = below_context
+      && (keep_reported
+        || !self
+          .watchers
+          .has_member(path, |member| member.directory && !member.file));
     self.file_times.clear(path, |record| {
       if !keep_reported {
         record.reported = ReportedBaseline::Unknown;
       }
-      if !below_context {
+      if !keep_time {
         record.time = None;
       }
     });

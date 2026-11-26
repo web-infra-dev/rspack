@@ -847,6 +847,170 @@ async fn a_directory_scan_notifies_the_missing_dependencies_registered_when_it_f
 }
 
 #[tokio::test]
+async fn a_restored_missing_directory_keeps_its_timestamp_after_its_context_retires() {
+  for retire_before_delivery in [false, true] {
+    let fixture = tempfile::tempdir().unwrap();
+    let dir = fixture.path().canonicalize().unwrap();
+    let root = dir.join("src");
+    let parent = root.join("pages");
+    let restored = InternedPath::from(parent.join("restored"));
+    let readded = InternedPath::from(parent.join("readded"));
+    fs::create_dir_all(&parent).unwrap();
+    let (mut analyzer, marker, release) = hold_event_processor(&dir, &dir.join("control")).await;
+    update(
+      &analyzer,
+      empty(),
+      empty(),
+      (vec![restored.clone(), readded.clone()], vec![]),
+    )
+    .await;
+    fs::create_dir(&restored).unwrap();
+    fs::create_dir(&readded).unwrap();
+    let mtime = fs::metadata(&restored).unwrap().modified().unwrap();
+    let disk_ms = rspack_util::time::system_time_to_millis(mtime);
+    update(&analyzer, empty(), added(&root), empty()).await;
+    analyzer.queue_context_changes().await;
+    update(&analyzer, empty(), empty(), removed(&readded)).await;
+    update(&analyzer, empty(), empty(), added(&readded)).await;
+    if retire_before_delivery {
+      update(&analyzer, empty(), removed(&root), empty()).await;
+    }
+    analyzer.on_scanned_change(&marker);
+    release.send(()).unwrap();
+    let deliveries = deliveries_until(&mut analyzer, &marker).await;
+    assert!(deliveries.iter().any(
+      |(path, deps)| path == &restored && deps.contains(&(restored.clone(), FsEventKind::Change))
+    ));
+    if !retire_before_delivery {
+      update(&analyzer, empty(), removed(&root), empty()).await;
+    }
+    let (files, _) = analyzer.collect_time_info_entries();
+    assert!(
+      matches!(
+        entry(&files, &restored),
+        Some(TimeInfoEntry::Entry { timestamp, accuracy: 0, .. })
+          if (disk_ms..=disk_ms + 1).contains(timestamp)
+      ),
+      "restored entry: {:?}",
+      entry(&files, &restored)
+    );
+    assert_eq!(entry(&files, &readded), Some(&TimeInfoEntry::Null));
+
+    fs::remove_dir_all(&parent).unwrap();
+    analyzer.on_native_event(Event::new(EventKind::Remove(RemoveKind::Folder)).add_path(parent));
+    analyzer.on_scanned_change(&marker);
+    deliveries_until(&mut analyzer, &marker).await;
+    let (files, _) = analyzer.collect_time_info_entries();
+    assert_eq!(entry(&files, &restored), Some(&TimeInfoEntry::Null));
+  }
+}
+
+#[tokio::test]
+async fn a_replacement_file_has_a_timestamp_before_its_own_event_is_delivered() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let root = dir.join("src");
+  let restored = InternedPath::from(root.join("restored"));
+  fs::create_dir_all(&restored).unwrap();
+  let (mut analyzer, marker, release) = hold_event_processor(&dir, &dir.join("control")).await;
+  update(&analyzer, empty(), added(&root), added(&restored)).await;
+  analyzer.queue_context_changes().await;
+  fs::remove_dir(&restored).unwrap();
+  fs::File::create(&restored)
+    .unwrap()
+    .set_modified(UNIX_EPOCH + Duration::from_secs(1_600_000_000))
+    .unwrap();
+  analyzer.on_scanned_change(&marker);
+  release.send(()).unwrap();
+  let deliveries = deliveries_until(&mut analyzer, &marker).await;
+  assert!(deliveries.iter().any(
+    |(path, deps)| path == &restored && deps.contains(&(restored.clone(), FsEventKind::Change))
+  ));
+  update(&analyzer, empty(), removed(&root), empty()).await;
+  let (files, _) = analyzer.collect_time_info_entries();
+  assert!(matches!(
+    entry(&files, &restored),
+    Some(TimeInfoEntry::Entry {
+      timestamp: 1_600_000_000_000,
+      ..
+    })
+  ));
+
+  analyzer.on_native_event(
+    Event::new(EventKind::Modify(ModifyKind::Any)).add_path(restored.to_path_buf()),
+  );
+  analyzer.on_scanned_change(&marker);
+  let deliveries = deliveries_until(&mut analyzer, &marker).await;
+  assert_eq!(
+    deliveries,
+    vec![(restored.clone(), vec![(restored, FsEventKind::Change)])]
+  );
+}
+
+#[tokio::test]
+async fn releasing_a_missing_directory_then_its_context_forgets_the_timestamp() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let root = dir.join("src");
+  let restored = InternedPath::from(root.join("restored"));
+  fs::create_dir_all(&restored).unwrap();
+  let (mut analyzer, marker, release) = hold_event_processor(&dir, &dir.join("control")).await;
+  update(&analyzer, empty(), added(&root), added(&restored)).await;
+  analyzer.queue_context_changes().await;
+  analyzer.on_scanned_change(&marker);
+  release.send(()).unwrap();
+  deliveries_until(&mut analyzer, &marker).await;
+  update(&analyzer, empty(), empty(), removed(&restored)).await;
+  update(&analyzer, empty(), removed(&root), empty()).await;
+  fs::remove_dir(&restored).unwrap();
+  update(&analyzer, empty(), empty(), added(&restored)).await;
+  let (files, _) = analyzer.collect_time_info_entries();
+  assert_eq!(entry(&files, &restored), Some(&TimeInfoEntry::Null));
+}
+
+#[tokio::test]
+async fn a_queued_removal_clears_a_known_missing_timestamp_after_its_context_retires() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let root = dir.join("src");
+  let restored = InternedPath::from(root.join("restored"));
+  let marker = InternedPath::from(dir.join("marker.js"));
+  let blocker = dir.join("blocker");
+  fs::create_dir_all(&restored).unwrap();
+  fs::write(&marker, "").unwrap();
+  let (ignored, waiting, release) = pause_at(&blocker);
+  let mut analyzer = DirectoryAnalyzer::with_ignored(ignored);
+  update(&analyzer, added(&marker), added(&root), added(&restored)).await;
+  notify(&mut analyzer, &restored, EventKind::Modify(ModifyKind::Any)).await;
+  assert!(matches!(
+    entry(&analyzer.collect_time_info_entries().0, &restored),
+    Some(TimeInfoEntry::Entry { .. })
+  ));
+  analyzer.on_native_event(Event::new(EventKind::Modify(ModifyKind::Any)).add_path(blocker));
+  timeout(Duration::from_secs(5), waiting)
+    .await
+    .unwrap()
+    .unwrap();
+  analyzer.queue_context_changes().await;
+  update(&analyzer, empty(), removed(&root), empty()).await;
+  fs::remove_dir(&restored).unwrap();
+  analyzer.on_scanned_change(&marker);
+  release.send(()).unwrap();
+  let deliveries = deliveries_until(&mut analyzer, &marker).await;
+  assert_eq!(
+    deliveries,
+    vec![(
+      restored.clone(),
+      vec![(restored.clone(), FsEventKind::Remove)]
+    )]
+  );
+  assert_eq!(
+    entry(&analyzer.collect_time_info_entries().0, &restored),
+    Some(&TimeInfoEntry::Null)
+  );
+}
+
+#[tokio::test]
 async fn a_later_scan_updates_the_mtime_without_cancelling_the_outer_notification() {
   let fixture = tempfile::tempdir().unwrap();
   let dir = fixture.path().canonicalize().unwrap();
