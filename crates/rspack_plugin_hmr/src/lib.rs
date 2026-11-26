@@ -748,7 +748,7 @@ async fn generate_hot_update(
     }
 
     let mut updates = Vec::new();
-    if (reused_chunk_id || full_update_chunks.contains(&chunk_id))
+    if full_update_chunks.contains(&chunk_id)
       && let Some(chunk) = current_chunk
     {
       let graph = &compilation.build_chunk_graph_artifact.chunk_graph;
@@ -763,7 +763,9 @@ async fn generate_hot_update(
         runtime_modules,
       ));
     }
-    if !reused_chunk_id && (!new_modules.is_empty() || !new_runtime_modules.is_empty()) {
+    // A reused id still gets a regular delta so chunks that are already installed receive the new module
+    // factories. Only the old chunk's modules are skipped; `new_modules` is built from the current chunk.
+    if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
       updates.push((false, new_modules, new_runtime_modules));
     }
     for (full, new_modules, new_runtime_modules) in updates {
