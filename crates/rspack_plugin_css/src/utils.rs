@@ -52,19 +52,16 @@ pub(crate) fn source_order_to_i32(source_order: u32) -> i32 {
 }
 
 pub(crate) fn css_module_export_type(module: &dyn Module) -> Option<CssExportType> {
-  module
-    .build_info()
-    .css
-    .as_deref()
-    .and_then(|css| css.export_type)
-    .or_else(|| {
-      module.as_normal_module().and_then(|module| {
-        module
-          .parser_and_generator()
-          .downcast_ref::<CssParserAndGenerator>()
-          .and_then(|parser_and_generator| parser_and_generator.export_type)
-      })
-    })
+  let build_info = module.build_info();
+  if let Some(parser_and_generator) = module.as_normal_module().and_then(|module| {
+    module
+      .parser_and_generator()
+      .downcast_ref::<CssParserAndGenerator>()
+  }) {
+    parser_and_generator.effective_export_type(&build_info)
+  } else {
+    build_info.css.as_deref().and_then(|css| css.export_type)
+  }
 }
 
 pub(crate) fn css_render_conditions_from_module(
@@ -178,6 +175,10 @@ impl LocalIdentRenderCache {
     self
       .compiled_template
       .has_placeholder(PlaceholderKind::FullHash)
+  }
+
+  fn has_id_placeholder(&self) -> bool {
+    self.compiled_template.has_placeholder(PlaceholderKind::Id)
   }
 
   fn new(options: &LocalIdentOptions<'_>) -> Self {
@@ -343,6 +344,13 @@ impl<'a> LocalIdentOptions<'a> {
       .replace(&local_ident, "_${1}")
       .into_owned()
   }
+
+  pub fn has_id_placeholder(&self) -> bool {
+    self
+      .render_cache
+      .get()
+      .is_some_and(LocalIdentRenderCache::has_id_placeholder)
+  }
 }
 
 pub fn replace_css_module_id_placeholder<'a>(
@@ -351,12 +359,24 @@ pub fn replace_css_module_id_placeholder<'a>(
   module: &dyn Module,
 ) -> Cow<'a, str> {
   if let Some(custom_property_ident) = local_ident.strip_prefix("--") {
-    let local_ident = replace_css_module_id_placeholder(custom_property_ident, compilation, module);
-    return Cow::Owned(format!("--{local_ident}"));
+    return match replace_css_module_id_placeholder(custom_property_ident, compilation, module) {
+      Cow::Borrowed(_) => Cow::Borrowed(local_ident),
+      Cow::Owned(replaced) => Cow::Owned(format!("--{replaced}")),
+    };
   }
 
-  let module_id = css_module_id_for_local_ident(compilation, module);
-  replace_css_module_id_placeholder_with_id(local_ident, &module_id)
+  let local_ident = CSS_MODULE_ID_MATCHER.replace_with(local_ident, || {
+    let module_id = css_module_id_for_local_ident(compilation, module);
+    Cow::Owned(prepare_css_module_id(&module_id).into_owned())
+  });
+  let Cow::Owned(local_ident) = local_ident else {
+    return local_ident;
+  };
+  Cow::Owned(
+    LEADING_DIGIT_REGEX
+      .replace(&local_ident, "_${1}")
+      .into_owned(),
+  )
 }
 
 fn css_module_id_for_local_ident(compilation: &Compilation, module: &dyn Module) -> String {
@@ -399,22 +419,6 @@ fn get_css_module_id_hash(value: impl Hash, length: usize) -> String {
   let mut hash = format!("{hash:x}");
   hash.truncate(length);
   hash
-}
-
-pub fn replace_css_module_id_placeholder_with_id<'a>(
-  local_ident: &'a str,
-  module_id: &str,
-) -> Cow<'a, str> {
-  let local_ident =
-    CSS_MODULE_ID_MATCHER.replace_with(local_ident, || prepare_css_module_id(module_id));
-  let Cow::Owned(local_ident) = local_ident else {
-    return local_ident;
-  };
-  Cow::Owned(
-    LEADING_DIGIT_REGEX
-      .replace(&local_ident, "_${1}")
-      .into_owned(),
-  )
 }
 
 static PREPARE_CSS_MODULE_ID_START_REGEX: LazyLock<Regex> =

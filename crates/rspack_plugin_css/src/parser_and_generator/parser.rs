@@ -274,17 +274,11 @@ impl<'context> CssModuleParser<'context> {
   pub fn new(
     generator_options: &'context CssModuleGeneratorOptions,
     parser_options: &'context CssAutoOrModuleParserOptions,
+    export_type: Option<CssExportType>,
     parse_context: ParseContext<'context>,
   ) -> Self {
     let source = remove_bom(parse_context.source.clone());
     let source_code: Arc<str> = source.source().into_string_lossy().into();
-
-    let export_type = parse_context
-      .build_info
-      .css
-      .as_deref()
-      .and_then(|css_build_info| css_build_info.export_type)
-      .or(parser_options.export_type);
 
     Self {
       parser_options,
@@ -337,6 +331,17 @@ impl<'context> CssModuleParser<'context> {
         StaticExportsSpec::Array(vec!["default".into()]),
         false,
       ));
+    }
+
+    if self
+      .local_ident_options
+      .get()
+      .is_some_and(LocalIdentOptions::has_id_placeholder)
+    {
+      self
+        .parse_context
+        .build_meta
+        .set_need_id_in_concatenation(true);
     }
 
     let css_build_info = self.parse_context.build_info.css.get_or_insert_default();
@@ -1786,9 +1791,6 @@ impl<'context> CssModuleParser<'context> {
   }
 
   fn resource_data(&self) -> &'context ResourceData {
-    self
-      .parse_context
-      .module_match_resource
-      .unwrap_or(self.parse_context.resource_data)
+    self.parse_context.effective_resource_data()
   }
 }
