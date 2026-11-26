@@ -223,7 +223,7 @@ impl Trigger {
 }
 
 impl EventProcessor {
-  async fn refresh_watches(&self, path: &InternedPath) -> bool {
+  async fn refresh_watches(&self, path: &InternedPath, removed: bool) -> bool {
     let Some(owner) = &self.owner else {
       return true;
     };
@@ -234,6 +234,7 @@ impl EventProcessor {
     owner
       .send(crate::WatcherOp::Refresh {
         path: path.clone(),
+        removed,
         done,
       })
       .is_ok()
@@ -299,13 +300,17 @@ impl EventProcessor {
     let initial_missing = removed && scanned;
     let metadata = std::fs::symlink_metadata(path).ok();
     let exists = metadata.is_some();
+    let disk_removal = kind == FsEventKind::Remove && matches!(origin, Origin::Disk { .. });
     // Install coverage on the nearest existing directory before a recovery
     // scan reads its contents. Reconcile on the owner, alongside watch().
     if metadata.as_ref().is_none_or(|m| m.is_dir())
       && (self.path_manager.has_registered_descendants(path)
         || self.path_manager.watchers.is_explicit_context(path))
-      && (appeared || (!exists && !scanned) || self.path_manager.has_absent_context_below(path))
-      && !self.refresh_watches(path).await
+      && (appeared
+        || disk_removal
+        || (!exists && !scanned)
+        || self.path_manager.has_absent_context_below(path))
+      && !self.refresh_watches(path, disk_removal).await
     {
       return;
     }

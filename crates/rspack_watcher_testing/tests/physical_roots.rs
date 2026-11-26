@@ -1,21 +1,27 @@
 use std::{
   fs,
   path::{Path, PathBuf},
+  sync::{Arc, Mutex},
   time::{Duration, SystemTime},
 };
 
 use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet;
 use rspack_watcher::{
-  EventAggregateHandler, EventHandler, FsWatcher, FsWatcherOptions, TimeInfoEntry,
+  EventAggregateHandler, EventHandler, FsWatcher, FsWatcherIgnored, FsWatcherOptions, TimeInfoEntry,
 };
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
+use tokio::sync::{
+  mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel},
+  oneshot,
+};
 
-struct Changes(UnboundedSender<String>);
+type Event = rspack_error::Result<String>;
+
+struct Changes(UnboundedSender<Event>);
 
 impl EventHandler for Changes {
   fn on_change(&self, path: String) -> rspack_error::Result<()> {
-    let _ = self.0.send(path);
+    let _ = self.0.send(Ok(path));
     Ok(())
   }
 }
@@ -24,7 +30,7 @@ impl EventAggregateHandler for Changes {
   fn on_event_handle(&self, _: FxHashSet<String>, _: FxHashSet<String>) {}
 
   fn on_error(&self, error: rspack_error::Error) {
-    panic!("watch registration failed: {error}");
+    let _ = self.0.send(Err(error));
   }
 }
 
@@ -33,7 +39,7 @@ async fn watch(
   contexts: &[&Path],
   added_missing: &[&Path],
   removed_missing: &[&Path],
-) -> UnboundedReceiver<String> {
+) -> UnboundedReceiver<Event> {
   let (tx, rx) = unbounded_channel();
   watcher
     .watch(
@@ -54,10 +60,10 @@ async fn watch(
   rx
 }
 
-async fn wait_for(rx: &mut UnboundedReceiver<String>, path: &Path) {
+async fn wait_for(rx: &mut UnboundedReceiver<Event>, path: &Path) {
   tokio::time::timeout(Duration::from_secs(5), async {
     while let Some(changed) = rx.recv().await {
-      if Path::new(&changed) == path {
+      if Path::new(&changed.expect("watch must succeed")) == path {
         return;
       }
     }
@@ -65,6 +71,41 @@ async fn wait_for(rx: &mut UnboundedReceiver<String>, path: &Path) {
   })
   .await
   .unwrap_or_else(|_| panic!("no disk event for {}", path.display()));
+}
+
+fn pause_at(
+  path: PathBuf,
+) -> (
+  FsWatcherIgnored,
+  impl FnOnce() -> (oneshot::Receiver<()>, oneshot::Sender<()>),
+) {
+  let (entered, waiting) = oneshot::channel();
+  let (release, resume) = oneshot::channel();
+  let gate = Arc::new(Mutex::new(
+    None::<(oneshot::Sender<()>, oneshot::Receiver<()>)>,
+  ));
+  let arm = {
+    let gate = Arc::clone(&gate);
+    move || {
+      *gate.lock().expect("arm gate") = Some((entered, resume));
+      (waiting, release)
+    }
+  };
+  let ignored = FsWatcherIgnored::Function(Arc::new(move |entry| {
+    let pause = if Path::new(&entry) == path {
+      gate.lock().expect("lock gate").take()
+    } else {
+      None
+    };
+    Box::pin(async move {
+      if let Some((entered, resume)) = pause {
+        entered.send(()).expect("signal paused observation");
+        resume.await.expect("resume observation");
+      }
+      false
+    })
+  }));
+  (ignored, arm)
 }
 
 fn fixture() -> (tempfile::TempDir, PathBuf, FsWatcher) {
@@ -99,15 +140,8 @@ async fn recursive_watches_stay_within_the_requested_trees() {
     )
     .await
     .expect("register both trees");
-  assert_eq!(
-    analyzer
-      .recursive_roots()
-      .into_iter()
-      .collect::<FxHashSet<_>>(),
-    [left.clone(), right.clone()]
-      .into_iter()
-      .collect::<FxHashSet<_>>()
-  );
+  let expected: FxHashSet<_> = [left.clone(), right].into_iter().collect();
+  assert_eq!(analyzer.recursive_roots(), expected);
   analyzer
     .update(
       (vec![], vec![]),
@@ -116,13 +150,7 @@ async fn recursive_watches_stay_within_the_requested_trees() {
     )
     .await
     .expect("remove only the left context");
-  assert_eq!(
-    analyzer
-      .recursive_roots()
-      .into_iter()
-      .collect::<FxHashSet<_>>(),
-    [left, right].into_iter().collect::<FxHashSet<_>>()
-  );
+  assert_eq!(analyzer.recursive_roots(), expected);
 }
 
 #[tokio::test]
@@ -184,5 +212,153 @@ async fn a_recovered_context_observes_its_contents_and_later_writes() {
   let after = context.join("after.js");
   fs::write(&after, "after").expect("write after recovery scan");
   wait_for(&mut events, &after).await;
+  watcher.close().await.expect("close watcher");
+}
+
+#[tokio::test]
+async fn registration_and_recovery_watch_writes_while_the_scan_is_paused() {
+  for restore in [false, true] {
+    let temp = tempfile::tempdir().expect("create fixture");
+    let root = temp.path().canonicalize().expect("resolve fixture");
+    let context = root.join("context");
+    let source = if restore {
+      root.join("staged")
+    } else {
+      context.clone()
+    };
+    fs::create_dir(&source).expect("create directory");
+    fs::write(source.join("marker"), "seed").expect("seed scan");
+
+    let (ignored, arm) = pause_at(context.join("marker"));
+    let (waiting, release) = arm();
+    let watcher = FsWatcher::new(Default::default(), ignored);
+    let transient = context.join("transient.js");
+    let write_during_scan = async {
+      tokio::time::timeout(Duration::from_secs(5), waiting)
+        .await
+        .expect("scan must reach marker")
+        .expect("enter scan");
+      fs::write(&transient, "temporary").expect("write during scan");
+      fs::remove_file(&transient).expect("remove before scanning resumes");
+      release.send(()).expect("resume scan");
+    };
+    let contexts = [context.as_path()];
+    let registration = watch(&watcher, &contexts, &[], &[]);
+    let mut events = if restore {
+      let events = registration.await;
+      fs::rename(source, &context).expect("restore directory");
+      write_during_scan.await;
+      events
+    } else {
+      tokio::join!(registration, write_during_scan).0
+    };
+    wait_for(&mut events, &transient).await;
+    watcher.close().await.expect("close watcher");
+  }
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn a_searchable_parent_does_not_prevent_watching_a_readable_child() {
+  use std::os::unix::fs::PermissionsExt;
+  let (_temp, root, watcher) = fixture();
+  let parent = root.join("search-only");
+  let child = parent.join("readable");
+  fs::create_dir_all(&child).expect("create readable child directory");
+  let file = child.join("new.js");
+  let permissions = fs::metadata(&parent).expect("stat parent").permissions();
+  fs::set_permissions(&parent, fs::Permissions::from_mode(0o111)).expect("restrict parent listing");
+  let mut events = watch(&watcher, &[], &[&file], &[]).await;
+  fs::set_permissions(&parent, permissions).expect("restore fixture permissions");
+  fs::write(&file, "new").expect("write in readable child");
+  wait_for(&mut events, &file).await;
+  watcher.close().await.expect("close watcher");
+}
+
+#[cfg(target_os = "macos")]
+#[tokio::test]
+async fn removing_disjoint_roots_keeps_the_fsevents_stream_for_live_writes() {
+  let (_temp, root, watcher) = fixture();
+  let kept = root.join("kept");
+  fs::create_dir(&kept).expect("create surviving context");
+  let others: Vec<_> = (0..40)
+    .map(|n| {
+      let dir = root.join(n.to_string());
+      fs::create_dir(&dir).expect("create independent directory");
+      dir.join("other.js")
+    })
+    .collect();
+  let others: Vec<_> = others.iter().map(PathBuf::as_path).collect();
+  let _events = watch(&watcher, &[&kept], &others, &[]).await;
+  let expected: Vec<_> = (0..80).map(|n| kept.join(format!("{n}.js"))).collect();
+  let writes = expected.clone();
+  let (started, writing) = tokio::sync::oneshot::channel();
+  let writer = std::thread::spawn(move || {
+    started.send(()).expect("signal writer");
+    for path in writes {
+      fs::write(path, "changed").expect("write surviving tree");
+      std::thread::sleep(Duration::from_millis(2));
+    }
+  });
+  writing.await.expect("writer running");
+  let _events = watch(&watcher, &[], &[], &others).await;
+  writer.join().expect("finish writes");
+  tokio::time::timeout(Duration::from_secs(5), async {
+    loop {
+      let (files, _) = watcher.collect_time_info_entries();
+      if expected
+        .iter()
+        .all(|path| files.iter().any(|(name, _)| Path::new(name) == path))
+      {
+        break;
+      }
+      tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+  })
+  .await
+  .expect("every write in the surviving tree must reach the snapshot");
+  watcher.close().await.expect("close watcher");
+}
+
+#[cfg(any(target_os = "linux", target_os = "windows"))]
+#[tokio::test]
+async fn a_reported_root_removal_releases_the_old_kernel_watch() {
+  let temp = tempfile::tempdir().expect("create fixture");
+  let root = temp.path().canonicalize().expect("resolve fixture");
+  let context = root.join("context");
+  fs::create_dir(&context).expect("create context");
+  let (ignored, arm) = pause_at(context.clone());
+  let watcher = FsWatcher::new(Default::default(), ignored);
+  let mut events = watch(&watcher, &[&context], &[], &[]).await;
+  let (waiting, release) = arm();
+  fs::remove_dir(&context).expect("remove watched directory");
+  tokio::time::timeout(Duration::from_secs(5), waiting)
+    .await
+    .expect("receive root removal")
+    .expect("enter gate");
+  fs::create_dir(&context).expect("recreate watched directory");
+  release.send(()).expect("resume processing the removal");
+  wait_for(&mut events, &context).await;
+  let child = context.join("after.js");
+  fs::write(&child, "new inode").expect("write restored tree");
+  wait_for(&mut events, &child).await;
+  watcher.close().await.expect("close watcher");
+}
+
+#[cfg(target_os = "linux")]
+#[tokio::test]
+async fn an_unreadable_sibling_does_not_prevent_recovery_of_a_missing_branch() {
+  use std::os::unix::fs::PermissionsExt;
+  let (_temp, root, watcher) = fixture();
+  let sibling = root.join("private");
+  fs::create_dir(&sibling).expect("create unrelated sibling");
+  let permissions = fs::metadata(&sibling).expect("stat sibling").permissions();
+  fs::set_permissions(&sibling, fs::Permissions::from_mode(0o000)).expect("restrict sibling");
+  let target = root.join("branch/nested/file.js");
+  let mut events = watch(&watcher, &[], &[&target], &[]).await;
+  fs::set_permissions(&sibling, permissions).expect("restore fixture permissions");
+  fs::create_dir_all(target.parent().expect("target parent")).expect("create missing directories");
+  fs::write(&target, "restored").expect("create missing dependency");
+  wait_for(&mut events, &target).await;
   watcher.close().await.expect("close watcher");
 }

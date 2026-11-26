@@ -130,7 +130,7 @@ impl DirectoryAnalyzer {
       .collect()
   }
 
-  pub fn recursive_roots(&self) -> Vec<InternedPath> {
+  pub fn recursive_roots(&self) -> FxHashSet<InternedPath> {
     self
       .recursive
       .analyze(self.paths.access())

@@ -1,66 +1,109 @@
-use std::{
-  collections::BTreeMap,
-  ops::Bound::{Included, Unbounded},
-  path::{Path, PathBuf},
-  sync::Arc,
-  time::Duration,
-};
+use std::{collections::BTreeMap, path::PathBuf, sync::Arc, time::Duration};
 
 use notify::{
   Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
   event::{ModifyKind, RenameMode},
 };
-use rspack_paths::{InternedPath, InternedPathMap};
+use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use crate::{FsEventKind, WatchPattern, analyzer::Analyzer, trigger};
 
-/// notify removes descendants when unwatching a recursive inotify root. Keep
-/// independently owned, overlapping roots on separate backend instances.
-struct WatchGroup {
-  watcher: RecommendedWatcher,
-  roots: BTreeMap<PathBuf, RecursiveMode>,
+/// A parent watch detects removal and recreation of the watched directory.
+struct Mount {
+  mode: RecursiveMode,
+  required: bool,
 }
 
+impl Mount {
+  fn installed(&self, result: notify::Result<()>) -> notify::Result<bool> {
+    let Err(error) = result else { return Ok(true) };
+    let unavailable = matches!(error.kind, notify::ErrorKind::PathNotFound)
+      || matches!(&error.kind, notify::ErrorKind::Io(e) if matches!(e.kind(), std::io::ErrorKind::PermissionDenied | std::io::ErrorKind::NotFound));
+    if !self.required && unavailable {
+      Ok(false)
+    } else {
+      Err(error)
+    }
+  }
+}
+
+fn backend(
+  config: notify::Config,
+  trigger: Arc<trigger::Trigger>,
+) -> notify::Result<RecommendedWatcher> {
+  RecommendedWatcher::new(
+    move |result: notify::Result<Event>| match result {
+      Ok(event) => handle_event(event, &trigger),
+      Err(e) => {
+        tracing::error!(target: "rspack_watcher::fs_event", "file watcher error: {e:?}");
+        eprintln!("Error in file watcher: {e:?}");
+      }
+    },
+    config,
+  )
+}
+
+/// inotify removes descendants when unwatching a recursive root. Independent
+/// overlapping watches need separate instances; disjoint roots share one.
+#[cfg(not(target_os = "macos"))]
+struct WatchGroup {
+  watcher: RecommendedWatcher,
+  roots: BTreeMap<PathBuf, InstalledMount>,
+}
+
+#[cfg(not(target_os = "macos"))]
+struct InstalledMount {
+  mode: RecursiveMode,
+  stale: bool,
+}
+
+#[cfg(not(target_os = "macos"))]
 impl WatchGroup {
-  fn new(config: notify::Config, trigger: Arc<trigger::Trigger>) -> notify::Result<Self> {
-    let watcher = RecommendedWatcher::new(
-      move |result: notify::Result<Event>| match result {
-        Ok(event) => handle_event(event, &trigger),
-        Err(e) => {
-          tracing::error!(target: "rspack_watcher::fs_event", "file watcher error: {e:?}");
-          eprintln!("Error in file watcher: {e:?}");
-        }
-      },
-      config,
-    )?;
-    Ok(Self {
-      watcher,
-      roots: BTreeMap::new(),
-    })
+  fn watch(&mut self, path: &std::path::Path, mode: RecursiveMode) -> notify::Result<()> {
+    let Err(error) = self.watcher.watch(path, mode) else {
+      return Ok(());
+    };
+    // An inotify walk for missing descendants can reach an unreadable sibling.
+    // Remove the partial walk and follow the registered branch as its directories appear.
+    let denied_descendant = matches!(&error.kind, notify::ErrorKind::Io(e) if e.kind() == std::io::ErrorKind::PermissionDenied)
+      && error
+        .paths
+        .iter()
+        .any(|failed| failed != path && failed.starts_with(path));
+    if mode != RecursiveMode::Recursive || !denied_descendant {
+      return Err(error);
+    }
+    self.watcher.unwatch(path)?;
+    self.watcher.watch(path, RecursiveMode::NonRecursive)
   }
 
-  fn can_mount(&self, path: &Path, mode: RecursiveMode) -> bool {
-    if self.roots.contains_key(path)
-      || path
-        .ancestors()
-        .skip(1)
-        .any(|parent| self.roots.get(parent) == Some(&RecursiveMode::Recursive))
-    {
+  fn can_mount(&self, path: &std::path::Path, mode: RecursiveMode) -> bool {
+    use std::ops::Bound::{Included, Unbounded};
+    if path.ancestors().any(|p| {
+      self
+        .roots
+        .get(p)
+        .is_some_and(|mount| p == path || mount.mode == RecursiveMode::Recursive)
+    }) {
       return false;
     }
     mode == RecursiveMode::NonRecursive
       || self
         .roots
-        .range::<Path, _>((Included(path), Unbounded))
+        .range::<std::path::Path, _>((Included(path), Unbounded))
         .next()
         .is_none_or(|(next, _)| !next.starts_with(path))
   }
 }
 
 pub struct DiskWatcher {
+  #[cfg(not(target_os = "macos"))]
   groups: Vec<WatchGroup>,
+  #[cfg(target_os = "macos")]
+  stream: RecommendedWatcher,
   watch_patterns: HashSet<WatchPattern>,
+  retry: bool,
   config: notify::Config,
   trigger: Arc<trigger::Trigger>,
 }
@@ -75,11 +118,17 @@ impl DiskWatcher {
     if let Some(poll) = poll_interval {
       config = config.with_poll_interval(Duration::from_millis(u64::from(poll)));
     }
-    let group =
-      WatchGroup::new(config, Arc::clone(&trigger)).expect("Failed to create disk watcher");
+    let watcher = backend(config, Arc::clone(&trigger)).expect("Failed to create disk watcher");
     Self {
-      groups: vec![group],
+      #[cfg(not(target_os = "macos"))]
+      groups: vec![WatchGroup {
+        watcher,
+        roots: BTreeMap::new(),
+      }],
+      #[cfg(target_os = "macos")]
+      stream: watcher,
       watch_patterns: HashSet::default(),
+      retry: false,
       config,
       trigger,
     }
@@ -89,52 +138,140 @@ impl DiskWatcher {
     &mut self,
     patterns: impl Iterator<Item = WatchPattern>,
   ) -> rspack_error::Result<()> {
-    let mut desired = InternedPathMap::default();
-    for pattern in patterns {
-      let mode = desired.entry(pattern.path).or_insert(pattern.mode);
+    let patterns: HashSet<_> = patterns.collect();
+    if !self.retry && patterns == self.watch_patterns {
+      return Ok(());
+    }
+    let mut mounts = BTreeMap::new();
+    for pattern in &patterns {
+      if let Some(parent) = pattern.path.parent() {
+        mounts.entry(parent.to_path_buf()).or_insert(Mount {
+          mode: RecursiveMode::NonRecursive,
+          required: false,
+        });
+      }
+      let mount = mounts.entry(pattern.path.to_path_buf()).or_insert(Mount {
+        mode: pattern.mode,
+        required: true,
+      });
+      mount.required = true;
       if pattern.mode == RecursiveMode::Recursive {
-        *mode = RecursiveMode::Recursive;
+        mount.mode = RecursiveMode::Recursive;
       }
     }
-    for (path, &mode) in &desired {
-      let pattern = WatchPattern {
-        path: path.clone(),
-        mode,
-      };
-      if self.watch_patterns.contains(&pattern) {
+    self.retry = true;
+    self
+      .update(&mounts)
+      .map_err(|e| rspack_error::error!(e.to_string()))?;
+    self.watch_patterns = patterns;
+    self.retry = false;
+    Ok(())
+  }
+
+  pub fn invalidate_removed_root(&mut self, path: &InternedPath) {
+    // A delayed removal can arrive after the name exists again. The old
+    // kernel watch still belongs to the removed directory.
+    #[cfg(not(target_os = "macos"))]
+    for group in &mut self.groups {
+      for (_, mount) in group
+        .roots
+        .range_mut(path.to_path_buf()..)
+        .take_while(|(p, _)| p.starts_with(path.as_path()))
+      {
+        mount.stale = true;
+        self.retry = true;
+      }
+    }
+    #[cfg(target_os = "macos")]
+    if self
+      .watch_patterns
+      .iter()
+      .any(|p| p.path.starts_with(path.as_path()))
+    {
+      self.retry = true;
+    }
+  }
+
+  pub fn directory_removed(&mut self, path: &InternedPath) -> rspack_error::Result<()> {
+    let mut remaining = self.watch_patterns.clone();
+    remaining.retain(|p| !p.path.starts_with(path.as_path()));
+    if remaining.len() == self.watch_patterns.len() {
+      return Ok(());
+    }
+    // Watch one level for the returning branch. A recursive fallback here
+    // would enumerate unrelated siblings when a whole project is removed.
+    if let Some(parent) = path.ancestors().skip(1).find(|p| p.is_dir()) {
+      remaining.insert(WatchPattern {
+        path: InternedPath::from(parent),
+        mode: RecursiveMode::NonRecursive,
+      });
+    }
+    self.watch(remaining.into_iter())
+  }
+
+  #[cfg(target_os = "macos")]
+  fn update(&mut self, mounts: &BTreeMap<PathBuf, Mount>) -> notify::Result<()> {
+    // Editing a running FSEvents stream stops delivery for every root.
+    // Start its replacement in one batch while the old stream is still live.
+    let mut next = backend(self.config, Arc::clone(&self.trigger))?;
+    let mut paths = next.paths_mut();
+    for (path, mount) in mounts {
+      mount.installed(paths.add(path, mount.mode))?;
+    }
+    paths.commit()?;
+    self.stream = next;
+    Ok(())
+  }
+
+  #[cfg(not(target_os = "macos"))]
+  fn update(&mut self, mounts: &BTreeMap<PathBuf, Mount>) -> notify::Result<()> {
+    for (path, mount) in mounts {
+      if self.groups.iter().any(|g| {
+        g.roots
+          .get(path)
+          .is_some_and(|old| !old.stale && old.mode == mount.mode)
+      }) {
         continue;
       }
-      let group = match self.groups.iter_mut().find(|g| g.can_mount(path, mode)) {
+      let group = match self
+        .groups
+        .iter_mut()
+        .find(|g| g.can_mount(path, mount.mode))
+      {
         Some(group) => group,
-        None => {
-          let group = WatchGroup::new(self.config, Arc::clone(&self.trigger))
-            .map_err(|e| rspack_error::error!(e.to_string()))?;
-          self.groups.push_mut(group)
-        }
+        None => self.groups.push_mut(WatchGroup {
+          watcher: backend(self.config, Arc::clone(&self.trigger))?,
+          roots: BTreeMap::new(),
+        }),
       };
-      group
-        .watcher
-        .watch(path, mode)
-        .map_err(|e| rspack_error::error!(e.to_string()))?;
-      group.roots.insert(path.to_path_buf(), mode);
-      self.watch_patterns.insert(pattern);
+      if mount.installed(group.watch(path, mount.mode))? {
+        group.roots.insert(
+          path.clone(),
+          InstalledMount {
+            mode: mount.mode,
+            stale: false,
+          },
+        );
+      }
     }
-
-    // Install every replacement before releasing any old coverage, even on a retry.
-    self.watch_patterns.retain(|pattern| {
-      if desired.get(&pattern.path) == Some(&pattern.mode) {
-        return true;
-      }
-      let group = self.groups.iter_mut()
-        .find(|g| g.roots.get(pattern.path.as_path()) == Some(&pattern.mode))
-        .expect("mounted watch group");
-      if let Err(e) = group.watcher.unwatch(&pattern.path)
-        && !matches!(e.kind, notify::ErrorKind::WatchNotFound) {
-        tracing::warn!(target: "rspack_watcher::disk_watcher", path = ?pattern.path, "failed to unwatch stale path: {e:?}");
-      }
-      group.roots.remove(pattern.path.as_path());
-      false
-    });
+    // Release old coverage only after every required replacement is active.
+    for group in &mut self.groups {
+      group.roots.retain(|path, old| {
+        if !old.stale && mounts.get(path).is_some_and(|mount| mount.mode == old.mode) {
+          return true;
+        }
+        if let Err(e) = group.watcher.unwatch(path)
+          && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
+        {
+          tracing::warn!(
+            target: "rspack_watcher::disk_watcher",
+            ?path,
+            "failed to unwatch stale path: {e:?}",
+          );
+        }
+        false
+      });
+    }
     self.groups.retain(|group| !group.roots.is_empty());
     Ok(())
   }

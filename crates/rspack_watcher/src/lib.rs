@@ -148,6 +148,7 @@ enum WatcherOp {
   },
   Refresh {
     path: InternedPath,
+    removed: bool,
     done: oneshot::Sender<bool>,
   },
   Close {
@@ -340,14 +341,13 @@ impl FsWatcher {
 
 fn spawn_owner_thread(mut inner: FsWatcherInner, mut rx: mpsc::UnboundedReceiver<WatcherOp>) {
   let owner_loop = async move {
-    let mut closed = false;
     while let Some(op) = rx.recv().await {
       match op {
         WatcherOp::Watch {
           event_aggregate_handler,
           done,
           ..
-        } if closed => {
+        } if inner.disk_watcher.is_none() => {
           event_aggregate_handler.on_error(rspack_error::error!("{WATCHER_UNAVAILABLE}"));
           drop(done);
         }
@@ -372,25 +372,18 @@ fn spawn_owner_thread(mut inner: FsWatcherInner, mut rx: mpsc::UnboundedReceiver
             .await;
           let _ = done.send(());
         }
-        WatcherOp::Refresh { path, done } => {
-          let ready = !closed && {
-            inner.analyzer.invalidate_path(&path);
-            match inner.mount_roots() {
-              Ok(()) => true,
-              Err(error) => {
-                inner.executor.on_error(error);
-                false
-              }
-            }
-          };
-          let _ = done.send(ready);
+        WatcherOp::Refresh {
+          path,
+          removed,
+          done,
+        } => {
+          let _ = done.send(inner.refresh_roots(&path, removed));
         }
-        WatcherOp::Close { done } if closed => {
+        WatcherOp::Close { done } if inner.disk_watcher.is_none() => {
           let _ = done.send(Ok(()));
         }
         WatcherOp::Close { done } => {
           let _ = done.send(inner.close().await);
-          closed = true;
         }
       }
     }
@@ -498,21 +491,33 @@ impl FsWatcherInner {
     Ok(())
   }
 
+  fn refresh_roots(&mut self, path: &InternedPath, removed: bool) -> bool {
+    let Some(disk) = &mut self.disk_watcher else {
+      return false;
+    };
+    self.analyzer.invalidate_path(path);
+    if removed {
+      disk.invalidate_removed_root(path);
+    }
+    let result = if path.is_dir() {
+      self.mount_roots()
+    } else {
+      disk.directory_removed(path)
+    };
+    if let Err(error) = result {
+      self.executor.on_error(error);
+      return false;
+    }
+    true
+  }
+
   fn mount_roots(&mut self) -> Result<()> {
     let roots = self.analyzer.analyze(self.path_manager.access());
-    // A watch on a directory can disappear with it. Its parent reports the
-    // removal and the later recreation, including on Windows.
-    let parents = roots.iter().filter_map(|root| {
-      root.path.parent().map(|parent| WatchPattern {
-        path: InternedPath::from(parent),
-        mode: notify::RecursiveMode::NonRecursive,
-      })
-    });
     self
       .disk_watcher
       .as_mut()
       .expect("open disk watcher")
-      .watch(roots.iter().cloned().chain(parents))
+      .watch(roots.into_iter())
       .inspect_err(|_| self.analyzer.invalidate_all())
   }
 
