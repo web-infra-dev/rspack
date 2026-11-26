@@ -55,6 +55,7 @@ export type StatsPrinterContext = KnownStatsPrinterContext &
 
 export class StatsPrinter {
   private _levelHookCache: Map<HookMap<Hook>, Map<string, Hook[]>>;
+  private _elementTypes = new Map<string, Map<string, string>>();
   private _inPrint: boolean;
 
   hooks: Readonly<{
@@ -203,6 +204,7 @@ export class StatsPrinter {
       return this._print(type, object, baseContext);
     } finally {
       this._levelHookCache.clear();
+      this._elementTypes.clear();
       this._inPrint = false;
     }
   }
@@ -264,8 +266,19 @@ export class StatsPrinter {
         this._forEachLevel(this.hooks.sortElements, type, (h) =>
           h.call(elements, context),
         );
+        // Objects of the same type reuse the same field paths for hook lookups.
+        let elementTypes = this._elementTypes.get(type);
+        if (elementTypes === undefined) {
+          elementTypes = new Map();
+          this._elementTypes.set(type, elementTypes);
+        }
         const printedElements = elements.map((element) => {
-          const content = this.print(`${type}.${element}`, object[element], {
+          let elementType = elementTypes.get(element);
+          if (elementType === undefined) {
+            elementType = `${type}.${element}`;
+            elementTypes.set(element, elementType);
+          }
+          const content = this.print(elementType, object[element], {
             ...context,
             _parent: object,
             _element: element,
