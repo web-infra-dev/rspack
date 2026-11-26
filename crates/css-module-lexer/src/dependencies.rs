@@ -1468,9 +1468,11 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
     let mut components = ComponentValues::default();
     loop {
       let token = stream.next(keep_comments).token;
+      if token.kind == TokenKind::Eof {
+        return None;
+      }
       if !components.is_nested() {
         match token.kind {
-          TokenKind::Eof => return None,
           TokenKind::Semicolon => return Some(()),
           TokenKind::RightCurlyBracket => continue,
           _ => {}

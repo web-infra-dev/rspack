@@ -140,6 +140,49 @@ fn block_contents_stray_right_curly_recovery() {
     UrlRangeKind::Function,
     "url(b.png)",
   );
+
+  // Unclosed component values inside bad declaration recovery must still terminate at EOF.
+  for input in [
+    "} foo(",
+    "background: url(a.png); } [unclosed",
+    "background: url(a.png); } { unclosed",
+    "background: url(a.png); } foo(; background: url(b.png)",
+  ] {
+    let (deps, warnings) = collect_dependencies_as(input, Mode::Css, ParseAs::BlockContents);
+    assert!(warnings.is_empty());
+    if input.starts_with("background:") {
+      assert_eq!(deps.len(), 1);
+      assert_url_dependency(
+        input,
+        &deps[0],
+        "a.png",
+        UrlRangeKind::Function,
+        "url(a.png)",
+      );
+    } else {
+      assert!(deps.is_empty());
+    }
+  }
+
+  // Semicolons inside nested component values do not end the bad declaration prematurely.
+  let input = "background: url(a.png); } foo(bar;); background: url(b.png)";
+  let (deps, warnings) = collect_dependencies_as(input, Mode::Css, ParseAs::BlockContents);
+  assert!(warnings.is_empty());
+  assert_eq!(deps.len(), 2);
+  assert_url_dependency(
+    input,
+    &deps[0],
+    "a.png",
+    UrlRangeKind::Function,
+    "url(a.png)",
+  );
+  assert_url_dependency(
+    input,
+    &deps[1],
+    "b.png",
+    UrlRangeKind::Function,
+    "url(b.png)",
+  );
 }
 
 #[test]
