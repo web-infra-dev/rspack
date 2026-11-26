@@ -16,19 +16,19 @@ use rspack_util::{
 };
 use rustc_hash::FxHashSet;
 use swc_next_ecma_ast::{
-  ArgumentData, ArrowFunctionBodyData, ArrowFunctionExpression, AssignmentExpression, Ast,
-  BindingPattern, BindingPatternData, CallExpression, Class, ClassElement, ClassElementData,
-  CommentKind, Decl, DeclData, ExportDefaultDeclarationKindData, Expr, ExprData,
-  ForStatementInitData, FormalParameterItemData, FormalParameterPatternData, Function, GetSpan,
-  MethodDefinitionKind, ModuleExportName, ModuleExportNameData, NodeKindData, Program, PropertyKey,
-  PropertyKeyData, ScopeId, SourceType, Span, Stmt, StmtData,
-  VariableDeclaration as AstVariableDeclaration, VariableKind,
+  ArgumentData, ArrowFunctionBodyData, ArrowFunctionExpression, Ast, BindingPattern,
+  BindingPatternData, CallExpression, Class, ClassElement, ClassElementData, CommentKind, Decl,
+  DeclData, ExportDefaultDeclarationKindData, Expr, ExprData, ForStatementInitData,
+  FormalParameterItemData, FormalParameterPatternData, Function, GetSpan, MethodDefinitionKind,
+  ModuleExportName, ModuleExportNameData, NodeKindData, Program, PropertyKey, PropertyKeyData,
+  ScopeId, SourceType, Span, Stmt, StmtData, VariableDeclaration as AstVariableDeclaration,
+  VariableKind,
 };
 use swc_next_ecma_semantic::Semantic;
 
 use super::{
   common_js_side_effects_analysis::{
-    CommonJsExports, common_js_export_write, is_plain_object_literal,
+    CommonJsExports, ExportsEffect, exports_effect, is_plain_object_literal,
   },
   side_effects_analysis::{SideEffectsContext, may_have_side_effects},
 };
@@ -1126,87 +1126,124 @@ fn is_pure_var_decl(
   })
 }
 
-/// Recognize a top-level CommonJS export assignment whose target write is
-/// ignored only for module-evaluation side-effect analysis. The RHS is still
-/// judged by the regular parser purity behavior.
-fn top_level_common_js_export_write(
-  parser: &mut JavascriptParser,
-  assignment: AssignmentExpression,
-) -> Option<CommonJsExports> {
-  if parser.is_esm || !parser.is_top_level_scope() {
-    return None;
-  }
-  let exports = common_js_export_write(parser.ast.ast, assignment)?;
-  is_free_variable(parser, exports.root_name()).then_some(exports)
-}
-
 fn is_free_variable(parser: &mut JavascriptParser, name: &str) -> bool {
   parser
     .get_variable_info(name)
     .is_none_or(|info| info.is_free())
 }
 
-/// Keep the CommonJS export-write exception out of `is_pure_expression`,
-/// because innerGraph also consumes that shared function.
-fn is_module_eval_pure_expression(
-  parser: &mut JavascriptParser,
-  cjs_module_exports_plain_object: &AtomicBool,
+struct ModuleEvalPureChecker<'a> {
   analyze_side_effects_free: bool,
-  mut expression: Expr,
-  comments: &RspackComments<'_>,
-  callees: Option<&mut Vec<(Atom, Span)>>,
-) -> bool {
-  let ast = parser.ast.ast;
-  while let ExprData::AssignmentExpression(assignment) = ast.expr_data(expression) {
-    match top_level_common_js_export_write(parser, assignment) {
-      Some(CommonJsExports::ExportsMember) => {}
-      Some(CommonJsExports::ModuleExports) => {
-        if !is_plain_object_literal(ast, assignment.right(ast)) {
-          cjs_module_exports_plain_object.store(false, Ordering::Relaxed);
-        }
-      }
-      Some(CommonJsExports::ModuleExportsMember)
-        if cjs_module_exports_plain_object.load(Ordering::Relaxed) => {}
-      _ => break,
-    }
-    expression = assignment.right(ast);
-  }
-  is_pure_expression(
-    parser,
-    analyze_side_effects_free,
-    expression,
-    comments,
-    callees,
-  )
+  module_exports_plain_object: &'a AtomicBool,
+  comments: &'a RspackComments<'a>,
 }
 
-fn is_module_eval_pure_var_decl(
-  parser: &mut JavascriptParser,
-  cjs_module_exports_plain_object: &AtomicBool,
-  analyze_side_effects_free: bool,
-  variable: AstVariableDeclaration,
-  comments: &RspackComments<'_>,
-  mut callees: Option<&mut Vec<(Atom, Span)>>,
-) -> bool {
-  if matches!(
-    variable.kind(parser.ast.ast),
-    VariableKind::Using | VariableKind::AwaitUsing
-  ) {
-    return false;
+impl ModuleEvalPureChecker<'_> {
+  fn is_own_exports_effect(
+    &self,
+    parser: &mut JavascriptParser,
+    effect: &ExportsEffect,
+    in_variable_initializer: bool,
+  ) -> bool {
+    if parser.is_esm
+      || !parser.is_top_level_scope()
+      || !is_free_variable(parser, effect.target().root_name())
+    {
+      return false;
+    }
+    if matches!(effect, ExportsEffect::DefineProperty { .. })
+      && (in_variable_initializer || !is_free_variable(parser, "Object"))
+    {
+      return false;
+    }
+    match effect.target() {
+      CommonJsExports::ExportsMember => true,
+      CommonJsExports::ModuleExportsMember => {
+        self.module_exports_plain_object.load(Ordering::Relaxed)
+      }
+      CommonJsExports::ModuleExports => {
+        let ExportsEffect::Assign { value, .. } = effect else {
+          return false;
+        };
+        if !is_plain_object_literal(parser.ast.ast, *value) {
+          self
+            .module_exports_plain_object
+            .store(false, Ordering::Relaxed);
+        }
+        true
+      }
+    }
   }
-  let ast = parser.ast.ast;
-  ast.nodes(variable.declarators(ast)).all(|declarator| {
-    declarator.init(ast).is_none_or(|initializer| {
-      is_module_eval_pure_expression(
-        parser,
-        cjs_module_exports_plain_object,
-        analyze_side_effects_free,
-        initializer,
-        comments,
-        callees.as_deref_mut(),
-      )
+
+  fn is_module_eval_pure_expression(
+    &self,
+    parser: &mut JavascriptParser,
+    expression: Expr,
+    in_variable_initializer: bool,
+    mut callees: Option<&mut Vec<(Atom, Span)>>,
+  ) -> bool {
+    let ast = parser.ast.ast;
+    match ast.expr_data(expression) {
+      ExprData::SequenceExpression(sequence) => {
+        return ast.nodes(sequence.expressions(ast)).all(|expression| {
+          self.is_module_eval_pure_expression(
+            parser,
+            expression,
+            in_variable_initializer,
+            callees.as_deref_mut(),
+          )
+        });
+      }
+      ExprData::ParenthesizedExpression(parenthesized) => {
+        return self.is_module_eval_pure_expression(
+          parser,
+          parenthesized.expression(ast),
+          in_variable_initializer,
+          callees,
+        );
+      }
+      _ => {}
+    }
+    if let Some(effect) = exports_effect(ast, expression)
+      && self.is_own_exports_effect(parser, &effect, in_variable_initializer)
+    {
+      return effect.all_operands(ast, |operand| {
+        self.is_module_eval_pure_expression(
+          parser,
+          operand,
+          in_variable_initializer,
+          callees.as_deref_mut(),
+        )
+      });
+    }
+    is_pure_expression(
+      parser,
+      self.analyze_side_effects_free,
+      expression,
+      self.comments,
+      callees,
+    )
+  }
+
+  fn is_module_eval_pure_var_decl(
+    &self,
+    parser: &mut JavascriptParser,
+    variable: AstVariableDeclaration,
+    mut callees: Option<&mut Vec<(Atom, Span)>>,
+  ) -> bool {
+    let ast = parser.ast.ast;
+    if matches!(
+      variable.kind(ast),
+      VariableKind::Using | VariableKind::AwaitUsing
+    ) {
+      return false;
+    }
+    ast.nodes(variable.declarators(ast)).all(|declarator| {
+      declarator.init(ast).is_none_or(|initializer| {
+        self.is_module_eval_pure_expression(parser, initializer, true, callees.as_deref_mut())
+      })
     })
-  })
+  }
 }
 
 fn is_side_effects_free_var_decl(
@@ -1357,6 +1394,11 @@ impl SideEffectsParserPlugin {
     }
     let ast = parser.ast.ast;
     let comments = parser.ast.comments;
+    let module_eval = ModuleEvalPureChecker {
+      analyze_side_effects_free: self.analyze_side_effects_free,
+      module_exports_plain_object: &self.cjs_module_exports_plain_object,
+      comments,
+    };
     let mut callees = Vec::new();
     let pure = match ast.kind_data(statement.node_id()) {
       NodeKindData::IfStatement(statement) => is_pure_expression(
@@ -1385,14 +1427,9 @@ impl SideEffectsParserPlugin {
           statement
             .init(ast)
             .is_none_or(|init| match ast.for_statement_init_data(init) {
-              ForStatementInitData::VariableDeclaration(variable) => is_module_eval_pure_var_decl(
-                parser,
-                &self.cjs_module_exports_plain_object,
-                self.analyze_side_effects_free,
-                variable,
-                comments,
-                Some(&mut callees),
-              ),
+              ForStatementInitData::VariableDeclaration(variable) => {
+                module_eval.is_module_eval_pure_var_decl(parser, variable, Some(&mut callees))
+              }
               ForStatementInitData::Expr(expression) => is_pure_expression(
                 parser,
                 self.analyze_side_effects_free,
@@ -1421,12 +1458,10 @@ impl SideEffectsParserPlugin {
             )
           })
       }
-      NodeKindData::ExpressionStatement(statement) => is_module_eval_pure_expression(
+      NodeKindData::ExpressionStatement(statement) => module_eval.is_module_eval_pure_expression(
         parser,
-        &self.cjs_module_exports_plain_object,
-        self.analyze_side_effects_free,
         statement.expression(ast),
-        comments,
+        false,
         Some(&mut callees),
       ),
       NodeKindData::SwitchStatement(statement) => is_pure_expression(
@@ -1443,14 +1478,9 @@ impl SideEffectsParserPlugin {
         comments,
         Some(&mut callees),
       ),
-      NodeKindData::VariableDeclaration(statement) => is_module_eval_pure_var_decl(
-        parser,
-        &self.cjs_module_exports_plain_object,
-        self.analyze_side_effects_free,
-        statement,
-        comments,
-        Some(&mut callees),
-      ),
+      NodeKindData::VariableDeclaration(statement) => {
+        module_eval.is_module_eval_pure_var_decl(parser, statement, Some(&mut callees))
+      }
       NodeKindData::EmptyStatement(_)
       | NodeKindData::LabeledStatement(_)
       | NodeKindData::BlockStatement(_)
