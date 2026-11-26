@@ -16,7 +16,7 @@ use rspack_util::fx_hash::FxIndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 
-use super::is_css_module;
+use super::{effective_resource_data, is_css_module};
 use crate::{
   css_syntax::{normalize_url, unescape_identifier},
   dependency::{
@@ -337,6 +337,17 @@ impl<'context> CssModuleParser<'context> {
         StaticExportsSpec::Array(vec!["default".into()]),
         false,
       ));
+    }
+
+    if self
+      .local_ident_options
+      .get()
+      .is_some_and(LocalIdentOptions::has_id_placeholder)
+    {
+      self
+        .parse_context
+        .build_meta
+        .set_need_id_in_concatenation(true);
     }
 
     let css_build_info = self.parse_context.build_info.css.get_or_insert_default();
@@ -1786,9 +1797,6 @@ impl<'context> CssModuleParser<'context> {
   }
 
   fn resource_data(&self) -> &'context ResourceData {
-    self
-      .parse_context
-      .module_match_resource
-      .unwrap_or(self.parse_context.resource_data)
+    effective_resource_data(&self.parse_context)
   }
 }
