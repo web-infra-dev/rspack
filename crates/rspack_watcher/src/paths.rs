@@ -629,7 +629,7 @@ impl PathManager {
             if updated {
               Mutation::Entry
             } else {
-              Mutation::Unchanged
+              Mutation::FileTime
             },
           )
         }
@@ -963,7 +963,7 @@ impl PathManager {
     (
       updated,
       if !directory && !updated && !replaced {
-        Mutation::Unchanged
+        Mutation::FileTime
       } else if replaced {
         Mutation::Subtree
       } else {
@@ -1175,7 +1175,7 @@ impl PathManager {
       let aged = mtime_to_millis(current_mtime).saturating_add(mtime_accuracy(current_mtime))
         < current_time();
       if aged && self.file_times.reported(path) == ReportedBaseline::Present(current_mtime) {
-        return (false, Mutation::Unchanged);
+        return (false, Mutation::FileTime);
       }
       self.record(path, || {
         self.file_times.record(path).report_change(current_mtime)

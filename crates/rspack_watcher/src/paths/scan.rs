@@ -264,8 +264,8 @@ impl PathManager {
     children: &mut Vec<InternedPath>,
   ) {
     let mut state = self.watchers.lock_observations();
-    // The explicit file scanner can have updated the timestamp without
-    // indexing the directory member. Read both from the same observation.
+    // An explicit file scan or a duplicate live event may have confirmed a
+    // newer mtime without updating membership. Recheck both together.
     let result = if requests
       .iter()
       .any(|r| state.file_time_was_read(&r.scan, &path))

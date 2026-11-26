@@ -1385,3 +1385,47 @@ async fn overlapping_context_scans_report_a_file_to_each_eligible_subscription_o
     assert_eq!(notified, expected);
   }
 }
+
+#[tokio::test]
+async fn a_duplicate_live_mtime_supersedes_an_older_scan_read() {
+  let mut timestamps = Vec::new();
+  for explicit_file in [false, true] {
+    let fixture = tempfile::tempdir().unwrap();
+    let dir = fixture.path().canonicalize().unwrap();
+    let root = dir.join("src");
+    fs::create_dir(&root).unwrap();
+    let child = InternedPath::from(root.join("entry.js"));
+    let marker = InternedPath::from(dir.join("marker.js"));
+    fs::write(&marker, "").unwrap();
+    let file = fs::File::create(&child).unwrap();
+    let original = UNIX_EPOCH + Duration::from_secs(1_600_000_000);
+    file.set_modified(original).unwrap();
+    let mut files = added(&marker);
+    if explicit_file {
+      files.0.push(child.clone());
+    }
+    let mut analyzer = DirectoryAnalyzer::default();
+    update(&analyzer, files, added(&root), empty()).await;
+    analyzer.scan_contexts().await.unwrap();
+    let event = || Event::new(EventKind::Modify(ModifyKind::Any)).add_path(child.to_path_buf());
+    analyzer.on_native_event(event());
+    analyzer.on_scanned_change(&marker);
+    deliveries_until(&mut analyzer, &marker).await;
+
+    file
+      .set_modified(original + Duration::from_secs(20))
+      .unwrap();
+    let finish = analyzer.hold_scanned_file(root.into(), child.clone());
+    file.set_modified(original).unwrap();
+    analyzer.on_native_event(event());
+    analyzer.on_scanned_change(&marker);
+    assert!(deliveries_until(&mut analyzer, &marker).await.is_empty());
+    finish();
+    let snapshot = analyzer.collect_time_info_entries().0;
+    let Some(TimeInfoEntry::Entry { timestamp, .. }) = entry(&snapshot, &child) else {
+      panic!("the existing file must have a timestamp");
+    };
+    timestamps.push(*timestamp);
+  }
+  assert_eq!(timestamps, [1_600_000_000_000; 2]);
+}
