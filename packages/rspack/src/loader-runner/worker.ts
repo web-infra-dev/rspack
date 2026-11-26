@@ -640,11 +640,11 @@ function createWaitForPendingRequest(
   sendRequest: SendRequestFunction,
 ): WaitForPendingRequestFunction {
   return (requests: SendRequestResult[] | SendRequestResult) => {
+    const pending = Array.isArray(requests) ? requests : [requests];
+    if (pending.length === 0) return [];
     return sendRequest.sync(
       RequestSyncType.WaitForPendingRequest,
-      (Array.isArray(requests) ? requests : [requests]).map((request) => {
-        return request.id;
-      }),
+      pending.map((request) => request.id),
     );
   };
 }
