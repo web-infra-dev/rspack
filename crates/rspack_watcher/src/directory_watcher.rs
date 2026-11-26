@@ -1,11 +1,8 @@
-use std::time::SystemTime;
+use std::{sync::Arc, time::SystemTime};
 
 use rspack_paths::{InternedPath, InternedPathMap};
 
-use crate::{
-  paths::{ContextObservation, FileRecord},
-  watcher_manager::DirectorySubscriptions,
-};
+use crate::paths::{ContextObservation, DirectoryScan, FileRecord};
 
 // An initial scan can follow a directory symlink that a live event records as a file.
 #[derive(Default)]
@@ -17,8 +14,14 @@ pub(super) struct ContextMember {
 pub(crate) enum FileObservation {
   Member(ContextObservation),
   Registration,
-  Backfill { changed: bool },
-  Live { aged: bool },
+  Backfill {
+    changed: bool,
+  },
+  Live,
+  Snapshot {
+    initial: bool,
+    ignore_when_equal: bool,
+  },
 }
 
 #[derive(Default)]
@@ -26,7 +29,10 @@ pub(super) struct DirectoryWatcher {
   pub(super) members: InternedPathMap<ContextMember>,
   pub(super) files: InternedPathMap<FileRecord>,
   pub(super) last_watch_event: Option<u64>,
-  pub(super) subscriptions: DirectorySubscriptions,
+  pub(super) scan: Option<Arc<DirectoryScan>>,
+  pub(super) explicit: Option<Arc<InternedPath>>,
+  pub(super) parent: Option<InternedPath>,
+  pub(super) registered_children: usize,
 }
 
 impl DirectoryWatcher {
@@ -40,7 +46,9 @@ impl DirectoryWatcher {
     self.members.is_empty()
       && self.files.is_empty()
       && self.last_watch_event.is_none()
-      && !self.subscriptions.is_active()
+      && self.explicit.is_none()
+      && self.parent.is_none()
+      && self.registered_children == 0
   }
 
   pub(super) fn set_file_time(

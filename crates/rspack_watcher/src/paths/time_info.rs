@@ -3,10 +3,11 @@ use std::{ffi::OsStr, path::Path, sync::Arc, time::SystemTime};
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathIndexSet};
 use rspack_util::{fx_hash::FxHashMap, time::current_time};
 
-use super::{PathManager, entries::ContextObservation};
+use super::{Backfill, PathManager, entries::ContextObservation};
 use crate::{
   TimeInfoEntries, TimeInfoEntry,
   directory_watcher::{DirectoryWatcher, FileObservation},
+  observation::Mutation,
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
 };
 
@@ -105,14 +106,13 @@ impl FileRecord {
   }
 
   pub(crate) fn observe(&mut self, mtime: SystemTime, origin: FileObservation) -> bool {
+    let aged = || mtime_to_millis(mtime).saturating_add(mtime_accuracy(mtime)) < current_time();
     match origin {
       FileObservation::Member(ContextObservation::Scan { initial }) => {
         self.set_time(mtime, initial, true)
       }
       FileObservation::Member(ContextObservation::Event) => {
-        if self.time.is_some_and(|old| old.mtime == mtime)
-          && mtime_to_millis(mtime).saturating_add(mtime_accuracy(mtime)) < current_time()
-        {
+        if self.time.is_some_and(|old| old.mtime == mtime) && aged() {
           return false;
         }
         self.set_time(mtime, false, false)
@@ -132,13 +132,17 @@ impl FileRecord {
         }
         changed
       }
-      FileObservation::Live { aged } => {
-        if self.reported == ReportedBaseline::Present(mtime) && aged {
+      FileObservation::Live => {
+        if self.reported == ReportedBaseline::Present(mtime) && aged() {
           return false;
         }
         self.report_change(mtime);
         true
       }
+      FileObservation::Snapshot {
+        initial,
+        ignore_when_equal,
+      } => self.set_time(mtime, initial, ignore_when_equal),
     }
   }
 
@@ -212,18 +216,13 @@ impl PathManager {
   /// Use `has_mtime_changed` (which atomically reads-and-updates the
   /// baseline) to advance the recorded mtime in response to real events.
   pub fn set_file_time_if_absent(&self, path: InternedPath, mtime: SystemTime) {
-    self.record(&path, || {
-      self
-        .watchers
-        .set_file_time(&path, Some(mtime), FileObservation::Registration)
-    });
-  }
-
-  pub(crate) fn set_backfill_time(&self, path: &InternedPath, mtime: SystemTime, changed: bool) {
-    self.record(path, || {
-      self
-        .watchers
-        .set_file_time(path, Some(mtime), FileObservation::Backfill { changed })
+    self.observe_live(&path, || {
+      self.record(&path, || {
+        self
+          .watchers
+          .set_file_time(&path, Some(mtime), FileObservation::Registration)
+      });
+      ((), Mutation::Metadata)
     });
   }
 
@@ -238,12 +237,29 @@ impl PathManager {
   pub(super) fn set_reported_file_removal(&self, path: &InternedPath) {
     self
       .file_times
-      .update(path, |record| record.reported = ReportedBaseline::Absent);
-    if (!self.files.all.contains(path) && !self.missing.all.contains(path))
-      || std::fs::symlink_metadata(path).is_ok()
-    {
+      .update(path, |r| r.reported = ReportedBaseline::Absent);
+    if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       self.file_times.clear(path, FileRecord::clear_absent);
     }
+  }
+
+  pub(super) fn store_file_time(
+    &self,
+    path: &InternedPath,
+    mtime: SystemTime,
+    initial: bool,
+    ignore_when_equal: bool,
+  ) -> bool {
+    self.record(path, || {
+      self.watchers.set_file_time(
+        path,
+        Some(mtime),
+        FileObservation::Snapshot {
+          initial,
+          ignore_when_equal,
+        },
+      )
+    })
   }
 
   /// An event reached `path` or something below it: advance the
@@ -254,7 +270,7 @@ impl PathManager {
     for ancestor in path.ancestors() {
       let ancestor = InternedPath::from(ancestor);
       if let Some(mut watcher) = self.watchers.directories.get_mut(&ancestor)
-        && watcher.subscriptions.is_active()
+        && (watcher.explicit.is_some() || watcher.parent.is_some())
       {
         watcher.last_watch_event = Some(now);
       }
@@ -268,6 +284,14 @@ impl PathManager {
   /// unfiltered.
   /// Equal mtimes are only stale once they are past the filesystem accuracy window.
   pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
+    self.has_mtime_changed_for(path, None)
+  }
+
+  pub(crate) fn has_mtime_changed_for(
+    &self,
+    path: &InternedPath,
+    backfill: Option<&Backfill>,
+  ) -> bool {
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       return true;
     }
@@ -275,18 +299,24 @@ impl PathManager {
     let Some(current_mtime) = disk_mtime(path) else {
       return true;
     };
-    let mtime_ms = mtime_to_millis(current_mtime);
-    let present = ReportedBaseline::Present(current_mtime);
-    let aged = mtime_ms.saturating_add(mtime_accuracy(current_mtime)) < current_time();
-    // A stale event needs no index lock. Recheck under the write lock in
-    // case the scanner reported this mtime in the meantime.
-    if aged && self.file_times.reported(path) == present {
-      return false;
-    }
-    self.record(path, || {
-      self
-        .watchers
-        .set_file_time(path, Some(current_mtime), FileObservation::Live { aged })
+    self.observe_live(path, || {
+      // A subscription created during the stat must keep its own notification baseline.
+      if !self.watches_file(path, backfill) {
+        return (true, Mutation::Unchanged);
+      }
+      let changed = self.record(path, || {
+        self
+          .watchers
+          .set_file_time(path, Some(current_mtime), FileObservation::Live)
+      });
+      (
+        changed,
+        if changed {
+          Mutation::Entry
+        } else {
+          Mutation::Metadata
+        },
+      )
     })
   }
 }
