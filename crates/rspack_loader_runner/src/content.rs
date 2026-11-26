@@ -370,7 +370,7 @@ enum DescriptionJson {
 }
 
 impl AsInnerConverter for DescriptionJson {
-  type Inner = serde_json::Value;
+  type Inner = Arc<serde_json::Value>;
 
   fn to_inner(&self) -> &Self::Inner {
     match self {
@@ -379,8 +379,10 @@ impl AsInnerConverter for DescriptionJson {
     }
   }
 
+  // Cache reads intern the value, so modules of one package share it as they
+  // do in a fresh build.
   fn from_inner(json: Self::Inner) -> Self {
-    Self::Owned(Arc::new(json))
+    Self::Owned(json)
   }
 }
 
