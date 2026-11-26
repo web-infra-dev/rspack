@@ -43,6 +43,7 @@ impl TaskContext {
         compilation_id: compilation.id(),
         compiler_options: compilation.options.clone(),
         loader_cache: compilation.loader_cache(),
+        loader_build_dependencies_cache: compilation.loader_build_dependencies_cache(),
         loader_cache_counters: compilation.loader_cache_counters(),
         value_cache_versions: compilation.value_cache_versions.clone(),
         file_system_info: compilation.file_system_info.clone(),

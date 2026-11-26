@@ -528,6 +528,7 @@ impl Module for NormalModule {
         options: compiler_options,
         fs: fs.clone(),
         loader_cache,
+        loader_build_dependencies_cache: build_context.loader_build_dependencies_cache.clone(),
         loader_cache_counters: build_context.loader_cache_counters.clone(),
         file_system_info: build_context.file_system_info.clone(),
         resolver_factory,

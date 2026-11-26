@@ -8,8 +8,8 @@ pub use rspack_loader_runner::{
 use rspack_util::source_map::SourceMapKind;
 
 use crate::{
-  CompilationId, CompilerId, CompilerOptions, FileSystemInfo, LoaderCache, NormalModule,
-  ResolverFactory,
+  CompilationId, CompilerId, CompilerOptions, FileSystemInfo, LoaderBuildDependenciesCache,
+  LoaderCache, NormalModule, ResolverFactory,
 };
 
 #[derive(Debug)]
@@ -19,6 +19,7 @@ pub struct RunnerContext {
   pub options: Arc<CompilerOptions>,
   pub fs: Arc<dyn ReadableFileSystem>,
   pub(crate) loader_cache: Option<Arc<LoaderCache>>,
+  pub(crate) loader_build_dependencies_cache: Option<Arc<LoaderBuildDependenciesCache>>,
   pub(crate) loader_cache_counters: Arc<crate::CacheCounters>,
   pub file_system_info: FileSystemInfo,
   pub resolver_factory: Arc<ResolverFactory>,
