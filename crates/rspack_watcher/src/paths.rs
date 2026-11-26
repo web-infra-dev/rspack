@@ -758,65 +758,13 @@ impl PathManager {
     }
   }
 
-  // When the moved ancestor has no subscriber of its own, its native event
-  // is the only removal available for the registered paths below it.
-  pub(super) fn has_registered_descendants(&self, path: &InternedPath) -> bool {
-    self.registered_ancestors.contains_key(path)
-  }
-
-  pub(super) fn is_uncovered_ancestor(&self, path: &InternedPath) -> bool {
-    self.registered_ancestors.contains_key(path)
-      && !self.files.all.contains(path)
-      && !self.missing.all.contains(path)
-      && !self.watchers.is_explicit_context(path)
-      && !self.is_below_context(path)
-  }
-
-  fn registered_contexts_below(&self, path: &InternedPath) -> Vec<InternedPath> {
-    self
-      .directories
-      .all
-      .iter()
-      .filter(|p| **p != *path && p.starts_with(path.as_path()))
-      .map(|p| p.clone())
-      .collect()
-  }
-
-  fn remove_observed_path(&self, path: &InternedPath) -> Vec<InternedPath> {
-    let mut removed = InternedPathSet::default();
-    if self.is_uncovered_ancestor(path) {
-      let _index = self.lock_index();
-      for child in self.recorded_subtree(path).into_iter().skip(1) {
-        if (self.files.all.contains(&child) || self.missing.all.contains(&child))
-          && self.file_times.get(&child).is_some()
-        {
-          removed.insert(child);
-        }
-      }
-      // An explicitly registered empty directory need never have contributed a member.
-      removed.extend(
-        self
-          .registered_contexts_below(path)
-          .into_iter()
-          .filter(|p| !self.absent_directories.contains(p)),
-      );
-    }
-    self.forget_removed_path(path);
-    for child in &removed {
-      if self.files.all.contains(child) || self.missing.all.contains(child) {
-        self.set_reported_file_removal(child);
-      }
-    }
-    removed.into_iter().collect()
-  }
-
   pub(super) fn read_disk_entry(
     &self,
     path: &InternedPath,
     report_absence: bool,
-  ) -> std::io::Result<(Option<std::fs::Metadata>, Vec<InternedPath>)> {
+  ) -> std::io::Result<Option<std::fs::Metadata>> {
     match std::fs::symlink_metadata(path) {
-      Ok(meta) => return Ok((Some(meta), Vec::new())),
+      Ok(meta) => return Ok(Some(meta)),
       Err(error) if !is_absent(&error) => return Err(error),
       _ => {}
     }
@@ -824,16 +772,13 @@ impl PathManager {
     // may have seen a recreated directory after the first stat.
     self.observe_live(path, || match std::fs::symlink_metadata(path) {
       Err(error) if is_absent(&error) => {
-        let removed = self.remove_observed_path(path);
+        self.forget_removed_path(path);
         if report_absence && (self.files.all.contains(path) || self.missing.all.contains(path)) {
           self.set_reported_file_removal(path);
         }
-        (Ok((None, removed)), Mutation::Subtree)
+        (Ok(None), Mutation::Subtree)
       }
-      result => (
-        result.map(|meta| (Some(meta), Vec::new())),
-        Mutation::Unchanged,
-      ),
+      result => (result.map(Some), Mutation::Unchanged),
     })
   }
 
@@ -882,11 +827,6 @@ impl PathManager {
   fn record<R>(&self, path: &InternedPath, write: impl FnOnce() -> R) -> R {
     let _index = self.lock_index();
     let written = write();
-    self.link_record(path);
-    written
-  }
-
-  fn link_record(&self, path: &InternedPath) {
     let mut child = path.clone();
     while let Some(parent) = child.parent().map(InternedPath::from) {
       let indexed = !self
@@ -899,6 +839,7 @@ impl PathManager {
       }
       child = parent;
     }
+    written
   }
 
   /// `path` may no longer hold a record of its own: once it holds none and
@@ -1153,7 +1094,11 @@ impl PathManager {
   /// registered or discovered context, or a directory above a registered
   /// path.
   pub fn may_contain_records(&self, path: &InternedPath) -> bool {
-    self.watchers.is_watched_directory(path) || self.registered_ancestors.contains_key(path)
+    self.watchers.is_watched_directory(path) || self.has_registered_descendants(path)
+  }
+
+  pub(super) fn has_registered_descendants(&self, path: &InternedPath) -> bool {
+    self.registered_ancestors.contains_key(path)
   }
 
   fn is_below_context(&self, path: &InternedPath) -> bool {
@@ -1218,12 +1163,7 @@ impl PathManager {
   /// other paths, files found below a context included, pass through
   /// unfiltered.
   /// Equal mtimes are only stale once they are past the filesystem accuracy window.
-  #[cfg(test)]
   pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
-    self.observe_mtime_change(path)
-  }
-
-  pub(super) fn observe_mtime_change(&self, path: &InternedPath) -> bool {
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       return true;
     }
@@ -1231,108 +1171,17 @@ impl PathManager {
     let Some(current_mtime) = disk_mtime(path) else {
       return true;
     };
-    self.observe_live(path, || self.record_mtime_change(path, current_mtime))
-  }
-
-  fn record_mtime_change(&self, path: &InternedPath, mtime: SystemTime) -> (bool, Mutation) {
-    let aged = mtime_to_millis(mtime).saturating_add(mtime_accuracy(mtime)) < current_time();
-    if aged && self.file_times.reported(path) == ReportedBaseline::Present(mtime) {
-      return (false, Mutation::Unchanged);
-    }
-    self.record(path, || self.file_times.record(path).report_change(mtime));
-    (true, Mutation::Entry)
-  }
-
-  /// A rename can leave a replacement at an unregistered ancestor before the
-  /// event processor runs. Reconcile only its surviving registrations and
-  /// let each retained context enumerate its own members.
-  pub(super) async fn reconcile_retained_subtree(
-    &self,
-    root: &InternedPath,
-    present_kind: FsEventKind,
-    sink: &ScanSink,
-  ) -> crate::EventBatch {
-    let targets: InternedPathSet = self
-      .access()
-      .all()
-      .filter(|dep| dep != root && dep.starts_with(root.as_path()))
-      .collect();
-    let mut targets: Vec<_> = targets.into_iter().collect();
-    // Observe the children before removing their old parent's subtree records.
-    targets.sort_unstable_by(|a, b| b.cmp(a));
-    let mut directories = Vec::new();
-    let mut changes = Vec::new();
-    for path in targets {
-      let (kind, scan_directory) = self.observe_live(&path, || {
-        let missing = self.missing.all.contains(&path);
-        let file = missing || self.files.all.contains(&path);
-        let context = self.watchers.is_explicit_context(&path);
-        if !file && !context {
-          return ((None, false), Mutation::Unchanged);
-        }
-        match path.metadata() {
-          Ok(metadata) => {
-            let directory = metadata.is_dir();
-            let mut changed = false;
-            let mut mutation = Mutation::Unchanged;
-            if context {
-              if directory {
-                self.absent_directories.remove(&path);
-                self.set_last_watch_events(&path);
-                changed = true;
-              } else if !self.absent_directories.contains(&path) {
-                self.remove_file_times_under(&path, file);
-              }
-              mutation = Mutation::Subtree;
-            }
-            if file && let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
-              if !directory || missing {
-                let (updated, write) = self.record_mtime_change(&path, mtime);
-                changed |= updated;
-                if !context {
-                  mutation = write;
-                }
-              } else {
-                // Keep a truthful snapshot without delivering a directory
-                // appearance to a registration that only accepts files.
-                self.file_times.clear(&path, FileRecord::clear_present);
-                self.store_file_time(&path, mtime, false, true);
-                mutation = Mutation::Subtree;
-              }
-            }
-            let kind = if context && !directory && !file {
-              FsEventKind::Remove
-            } else {
-              present_kind
-            };
-            ((changed.then_some(kind), context && directory), mutation)
-          }
-          Err(error) if is_absent(&error) => {
-            let known = self.file_times.get(&path).is_some()
-              || (context && !self.absent_directories.contains(&path));
-            self.forget_removed_path(&path);
-            if file && known {
-              self.set_reported_file_removal(&path);
-            }
-            (
-              (known.then_some(FsEventKind::Remove), false),
-              Mutation::Subtree,
-            )
-          }
-          Err(_) => ((None, false), Mutation::Unchanged),
-        }
+    self.observe_live(path, || {
+      let aged = mtime_to_millis(current_mtime).saturating_add(mtime_accuracy(current_mtime))
+        < current_time();
+      if aged && self.file_times.reported(path) == ReportedBaseline::Present(current_mtime) {
+        return (false, Mutation::Unchanged);
+      }
+      self.record(path, || {
+        self.file_times.record(path).report_change(current_mtime)
       });
-      if scan_directory {
-        directories.push(path.clone());
-      }
-      if let Some(kind) = kind {
-        changes.push(crate::FsEvent { path, kind });
-      }
-    }
-    self
-      .scan_below(directories, true, None, Some(Arc::clone(sink)))
-      .await;
-    changes
+      (true, Mutation::Entry)
+    })
   }
 
   /// Update the paths, directories, and missing paths in the `PathManager`.
@@ -1436,7 +1285,10 @@ impl PathManager {
     }
   }
 
-  fn recorded_subtree(&self, dir: &InternedPath) -> Vec<InternedPath> {
+  /// A context was unregistered: forget what its scan found below it, except
+  /// what another still-registered context also covers.
+  fn forget_context_entries_under(&self, dir: &InternedPath) {
+    let _index = self.lock_index();
     let mut subtree = Vec::new();
     let mut pending = vec![dir.clone()];
     while let Some(path) = pending.pop() {
@@ -1445,14 +1297,7 @@ impl PathManager {
       }
       subtree.push(path);
     }
-    subtree
-  }
-
-  /// A context was unregistered: forget what its scan found below it, except
-  /// what another still-registered context also covers.
-  fn forget_context_entries_under(&self, dir: &InternedPath) {
-    let _index = self.lock_index();
-    for path in &self.recorded_subtree(dir) {
+    for path in &subtree {
       if self.is_below_context(path) {
         continue;
       }

@@ -29,64 +29,6 @@ async fn next_events(analyzer: &mut DirectoryAnalyzer) -> Vec<(InternedPath, FsE
 }
 
 #[tokio::test]
-async fn retiring_a_context_keeps_ancestor_moves_visible_to_a_retained_file() {
-  let temp = TempDir::new().unwrap();
-  let src = InternedPath::from(temp.path().canonicalize().unwrap().join("src"));
-  let pages = InternedPath::from(src.join("pages"));
-  let nested = pages.join("generated/nested");
-  fs::create_dir_all(&nested).unwrap();
-  let file = InternedPath::from(nested.join("entry.js"));
-  fs::write(&file, "").unwrap();
-  let analyzer = DirectoryAnalyzer::default();
-  analyzer
-    .update(added(&file), added(&src), empty())
-    .await
-    .unwrap();
-  analyzer.analyze();
-  analyzer
-    .update(empty(), removed(&src), empty())
-    .await
-    .unwrap();
-  let watches = analyzer.analyze();
-  for parent in [&src, &pages] {
-    assert!(
-      watches.contains(&(parent.clone(), RecursiveMode::NonRecursive)),
-      "{parent:?}"
-    );
-  }
-  analyzer
-    .update(removed(&file), empty(), empty())
-    .await
-    .unwrap();
-  assert_patterns(&analyzer, vec![]);
-}
-
-#[tokio::test]
-async fn retiring_a_context_resolves_the_survivors_again_before_installing_parent_watches() {
-  let fixture = TempDir::new().unwrap();
-  let root = fixture.path().canonicalize().unwrap();
-  let src = InternedPath::from(root.join("src"));
-  let generated = src.join("pages/generated");
-  let nested = generated.join("nested");
-  fs::create_dir_all(&nested).unwrap();
-  let file = InternedPath::from(nested.join("entry.js"));
-  fs::write(&file, "").unwrap();
-  let analyzer = DirectoryAnalyzer::default();
-  analyzer
-    .update(added(&file), added(&src), empty())
-    .await
-    .unwrap();
-  analyzer.analyze();
-  fs::rename(generated, root.join("archive")).unwrap();
-  analyzer
-    .update(empty(), removed(&src), empty())
-    .await
-    .unwrap();
-  let patterns = analyzer.analyze();
-  assert!(patterns.iter().all(|(dir, _)| dir.is_dir()), "{patterns:?}");
-}
-
-#[tokio::test]
 async fn test_shared_pattern_survives_until_the_last_dependency_is_removed() {
   let temp = TempDir::new().expect("create fixture");
   let base = temp.path().canonicalize().expect("resolve fixture");

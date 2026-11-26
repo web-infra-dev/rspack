@@ -491,42 +491,6 @@ async fn scans_deliver_known_changes_before_a_slow_sibling_finishes() {
 }
 
 #[tokio::test]
-async fn an_unsubscribed_ancestor_move_notifies_its_retained_dependencies() {
-  let fixture = tempfile::tempdir().unwrap();
-  let dir = fixture.path().canonicalize().unwrap();
-  let root = dir.join("src");
-  let pages = root.join("pages");
-  let generated = InternedPath::from(pages.join("generated"));
-  let file = InternedPath::from(generated.join("entry.js"));
-  let marker = InternedPath::from(dir.join("marker.js"));
-  fs::create_dir_all(&generated).unwrap();
-  fs::write(&file, "").unwrap();
-  fs::write(&marker, "").unwrap();
-  let mut analyzer = DirectoryAnalyzer::default();
-  update(
-    &analyzer,
-    (vec![file.clone(), marker.clone()], vec![]),
-    added(&root),
-    added(&generated),
-  )
-  .await;
-  analyzer.scan_contexts().await.unwrap();
-  update(&analyzer, empty(), removed(&root), empty()).await;
-  fs::rename(&pages, dir.join("archive")).unwrap();
-  analyzer.on_native_event(Event::new(EventKind::Remove(RemoveKind::Folder)).add_path(pages));
-  analyzer.on_scanned_change(&marker);
-  let mut removed = dependencies_until(&mut analyzer, &marker).await;
-  removed.sort_by(|a, b| a.0.cmp(&b.0));
-  assert_eq!(
-    removed,
-    vec![
-      (generated, FsEventKind::Remove),
-      (file, FsEventKind::Remove)
-    ]
-  );
-}
-
-#[tokio::test]
 async fn a_scanned_directory_replaced_by_a_file_only_notifies_eligible_subscribers() {
   let fixture = tempfile::tempdir().unwrap();
   let dir = fixture.path().canonicalize().unwrap();
@@ -573,100 +537,6 @@ async fn a_disk_removal_acknowledges_a_scan_removal_after_the_member_is_gone() {
   assert_eq!(events.len(), 1, "{events:?}");
   assert_eq!(events[0].0, file);
   assert!(events[0].1.contains(&(file, FsEventKind::Remove)));
-}
-
-#[tokio::test]
-async fn an_ancestor_rename_reconciles_retained_children_under_its_replacement() {
-  for replace_with_file in [false, true] {
-    let fixture = tempfile::tempdir().unwrap();
-    let dir = fixture.path().canonicalize().unwrap();
-    let root = dir.join("src");
-    let pages = root.join("pages");
-    let nested = pages.join("generated/nested");
-    let file = InternedPath::from(nested.join("entry.js"));
-    let stale = nested.join("stale.js");
-    let marker = InternedPath::from(dir.join("marker.js"));
-    fs::create_dir_all(&nested).unwrap();
-    for p in [file.as_path(), &stale, marker.as_path()] {
-      fs::write(p, "").unwrap();
-    }
-    let mut analyzer = DirectoryAnalyzer::default();
-    update(
-      &analyzer,
-      (vec![file.clone(), marker.clone()], vec![]),
-      (vec![(&root).into(), (&nested).into()], vec![]),
-      empty(),
-    )
-    .await;
-    analyzer.scan_contexts().await.unwrap();
-    update(&analyzer, empty(), removed(&root), empty()).await;
-    fs::rename(&pages, dir.join("archive")).unwrap();
-    if replace_with_file {
-      fs::write(&pages, "").unwrap();
-    } else {
-      fs::create_dir_all(&nested).unwrap();
-      fs::File::create(&file)
-        .unwrap()
-        .set_modified(UNIX_EPOCH + Duration::from_secs(1_600_000_020))
-        .unwrap();
-      fs::write(nested.join("fresh.js"), "").unwrap();
-    }
-    analyzer.on_native_event(
-      Event::new(EventKind::Modify(ModifyKind::Name(
-        notify::event::RenameMode::From,
-      )))
-      .add_path(pages),
-    );
-    analyzer.on_scanned_change(&marker);
-    deliveries_until(&mut analyzer, &marker).await;
-    let (files, dirs) = analyzer.collect_time_info_entries();
-    assert_eq!(entry(&files, &stale), None);
-    if replace_with_file {
-      assert_eq!(entry(&files, &file), Some(&TimeInfoEntry::Null));
-      assert_eq!(entry(&dirs, &nested), Some(&TimeInfoEntry::Null));
-    } else {
-      assert!(matches!(
-        entry(&files, &file),
-        Some(TimeInfoEntry::Entry {
-          timestamp: 1_600_000_020_000,
-          ..
-        })
-      ));
-      assert!(matches!(
-        entry(&files, &nested.join("fresh.js")),
-        Some(TimeInfoEntry::Entry { .. })
-      ));
-    }
-  }
-}
-
-#[tokio::test]
-async fn an_empty_retained_context_is_notified_when_its_ancestor_moves() {
-  let fixture = tempfile::tempdir().unwrap();
-  let dir = fixture.path().canonicalize().unwrap();
-  let root = dir.join("src");
-  let pages = root.join("pages");
-  let nested = InternedPath::from(pages.join("empty"));
-  let marker = InternedPath::from(dir.join("marker"));
-  fs::create_dir_all(&pages).unwrap();
-  fs::write(&marker, "").unwrap();
-  let mut analyzer = DirectoryAnalyzer::default();
-  update(&analyzer, added(&marker), added(&root), empty()).await;
-  analyzer.scan_contexts().await.unwrap();
-  fs::create_dir(&nested).unwrap();
-  update(
-    &analyzer,
-    empty(),
-    (vec![nested.clone()], vec![root.into()]),
-    empty(),
-  )
-  .await;
-  analyzer.scan_contexts().await.unwrap();
-  fs::rename(&pages, dir.join("archive")).unwrap();
-  analyzer.on_native_event(Event::new(EventKind::Remove(RemoveKind::Folder)).add_path(pages));
-  analyzer.on_scanned_change(&marker);
-  let events = dependencies_until(&mut analyzer, &marker).await;
-  assert_eq!(events, vec![(nested, FsEventKind::Remove)]);
 }
 
 #[tokio::test]
@@ -718,45 +588,6 @@ async fn adding_a_file_registration_cannot_promote_an_older_context_only_removal
   .await
   .unwrap();
   assert_eq!(event, (None, vec![(root.into(), FsEventKind::Change)]));
-}
-
-#[tokio::test]
-async fn only_missing_subscribers_receive_a_retained_file_becoming_a_directory() {
-  let fixture = tempfile::tempdir().unwrap();
-  let dir = fixture.path().canonicalize().unwrap();
-  let root = dir.join("src");
-  let parent = root.join("generated");
-  let file = InternedPath::from(parent.join("file.js"));
-  let missing = InternedPath::from(parent.join("missing.js"));
-  let marker = InternedPath::from(dir.join("marker"));
-  fs::create_dir_all(&parent).unwrap();
-  for path in [&file, &missing, &marker] {
-    fs::write(path, "").unwrap();
-  }
-  let mut analyzer = DirectoryAnalyzer::default();
-  update(
-    &analyzer,
-    (vec![file.clone(), marker.clone()], vec![]),
-    added(&root),
-    added(&missing),
-  )
-  .await;
-  analyzer.scan_contexts().await.unwrap();
-  update(&analyzer, empty(), removed(&root), empty()).await;
-  fs::rename(&parent, dir.join("archive")).unwrap();
-  fs::create_dir_all(&file).unwrap();
-  fs::create_dir(&missing).unwrap();
-  analyzer.on_native_event(
-    Event::new(EventKind::Modify(ModifyKind::Name(
-      notify::event::RenameMode::From,
-    )))
-    .add_path(parent),
-  );
-  analyzer.on_scanned_change(&marker);
-  assert_eq!(
-    dependencies_until(&mut analyzer, &marker).await,
-    vec![(missing, FsEventKind::Change)]
-  );
 }
 
 #[tokio::test]

@@ -358,17 +358,16 @@ impl EventProcessor {
     // unchanged aged mtime is suppressed just as it is by watchpack. Explicit and
     // scanned removals already declare the old record invalid.
     let disk = matches!(origin, Origin::Disk { .. });
-    let removal_hint = kind == FsEventKind::Remove;
-    let removed = removal_hint && !disk;
+    let removed = kind == FsEventKind::Remove && !disk;
     let initial_missing = removed && scanned;
     let pending = self.path_manager.watchers.pending_change(path);
-    let (metadata, removed_children) = if disk {
+    let metadata = if disk {
       let Ok(observation) = self.path_manager.read_disk_entry(path, true) else {
         return;
       };
       observation
     } else {
-      (std::fs::symlink_metadata(path).ok(), Vec::new())
+      std::fs::symlink_metadata(path).ok()
     };
     let exists = metadata.is_some();
     let kind = match kind {
@@ -397,7 +396,7 @@ impl EventProcessor {
     // macOS may emit stale Create events for files that predate the watcher.
     // A registered-missing path takes its first record here, once it exists.
     if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_watched_path))
-      && !self.path_manager.observe_mtime_change(path)
+      && !self.path_manager.has_mtime_changed(path)
       && !scanned
     {
       return;
@@ -431,7 +430,7 @@ impl EventProcessor {
         && *associated_kind == FsEventKind::Change
         && matches!(
           self.path_manager.read_disk_entry(associated, false),
-          Ok((None, _))
+          Ok(None)
         )
       {
         *associated_kind = FsEventKind::Remove;
@@ -444,30 +443,7 @@ impl EventProcessor {
         finder.contains_file(p)
       });
     let mut recovered = Vec::new();
-    if disk
-      && metadata
-        .as_ref()
-        .is_some_and(|m| removal_hint || appeared || !m.is_dir())
-      && self.path_manager.is_uncovered_ancestor(path)
-    {
-      recovered = self
-        .path_manager
-        .reconcile_retained_subtree(
-          path,
-          if appeared {
-            FsEventKind::Create
-          } else {
-            FsEventKind::Change
-          },
-          &self.scan_sink,
-        )
-        .await;
-      associated_event.extend(
-        recovered
-          .iter()
-          .map(|event| (event.path.clone(), event.kind)),
-      );
-    } else if appeared
+    if appeared
       && self.path_manager.has_registered_descendants(path)
       && path.is_dir()
       && !path.is_symlink()
@@ -499,7 +475,7 @@ impl EventProcessor {
 
           if is_registered {
             if finder.files.contains(&entry_path)
-              && !self.path_manager.observe_mtime_change(&entry_path)
+              && !self.path_manager.has_mtime_changed(&entry_path)
             {
               continue;
             }
@@ -532,13 +508,6 @@ impl EventProcessor {
       for (associated, _) in &associated_event {
         self.analyzer.invalidate_path(associated);
       }
-    }
-    for child in removed_children {
-      associated_event.push((child.clone(), FsEventKind::Remove));
-      recovered.push(FsEvent {
-        path: child,
-        kind: FsEventKind::Remove,
-      });
     }
     self.trigger_events(associated_event, raw, recovered, context_removal);
   }
