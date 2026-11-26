@@ -77,6 +77,7 @@ enum ExecAggregateEvent {
 }
 
 enum ExecEvent {
+  Error(rspack_error::Error),
   Execute(Option<FsEvent>, EventBatch, Option<InternedPath>),
   Aggregate(FilesData),
   Close,
@@ -124,6 +125,10 @@ impl Executor {
   #[cfg(feature = "testing")]
   pub(crate) fn trace(&self) -> crate::testing::ExecutorTrace {
     Arc::clone(&self.aggregate_time.trace)
+  }
+
+  pub(crate) fn on_error(&self, error: rspack_error::Error) {
+    let _ = self.exec_tx.send(ExecEvent::Error(error));
   }
 
   /// Abort all executor.
@@ -280,6 +285,7 @@ fn create_execute_task(
   let future = async move {
     'deliveries: while let Some(exec_event) = exec_rx.lock().await.recv().await {
       match exec_event {
+        ExecEvent::Error(error) => event_aggregate_handler.on_error(error),
         ExecEvent::Execute(raw, recovered, context_removal) => {
           for event in raw.into_iter().chain(recovered) {
             // Handle each event based on its kind

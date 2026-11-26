@@ -1024,6 +1024,17 @@ impl PathManager {
     })
   }
 
+  pub(super) fn is_absent_context(&self, path: &InternedPath) -> bool {
+    self.absent_directories.contains(path)
+  }
+
+  pub(super) async fn scan_recovered_contexts(&self, mut roots: Vec<InternedPath>) {
+    roots.retain(|dir| dir.is_dir() && self.absent_directories.remove(dir).is_some());
+    if !roots.is_empty() {
+      self.scan_below(roots, true, None).await;
+    }
+  }
+
   /// An event named `path` below a registered context: index it the way the
   /// scan would have (watchpack's `DirectoryWatcher.setFileTime` /
   /// `setDirectory` on a watch event). A file's record becomes the live
@@ -1042,19 +1053,13 @@ impl PathManager {
     judged: bool,
     scan: Option<&Scan>,
   ) -> bool {
-    let mut recovered: Vec<_> = self
+    let recovered = self
       .absent_directories
       .iter()
-      .filter(|context| context.starts_with(path.as_ref() as &Path))
+      .filter(|context| context.starts_with(path.as_path()))
       .map(|context| context.clone())
       .collect();
-    recovered.retain(|context| context.is_dir());
-    if !recovered.is_empty() {
-      for context in &recovered {
-        self.absent_directories.remove(context);
-      }
-      self.scan_below(recovered, true, None).await;
-    }
+    self.scan_recovered_contexts(recovered).await;
 
     let registered_directory = self.watchers.is_explicit_context(path);
     if !registered_directory && !self.is_below_context(path) {
@@ -1148,6 +1153,17 @@ impl PathManager {
   /// path.
   pub fn may_contain_records(&self, path: &InternedPath) -> bool {
     self.watchers.is_watched_directory(path) || self.registered_ancestors.contains_key(path)
+  }
+
+  pub(crate) fn has_registered_descendants(&self, path: &InternedPath) -> bool {
+    self.registered_ancestors.contains_key(path)
+  }
+
+  pub(crate) fn has_absent_context_below(&self, path: &InternedPath) -> bool {
+    self
+      .absent_directories
+      .iter()
+      .any(|context| context.starts_with(path.as_path()))
   }
 
   fn is_below_context(&self, path: &InternedPath) -> bool {

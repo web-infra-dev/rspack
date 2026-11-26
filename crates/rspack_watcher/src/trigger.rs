@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use rspack_paths::{InternedPath, InternedPathDashSet};
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
@@ -110,6 +110,7 @@ struct EventProcessor {
   path_manager: Arc<PathManager>,
   /// Sender for communicating file system events to the watcher executor.
   tx: UnboundedSender<ResolvedEvents>,
+  owner: Option<tokio::sync::mpsc::WeakUnboundedSender<crate::WatcherOp>>,
   analyzer: Arc<RecommendedAnalyzer>,
 }
 
@@ -120,6 +121,7 @@ struct EventProcessor {
 /// immediately, and a dedicated thread drains the buffer one event at a time.
 pub struct Trigger {
   pending: UnboundedSender<(InternedPath, FsEventKind, Origin)>,
+  pub(super) parent_watches: RwLock<crate::disk_watcher::ParentWatches>,
   pub(crate) analyzer: Arc<RecommendedAnalyzer>,
 }
 
@@ -141,12 +143,22 @@ enum Origin {
 
 impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
+  #[cfg(any(test, feature = "testing"))]
   pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<ResolvedEvents>) -> Self {
+    Self::start(path_manager, tx, None)
+  }
+
+  pub(super) fn start(
+    path_manager: Arc<PathManager>,
+    tx: UnboundedSender<ResolvedEvents>,
+    owner: Option<tokio::sync::mpsc::WeakUnboundedSender<crate::WatcherOp>>,
+  ) -> Self {
     let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind, Origin)>();
     let analyzer = Arc::default();
     let processor = EventProcessor {
       path_manager,
       tx,
+      owner,
       analyzer: Arc::clone(&analyzer),
     };
 
@@ -158,20 +170,19 @@ impl Trigger {
     std::thread::Builder::new()
       .name("rspack-fs-event-filter".to_string())
       .spawn(move || {
-        let runtime = tokio::runtime::Builder::new_current_thread()
-          .enable_all()
-          .build()
-          .expect("create watcher event filter runtime");
-
-        runtime.block_on(async move {
+        crate::run_watcher_loop(std::pin::pin!(async move {
           while let Some((path, kind, origin)) = incoming.recv().await {
             processor.process(&path, kind, origin).await;
           }
-        });
+        }));
       })
       .expect("spawn watcher event filter thread");
 
-    Self { pending, analyzer }
+    Self {
+      pending,
+      analyzer,
+      parent_watches: Default::default(),
+    }
   }
 
   /// Queues an explicit event from `FsWatcher::trigger_event` without blocking.
@@ -212,6 +223,24 @@ impl Trigger {
 }
 
 impl EventProcessor {
+  async fn refresh_watches(&self, path: &InternedPath, removed: bool) -> bool {
+    let Some(owner) = &self.owner else {
+      return true;
+    };
+    let Some(owner) = owner.upgrade() else {
+      return false;
+    };
+    let (done, ready) = tokio::sync::oneshot::channel();
+    owner
+      .send(crate::WatcherOp::Refresh {
+        path: path.clone(),
+        removed,
+        done,
+      })
+      .is_ok()
+      && ready.await.unwrap_or(false)
+  }
+
   /// Called when a file system event occurs.
   /// Finds all dependencies related to the given path and triggers events for each.
   /// # Example
@@ -271,6 +300,20 @@ impl EventProcessor {
     let initial_missing = removed && scanned;
     let metadata = std::fs::symlink_metadata(path).ok();
     let exists = metadata.is_some();
+    let disk_removal = kind == FsEventKind::Remove && matches!(origin, Origin::Disk { .. });
+    // Install coverage on the nearest existing directory before a recovery
+    // scan reads its contents. Reconcile on the owner, alongside watch().
+    if metadata.as_ref().is_none_or(|m| m.is_dir())
+      && (self.path_manager.has_registered_descendants(path)
+        || self.path_manager.watchers.is_explicit_context(path))
+      && (appeared
+        || disk_removal
+        || (!exists && !scanned)
+        || self.path_manager.has_absent_context_below(path))
+      && !self.refresh_watches(path, disk_removal).await
+    {
+      return;
+    }
     let pending = if context.is_none() {
       self.path_manager.watchers.pending_change(path)
     } else {
@@ -397,7 +440,11 @@ impl EventProcessor {
       kind,
     });
     let mut recovered = Vec::new();
-    if appeared && path.is_dir() && !path.is_symlink() {
+    if appeared
+      && self.path_manager.has_registered_descendants(path)
+      && path.is_dir()
+      && !path.is_symlink()
+    {
       // On Linux, inotify adds a new directory's watch before emitting its
       // Create event, so files written before that watch existed are already
       // on disk; later writes produce their own events. On every backend, a
@@ -443,6 +490,19 @@ impl EventProcessor {
             directories.push(entry_path);
           }
         }
+      }
+      // The directory may have returned since the ancestor's first check.
+      // Install its watch and scan its contents before reporting the recovery.
+      let restored: Vec<_> = recovered
+        .iter()
+        .filter(|event| self.path_manager.is_absent_context(&event.path))
+        .map(|event| event.path.clone())
+        .collect();
+      if !restored.is_empty() {
+        if !self.refresh_watches(path, false).await {
+          return;
+        }
+        self.path_manager.scan_recovered_contexts(restored).await;
       }
     }
 

@@ -3,7 +3,7 @@ use rspack_paths::InternedPath;
 use crate::{WatchPattern, paths::PathAccessor};
 
 mod directories;
-mod root;
+pub(super) mod root;
 
 /// The `Analyzer` trait defines an interface for analyzing a [`PathAccessor`]
 /// and producing a set of [`WatchPattern`]s to be watched by the file system watcher.

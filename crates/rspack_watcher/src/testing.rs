@@ -51,6 +51,7 @@ pub fn begin_time_info_snapshot(
 
 pub struct DirectoryAnalyzer {
   paths: Arc<PathManager>,
+  recursive: crate::analyzer::root::WatcherRootAnalyzer,
   trigger: Arc<Trigger>,
   events: UnboundedReceiver<ResolvedEvents>,
 }
@@ -68,6 +69,7 @@ impl DirectoryAnalyzer {
     let trigger = Arc::new(Trigger::new(Arc::clone(&paths), tx));
     Self {
       paths,
+      recursive: Default::default(),
       trigger,
       events,
     }
@@ -125,6 +127,15 @@ impl DirectoryAnalyzer {
       .analyze(self.paths.access())
       .into_iter()
       .map(|pattern| (pattern.path, pattern.mode))
+      .collect()
+  }
+
+  pub fn recursive_roots(&self) -> FxHashSet<InternedPath> {
+    self
+      .recursive
+      .analyze(self.paths.access())
+      .into_iter()
+      .map(|pattern| pattern.path)
       .collect()
   }
 
