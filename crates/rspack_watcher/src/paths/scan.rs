@@ -1,5 +1,5 @@
 use std::{
-  path::PathBuf,
+  path::{Path, PathBuf},
   sync::{Arc, Mutex},
   time::SystemTime,
 };
@@ -9,7 +9,10 @@ use rspack_paths::{InternedPath, InternedPathSet};
 use rspack_util::time::system_time_to_millis;
 use tokio::sync::{Mutex as AsyncMutex, oneshot};
 
-use super::{ContextObservation, PathManager, is_absent};
+use super::{
+  PathManager,
+  entries::{ContextObservation, is_absent},
+};
 use crate::{
   observation::{ActiveWalk, Mutation, Observations, Scan},
   time::mtime_safe_time,
@@ -84,6 +87,62 @@ impl DirectoryScans {
 }
 
 impl PathManager {
+  // A directory walk can still update shared members while any original context covers them.
+  fn scan_has_subscription(
+    &self,
+    state: &Observations,
+    scan: &Scan,
+    directory: Option<&Path>,
+  ) -> bool {
+    let current = |context: &InternedPath| {
+      self.watchers.is_explicit_context(context) && state.same_subscription(scan, context)
+    };
+    current(&scan.root)
+      || directory.is_some_and(|dir| {
+        dir
+          .ancestors()
+          .map(InternedPath::from)
+          .any(|context| current(&context))
+      })
+  }
+
+  fn can_scan_children(&self, scan: &Scan, path: &InternedPath) -> bool {
+    let state = self.watchers.lock_observations();
+    self.scan_has_subscription(&state, scan, Some(path)) && state.covers_subtree(scan, path)
+  }
+
+  /// A scanned entry's metadata. `real_dir`, the real path of the directory
+  /// being scanned, is known only with `followSymlinks`; a link is then
+  /// followed like watchpack's scan does, except a dangling link, one into its
+  /// own directory, or one back above itself: those are recorded as
+  /// themselves (`lstat`).
+  fn scan_metadata(
+    real_dir: Option<&PathBuf>,
+    path: &InternedPath,
+  ) -> std::io::Result<(std::fs::Metadata, bool)> {
+    let own = std::fs::symlink_metadata(path)?;
+    let symlink = own.is_symlink();
+    let Some(real_dir) = real_dir.filter(|_| own.file_type().is_symlink()) else {
+      return Ok((own, symlink));
+    };
+    let Ok(target) = std::fs::canonicalize(path) else {
+      return Ok((own, symlink));
+    };
+    let into_own_directory = target.parent() == Some(real_dir.as_path());
+    let above_itself = path
+      .file_name()
+      .is_some_and(|name| real_dir.join(name).starts_with(&target));
+    if into_own_directory || above_itself {
+      return Ok((own, symlink));
+    }
+    // Like watchpack, only a link to a directory takes the target's metadata;
+    // a link to a file keeps its own mtime.
+    match std::fs::metadata(&target) {
+      Ok(metadata) if metadata.is_dir() => Ok((metadata, symlink)),
+      _ => Ok((own, symlink)),
+    }
+  }
+
   #[cfg(feature = "testing")]
   pub(crate) fn hold_scanned_file(
     self: &Arc<Self>,
