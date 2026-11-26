@@ -2,11 +2,8 @@ use std::path::Path;
 
 use rspack_paths::InternedPath;
 
-use super::{
-  PathManager, ScanSink,
-  time_info::{FileRecord, ReportedBaseline},
-};
-use crate::{observation::Mutation, time::mtime_accuracy, watcher_manager::MemberKind};
+use super::{PathManager, ScanSink, time_info::ReportedBaseline};
+use crate::{directory_watcher::FileObservation, observation::Mutation, time::mtime_accuracy};
 
 pub(super) fn is_absent(error: &std::io::Error) -> bool {
   matches!(
@@ -15,7 +12,7 @@ pub(super) fn is_absent(error: &std::io::Error) -> bool {
   )
 }
 
-pub(super) enum ContextObservation {
+pub(crate) enum ContextObservation {
   Scan { initial: bool },
   Event,
   Reported,
@@ -51,11 +48,11 @@ impl PathManager {
         if let Some(mtime) = mtime {
           mtime_accuracy(mtime);
         }
-        return self.watchers.add_member(path, MemberKind::Directory);
+        return self.watchers.set_directory(path);
       }
-      self.watchers.add_member(path, MemberKind::File);
-      matches!(origin, ContextObservation::Reported)
-        || mtime.is_none_or(|mtime| self.file_times.record(path).observe_member(mtime, &origin))
+      self
+        .watchers
+        .set_file_time(path, mtime, FileObservation::Member(origin))
     });
     (
       updated,
@@ -201,11 +198,8 @@ impl PathManager {
   /// survives later removals until the path reappears or is unregistered.
   fn remove_file_time(&self, path: &InternedPath, keep_file: bool) {
     let _index = self.lock_index();
-    if !keep_file {
-      self.file_times.clear(path, FileRecord::clear_present);
-    }
-    if self.watchers.remove_member(path).directory {
-      self.last_watch_events.remove(path);
+    if self.watchers.set_missing(path, keep_file).directory {
+      self.watchers.clear_event_time(path);
     }
     self.unlink_unrecorded(path);
   }
@@ -219,18 +213,16 @@ impl PathManager {
       if let Some((_, children)) = self.recorded_children.remove(&path) {
         pending.extend(children);
       }
-      if !keep_root_file || &path != dir {
-        self.file_times.clear(&path, FileRecord::clear_present);
-      }
-      self.watchers.remove_member(&path);
+      self
+        .watchers
+        .set_missing(&path, keep_root_file && &path == dir);
       if !self.watchers.is_explicit_context(&path) {
-        self.last_watch_events.remove(&path);
+        self.watchers.clear_event_time(&path);
       }
     }
     self.unlink_unrecorded(dir);
     for context in self.directories.all.iter() {
       if context.starts_with(dir.as_ref() as &Path) {
-        self.watchers.retire_directory_scan(&context);
         self.absent_directories.insert(context.clone());
       }
     }
@@ -285,13 +277,13 @@ impl PathManager {
         self.watchers.unsubscribe_parent(path);
         continue;
       }
-      let member = self.watchers.remove_member(path);
+      let member = self.watchers.set_missing(path, true);
       if member.file && !self.files.all.contains(path) && !self.missing.all.contains(path) {
         self.file_times.clear(path, |record| record.time = None);
         self.unlink_unrecorded(path);
       }
       if member.directory {
-        self.last_watch_events.remove(path);
+        self.watchers.clear_event_time(path);
         self.unlink_unrecorded(path);
       }
     }

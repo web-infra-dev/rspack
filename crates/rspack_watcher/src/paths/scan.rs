@@ -1,16 +1,15 @@
 use std::{
   path::{Path, PathBuf},
-  sync::{Arc, Mutex},
+  sync::Arc,
   time::SystemTime,
 };
 
-use futures::{StreamExt, stream};
+use futures::{StreamExt, stream::FuturesUnordered};
 use rspack_paths::{InternedPath, InternedPathSet};
 use rspack_util::time::system_time_to_millis;
-use tokio::sync::{Mutex as AsyncMutex, oneshot};
 
 use super::{
-  PathManager,
+  DirectoryScan, PathManager,
   entries::{ContextObservation, is_absent},
 };
 use crate::{
@@ -22,68 +21,11 @@ use crate::{
 pub(crate) type ScanSink = Arc<dyn Fn(InternedPath, ContextChange) + Send + Sync>;
 
 #[derive(Clone)]
-struct ScanRequest {
-  scan: Scan,
+pub(super) struct ScanRequest {
+  pub(super) scan: Scan,
   recovered: bool,
   changed_since: Option<u64>,
   sink: Option<ScanSink>,
-}
-
-type Children = Arc<[InternedPath]>;
-const MAX_METADATA_READS: usize = 16;
-
-#[derive(Default)]
-pub(crate) struct DirectoryScans {
-  reading: AsyncMutex<()>,
-  waiting: Mutex<Vec<(ScanRequest, oneshot::Sender<Children>)>>,
-}
-
-impl DirectoryScans {
-  // Requests made during an enumeration share the next one. Each keeps its
-  // own start time and subscriptions, and waits for the pass it requested.
-  async fn enumerate(
-    &self,
-    paths: &PathManager,
-    dir: &InternedPath,
-    real_dir: Option<&PathBuf>,
-    request: &ScanRequest,
-  ) -> Children {
-    loop {
-      let (tx, mut done) = oneshot::channel();
-      self
-        .waiting
-        .lock()
-        .expect("directory scan queue poisoned")
-        .push((request.clone(), tx));
-      tokio::select! {
-        biased;
-        result = &mut done => {
-          if let Ok(children) = result {
-            return children;
-          }
-          // The task running our pass was cancelled. Take part in the next pass.
-        }
-        _reading = self.reading.lock() => {
-          let waiting = std::mem::take(
-            &mut *self.waiting.lock().expect("directory scan queue poisoned"),
-          );
-          let (requests, replies): (Vec<_>, Vec<_>) = waiting
-            .into_iter()
-            .filter(|(_, tx)| !tx.is_closed())
-            .unzip();
-          if !requests.is_empty() {
-            let children: Children = paths.read_directory(dir, real_dir, &requests).await.into();
-            for reply in replies {
-              let _ = reply.send(Arc::clone(&children));
-            }
-          }
-          if let Ok(children) = done.await {
-            return children;
-          }
-        }
-      }
-    }
-  }
 }
 
 impl PathManager {
@@ -106,41 +48,9 @@ impl PathManager {
       })
   }
 
-  fn can_scan_children(&self, scan: &Scan, path: &InternedPath) -> bool {
+  pub(super) fn can_scan_children(&self, scan: &Scan, path: &InternedPath) -> bool {
     let state = self.watchers.lock_observations();
-    self.scan_has_subscription(&state, scan, Some(path)) && state.covers_subtree(scan, path)
-  }
-
-  /// A scanned entry's metadata. `real_dir`, the real path of the directory
-  /// being scanned, is known only with `followSymlinks`; a link is then
-  /// followed like watchpack's scan does, except a dangling link, one into its
-  /// own directory, or one back above itself: those are recorded as
-  /// themselves (`lstat`).
-  fn scan_metadata(
-    real_dir: Option<&PathBuf>,
-    path: &InternedPath,
-  ) -> std::io::Result<(std::fs::Metadata, bool)> {
-    let own = std::fs::symlink_metadata(path)?;
-    let symlink = own.is_symlink();
-    let Some(real_dir) = real_dir.filter(|_| own.file_type().is_symlink()) else {
-      return Ok((own, symlink));
-    };
-    let Ok(target) = std::fs::canonicalize(path) else {
-      return Ok((own, symlink));
-    };
-    let into_own_directory = target.parent() == Some(real_dir.as_path());
-    let above_itself = path
-      .file_name()
-      .is_some_and(|name| real_dir.join(name).starts_with(&target));
-    if into_own_directory || above_itself {
-      return Ok((own, symlink));
-    }
-    // Like watchpack, only a link to a directory takes the target's metadata;
-    // a link to a file keeps its own mtime.
-    match std::fs::metadata(&target) {
-      Ok(metadata) if metadata.is_dir() => Ok((metadata, symlink)),
-      _ => Ok((own, symlink)),
-    }
+    self.scan_has_subscription(&state, scan, Some(path)) && state.covers_subtree(&scan.walk, path)
   }
 
   #[cfg(feature = "testing")]
@@ -159,21 +69,24 @@ impl PathManager {
       changed_since: None,
       sink: Some(sink),
     };
-    let metadata = Self::scan_metadata(None, &path);
+    let metadata = DirectoryScan::metadata(None, &path);
     let paths = Arc::clone(self);
     move || paths.finish_scanned_entry(path, metadata, None, &[request], &mut Vec::new())
   }
 
+  #[cfg(feature = "testing")]
   pub(crate) async fn scan_contexts(&self, start_time: SystemTime, sink: ScanSink) {
+    self.added_context_scan(start_time, sink).run(self).await;
+  }
+
+  pub(crate) fn added_context_scan(&self, start_time: SystemTime, sink: ScanSink) -> ContextScan {
     let roots = self.directories.added.iter().map(|p| p.clone()).collect();
-    self
-      .scan_below(
-        roots,
-        false,
-        Some(system_time_to_millis(start_time)),
-        Some(sink),
-      )
-      .await;
+    self.prepare_context_scan(
+      roots,
+      false,
+      Some(system_time_to_millis(start_time)),
+      Some(sink),
+    )
   }
 
   pub(super) async fn scan_below(
@@ -183,138 +96,81 @@ impl PathManager {
     changed_since: Option<u64>,
     sink: Option<ScanSink>,
   ) {
-    if roots.is_empty() {
-      return;
-    }
-    let walk = ActiveWalk::start(&self.watchers.observations);
-    let mut pending: Vec<_> = roots
-      .into_iter()
-      .filter_map(|dir| {
-        let root = dir
-          .ancestors()
-          .map(InternedPath::from)
-          .find(|p| self.watchers.is_explicit_context(p))?;
-        let request = ScanRequest {
-          scan: Scan {
-            walk: Arc::clone(&walk),
-            root,
-          },
-          recovered,
-          changed_since,
-          sink: sink.clone(),
-        };
-        Some((dir, Vec::new(), request))
-      })
-      .collect();
-    let mut visited = InternedPathSet::default();
-    while let Some((dir, mut ancestry, mut request)) = pending.pop() {
-      if !self.can_scan_children(&request.scan, &dir) || !visited.insert(dir.clone()) {
-        continue;
-      }
-      if self.follow_symlinks {
-        match std::fs::canonicalize(&dir) {
-          Ok(real) if ancestry.contains(&real) => continue,
-          Ok(real) => ancestry.push(real),
-          Err(error) => {
-            if is_absent(&error) {
-              self.scan_missing(&dir, true, std::slice::from_ref(&request));
-            }
-            continue;
-          }
-        }
-      }
-      let Some(queue) = self.watchers.directory_scans(&dir) else {
-        continue;
-      };
-      let children = queue.enumerate(self, &dir, ancestry.last(), &request).await;
-      request.recovered = false;
-      pending.extend(
-        children
-          .iter()
-          .map(|path| (path.clone(), ancestry.clone(), request.clone())),
-      );
-    }
+    self
+      .prepare_context_scan(roots, recovered, changed_since, sink)
+      .run(self)
+      .await;
   }
 
-  async fn read_directory(
+  fn prepare_context_scan(
     &self,
-    dir: &InternedPath,
-    real_dir: Option<&PathBuf>,
-    requests: &[ScanRequest],
-  ) -> Vec<InternedPath> {
-    let covered = || {
-      requests
-        .iter()
-        .any(|r| self.can_scan_children(&r.scan, dir))
-    };
-    if !covered() {
-      return Vec::new();
+    roots: Vec<InternedPath>,
+    recovered: bool,
+    changed_since: Option<u64>,
+    sink: Option<ScanSink>,
+  ) -> ContextScan {
+    if roots.is_empty() {
+      return ContextScan(Vec::new());
     }
-    let mut unseen = self.watchers.member_paths(dir);
-    let entries = match std::fs::read_dir(dir) {
-      Ok(entries) => entries,
-      Err(error) => {
-        if is_absent(&error) {
-          self.scan_missing(dir, true, requests);
-        }
-        return Vec::new();
-      }
-    };
-    let mut paths = Vec::new();
-    let mut complete = true;
-    for entry in entries {
-      match entry {
-        Ok(entry) => {
-          let path = InternedPath::from(entry.path());
-          unseen.remove(&path);
-          paths.push(path);
-        }
-        Err(_) => complete = false,
-      }
-    }
-    if complete {
-      for path in unseen {
-        self.scan_missing(&path, false, requests);
-      }
-    }
-
-    // Keep ignored calls ordered so a retired context stops visiting siblings.
-    // Metadata reads already in flight can finish and notify independently.
-    let names = stream::unfold(paths.into_iter(), |mut names| async move {
-      for path in names.by_ref() {
-        if !covered() {
-          break;
-        }
-        if !self.is_ignored_path(path.as_path()).await {
-          return Some((path, names));
-        }
-      }
-      None
-    });
-    let mut reads = names
-      .map(|path| {
-        let real_dir = real_dir.cloned();
-        tokio::task::spawn_blocking(move || {
-          let metadata = Self::scan_metadata(real_dir.as_ref(), &path);
-          (path, metadata)
+    let walk = ActiveWalk::start(&self.watchers.observations);
+    ContextScan(
+      roots
+        .into_iter()
+        .filter_map(|dir| {
+          let root = dir
+            .ancestors()
+            .map(InternedPath::from)
+            .find(|p| self.watchers.is_explicit_context(p))?;
+          Some((
+            dir,
+            ScanRequest {
+              scan: Scan {
+                walk: Arc::clone(&walk),
+                root,
+              },
+              recovered,
+              changed_since,
+              sink: sink.clone(),
+            },
+          ))
         })
-      })
-      .buffer_unordered(MAX_METADATA_READS)
-      .boxed();
-    let mut children = Vec::new();
-    while let Some(read) = reads.next().await {
-      let (path, metadata) = read.expect("directory metadata task panicked");
-      self.finish_scanned_entry(path, metadata, real_dir, requests, &mut children);
+        .collect(),
+    )
+  }
+
+  async fn scan_directory(
+    &self,
+    dir: InternedPath,
+    mut ancestry: Vec<PathBuf>,
+    mut request: ScanRequest,
+  ) -> Option<(Arc<[InternedPath]>, Vec<PathBuf>, ScanRequest)> {
+    if !self.can_scan_children(&request.scan, &dir) {
+      return None;
     }
-    children
+    if self.follow_symlinks {
+      match std::fs::canonicalize(&dir) {
+        Ok(real) if ancestry.contains(&real) => return None,
+        Ok(real) => ancestry.push(real),
+        Err(error) => {
+          if is_absent(&error) {
+            self.scan_missing(&dir, true, std::slice::from_ref(&request));
+          }
+          return None;
+        }
+      }
+    }
+    let queue = self.watchers.directory_scan(&dir)?;
+    let children = queue.enumerate(self, ancestry.last(), &request).await;
+    request.recovered = false;
+    Some((children, ancestry, request))
   }
 
   fn applies_to(&self, state: &Observations, request: &ScanRequest, path: &InternedPath) -> bool {
     self.scan_has_subscription(state, &request.scan, path.parent())
-      && state.accepts(&request.scan, path)
+      && state.accepts(&request.scan.walk, path)
   }
 
-  fn finish_scanned_entry(
+  pub(super) fn finish_scanned_entry(
     &self,
     path: InternedPath,
     result: std::io::Result<(std::fs::Metadata, bool)>,
@@ -327,9 +183,9 @@ impl PathManager {
     // newer mtime without updating membership. Recheck both together.
     let result = if requests
       .iter()
-      .any(|r| state.needs_metadata_recheck(&r.scan, &path))
+      .any(|r| state.needs_metadata_recheck(&r.scan.walk, &path))
     {
-      Self::scan_metadata(real_dir, &path)
+      DirectoryScan::metadata(real_dir, &path)
     } else {
       result
     };
@@ -411,7 +267,7 @@ impl PathManager {
     }
   }
 
-  fn scan_missing(&self, path: &InternedPath, root: bool, requests: &[ScanRequest]) {
+  pub(super) fn scan_missing(&self, path: &InternedPath, root: bool, requests: &[ScanRequest]) {
     let mut state = self.watchers.lock_observations();
     let mut readers = requests
       .iter()
@@ -431,7 +287,7 @@ impl PathManager {
     let recheck = directory
       || readers
         .clone()
-        .any(|r| state.needs_metadata_recheck(&r.scan, path));
+        .any(|r| state.needs_metadata_recheck(&r.scan.walk, path));
     if recheck && !std::fs::symlink_metadata(path).is_err_and(|e| is_absent(&e)) {
       return;
     }
@@ -461,6 +317,29 @@ impl PathManager {
     state.observe_live(path, Mutation::Subtree);
     for (sink, change) in notifications {
       sink(path.clone(), change);
+    }
+  }
+}
+
+pub(crate) struct ContextScan(Vec<(InternedPath, ScanRequest)>);
+
+impl ContextScan {
+  pub(crate) async fn run(self, paths: &PathManager) {
+    let mut visited = InternedPathSet::default();
+    let mut pending = FuturesUnordered::new();
+    for (dir, request) in self.0 {
+      if visited.insert(dir.clone()) {
+        pending.push(paths.scan_directory(dir, Vec::new(), request));
+      }
+    }
+    while let Some(result) = pending.next().await {
+      if let Some((children, ancestry, request)) = result {
+        for child in children.iter() {
+          if visited.insert(child.clone()) {
+            pending.push(paths.scan_directory(child.clone(), ancestry.clone(), request.clone()));
+          }
+        }
+      }
     }
   }
 }

@@ -115,18 +115,20 @@ impl PathManager {
     match entry {
       ScannedEntry::Directory(Some(mtime)) if Some(mtime) == scanned_mtime => {
         self.missing.with_scan_subscriber(path, recipients, || {
-          let mut record = self.file_times.record(path);
-          if record.time.is_some_and(|time| time.mtime == mtime) {
-            record.report_change(mtime);
-          }
+          self.file_times.update(path, |record| {
+            if record.time.is_some_and(|time| time.mtime == mtime) {
+              record.report_change(mtime);
+            }
+          })
         });
       }
       ScannedEntry::Missing { .. } => {
         let mark_absent = || {
-          let mut record = self.file_times.record(path);
-          if record.time.is_none() {
-            record.reported = ReportedBaseline::Absent;
-          }
+          self.file_times.update(path, |record| {
+            if record.time.is_none() {
+              record.reported = ReportedBaseline::Absent;
+            }
+          })
         };
         self
           .files

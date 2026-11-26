@@ -1,10 +1,13 @@
 use std::{
   collections::VecDeque,
-  sync::{Arc, Mutex},
+  sync::{Arc, Mutex, Weak},
 };
 
 use rspack_paths::{InternedPath, InternedPathDashSet};
-use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
+use tokio::sync::{
+  mpsc::{UnboundedSender, unbounded_channel},
+  oneshot,
+};
 
 use super::{FsEvent, FsEventKind};
 #[cfg(test)]
@@ -12,8 +15,10 @@ use crate::watcher_manager::DirectorySubscriptions;
 use crate::{
   EventBatch, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
+  executor::{Delivery, WatchCycle},
   observation::Mutation,
-  paths::{PathManager, ScanSink},
+  paths::{Backfill, PathManager, ScanSink},
+  paused::BufferedEvent,
   watcher_manager::{ContextChange, ContextLookup, WatcherManager},
 };
 
@@ -144,7 +149,7 @@ struct EventProcessor {
   /// Shared reference to the path register, which tracks watched files/directories/missing.
   path_manager: Arc<PathManager>,
   /// Sender for communicating file system events to the watcher executor.
-  tx: UnboundedSender<ResolvedEvents>,
+  output: Output,
   analyzer: Arc<RecommendedAnalyzer>,
   scan_sink: ScanSink,
 }
@@ -170,11 +175,24 @@ enum Origin {
   /// context's initial scan found changed since the start time, or a
   /// registered path the scanner backfills. Already judged a change, it is
   /// never dropped as a duplicate or as attribute-only.
-  Scan,
+  Scan(Option<Backfill>),
+}
+
+pub(crate) struct Input {
+  path: InternedPath,
+  kind: FsEventKind,
+  origin: Origin,
+}
+
+enum Output {
+  Watch(Arc<Delivery>),
+  #[cfg(any(test, feature = "testing"))]
+  Channel(UnboundedSender<ResolvedEvents>),
 }
 
 enum Work {
-  Input(InternedPath, FsEventKind, Origin),
+  Input(Input),
+  Update(oneshot::Receiver<WatchCycle>),
   Notify(InternedPath, ContextChange),
 }
 
@@ -191,7 +209,11 @@ struct EventQueue {
 impl EventQueue {
   fn push(&self, path: InternedPath, kind: FsEventKind, origin: Origin) {
     let mut waiting = self.after_input.lock().expect("watch input queue poisoned");
-    if self.tx.send(Work::Input(path, kind, origin)).is_ok() {
+    if self
+      .tx
+      .send(Work::Input(Input { path, kind, origin }))
+      .is_ok()
+    {
       waiting.push_back(Vec::new());
     }
   }
@@ -213,8 +235,23 @@ impl EventQueue {
 }
 
 impl Trigger {
-  /// Create a new `Trigger` with the given path register and event sender.
-  pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<ResolvedEvents>) -> Self {
+  #[cfg(any(test, feature = "testing"))]
+  pub(crate) fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<ResolvedEvents>) -> Self {
+    Self::with_output(path_manager, Output::Channel(tx))
+  }
+
+  pub(crate) fn with_delivery(paths: Arc<PathManager>, delivery: Arc<Delivery>) -> Self {
+    Self::with_output(paths, Output::Watch(delivery))
+  }
+
+  /// Queue the subscription boundary without waiting on an in-flight JS ignored predicate.
+  pub(crate) fn begin_watch(&self) -> oneshot::Sender<WatchCycle> {
+    let (resume, ready) = oneshot::channel();
+    let _ = self.queue.tx.send(Work::Update(ready));
+    resume
+  }
+
+  fn with_output(path_manager: Arc<PathManager>, output: Output) -> Self {
     let (tx_work, mut incoming) = unbounded_channel();
     let queue = EventQueue {
       tx: tx_work,
@@ -226,7 +263,7 @@ impl Trigger {
     let processor = EventProcessor {
       scan_sink: Arc::clone(&scan_sink),
       path_manager,
-      tx,
+      output,
       analyzer: Arc::clone(&analyzer),
     };
 
@@ -239,6 +276,7 @@ impl Trigger {
       .name("rspack-fs-event-filter".to_string())
       .spawn(move || {
         let runtime = tokio::runtime::Builder::new_current_thread()
+          .max_blocking_threads(crate::paths::DirectoryScan::MAX_METADATA_READS)
           .enable_all()
           .build()
           .expect("create watcher event filter runtime");
@@ -246,8 +284,17 @@ impl Trigger {
         runtime.block_on(async move {
           while let Some(work) = incoming.recv().await {
             match work {
-              Work::Input(path, kind, origin) => {
-                processor.process(&path, kind, origin).await;
+              Work::Update(ready) => {
+                if let Ok(cycle) = ready.await
+                  && let Output::Watch(delivery) = &processor.output
+                  && delivery.finish_watch(cycle, &processor.path_manager)
+                {
+                  processor.replay(delivery, cycle).await;
+                }
+              }
+              Work::Input(input) => {
+                let events = processor.process(&input, false, &[]).await;
+                processor.publish(input, events);
                 let checks = after_input
                   .lock()
                   .expect("watch input queue poisoned")
@@ -295,26 +342,14 @@ impl Trigger {
   pub(crate) fn on_scanned_change(&self, path: &InternedPath) {
     self
       .queue
-      .push(path.clone(), FsEventKind::Change, Origin::Scan);
+      .push(path.clone(), FsEventKind::Change, Origin::Scan(None));
   }
 
-  /// A sender for the scanner's backfilled events. They queue with the live
-  /// ones, so whichever is processed last for a path ends as its state on
-  /// disk: a removal backfilled for a file back on disk by then is a change.
-  pub(crate) fn backfill_sender(&self) -> UnboundedSender<EventBatch> {
-    let (tx, mut batches) = unbounded_channel::<EventBatch>();
+  pub(crate) fn backfill_sink(&self) -> crate::scanner::BackfillSink {
     let queue = self.queue.clone();
-    std::thread::Builder::new()
-      .name("rspack-fs-scan-backfill".to_string())
-      .spawn(move || {
-        while let Some(batch) = batches.blocking_recv() {
-          for event in batch {
-            queue.push(event.path, event.kind, Origin::Scan);
-          }
-        }
-      })
-      .expect("spawn watcher scan backfill thread");
-    tx
+    Arc::new(move |event, backfill| {
+      queue.push(event.path, event.kind, Origin::Scan(Some(backfill)))
+    })
   }
 }
 
@@ -332,8 +367,21 @@ impl EventProcessor {
   /// If the file `/path/to/file.js` is changed, the trigger will send an event for the following paths:
   /// - `/path`
   /// - `/path/to`
-  async fn process(&self, path: &InternedPath, kind: FsEventKind, origin: Origin) {
-    let scanned = matches!(origin, Origin::Scan);
+  async fn process(
+    &self,
+    input: &Input,
+    detected: bool,
+    previous_recoveries: &[FsEvent],
+  ) -> Option<ResolvedEvents> {
+    let kind = input.kind;
+    let origin = &input.origin;
+    let path = &input.path;
+    if let Origin::Scan(Some(backfill)) = origin
+      && !backfill.active(&self.path_manager)
+    {
+      return None;
+    }
+    let scanned = matches!(origin, Origin::Scan(_));
     let appeared = matches!(origin, Origin::Disk { appeared: true })
       || (matches!(origin, Origin::Injected) && kind == FsEventKind::Create);
     // Drop events inside ignored subtrees. The recursive-root watch delivers
@@ -342,7 +390,7 @@ impl EventProcessor {
     // a spurious rebuild.
     // A scan's event was filtered when the scan found the path.
     if !scanned && self.path_manager.is_ignored_path(path.as_ref()).await {
-      return;
+      return None;
     }
 
     // A watched path that no longer exists on disk is a removal, regardless of
@@ -363,7 +411,7 @@ impl EventProcessor {
     let pending = self.path_manager.watchers.pending_change(path);
     let metadata = if disk {
       let Ok(observation) = self.path_manager.read_disk_entry(path, true) else {
-        return;
+        return None;
       };
       observation
     } else {
@@ -398,8 +446,9 @@ impl EventProcessor {
     if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_watched_path))
       && !self.path_manager.has_mtime_changed(path)
       && !scanned
+      && !detected
     {
-      return;
+      return None;
     }
 
     if kind != FsEventKind::Remove
@@ -407,8 +456,9 @@ impl EventProcessor {
         .path_manager
         .set_context_entry(path, scanned || is_watched_path, Some(&self.scan_sink))
         .await
+      && !detected
     {
-      return;
+      return None;
     }
     self.path_manager.observe_live(path, || {
       self.path_manager.set_last_watch_events(path);
@@ -423,6 +473,12 @@ impl EventProcessor {
 
     let finder = self.finder();
     let mut associated_event = finder.find_associated_event(path, kind);
+    if let Origin::Scan(Some(backfill)) = origin {
+      if !backfill.active(&self.path_manager) {
+        return None;
+      }
+      associated_event.retain(|(path, _)| backfill.covers(&self.path_manager, path));
+    }
     // A directory above changes with `path`, unless it is gone itself: an
     // event below it may arrive after the directory's own removal.
     // Its records go with it, as for `path` itself.
@@ -477,6 +533,7 @@ impl EventProcessor {
           if is_registered {
             if finder.files.contains(&entry_path)
               && !self.path_manager.has_mtime_changed(&entry_path)
+              && !previous_recoveries.iter().any(|e| e.path == entry_path)
             {
               continue;
             }
@@ -510,7 +567,12 @@ impl EventProcessor {
         self.analyzer.invalidate_path(associated);
       }
     }
-    self.trigger_events(associated_event, raw, recovered, context_removal);
+    Some(Self::resolved(
+      associated_event,
+      raw,
+      recovered,
+      context_removal,
+    ))
   }
 
   fn deliver_scan(&self, path: &InternedPath, change: ContextChange) {
@@ -547,7 +609,11 @@ impl EventProcessor {
         .iter()
         .any(|sub| sub.as_ref() == dep && self.path_manager.is_scanned_file_recipient(sub))
     });
-    self.trigger_events(deps, raw, Vec::new(), context_removal);
+    self.send(
+      None,
+      Some(Self::resolved(deps, raw, Vec::new(), context_removal)),
+      subscribers.iter().map(Arc::downgrade).collect(),
+    );
   }
 
   /// Helper to construct a `DependencyFinder` for the current path register state.
@@ -564,27 +630,72 @@ impl EventProcessor {
     }
   }
 
-  /// Sends a group of file system events for the given path and event kind.
-  /// If the event is successfully sent, it returns true; otherwise, it returns false.
-  fn trigger_events(
-    &self,
+  fn resolved(
     events: Vec<(InternedPath, FsEventKind)>,
     raw: Option<FsEvent>,
     recovered: EventBatch,
     context_removal: Option<InternedPath>,
-  ) -> bool {
-    self
-      .tx
-      .send(ResolvedEvents {
-        dependencies: events
-          .into_iter()
-          .map(|(path, kind)| FsEvent { path, kind })
-          .collect(),
-        raw,
-        recovered,
-        context_removal,
-      })
-      .is_ok()
+  ) -> ResolvedEvents {
+    ResolvedEvents {
+      dependencies: events
+        .into_iter()
+        .map(|(path, kind)| FsEvent { path, kind })
+        .collect(),
+      raw,
+      recovered,
+      context_removal,
+    }
+  }
+
+  fn publish(&self, input: Input, events: Option<ResolvedEvents>) {
+    match input.origin {
+      Origin::Scan(Some(backfill)) => self.send(None, events, backfill.recipients),
+      Origin::Scan(None) => self.send(None, events, Vec::new()),
+      _ => self.send(Some(input), events, Vec::new()),
+    }
+  }
+
+  fn send(
+    &self,
+    input: Option<Input>,
+    events: Option<ResolvedEvents>,
+    subscribers: Vec<Weak<InternedPath>>,
+  ) {
+    match &self.output {
+      Output::Watch(delivery) => delivery.publish(input, events, subscribers),
+      #[cfg(any(test, feature = "testing"))]
+      Output::Channel(tx) => {
+        if let Some(events) = events {
+          let _ = tx.send(events);
+        }
+      }
+    }
+  }
+
+  async fn replay(&self, delivery: &Delivery, cycle: WatchCycle) {
+    while let Some(event) = delivery.next_replay(cycle) {
+      let events = match event {
+        BufferedEvent::Input {
+          input,
+          detected,
+          recovered,
+        } => self.process(&input, detected, &recovered).await,
+        BufferedEvent::Scan {
+          events,
+          subscribers,
+        } => {
+          let mut events = (*events).clone();
+          events.retain_dependencies(|event| {
+            subscribers
+              .iter()
+              .filter_map(|s| s.upgrade())
+              .any(|s| *s == event.path && self.path_manager.current_subscriber(&s))
+          });
+          Some(events)
+        }
+      };
+      delivery.complete_replay(cycle, events);
+    }
   }
 }
 #[cfg(test)]

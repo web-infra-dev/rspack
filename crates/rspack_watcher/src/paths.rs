@@ -1,27 +1,30 @@
+mod directory_scan;
 mod entries;
+mod registration;
 mod scan;
 mod scan_events;
+pub(crate) use registration::{Backfill, Registration};
 mod time_info;
-
+mod update;
 use std::{
   fmt::Debug,
   ops::Deref,
-  path::{Path, PathBuf},
+  path::Path,
   sync::{Arc, OnceLock, Weak},
 };
 
 use dashmap::setref::multiple::RefMulti;
+pub(crate) use directory_scan::DirectoryScan;
+pub(crate) use entries::ContextObservation;
 use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
-pub(crate) use scan::{DirectoryScans, ScanSink};
+pub(crate) use scan::ScanSink;
+pub(crate) use time_info::FileRecord;
 use time_info::FileTimes;
-pub(crate) use time_info::disk_mtime;
+use update::PathUpdater;
 
 use super::{FsWatcherIgnored, ignored::IgnoredMatcher};
-use crate::{
-  observation::Mutation,
-  watcher_manager::{MemberKind, WatcherManager},
-};
+use crate::{observation::Mutation, watcher_manager::WatcherManager};
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
@@ -119,92 +122,6 @@ impl<'a> PathAccessor<'a> {
   }
 }
 
-/// `PathUpdater` is used to update collections of registered paths (files, directories, and missing paths)
-/// by specifying which paths have been added and which have been removed. It holds vectors of paths to be
-/// added and removed, and provides functionality to apply these changes to a path tracker. This struct
-/// facilitates batch updates to the path sets, ensuring that additions and removals are processed efficiently.
-struct PathUpdater<'a> {
-  pub added: Vec<InternedPath>,
-  pub removed: Vec<InternedPath>,
-  base_dir: PathBuf,
-  contexts: Option<&'a WatcherManager>,
-}
-
-impl<Added, Removed> From<(Added, Removed)> for PathUpdater<'_>
-where
-  Added: Iterator<Item = InternedPath>,
-  Removed: Iterator<Item = InternedPath>,
-{
-  fn from((added, removed): (Added, Removed)) -> Self {
-    Self {
-      added: added.collect(),
-      removed: removed.collect(),
-      base_dir: std::env::current_dir().unwrap_or_default(),
-      contexts: None,
-    }
-  }
-}
-
-impl<'a> PathUpdater<'a> {
-  fn with_contexts(mut self, contexts: &'a WatcherManager) -> Self {
-    self.contexts = Some(contexts);
-    self
-  }
-
-  /// Update the paths in the given set. Returns the paths it newly holds and
-  /// those it no longer does.
-  async fn update(
-    self,
-    watch_tracker: &PathTracker,
-    ignored: &IgnoredMatcher,
-  ) -> Result<(Vec<InternedPath>, Vec<InternedPath>)> {
-    let added_paths = self.added;
-    let removed_paths = self.removed;
-    let mut registered = Vec::new();
-    let mut unregistered = Vec::new();
-
-    for added in added_paths {
-      // Absolutize before the ignored check so registration filters on the
-      // same absolute path the watcher reports for events.
-      let added = if added.is_absolute() {
-        added
-      } else {
-        InternedPath::from(self.base_dir.join(added.as_ref()))
-      };
-
-      // Skip ignored paths AND anything inside an ignored directory.
-      if ignored
-        .is_ignored(added.to_str().expect("Path should be valid UTF-8"))
-        .await
-      {
-        continue;
-      }
-
-      if watch_tracker.add(added.clone()) {
-        if let Some(contexts) = self.contexts {
-          contexts.subscribe_context(&added);
-        }
-        registered.push(added);
-      }
-    }
-
-    for removed in removed_paths {
-      let removed = if removed.is_absolute() {
-        removed
-      } else {
-        InternedPath::from(self.base_dir.join(removed.as_ref()))
-      };
-      if watch_tracker.remove(removed.clone()) {
-        if let Some(contexts) = self.contexts {
-          contexts.unsubscribe_context(&removed);
-        }
-        unregistered.push(removed);
-      }
-    }
-    Ok((registered, unregistered))
-  }
-}
-
 #[derive(Debug, Default)]
 /// `PathTracker` is responsible for tracking the state of file system paths for the watcher.
 ///
@@ -283,7 +200,6 @@ impl PathTracker {
 }
 
 /// `PathManager` is responsible for managing the set of files, directories, and missing paths.
-#[derive(Default)]
 pub(crate) struct PathManager {
   files: PathTracker,
   directories: PathTracker,
@@ -293,12 +209,6 @@ pub(crate) struct PathManager {
   /// members. Only explicit dependencies also need an event baseline.
   /// See: https://gist.github.com/stormslowly/ed758500de6f23211fd63b39eba5ed07
   file_times: FileTimes,
-  /// watchpack's per-`DirectoryWatcher` `lastWatchEvent`: when an event last
-  /// reached each registered or discovered context (its own or a
-  /// descendant's), in epoch millis. Like watchpack it starts at 0 (absent)
-  /// and only events advance it; a context's safe time is the max of it and
-  /// the safe times of the files below.
-  last_watch_events: InternedPathDashMap<u64>,
   pub(super) watchers: WatcherManager,
   /// Every directory above a registered path: a removal of one of them may
   /// have taken registered records, or a registered context, with it. Each
@@ -324,17 +234,23 @@ pub(crate) struct PathManager {
   follow_symlinks: bool,
 }
 
+impl Default for PathManager {
+  fn default() -> Self {
+    Self::new(FsWatcherIgnored::default())
+  }
+}
+
 impl PathManager {
   /// Create a new `PathManager` with an optional ignored paths filter.
   pub fn new(ignored: FsWatcherIgnored) -> Self {
+    let watchers = WatcherManager::default();
     Self {
       files: PathTracker::default(),
       directories: PathTracker::default(),
       missing: PathTracker::default(),
       ignored: IgnoredMatcher::new(ignored),
-      file_times: FileTimes::default(),
-      last_watch_events: InternedPathDashMap::default(),
-      watchers: WatcherManager::default(),
+      file_times: FileTimes(Arc::clone(&watchers.directories)),
+      watchers,
       registered_ancestors: InternedPathDashMap::default(),
       absent_directories: InternedPathDashSet::default(),
       recorded_children: InternedPathDashMap::default(),
@@ -432,7 +348,7 @@ impl PathManager {
   fn holds_record(&self, path: &InternedPath) -> bool {
     self.file_times.get(path).is_some()
       || self.watchers.has_member(path, |_| true)
-      || self.last_watch_events.contains_key(path)
+      || self.watchers.event_time(path).is_some()
   }
 
   /// `path` was registered: count it in its directory, and each directory
@@ -500,22 +416,24 @@ impl PathManager {
   ) -> Result<()> {
     let mut registered = Vec::new();
     let mut unregistered = Vec::new();
-    for (paths, tracker) in [
-      (PathUpdater::from(files), &self.files),
-      (
-        PathUpdater::from(directories).with_contexts(&self.watchers),
-        &self.directories,
-      ),
-      (PathUpdater::from(missing), &self.missing),
+    for (paths, tracker, context) in [
+      (PathUpdater::from(files), &self.files, false),
+      (PathUpdater::from(directories), &self.directories, true),
+      (PathUpdater::from(missing), &self.missing, false),
     ] {
-      let (added, removed) = paths.update(tracker, &self.ignored).await?;
+      let (added, removed) = paths
+        .with_manager(&self.watchers, context)
+        .update(tracker, &self.ignored)
+        .await?;
       registered.extend(added);
       unregistered.extend(removed);
     }
     for path in &registered {
+      self.watchers.register_child(path);
       self.retain_registered_ancestors(path);
     }
     for path in &unregistered {
+      self.watchers.unregister_child(path);
       self.release_registered_ancestors(path);
     }
 
@@ -553,9 +471,9 @@ impl PathManager {
       // forgotten, so it is scanned as a new directory when it comes back.
       let absent = self.absent_directories.remove(dir).is_some();
       if !absent && self.is_below_context(dir) {
-        self.record(dir, || self.watchers.add_member(dir, MemberKind::Directory));
+        self.record(dir, || self.watchers.set_directory(dir));
       } else {
-        self.last_watch_events.remove(dir);
+        self.watchers.clear_event_time(dir);
       }
       self.forget_context_entries_under(dir);
     }

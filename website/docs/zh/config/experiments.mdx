@@ -239,6 +239,8 @@ export default {
 
 启用 `nativeWatcher` 后，Rspack 将使用 Rust Native 文件系统监听文件变化，实现增量监听文件变更能力，这提供更好的性能和稳定性。
 
+原生监听器暂停时会缓存文件系统事件。下一轮监听先更新文件和目录订阅，再向当前订阅者发送待处理的变更。构建已经消费过的同一依赖变更只交付一次。
+
 ```js title="rspack.config.mjs"
 export default {
   watchOptions: {

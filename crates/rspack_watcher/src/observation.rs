@@ -71,16 +71,25 @@ impl Observations {
     !self.active[&scan.walk.id].subscriptions.contains(context)
   }
 
-  pub(super) fn needs_metadata_recheck(&self, scan: &Scan, path: &InternedPath) -> bool {
-    self.active[&scan.walk.id].metadata_rechecks.contains(path)
+  pub(super) fn needs_metadata_recheck(&self, walk: &ActiveWalk, path: &InternedPath) -> bool {
+    self.active[&walk.id].metadata_rechecks.contains(path)
   }
 
-  pub(super) fn accepts(&self, scan: &Scan, path: &InternedPath) -> bool {
-    !self.active[&scan.walk.id].entries.contains(path) && self.covers_subtree(scan, path)
+  pub(super) fn take_metadata_recheck(&mut self, walk: &ActiveWalk, path: &InternedPath) -> bool {
+    self
+      .active
+      .get_mut(&walk.id)
+      .expect("active observation")
+      .metadata_rechecks
+      .remove(path)
   }
 
-  pub(super) fn covers_subtree(&self, scan: &Scan, path: &InternedPath) -> bool {
-    let invalid = &self.active[&scan.walk.id].subtrees;
+  pub(super) fn accepts(&self, walk: &ActiveWalk, path: &InternedPath) -> bool {
+    !self.active[&walk.id].entries.contains(path) && self.covers_subtree(walk, path)
+  }
+
+  pub(super) fn covers_subtree(&self, walk: &ActiveWalk, path: &InternedPath) -> bool {
+    let invalid = &self.active[&walk.id].subtrees;
     invalid.is_empty()
       || !path
         .ancestors()

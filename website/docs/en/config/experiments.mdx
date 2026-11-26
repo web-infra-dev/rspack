@@ -239,6 +239,8 @@ If you encounter performance issues with the default watcher, you can try enabli
 
 After enabling `nativeWatcher`, Rspack will use the Rust Native file system to monitor file changes, enabling incremental file change detection, which provides better performance and stability.
 
+While the native watcher is paused, it buffers file system events. The next watch cycle applies its file and directory subscriptions before delivering pending changes. A build that has already consumed a change for a dependency receives it only once.
+
 ```js title="rspack.config.mjs"
 export default {
   watchOptions: {
