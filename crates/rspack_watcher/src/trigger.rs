@@ -49,36 +49,38 @@ impl<D: ContextLookup> DependencyFinder<'_, D> {
     path: &InternedPath,
     kind: FsEventKind,
   ) -> Vec<(InternedPath, FsEventKind)> {
+    self.find_matching(
+      path,
+      kind,
+      |p| self.contains_file(p),
+      |p, explicit| explicit || self.missing.contains(p),
+    )
+  }
+
+  fn find_matching(
+    &self,
+    path: &InternedPath,
+    kind: FsEventKind,
+    watches_file: impl Fn(&InternedPath) -> bool,
+    watches_directory: impl Fn(&InternedPath, bool) -> bool,
+  ) -> Vec<(InternedPath, FsEventKind)> {
+    let directory = || watches_directory(path, self.directories.subscriptions(path).explicit);
+    let watched = match path.metadata() {
+      Ok(metadata) if metadata.is_dir() => directory(),
+      Ok(metadata) => metadata.is_file() && watches_file(path),
+      Err(_) => watches_file(path) || directory(),
+    };
     let mut paths = Vec::new();
-
-    if path.exists() {
-      // If the given path is a directory and is registered as a directory, add it to the result.
-      if path.is_dir() && self.contains_directory(path) {
-        paths.push((path.clone(), kind));
-      }
-
-      // If the given path is a file and is registered as a file, add it to the result.
-      if path.is_file() && self.contains_file(path) {
-        paths.push((path.clone(), kind));
-      }
-    } else if self.contains_path(path) {
-      // If the path does not exist but is registered as missing, add it to the result.
+    if watched {
       paths.push((path.clone(), kind));
     }
-
-    self.collect_parent_dependencies(path, &mut paths);
-
+    self.collect_parent_dependencies(path, &mut paths, watches_directory);
     paths
   }
 
   /// Checks if the given path is registered as a file or missing.
   fn contains_file(&self, path: &InternedPath) -> bool {
     self.files.contains(path) || self.missing.contains(path)
-  }
-
-  /// Checks if the given path is registered as a directory or missing.
-  fn contains_directory(&self, path: &InternedPath) -> bool {
-    self.directories.subscriptions(path).explicit || self.missing.contains(path)
   }
 
   fn contains_path(&self, path: &InternedPath) -> bool {
@@ -89,6 +91,7 @@ impl<D: ContextLookup> DependencyFinder<'_, D> {
     &self,
     path: &InternedPath,
     paths: &mut Vec<(InternedPath, FsEventKind)>,
+    watches_directory: impl Fn(&InternedPath, bool) -> bool,
   ) {
     let mut parent = path.parent().map(InternedPath::from);
     while let Some(directory) = parent {
@@ -97,7 +100,7 @@ impl<D: ContextLookup> DependencyFinder<'_, D> {
       parent = subscriptions
         .parent
         .or_else(|| directory.parent().map(InternedPath::from));
-      if subscriptions.explicit || self.missing.contains(&directory) {
+      if watches_directory(&directory, subscriptions.explicit) {
         paths.push((directory, FsEventKind::Change));
       }
     }
@@ -376,9 +379,11 @@ impl EventProcessor {
     let kind = input.kind;
     let origin = &input.origin;
     let path = &input.path;
-    if let Origin::Scan(Some(backfill)) = origin
-      && !backfill.active(&self.path_manager)
-    {
+    let backfill = match origin {
+      Origin::Scan(backfill) => backfill.as_ref(),
+      _ => None,
+    };
+    if backfill.is_some_and(|b| b.current_recipients(&self.path_manager).next().is_none()) {
       return None;
     }
     let scanned = matches!(origin, Origin::Scan(_));
@@ -407,7 +412,6 @@ impl EventProcessor {
     // scanned removals already declare the old record invalid.
     let disk = matches!(origin, Origin::Disk { .. });
     let removed = kind == FsEventKind::Remove && !disk;
-    let initial_missing = removed && scanned;
     let pending = self.path_manager.watchers.pending_change(path);
     let metadata = if disk {
       let Ok(observation) = self.path_manager.read_disk_entry(path, true) else {
@@ -424,8 +428,8 @@ impl EventProcessor {
       kind => kind,
     };
 
-    let accessor = self.path_manager.access();
-    let is_watched_path = accessor.files().0.contains(path) || accessor.missing().0.contains(path);
+    let finder = self.finder();
+    let watches_file = |p: &InternedPath| self.path_manager.watches_file(p, backfill);
 
     // Drop a removed path's record so it reads as `null`, like watchpack. A
     // directory moved or deleted as a whole is one event with no per-file
@@ -434,7 +438,7 @@ impl EventProcessor {
     if !disk && (removed || kind == FsEventKind::Remove) {
       self
         .path_manager
-        .set_missing(path, kind == FsEventKind::Remove && is_watched_path);
+        .set_missing(path, kind == FsEventKind::Remove, backfill);
     }
 
     // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
@@ -443,19 +447,28 @@ impl EventProcessor {
     // Apply the same suppression to Create for already-registered files, since
     // macOS may emit stale Create events for files that predate the watcher.
     // A registered-missing path takes its first record here, once it exists.
-    if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_watched_path))
-      && !self.path_manager.has_mtime_changed(path)
+    let watched_file = watches_file(path);
+    if kind != FsEventKind::Remove
+      && watched_file
+      && !self.path_manager.has_mtime_changed_for(path, backfill)
       && !scanned
       && !detected
     {
       return None;
     }
 
+    let already_recorded = match backfill {
+      Some(b) => b
+        .current_recipients(&self.path_manager)
+        .any(|s| s.as_ref() == path),
+      None => scanned || watched_file,
+    };
     if kind != FsEventKind::Remove
       && !self
         .path_manager
-        .set_context_entry(path, scanned || is_watched_path, Some(&self.scan_sink))
+        .set_context_entry(path, already_recorded, Some(&self.scan_sink))
         .await
+      && !scanned
       && !detected
     {
       return None;
@@ -471,13 +484,14 @@ impl EventProcessor {
       ((), mutation)
     });
 
-    let finder = self.finder();
-    let mut associated_event = finder.find_associated_event(path, kind);
-    if let Origin::Scan(Some(backfill)) = origin {
-      if !backfill.active(&self.path_manager) {
-        return None;
-      }
-      associated_event.retain(|(path, _)| backfill.covers(&self.path_manager, path));
+    let mut associated_event = match backfill {
+      Some(b) => finder.find_matching(path, kind, watches_file, |p, _| {
+        b.watches_directory(&self.path_manager, p)
+      }),
+      None => finder.find_associated_event(path, kind),
+    };
+    if backfill.is_some() && associated_event.is_empty() {
+      return None;
     }
     // A directory above changes with `path`, unless it is gone itself: an
     // event below it may arrive after the directory's own removal.
@@ -495,10 +509,14 @@ impl EventProcessor {
       }
     }
 
-    let (raw, context_removal) =
-      raw_event(path, kind, initial_missing, &mut associated_event, |p| {
-        finder.contains_file(p)
-      });
+    let initial_missing = removed && scanned && associated_event.iter().any(|(dep, _)| dep == path);
+    let (raw, context_removal) = raw_event(
+      path,
+      kind,
+      initial_missing,
+      &mut associated_event,
+      watches_file,
+    );
     let mut recovered = Vec::new();
     if appeared
       && self.path_manager.has_registered_descendants(path)

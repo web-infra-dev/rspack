@@ -656,3 +656,111 @@ async fn overlapping_context_scans_report_a_file_to_each_eligible_subscription_o
     assert_eq!(notified, expected);
   }
 }
+
+async fn hold_file_backfill(
+  dir: &std::path::Path,
+  parent: &InternedPath,
+  file: &InternedPath,
+) -> (
+  DirectoryAnalyzer,
+  InternedPath,
+  tokio::sync::oneshot::Sender<()>,
+) {
+  let (analyzer, marker, release) = hold_event_processor(dir, parent).await;
+  update(&analyzer, added(file), empty(), empty()).await;
+  analyzer.queue_registered_changes_since(UNIX_EPOCH).await;
+  (analyzer, marker, release)
+}
+
+#[tokio::test]
+async fn a_queued_file_backfill_still_notifies_its_original_parent_after_unwatch() {
+  let fixture = tempfile::tempdir().expect("create fixture");
+  let dir = fixture.path().canonicalize().expect("resolve fixture");
+  let parent = InternedPath::from(dir.join("src"));
+  let nested = parent.join("pages");
+  let file = InternedPath::from(nested.join("view.js"));
+  fs::create_dir_all(&nested).expect("create nested context");
+  fs::File::create(&file)
+    .expect("create watched file")
+    .set_modified(UNIX_EPOCH + Duration::from_secs(1_600_000_000))
+    .expect("age the file past the mtime accuracy window");
+
+  let (mut analyzer, marker, release) = hold_file_backfill(&dir, &parent, &file).await;
+  update(&analyzer, removed(&file), added(&nested), empty()).await;
+  update(&analyzer, empty(), empty(), added(&file)).await;
+
+  analyzer.on_scanned_change(&marker);
+  release.send(()).expect("release queued backfill");
+  assert_eq!(
+    deliveries_until(&mut analyzer, &marker).await,
+    vec![(file.clone(), vec![(parent, FsEventKind::Change)])]
+  );
+
+  analyzer
+    .on_native_event(Event::new(EventKind::Modify(ModifyKind::Any)).add_path(file.to_path_buf()));
+  analyzer.on_scanned_change(&marker);
+  assert!(
+    deliveries_until(&mut analyzer, &marker)
+      .await
+      .iter()
+      .any(|(raw, deps)| raw == &file && deps.contains(&(file.clone(), FsEventKind::Change))),
+    "the queued backfill must not consume the replacement missing subscription's first event"
+  );
+}
+
+#[tokio::test]
+async fn a_new_file_subscription_receives_its_own_initial_removal() {
+  let fixture = tempfile::tempdir().expect("create fixture");
+  let dir = fixture.path().canonicalize().expect("resolve fixture");
+  let parent = InternedPath::from(dir.join("src"));
+  fs::create_dir(&parent).expect("create watched context");
+  let file = InternedPath::from(parent.join("absent.js"));
+
+  let (mut analyzer, marker, release) = hold_file_backfill(&dir, &parent, &file).await;
+  update(&analyzer, removed(&file), empty(), empty()).await;
+  update(&analyzer, added(&file), empty(), empty()).await;
+
+  release.send(()).expect("release queued removal");
+  let first = timeout(Duration::from_secs(5), async {
+    loop {
+      let event = analyzer.next_events_with_raw().await;
+      if !event.1.is_empty() {
+        break event;
+      }
+    }
+  })
+  .await
+  .expect("deliver the surviving context change");
+  assert_eq!(first, (None, vec![(parent.clone(), FsEventKind::Change)]));
+
+  analyzer.queue_registered_changes_since(UNIX_EPOCH).await;
+  analyzer.on_scanned_change(&marker);
+  assert_eq!(
+    deliveries_until(&mut analyzer, &marker).await,
+    vec![(
+      file.clone(),
+      vec![(file, FsEventKind::Remove), (parent, FsEventKind::Change)]
+    )]
+  );
+}
+
+#[tokio::test]
+async fn a_file_backfill_cannot_notify_a_directory_subscribed_later_at_the_same_path() {
+  let fixture = tempfile::tempdir().expect("create fixture");
+  let dir = fixture.path().canonicalize().expect("resolve fixture");
+  let parent = InternedPath::from(dir.join("src"));
+  fs::create_dir(&parent).expect("create watched context");
+  let path = InternedPath::from(parent.join("entry"));
+  fs::write(&path, "").expect("create watched file");
+
+  let (mut analyzer, marker, release) = hold_file_backfill(&dir, &parent, &path).await;
+  fs::remove_file(&path).expect("remove file");
+  fs::create_dir(&path).expect("replace file with directory");
+  update(&analyzer, empty(), added(&path), empty()).await;
+  analyzer.on_scanned_change(&marker);
+  release.send(()).expect("release queued file change");
+  assert_eq!(
+    deliveries_until(&mut analyzer, &marker).await,
+    vec![(path, vec![(parent, FsEventKind::Change)])]
+  );
+}

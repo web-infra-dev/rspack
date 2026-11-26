@@ -2,7 +2,7 @@ use std::path::Path;
 
 use rspack_paths::InternedPath;
 
-use super::{PathManager, ScanSink, time_info::ReportedBaseline};
+use super::{Backfill, PathManager, ScanSink, time_info::ReportedBaseline};
 use crate::{directory_watcher::FileObservation, observation::Mutation, time::mtime_accuracy};
 
 pub(super) fn is_absent(error: &std::io::Error) -> bool {
@@ -152,10 +152,18 @@ impl PathManager {
     metadata.is_dir() || changed
   }
 
-  pub(crate) fn set_missing(&self, path: &InternedPath, report_absence: bool) {
+  pub(crate) fn set_missing(&self, path: &InternedPath, absent: bool, backfill: Option<&Backfill>) {
     self.observe_live(path, || {
+      // A queued removal may already be back on disk under a new direct subscription.
+      if let Some(b) = backfill
+        && !b
+          .current_recipients(self)
+          .any(|s| absent || s.as_ref() == path)
+      {
+        return ((), Mutation::Unchanged);
+      }
       self.forget_removed_path(path);
-      if report_absence {
+      if absent && self.watches_file(path, backfill) {
         self.set_reported_file_removal(path);
       }
       ((), Mutation::Subtree)

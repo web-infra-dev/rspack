@@ -28,23 +28,35 @@ pub(crate) struct Registration {
 }
 
 pub(crate) struct Backfill {
-  direct: Weak<InternedPath>,
   pub(crate) recipients: Vec<Weak<InternedPath>>,
 }
 
 impl Backfill {
-  pub(crate) fn active(&self, paths: &PathManager) -> bool {
-    self
-      .direct
-      .upgrade()
-      .is_some_and(|sub| paths.current_subscriber(&sub))
-  }
-  pub(crate) fn covers(&self, paths: &PathManager, path: &InternedPath) -> bool {
+  pub(crate) fn current_recipients<'a>(
+    &'a self,
+    paths: &'a PathManager,
+  ) -> impl Iterator<Item = Arc<InternedPath>> + 'a {
     self
       .recipients
       .iter()
       .filter_map(Weak::upgrade)
-      .any(|s| s.as_ref() == path && paths.current_subscriber(&s))
+      .filter(|s| paths.current_subscriber(s))
+  }
+
+  fn contains(&self, tracker: &PathTracker, path: &InternedPath) -> bool {
+    let Some(current) = tracker
+      .scan_subscribers
+      .get()
+      .and_then(|subscriptions| subscriptions.get(path))
+    else {
+      return false;
+    };
+    let current = Arc::downgrade(&current);
+    self.recipients.iter().any(|s| s.ptr_eq(&current))
+  }
+
+  pub(crate) fn watches_directory(&self, paths: &PathManager, path: &InternedPath) -> bool {
+    self.contains(&paths.directories, path) || self.contains(&paths.missing, path)
   }
 }
 
@@ -62,6 +74,13 @@ impl PathManager {
       self.directories.scan_subscriber(path),
       self.missing.scan_subscriber(path),
     ]
+  }
+
+  pub(crate) fn watches_file(&self, path: &InternedPath, backfill: Option<&Backfill>) -> bool {
+    backfill.map_or_else(
+      || self.files.all.contains(path) || self.missing.all.contains(path),
+      |b| b.contains(&self.files, path) || b.contains(&self.missing, path),
+    )
   }
 
   pub(crate) fn is_registered(&self, path: &InternedPath) -> bool {
@@ -171,10 +190,7 @@ impl PathManager {
         path: entry.path,
         kind,
       },
-      Backfill {
-        direct: Arc::downgrade(&subscriber),
-        recipients,
-      },
+      Backfill { recipients },
     ))
   }
 }

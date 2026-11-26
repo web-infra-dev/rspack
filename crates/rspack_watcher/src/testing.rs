@@ -169,6 +169,11 @@ impl DirectoryAnalyzer {
     self.scanner.scan(start_time);
   }
 
+  /// Wait until the targeted scan has queued its notifications.
+  pub async fn queue_registered_changes_since(&self, start_time: SystemTime) {
+    self.scanner.prepare(start_time).await;
+  }
+
   pub async fn next_events(&mut self) -> Vec<(InternedPath, FsEventKind)> {
     self.next_events_with_raw().await.1
   }

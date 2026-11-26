@@ -3,7 +3,7 @@ use std::{ffi::OsStr, path::Path, sync::Arc, time::SystemTime};
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathIndexSet};
 use rspack_util::{fx_hash::FxHashMap, time::current_time};
 
-use super::{PathManager, entries::ContextObservation};
+use super::{Backfill, PathManager, entries::ContextObservation};
 use crate::{
   TimeInfoEntries, TimeInfoEntry,
   directory_watcher::{DirectoryWatcher, FileObservation},
@@ -284,6 +284,14 @@ impl PathManager {
   /// unfiltered.
   /// Equal mtimes are only stale once they are past the filesystem accuracy window.
   pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
+    self.has_mtime_changed_for(path, None)
+  }
+
+  pub(crate) fn has_mtime_changed_for(
+    &self,
+    path: &InternedPath,
+    backfill: Option<&Backfill>,
+  ) -> bool {
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       return true;
     }
@@ -292,6 +300,10 @@ impl PathManager {
       return true;
     };
     self.observe_live(path, || {
+      // A subscription created during the stat must keep its own notification baseline.
+      if !self.watches_file(path, backfill) {
+        return (true, Mutation::Unchanged);
+      }
       let changed = self.record(path, || {
         self
           .watchers
