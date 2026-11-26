@@ -52,6 +52,8 @@ function proxyChunkIds(compilation) {
 	return ids;
 }
 
+const toPosixPath = identifier => identifier.replaceAll("\\", "/");
+
 /** @type {import('@rspack/test-tools').TCompilerCaseConfig[]} */
 module.exports = [
 	{
@@ -125,7 +127,9 @@ module.exports = [
 				expect(initial.error).toBeUndefined();
 				const initialIds = proxyChunkIds(initial.stats.compilation);
 				const collidingIds = [...initialIds]
-					.filter(([identifier]) => /\/(t1z|t8d)\.js$/.test(identifier))
+					.filter(([identifier]) =>
+						/\/(t1z|t8d)\.js$/.test(toPosixPath(identifier))
+					)
 					.map(([, id]) => id);
 				expect(collidingIds).toHaveLength(2);
 				expect(collidingIds[0][0]).toBe(collidingIds[1][0]);
@@ -135,7 +139,7 @@ module.exports = [
 					.find(
 						identifier =>
 							identifier.includes("lazy-compilation-proxy") &&
-							identifier.endsWith("/t1z.js")
+							toPosixPath(identifier).endsWith("/t1z.js")
 					);
 				expect(moduleId).toBeDefined();
 
@@ -145,7 +149,7 @@ module.exports = [
 
 				const activatedIds = proxyChunkIds(activated.stats.compilation);
 				for (const [identifier, id] of initialIds) {
-					if (identifier.endsWith("/t8d.js")) {
+					if (toPosixPath(identifier).endsWith("/t8d.js")) {
 						expect(activatedIds.get(identifier)).toBe(id);
 					}
 				}
