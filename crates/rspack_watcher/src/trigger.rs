@@ -491,6 +491,19 @@ impl EventProcessor {
           }
         }
       }
+      // The directory may have returned since the ancestor's first check.
+      // Install its watch and scan its contents before reporting the recovery.
+      let restored: Vec<_> = recovered
+        .iter()
+        .filter(|event| self.path_manager.is_absent_context(&event.path))
+        .map(|event| event.path.clone())
+        .collect();
+      if !restored.is_empty() {
+        if !self.refresh_watches(path, false).await {
+          return;
+        }
+        self.path_manager.scan_recovered_contexts(restored).await;
+      }
     }
 
     let current_target =

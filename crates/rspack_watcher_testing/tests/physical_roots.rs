@@ -388,3 +388,51 @@ async fn a_parent_watch_only_checks_entries_needed_for_recovery() {
   );
   watcher.close().await.expect("close watcher");
 }
+
+#[tokio::test]
+async fn a_context_appearing_during_its_ancestor_walk_is_scanned_before_delivery() {
+  use notify::{Event, EventKind, event::CreateKind};
+  use rspack_watcher::{FsEventKind, testing::DirectoryAnalyzer};
+
+  let temp = tempfile::tempdir().expect("create fixture");
+  let root = temp.path().canonicalize().expect("resolve fixture");
+  let parent = root.join("parent");
+  let branch = parent.join("branch");
+  let context = InternedPath::from(branch.join("context"));
+  let staged = root.join("staged");
+  fs::create_dir_all(&branch).expect("create parent tree");
+  fs::create_dir(&staged).expect("create staged context");
+  fs::write(staged.join("before.js"), "before").expect("populate staged context");
+
+  let (ignored, arm) = pause_at(branch);
+  let mut analyzer = DirectoryAnalyzer::with_ignored(ignored);
+  analyzer
+    .update(
+      (vec![], vec![]),
+      (vec![context.clone()], vec![]),
+      (vec![], vec![]),
+    )
+    .await
+    .expect("register absent context");
+  let (waiting, release) = arm();
+  analyzer.on_native_event(Event::new(EventKind::Create(CreateKind::Folder)).add_path(parent));
+  tokio::time::timeout(Duration::from_secs(5), waiting)
+    .await
+    .expect("walk must reach the branch")
+    .expect("enter walk");
+  fs::rename(staged, &context).expect("restore context while walking");
+  release.send(()).expect("resume walk");
+
+  let changes = tokio::time::timeout(Duration::from_secs(5), analyzer.next_events())
+    .await
+    .expect("report the restored context");
+  assert!(changes.contains(&(context.clone(), FsEventKind::Create)));
+  let (files, _) = analyzer.collect_time_info_entries();
+  assert!(
+    files
+      .iter()
+      .any(|(path, entry)| Path::new(path) == context.join("before.js")
+        && matches!(entry, TimeInfoEntry::Entry { .. })),
+    "restored directory contents must be present when its change is delivered: {files:?}"
+  );
+}
