@@ -18,7 +18,7 @@ pub(crate) enum FileObservation {
   Member(ContextObservation),
   Registration,
   Backfill { changed: bool },
-  Live,
+  Live { aged: bool },
 }
 
 #[derive(Default)]

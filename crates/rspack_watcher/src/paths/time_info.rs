@@ -105,13 +105,14 @@ impl FileRecord {
   }
 
   pub(crate) fn observe(&mut self, mtime: SystemTime, origin: FileObservation) -> bool {
-    let aged = || mtime_to_millis(mtime).saturating_add(mtime_accuracy(mtime)) < current_time();
     match origin {
       FileObservation::Member(ContextObservation::Scan { initial }) => {
         self.set_time(mtime, initial, true)
       }
       FileObservation::Member(ContextObservation::Event) => {
-        if self.time.is_some_and(|old| old.mtime == mtime) && aged() {
+        if self.time.is_some_and(|old| old.mtime == mtime)
+          && mtime_to_millis(mtime).saturating_add(mtime_accuracy(mtime)) < current_time()
+        {
           return false;
         }
         self.set_time(mtime, false, false)
@@ -131,8 +132,8 @@ impl FileRecord {
         }
         changed
       }
-      FileObservation::Live => {
-        if self.reported == ReportedBaseline::Present(mtime) && aged() {
+      FileObservation::Live { aged } => {
+        if self.reported == ReportedBaseline::Present(mtime) && aged {
           return false;
         }
         self.report_change(mtime);
@@ -285,7 +286,7 @@ impl PathManager {
     self.record(path, || {
       self
         .watchers
-        .set_file_time(path, Some(current_mtime), FileObservation::Live)
+        .set_file_time(path, Some(current_mtime), FileObservation::Live { aged })
     })
   }
 }
