@@ -16,7 +16,7 @@ use rspack_util::fx_hash::FxIndexMap;
 use rustc_hash::{FxHashMap, FxHashSet};
 use smol_str::SmolStr;
 
-use super::{effective_resource_data, is_css_module};
+use super::is_css_module;
 use crate::{
   css_syntax::{normalize_url, unescape_identifier},
   dependency::{
@@ -1797,6 +1797,6 @@ impl<'context> CssModuleParser<'context> {
   }
 
   fn resource_data(&self) -> &'context ResourceData {
-    effective_resource_data(&self.parse_context)
+    self.parse_context.effective_resource_data()
   }
 }

@@ -15,8 +15,8 @@ use rspack_core::{
   BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem, Compilation,
   CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType, DependencyType, ExportsInfoArtifact,
   GenerateContext, GeneratorOptions, Module, ModuleGraph, ModuleIdentifier, NO_SOURCE_TYPE_LIST,
-  NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, ResourceData,
-  RuntimeSpec, SourceType, UsageState,
+  NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, RuntimeSpec,
+  SourceType, UsageState,
   rspack_sources::{BoxSource, Source},
 };
 use rspack_error::{Result, TWithDiagnosticArray};
@@ -89,12 +89,6 @@ impl CssParserAndGenerator {
       .and_then(|css| css.export_type)
       .or(self.export_type)
   }
-}
-
-pub(super) fn effective_resource_data<'a>(parse_context: &ParseContext<'a>) -> &'a ResourceData {
-  parse_context
-    .module_match_resource
-    .unwrap_or(parse_context.resource_data)
 }
 
 fn is_css_module(module_type: &rspack_core::ModuleType, resource_path: Option<&str>) -> bool {
@@ -226,7 +220,7 @@ impl ParserAndGenerator for CssParserAndGenerator {
       .named_exports
       .expect("should have named_exports");
 
-    let resource_data = effective_resource_data(&parse_context);
+    let resource_data = parse_context.effective_resource_data();
     {
       let build_info = &mut *parse_context.build_info;
       let build_meta = &mut *parse_context.build_meta;
