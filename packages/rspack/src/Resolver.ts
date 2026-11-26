@@ -41,6 +41,13 @@ export interface ResolveRequest {
   contextDependencies?: string[];
 }
 
+interface ResolveResponse {
+  error?: string;
+  request?: ResolveRequest;
+  fileDependencies?: string[];
+  missingDependencies?: string[];
+}
+
 export class Resolver {
   #binding: binding.JsResolver;
 
@@ -64,22 +71,33 @@ export class Resolver {
         callback(error);
         return;
       }
-      const req = text ? (JSON.parse(text) as ResolveRequest) : undefined;
+      const res = text ? (JSON.parse(text) as ResolveResponse) : undefined;
 
-      if (req?.fileDependencies) {
-        req.fileDependencies.forEach((file) => {
-          resolveContext.fileDependencies?.add(file);
-        });
+      if (res?.fileDependencies) {
+        for (const file of res.fileDependencies) {
+          resolveContext?.fileDependencies?.add(file);
+        }
       }
 
-      if (req?.missingDependencies) {
-        req.missingDependencies.forEach((missing) => {
-          resolveContext.missingDependencies?.add(missing);
-        });
+      if (res?.missingDependencies) {
+        for (const missing of res.missingDependencies) {
+          resolveContext?.missingDependencies?.add(missing);
+        }
+      }
+
+      if (res?.error !== undefined) {
+        callback(new Error(res.error));
+        return;
+      }
+
+      const req = res?.request;
+      if (req) {
+        req.fileDependencies = res?.fileDependencies ?? [];
+        req.missingDependencies = res?.missingDependencies ?? [];
       }
 
       callback(
-        error,
+        null,
         req
           ? `${req.path.replace(/#/g, '\u200b#')}${req.query.replace(/#/g, '\u200b#')}${req.fragment}`
           : false,
