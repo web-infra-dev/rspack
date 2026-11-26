@@ -19,7 +19,7 @@ use regex::Regex;
 use rspack_core::{
   AssetFileAttributes, AssetInfo, AssetInfoRelated, CacheOptions, Compilation, CompilationAsset,
   CompilationLogger, CompilationProcessAssets, Filename, GlobMatchOptions, Logger, PathData,
-  Plugin, escape_glob_pattern, extract_glob_base_dir, find_files_by_glob,
+  Plugin, Snapshot, escape_glob_pattern, extract_glob_base_dir, find_files_by_glob,
   rspack_sources::{BoxSource, RawBufferSource, SourceExt},
   unescape_glob_path,
 };
@@ -27,7 +27,7 @@ use rspack_error::{Diagnostic, Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
-use rspack_util::fx_hash::FxDashSet;
+use rspack_util::{fx_hash::FxDashSet, time::current_time};
 use sugar_path::SugarPath;
 
 mod pattern_cache;
@@ -139,7 +139,7 @@ pub struct RunPatternResult {
 #[derive(Debug)]
 pub struct CopyRspackPlugin {
   pub patterns: Vec<CopyPattern>,
-  pattern_cache: Mutex<Vec<Option<CachedPatternResult>>>,
+  pattern_cache: Mutex<Vec<Option<Arc<CachedPatternResult>>>>,
 }
 
 struct PendingPattern<'a> {
@@ -150,6 +150,12 @@ struct PendingPattern<'a> {
   context_dependencies: FxDashSet<PathBuf>,
   missing_dependencies: FxDashSet<PathBuf>,
   diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
+}
+
+impl CopyPattern {
+  fn preserves_file_attributes(&self) -> bool {
+    self.preserve_permissions || self.preserve_timestamps
+  }
 }
 
 static TEMPLATE_RE: LazyLock<Regex> =
@@ -192,6 +198,39 @@ impl CopyRspackPlugin {
       && !pattern.copy_permissions
       && !matches!(pattern.to_type, Some(ToType::Template))
       && !matches!(pattern.to, Some(ToOption::String(ref to)) if TEMPLATE_RE.is_match(to))
+  }
+
+  async fn snapshot_pattern(
+    compilation: &Compilation,
+    pending: &PendingPattern<'_>,
+    start_time: u64,
+  ) -> Option<Snapshot> {
+    let files = pending
+      .file_dependencies
+      .iter()
+      .map(|path| path.as_path().into())
+      .collect();
+    let contexts = pending
+      .context_dependencies
+      .iter()
+      .map(|path| path.as_path().into())
+      .collect();
+    let missing = pending
+      .missing_dependencies
+      .iter()
+      .map(|path| path.as_path().into())
+      .collect();
+    let file_system_info = &compilation.file_system_info;
+    file_system_info
+      .create_snapshot(
+        Some(start_time),
+        &files,
+        &contexts,
+        &missing,
+        file_system_info.module_strategy(),
+      )
+      .await
+      .ok()
   }
 
   fn get_content_hash(
@@ -776,28 +815,60 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let pattern_cache_enabled = !matches!(&compilation.options.cache, CacheOptions::Disabled);
 
   let mut results_by_pattern = vec![None; self.patterns.len()];
+  let candidates = {
+    let mut pattern_cache = self
+      .pattern_cache
+      .lock()
+      .expect("failed to obtain lock of `pattern_cache`");
+    pattern_cache.resize_with(self.patterns.len(), || None);
+    self
+      .patterns
+      .iter()
+      .zip(pattern_cache.iter())
+      .map(|(pattern, cached)| {
+        let cacheable = pattern_cache_enabled && CopyRspackPlugin::is_cacheable(pattern);
+        let cached = cached.as_ref().filter(|cached| {
+          cacheable
+            && !cached.is_invalidated(
+              compilation
+                .modified_files
+                .iter()
+                .chain(compilation.removed_files.iter())
+                .map(|changed| changed.as_ref()),
+            )
+        });
+        (cacheable, cached.cloned())
+      })
+      .collect::<Vec<_>>()
+  };
+
+  let file_system_info = &compilation.file_system_info;
+  let candidates = candidates
+    .into_iter()
+    .map(|(cacheable, cached)| async move {
+      let cached = if let Some(cached) = cached
+        && cached.is_snapshot_valid(file_system_info).await
+      {
+        Some(cached)
+      } else {
+        None
+      };
+      (cacheable, cached)
+    })
+    .collect::<FuturesOrdered<_>>()
+    .collect::<Vec<_>>()
+    .await;
+
   let mut pending_patterns = Vec::new();
   {
     let mut pattern_cache = self
       .pattern_cache
       .lock()
       .expect("failed to obtain lock of `pattern_cache`");
-    pattern_cache.resize_with(self.patterns.len(), || None);
 
-    for (index, pattern) in self.patterns.iter().enumerate() {
-      let cacheable = pattern_cache_enabled && CopyRspackPlugin::is_cacheable(pattern);
-      let cached = &mut pattern_cache[index];
-
-      if cacheable
-        && let Some(cached) = cached.as_ref()
-        && !cached.is_invalidated(
-          compilation
-            .modified_files
-            .iter()
-            .chain(compilation.removed_files.iter())
-            .map(|changed| changed.as_ref()),
-        )
-      {
+    for (index, (pattern, (cacheable, cached))) in self.patterns.iter().zip(candidates).enumerate()
+    {
+      if let Some(cached) = cached {
         cache_counter.hit();
         file_dependencies.extend(cached.file_dependencies.iter().cloned());
         context_dependencies.extend(cached.context_dependencies.iter().cloned());
@@ -806,7 +877,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       cache_counter.miss();
-      *cached = None;
+      pattern_cache[index] = None;
       pending_patterns.push(PendingPattern {
         index,
         pattern,
@@ -824,7 +895,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     // Only cache hits have populated results so far. Read fresh attributes for them.
     let refresh_attributes = FuturesUnordered::new();
     for (pattern, results) in self.patterns.iter().zip(&mut results_by_pattern) {
-      if pattern.preserve_permissions || pattern.preserve_timestamps {
+      if pattern.preserves_file_attributes() {
         for result in results.iter_mut().flatten() {
           refresh_attributes.push(async move {
             result.file_attributes = CopyRspackPlugin::read_file_attributes(
@@ -837,9 +908,21 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
         }
       }
     }
+    let start_time = current_time();
     let run_patterns = pending_patterns
       .iter()
-      .map(|pending| CopyRspackPlugin::run_pattern(compilation, pending, &logger))
+      .map(|pending| async {
+        let results = CopyRspackPlugin::run_pattern(compilation, pending, &logger).await?;
+        let snapshot = if pending.cacheable
+          && pending.pattern.preserves_file_attributes()
+          && results.is_some()
+        {
+          CopyRspackPlugin::snapshot_pattern(compilation, pending, start_time).await
+        } else {
+          None
+        };
+        Ok::<_, Error>((results, snapshot))
+      })
       .collect::<FuturesOrdered<_>>()
       .collect::<Vec<_>>();
     join(refresh_attributes.collect::<()>(), run_patterns).await
@@ -853,7 +936,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .expect("failed to obtain lock of `pattern_cache`");
     let mut cache_updates = Vec::new();
     for (pending, results) in pending_patterns.into_iter().zip(pending_results) {
-      let results = match results {
+      let (results, snapshot) = match results {
         Ok(results) => results,
         Err(error) => {
           if first_error.is_none() {
@@ -880,15 +963,17 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       if pending.cacheable
         && !has_diagnostics
+        && (!pending.pattern.preserves_file_attributes() || snapshot.is_some())
         && let Some(results) = results.as_ref()
       {
         cache_updates.push((
           pending.index,
-          CachedPatternResult {
+          Arc::new(CachedPatternResult {
             results: results.clone(),
             file_dependencies: pattern_file_dependencies,
             context_dependencies: pattern_context_dependencies,
-          },
+            snapshot,
+          }),
         ));
       }
 

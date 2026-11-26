@@ -474,7 +474,15 @@ impl Compiler {
             new_emitted_asset_versions.insert(filename.clone(), asset.info.version.clone());
           }
 
-          if emit_assets_incremental
+          let version_unchanged = emit_assets_incremental
+            && self
+              .emitted_asset_versions
+              .get(filename)
+              .is_some_and(|old_version| {
+                !old_version.is_empty() && old_version.as_str() == asset.info.version
+              });
+
+          if version_unchanged
             && asset
               .info
               .file_attributes
@@ -482,9 +490,6 @@ impl Compiler {
               .is_none_or(|attributes| {
                 attributes.mode_for_output().is_none() && attributes.timestamps.is_none()
               })
-            && let Some(old_version) = self.emitted_asset_versions.get(filename)
-            && old_version.as_str() == asset.info.version
-            && !old_version.is_empty()
           {
             return;
           }
@@ -493,12 +498,14 @@ impl Compiler {
           let s = unsafe { token.used((&self, filename, asset, output_path)) };
 
           let emit_limit = emit_limit.clone();
-          s.spawn(|(this, filename, asset, output_path)| async move {
+          s.spawn(move |(this, filename, asset, output_path)| async move {
             let _permit = emit_limit
               .acquire()
               .await
               .expect("emit limit semaphore should not be closed");
-            this.emit_asset(output_path, filename, asset).await
+            this
+              .emit_asset(output_path, filename, asset, version_unchanged)
+              .await
           });
         })
     })
@@ -522,6 +529,7 @@ impl Compiler {
     output_path: &Utf8Path,
     filename: &str,
     asset: &CompilationAsset,
+    version_unchanged: bool,
   ) -> Result<()> {
     if let Some(source) = asset.get_source() {
       let (target_file, query) = filename.split_once('?').unwrap_or((filename, ""));
@@ -627,6 +635,8 @@ impl Compiler {
 
       if need_write {
         self.compilation.emitted_assets.insert(filename.to_string());
+      } else if version_unchanged {
+        return Ok(());
       }
 
       let info = AssetEmittedInfo {

@@ -33,13 +33,19 @@ function expectAttributes(file, mtime, mode) {
 
 function preserveNativeAttributes() {
 	let source;
+	let copyEmits = 0;
 
 	return {
 		description:
 			"should preserve file attributes and update them without rewriting",
 		options(context) {
 			const { root, options } = createProject(context, "native", [
-				{ from: copySource, ...preserve, info: { version: "same-bytes" } },
+				{
+					from: copySource,
+					...preserve,
+					noErrorOnMissing: true,
+					info: { version: "same-bytes" }
+				},
 				{ from: "assets/legacy.txt", copyPermissions: true },
 				{
 					from: "assets/legacy.txt",
@@ -52,11 +58,17 @@ function preserveNativeAttributes() {
 			writeSource(root, "assets/legacy.txt");
 			return options;
 		},
-		compiler: useRealOutputFileSystem,
+		compiler(context, compiler) {
+			useRealOutputFileSystem(context, compiler);
+			compiler.hooks.assetEmitted.tap("CountCopyEmits", filename => {
+				if (filename === "copy.txt") copyEmits++;
+			});
+		},
 		async build(_context, compiler) {
 			const output = name => path.join(compiler.outputPath, name);
 			await compile(compiler);
 			const initial = expectAttributes(output("copy.txt"), initialMtime, 0o751);
+			expect(copyEmits).toBe(1);
 			const sourceAtime = fs.statSync(source).atimeMs;
 			expect(Math.abs(initial.atimeMs - sourceAtime)).toBeLessThan(2);
 
@@ -65,13 +77,16 @@ function preserveNativeAttributes() {
 			if (unix) {
 				expect(legacy.mode & 0o777).toBe(0o751);
 				expect(fs.statSync(output("disabled.txt")).mode & 0o111).toBe(0);
-				fs.chmodSync(source, 0o711);
 			}
-			fs.utimesSync(source, updatedMtime, updatedMtime);
 
 			const entry = write(compiler.context, "src/index.js", "module.exports = 'changed';\n");
-			const updated = await rebuild(compiler, [entry]);
-			expect(reusedPatterns(updated)).toBe(2);
+			const cached = await rebuild(compiler, [entry]);
+			expect(reusedPatterns(cached)).toBe(2);
+			expect(copyEmits).toBe(1);
+
+			if (unix) fs.chmodSync(source, 0o711);
+			fs.utimesSync(source, updatedMtime, updatedMtime);
+			const updated = await rebuild(compiler);
 			expectAttributes(output("copy.txt"), updatedMtime, 0o711);
 			const { assets } = new Stats(updated).toJson({
 				all: false,
@@ -79,6 +94,14 @@ function preserveNativeAttributes() {
 				cachedAssets: true
 			});
 			expect(assets.find(asset => asset.name === "copy.txt")?.emitted).toBe(false);
+			expect(copyEmits).toBe(1);
+
+			fs.writeFileSync(source, "edited\n");
+			fs.utimesSync(source, atime, atime);
+			await compile(compiler);
+			expect(fs.readFileSync(output("copy.txt"), "utf8")).toBe("edited\n");
+			fs.unlinkSync(source);
+			expect((await compile(compiler)).getAsset("copy.txt")).toBeUndefined();
 		}
 	};
 }
@@ -178,7 +201,10 @@ function clearCopiedAttributes() {
 				compilation.emitAsset(emitted.name, emitted.source, { development: true });
 
 				const updated = compilation.getAsset("update.txt");
-				compilation.updateAsset(updated.name, updated.source, { timestamps: undefined });
+				compilation.updateAsset(updated.name, updated.source, {
+					timestamps: undefined,
+					custom: "previous"
+				});
 				expect(compilation.getAsset(updated.name).info.timestamps.mtime).toBe(
 					initialMtime.getTime()
 				);
@@ -188,14 +214,19 @@ function clearCopiedAttributes() {
 					({ mode, timestamps, ...info }) => info
 				);
 				expect(Object.hasOwn(compilation.getAsset(updated.name).info, "timestamps")).toBe(false);
+				const key = Symbol("asset info");
+				const custom = () => "callback";
 				compilation.updateAsset(updated.name, updated.source, info => {
 					info.mode = 0o600;
 					info.timestamps = { atime: atime.getTime(), mtime: updatedMtime.getTime() };
-					return {};
+					return Object.freeze({ custom, [key]: true, optional: undefined });
 				});
 				const updatedInfo = compilation.getAsset(updated.name).info;
 				expect(updatedInfo.mode).toBeUndefined();
 				expect(updatedInfo.timestamps).toBeUndefined();
+				expect(updatedInfo.custom).toBe(custom);
+				expect(updatedInfo[key]).toBe(true);
+				expect(Object.hasOwn(updatedInfo, "optional")).toBe(true);
 				compilation.updateAsset(updated.name, updated.source, () => ({
 					mode: undefined,
 					timestamps: undefined

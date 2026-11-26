@@ -150,8 +150,7 @@ impl JsCompilation {
         let (object, is_patch) = match asset_info_update_or_function {
           Some(Either::A(object)) => (Some(object), true),
           Some(Either::B(update)) => {
-            // Only the returned object supplies file attributes to the updated asset.
-            // Do not cache the callback argument as the asset's JS info.
+            // The callback receives a snapshot and supplies replacement file attributes.
             let result = update
               .call(original_info.as_ref().clone().into())
               .to_rspack_result()?;
@@ -172,6 +171,21 @@ impl JsCompilation {
               .as_ref()
               .and_then(|attributes| attributes.timestamps);
             new_info.prepare_file_attribute_patch(original_timestamps);
+          } else {
+            // Retain JavaScript properties, including values the Rust extras cannot represent.
+            let mut snapshot = object_spread(env, &object).to_rspack_result()?;
+            snapshot
+              .delete_named_property(LEGACY_COPY_PERMISSIONS)
+              .to_rspack_result()?;
+            for (key, value) in std::mem::take(&mut original_info.extras) {
+              if !snapshot.has_own_property(&key).to_rspack_result()? {
+                original_info.extras.insert(key, value);
+              }
+            }
+            original_info
+              .reflector()
+              .set_jsobject(env, snapshot)
+              .to_rspack_result()?;
           }
           let new_related_to = new_info.get_related();
           original_info.merge_another_asset(new_info.into());
