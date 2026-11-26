@@ -762,6 +762,48 @@ async fn deliveries_until(
 }
 
 #[tokio::test]
+async fn queued_changes_reconcile_removed_and_replaced_files_for_a_surviving_context() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let outer = dir.join("src");
+  let inner = outer.join("pages");
+  let removed_file = inner.join("removed.js");
+  let replaced_file = inner.join("route.js");
+  let child = replaced_file.join("new.js");
+  fs::create_dir_all(&inner).unwrap();
+  fs::write(&removed_file, "").unwrap();
+  fs::write(&replaced_file, "").unwrap();
+  let (mut analyzer, marker, release) = hold_event_processor(&dir, &outer).await;
+  analyzer.scan_contexts().await.unwrap();
+  update(&analyzer, empty(), added(&inner), empty()).await;
+  analyzer.queue_context_changes().await;
+
+  update(&analyzer, empty(), removed(&inner), empty()).await;
+  fs::remove_file(&removed_file).unwrap();
+  fs::remove_file(&replaced_file).unwrap();
+  fs::create_dir(&replaced_file).unwrap();
+  fs::write(&child, "").unwrap();
+  analyzer.on_scanned_change(&marker);
+  release.send(()).unwrap();
+
+  let deliveries = deliveries_until(&mut analyzer, &marker).await;
+  assert!(deliveries.contains(&(
+    (&replaced_file).into(),
+    vec![((&outer).into(), FsEventKind::Change)]
+  )));
+  let (files, directories) = analyzer.collect_time_info_entries();
+  assert_eq!(entry(&files, &removed_file), None);
+  assert!(matches!(
+    entry(&directories, &replaced_file),
+    Some(TimeInfoEntry::OnlySafeTimeEntry { .. })
+  ));
+  assert!(matches!(
+    entry(&files, &child),
+    Some(TimeInfoEntry::Entry { .. })
+  ));
+}
+
+#[tokio::test]
 async fn a_directory_scan_notifies_the_missing_dependencies_registered_when_it_found_them() {
   let fixture = tempfile::tempdir().unwrap();
   let dir = fixture.path().canonicalize().unwrap();

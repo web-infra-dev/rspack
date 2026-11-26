@@ -519,12 +519,13 @@ impl PathManager {
       self.watchers.is_explicit_context(context) && state.same_subscription(scan, context)
     };
     current(&scan.root)
-      || directory.is_some_and(|dir| {
-        dir
-          .ancestors()
-          .map(InternedPath::from)
-          .any(|context| current(&context))
-      })
+      || scan.recursive
+        && directory.is_some_and(|dir| {
+          dir
+            .ancestors()
+            .map(InternedPath::from)
+            .any(|context| current(&context))
+        })
   }
 
   fn can_scan_children(&self, scan: &Scan, path: &InternedPath) -> bool {
@@ -539,20 +540,10 @@ impl PathManager {
     scan: Option<&Scan>,
     write: impl FnOnce(&mut Observations) -> (R, Mutation),
   ) -> Option<R> {
-    self.observe_in_directory(path, scan, None, write)
-  }
-
-  fn observe_in_directory<R>(
-    &self,
-    path: &InternedPath,
-    scan: Option<&Scan>,
-    directory: Option<&Path>,
-    write: impl FnOnce(&mut Observations) -> (R, Mutation),
-  ) -> Option<R> {
     let mut state = self.lock_observations();
-    if scan
-      .is_some_and(|s| !self.scan_has_subscription(&state, s, directory) || !state.accepts(s, path))
-    {
+    if scan.is_some_and(|s| {
+      !self.scan_has_subscription(&state, s, path.parent()) || !state.accepts(s, path)
+    }) {
       return None;
     }
     let (result, mutation) = write(&mut state);
@@ -601,6 +592,20 @@ impl PathManager {
       record.reported = ReportedBaseline::Present(mtime);
       record.set_time(mtime, true, true);
     });
+  }
+
+  pub(super) fn report_restored_directory(
+    &self,
+    path: &InternedPath,
+    subscribers: &[Arc<InternedPath>],
+    mtime: SystemTime,
+  ) {
+    if let Some(registrations) = self.missing.scan_subscribers.get()
+      && let Some(current) = registrations.get(path)
+      && subscribers.iter().any(|s| Arc::ptr_eq(s, &current))
+    {
+      self.file_times.record(path).reported = ReportedBaseline::Present(mtime);
+    }
   }
 
   /// Whether a removal was already reported for this path. The scanner must
@@ -891,11 +896,7 @@ impl PathManager {
     scan: Option<&Scan>,
     origin: ContextObservation,
   ) -> Option<(bool, Option<ContextChange>)> {
-    let directory = match origin {
-      ContextObservation::Scan { .. } => path.parent(),
-      _ => None,
-    };
-    self.observe_in_directory(path, scan, directory, |state| {
+    self.observe(path, scan, |state| {
       if scan.is_none_or(|s| !s.recursive) && !self.is_below_context(path) {
         return ((false, None), Mutation::Entry);
       }
@@ -958,7 +959,7 @@ impl PathManager {
             .and_then(|_| {
               self
                 .watchers
-                .queue_context_change(path, directory, scan, state, |dep| {
+                .queue_context_change(path, directory, mtime, scan, state, |dep| {
                   self.missing.scan_subscriber(dep)
                 })
             })

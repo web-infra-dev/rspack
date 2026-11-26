@@ -1,4 +1,7 @@
-use std::sync::{Arc, Mutex, Weak};
+use std::{
+  sync::{Arc, Mutex, Weak},
+  time::SystemTime,
+};
 
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap};
 
@@ -21,18 +24,26 @@ pub(super) struct ContextMember {
 }
 
 pub(super) struct PendingContextChange {
-  subscribers: Mutex<Vec<Weak<InternedPath>>>,
+  subscribers: Mutex<PendingSubscribers>,
+}
+
+#[derive(Default)]
+struct PendingSubscribers {
+  registrations: Vec<Weak<InternedPath>>,
+  // The mtime observed for the directory's own missing dependency, if any.
+  restored_mtime: Option<SystemTime>,
 }
 
 impl PendingContextChange {
-  fn merge(slot: &mut Weak<Self>, subscribers: Vec<Weak<InternedPath>>) -> Arc<Self> {
+  fn merge(slot: &mut Weak<Self>, subscribers: PendingSubscribers) -> Arc<Self> {
     if let Some(pending) = slot.upgrade() {
       let mut owed = pending.subscribers.lock().expect("context change poisoned");
-      owed.retain(|subscriber| subscriber.strong_count() != 0);
-      if !owed.is_empty() {
-        for subscriber in subscribers {
-          if !owed.iter().any(|old| old.ptr_eq(&subscriber)) {
-            owed.push(subscriber);
+      owed.registrations.retain(|s| s.strong_count() != 0);
+      if !owed.registrations.is_empty() {
+        owed.restored_mtime = subscribers.restored_mtime;
+        for subscriber in subscribers.registrations {
+          if !owed.registrations.iter().any(|old| old.ptr_eq(&subscriber)) {
+            owed.registrations.push(subscriber);
           }
         }
         return Arc::clone(&pending);
@@ -50,15 +61,19 @@ impl PendingContextChange {
       .subscribers
       .lock()
       .expect("context change poisoned")
+      .registrations
       .iter()
       .any(|s| s.strong_count() != 0)
   }
 
-  pub(super) fn take_subscribers(&self) -> Vec<InternedPath> {
-    std::mem::take(&mut *self.subscribers.lock().expect("context change poisoned"))
+  pub(super) fn take_subscribers(&self) -> (Vec<Arc<InternedPath>>, Option<SystemTime>) {
+    let owed = std::mem::take(&mut *self.subscribers.lock().expect("context change poisoned"));
+    let subscribers = owed
+      .registrations
       .into_iter()
-      .filter_map(|s| s.upgrade().map(|path| (*path).clone()))
-      .collect()
+      .filter_map(|s| s.upgrade())
+      .collect();
+    (subscribers, owed.restored_mtime)
   }
 
   pub(super) fn acknowledge(&self, delivered: &[(InternedPath, FsEventKind)]) {
@@ -66,6 +81,7 @@ impl PendingContextChange {
       .subscribers
       .lock()
       .expect("context change poisoned")
+      .registrations
       .retain(|s| {
         s.upgrade()
           .is_some_and(|path| !delivered.iter().any(|(dep, _)| dep == &*path))
@@ -132,22 +148,28 @@ impl WatcherManager {
     &self,
     path: &InternedPath,
     directory: bool,
+    mtime: Option<SystemTime>,
     scan: &Scan,
     state: &Observations,
     missing_subscriber: impl Fn(&InternedPath) -> Option<Weak<InternedPath>>,
   ) -> Option<ContextChange> {
-    let mut subscribers = Vec::new();
+    let mut subscribers = PendingSubscribers::default();
     for ancestor in path.ancestors().skip(usize::from(!directory)) {
       let dep = InternedPath::from(ancestor);
       if let Some(watcher) = self.directories.get(&dep)
         && let Some(subscription) = &watcher.explicit
         && state.same_subscription(scan, &dep)
       {
-        subscribers.push(Arc::downgrade(subscription));
+        subscribers.registrations.push(Arc::downgrade(subscription));
       }
-      subscribers.extend(missing_subscriber(&dep));
+      if let Some(subscription) = missing_subscriber(&dep) {
+        if &dep == path {
+          subscribers.restored_mtime = mtime;
+        }
+        subscribers.registrations.push(subscription);
+      }
     }
-    if subscribers.is_empty() {
+    if subscribers.registrations.is_empty() {
       return None;
     }
     let parent = InternedPath::from(path.parent()?);

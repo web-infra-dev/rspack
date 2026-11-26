@@ -446,18 +446,37 @@ impl EventProcessor {
       }
     }
 
+    let current_directory_mtime = if context.is_some_and(|c| c.directory) && is_watched_path {
+      let target = metadata
+        .as_ref()
+        .filter(|m| m.is_symlink())
+        .and_then(|_| path.metadata().ok());
+      target
+        .or(metadata)
+        .filter(|m| m.is_dir())
+        .and_then(|m| m.modified().or_else(|_| m.created()).ok())
+    } else {
+      None
+    };
     let mut state = self.path_manager.lock_observations();
     if registered.is_some_and(|change| !state.take_notification(change)) {
       return;
     }
     if let Some(change) = context {
-      let subscribers = change.pending.take_subscribers();
-      if subscribers.is_empty() {
-        return;
-      }
-      associated_event.retain(|(dep, _)| subscribers.contains(dep));
+      let (subscribers, restored_mtime) = change.pending.take_subscribers();
+      associated_event.retain(|(dep, _)| subscribers.iter().any(|s| s.as_ref() == dep));
       if associated_event.is_empty() {
         return;
+      }
+      if let Some(mtime) = restored_mtime
+        && Some(mtime) == current_directory_mtime
+        && associated_event
+          .iter()
+          .any(|(dep, kind)| dep == path && *kind == FsEventKind::Change)
+      {
+        self
+          .path_manager
+          .report_restored_directory(path, &subscribers, mtime);
       }
       self.path_manager.set_last_watch_events(path);
     } else {
