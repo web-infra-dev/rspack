@@ -170,7 +170,7 @@ async fn retiring_the_last_context_stops_visiting_siblings_in_a_moved_directory(
       let moved = moved.clone();
       let visits = Arc::clone(&visits);
       move |path| {
-        let first = if Path::new(&path).parent() == Some(&moved) {
+        let first = if Path::new(&path).parent() == Some(moved.as_path()) {
           visits.fetch_add(1, Ordering::Relaxed);
           gate.lock().unwrap().take()
         } else {
