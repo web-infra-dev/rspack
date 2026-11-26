@@ -354,6 +354,7 @@ impl CopyRspackPlugin {
           mode,
           permissions_required: pattern.preserve_permissions,
           timestamps,
+          removals: Default::default(),
         })
       })
     } else {

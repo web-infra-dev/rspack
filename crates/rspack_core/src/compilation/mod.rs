@@ -829,17 +829,8 @@ impl Compilation {
     );
     Ok(())
   }
-  pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
-    self.emit_asset_with_file_attribute_removals(filename, asset, Default::default());
-  }
-
   #[instrument("Compilation:emit_asset",skip_all, fields(filename = filename))]
-  pub fn emit_asset_with_file_attribute_removals(
-    &mut self,
-    filename: String,
-    mut asset: CompilationAsset,
-    removals: AssetFileAttributeRemovals,
-  ) {
+  pub fn emit_asset(&mut self, filename: String, mut asset: CompilationAsset) {
     if let Some(mut original) = self.assets.remove(&filename)
       && let Some(original_source) = &original.source
       && let Some(asset_source) = asset.get_source()
@@ -872,7 +863,7 @@ impl Compilation {
         return;
       }
       asset.info.file_attributes = AssetFileAttributes::merge(
-        removals.remove_from(original.info.file_attributes.take()),
+        original.info.file_attributes.take(),
         asset.info.file_attributes.take(),
       );
       self.set_asset_info(&filename, Some(asset.get_info()), Some(original.get_info()));
@@ -1380,54 +1371,61 @@ pub struct CompilationAsset {
   pub info: BindingCell<AssetInfo>,
 }
 
-/// File metadata applied when the asset is written.
+/// File metadata applied when the asset is written and exposed through AssetInfo.
 #[cacheable]
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct AssetFileAttributes {
   pub mode: Option<u16>,
   /// Whether a failure to set the mode should fail emission.
   pub permissions_required: bool,
   /// Access and modification times in milliseconds since the Unix epoch.
   pub timestamps: Option<(u64, u64)>,
+  pub removals: AssetFileAttributeRemovals,
 }
 
 impl AssetFileAttributes {
+  fn has_values(&self) -> bool {
+    self.mode.is_some() || self.timestamps.is_some()
+  }
+
+  pub fn mode_for_output(&self) -> Option<u16> {
+    if cfg!(unix) { self.mode } else { None }
+  }
+
+  pub fn discard_undefined(attributes: &mut Option<Box<Self>>) {
+    if let Some(values) = attributes {
+      values.removals = Default::default();
+      if !values.has_values() {
+        *attributes = None;
+      }
+    }
+  }
+
   fn merge(old: Option<Box<Self>>, new: Option<Box<Self>>) -> Option<Box<Self>> {
     let Some(mut new) = new else {
       return old;
     };
     if let Some(old) = old {
-      if new.mode.is_none() {
+      if new.mode.is_none() && !new.removals.mode {
         new.mode = old.mode;
         new.permissions_required = old.permissions_required;
+        new.removals.mode = old.removals.mode;
       }
-      new.timestamps = new.timestamps.or(old.timestamps);
+      if new.timestamps.is_none() && !new.removals.timestamps {
+        new.timestamps = old.timestamps;
+        new.removals.timestamps = old.removals.timestamps;
+      }
     }
     Some(new)
   }
 }
 
-/// Fields explicitly cleared by an asset emission.
-#[derive(Clone, Copy, Default)]
+/// Explicitly undefined fields retained when AssetInfo is read or passed to another asset.
+#[cacheable]
+#[derive(Debug, Clone, Copy, Default)]
 pub struct AssetFileAttributeRemovals {
   pub mode: bool,
   pub timestamps: bool,
-}
-
-impl AssetFileAttributeRemovals {
-  fn remove_from(
-    self,
-    mut attributes: Option<Box<AssetFileAttributes>>,
-  ) -> Option<Box<AssetFileAttributes>> {
-    let original = attributes.as_mut()?;
-    if self.mode {
-      original.mode = None;
-    }
-    if self.timestamps {
-      original.timestamps = None;
-    }
-    attributes.filter(|attributes| attributes.mode.is_some() || attributes.timestamps.is_some())
-  }
 }
 
 impl From<BoxSource> for CompilationAsset {

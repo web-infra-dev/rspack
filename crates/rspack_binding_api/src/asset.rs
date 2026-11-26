@@ -78,7 +78,6 @@ pub struct AssetInfo {
   known: KnownAssetInfo,
   extras: Map<String, Value>,
   file_attributes: Option<Box<AssetFileAttributes>>,
-  pub(crate) file_attribute_removals: AssetFileAttributeRemovals,
 }
 
 impl FromNapiValue for AssetInfo {
@@ -114,12 +113,11 @@ impl FromNapiValue for AssetInfo {
         }
       }
 
-      let file_attributes = take_file_attributes(&mut extras);
+      let file_attributes = take_file_attributes(&mut extras, file_attribute_removals);
       Ok(Self {
         known,
         extras,
         file_attributes,
-        file_attribute_removals,
       })
     }
   }
@@ -139,12 +137,16 @@ impl ToNapiValue for AssetInfo {
           if !attributes.permissions_required {
             js_object.set_named_property(LEGACY_COPY_PERMISSIONS, true)?;
           }
+        } else if attributes.removals.mode {
+          js_object.set_named_property("mode", ())?;
         }
         if let Some((atime, mtime)) = attributes.timestamps {
           let mut timestamps = Object::new(&Env::from_raw(env))?;
           timestamps.set_named_property("atime", atime as f64)?;
           timestamps.set_named_property("mtime", mtime as f64)?;
           js_object.set_named_property("timestamps", timestamps)?;
+        } else if attributes.removals.timestamps {
+          js_object.set_named_property("timestamps", ())?;
         }
       }
       Ok(napi_value)
@@ -169,7 +171,6 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
       known,
       extras,
       file_attributes,
-      ..
     } = js_value;
 
     let KnownAssetInfo {
@@ -226,26 +227,37 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
   }
 }
 
-fn take_file_attributes(extras: &mut Map<String, Value>) -> Option<Box<AssetFileAttributes>> {
+fn read_timestamps(value: &Value, original: Option<(u64, u64)>) -> Option<(u64, u64)> {
+  let timestamps = value.as_object()?;
+  let read = |name, fallback| match timestamps.get(name) {
+    Some(value) => value
+      .as_f64()
+      .filter(|time| *time >= 0.0)
+      .map(|time| time as u64),
+    None => fallback,
+  };
+  let atime = read("atime", original.map(|(atime, _)| atime))?;
+  let mtime = read("mtime", original.map(|(_, mtime)| mtime))?;
+  Some((atime, mtime))
+}
+
+fn take_file_attributes(
+  extras: &mut Map<String, Value>,
+  removals: AssetFileAttributeRemovals,
+) -> Option<Box<AssetFileAttributes>> {
   let legacy_permissions = matches!(
     extras.remove(LEGACY_COPY_PERMISSIONS),
     Some(Value::Bool(true))
   );
-  let mode = if cfg!(unix) {
-    extras
-      .get("mode")
-      .and_then(Value::as_f64)
-      .filter(|mode| mode.fract() == 0.0 && (0.0..=f64::from(u16::MAX)).contains(mode))
-      .map(|mode| mode as u16)
-  } else {
-    None
-  };
-  let timestamps = extras.get("timestamps").and_then(|timestamps| {
-    let atime = timestamps.get("atime")?.as_f64()?;
-    let mtime = timestamps.get("mtime")?.as_f64()?;
-    (atime >= 0.0 && mtime >= 0.0).then_some((atime as u64, mtime as u64))
-  });
-  if mode.is_none() && timestamps.is_none() {
+  let mode = extras
+    .get("mode")
+    .and_then(Value::as_f64)
+    .filter(|mode| mode.fract() == 0.0 && (0.0..=f64::from(u16::MAX)).contains(mode))
+    .map(|mode| mode as u16);
+  let timestamps = extras
+    .get("timestamps")
+    .and_then(|timestamps| read_timestamps(timestamps, None));
+  if mode.is_none() && timestamps.is_none() && !removals.mode && !removals.timestamps {
     return None;
   }
 
@@ -259,6 +271,7 @@ fn take_file_attributes(extras: &mut Map<String, Value>) -> Option<Box<AssetFile
     mode,
     permissions_required: !legacy_permissions,
     timestamps,
+    removals,
   }))
 }
 
@@ -270,6 +283,27 @@ impl AssetInfo {
 
   pub fn get_related(&self) -> Option<AssetInfoRelated> {
     self.known.related.clone()
+  }
+
+  pub(crate) fn removes_mode(&self) -> bool {
+    self
+      .file_attributes
+      .as_ref()
+      .is_some_and(|attributes| attributes.removals.mode)
+  }
+
+  pub(crate) fn prepare_file_attribute_patch(&mut self, original_timestamps: Option<(u64, u64)>) {
+    AssetFileAttributes::discard_undefined(&mut self.file_attributes);
+    if let Some(original_timestamps) = original_timestamps
+      && let Some(timestamps) = self.extras.get("timestamps")
+      && let Some(timestamps) = read_timestamps(timestamps, Some(original_timestamps))
+    {
+      self.extras.remove("timestamps");
+      self
+        .file_attributes
+        .get_or_insert_with(Default::default)
+        .timestamps = Some(timestamps);
+    }
   }
 }
 
@@ -329,7 +363,6 @@ impl From<rspack_core::AssetInfo> for AssetInfo {
       },
       extras,
       file_attributes,
-      file_attribute_removals: Default::default(),
     }
   }
 }

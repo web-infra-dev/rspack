@@ -4,7 +4,9 @@ For descriptions of common asset metadata fields, see [Asset info](/api/javascri
 
 `mode` specifies the Unix permissions applied when writing the asset. `timestamps` specifies its access and modification times in nonnegative milliseconds since the Unix epoch. CopyRspackPlugin populates these fields when the corresponding preservation options are enabled. A plugin can pass the asset's `info` to `emitAsset` to keep these attributes when emitting it again.
 
-When re-emitting an asset with the same name and content, omitted file attributes keep their previous values. Pass `undefined` for `mode` or `timestamps` to clear that attribute. With an `updateAsset` info callback, its return value determines the file attributes.
+When re-emitting an asset with the same name and content, the supplied `info` can override file attributes through its own enumerable fields. Omitted file attributes keep their previous values. Pass `undefined` for `mode` or `timestamps` to clear that attribute. The cleared field remains an own property of `info` so plugins can forward it to another `emitAsset` call.
+
+An `updateAsset` info callback supplies the replacement file attributes, including explicitly undefined fields. When an asset already has timestamps, the JavaScript object form of `updateAsset` can change either `atime` or `mtime` individually.
 
 ```ts
 type AssetInfo = {

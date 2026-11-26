@@ -113,6 +113,22 @@ function reemitChildAsset() {
 							emitAsset(name, source, {
 								timestamps: { ...info.timestamps, mtime: updatedMtime.getTime() }
 							});
+							compilation.updateAsset(name, source, {
+								timestamps: { atime: initialMtime.getTime() }
+							});
+
+							const sharedInfo = { development: true };
+							emitAsset(name, source, sharedInfo);
+							expect(compilation.getAsset(name).info.timestamps.mtime).toBe(
+								updatedMtime.getTime()
+							);
+							expect(sharedInfo.timestamps).toBeUndefined();
+							emitAsset("renamed.txt", source, sharedInfo);
+							const inheritedInfo = Object.create({
+								mode: 0o600,
+								timestamps: { ...info.timestamps, mtime: updatedMtime.getTime() }
+							});
+							emitAsset("renamed.txt", source, inheritedInfo);
 						};
 						const child = compilation.createChildCompiler("copy", {}, [copy]);
 						child.runAsChild(error => callback(error));
@@ -128,13 +144,14 @@ function reemitChildAsset() {
 			expectAttributes(renamed, initialMtime, 0o751);
 			expect(fs.readFileSync(renamed, "utf8")).toBe("copied\n");
 			const original = path.join(compiler.outputPath, "copy.txt");
-			expectAttributes(original, updatedMtime, 0o751);
+			const stat = expectAttributes(original, updatedMtime, 0o751);
+			expect(stat.atimeMs).toBe(initialMtime.getTime());
 		}
 	};
 }
 
 function clearCopiedAttributes() {
-	const names = ["emit.txt", "update.txt"];
+	const names = ["emit.txt", "update.txt", "forwarded.txt"];
 	return {
 		description: "should clear copied file attributes through emitAsset and updateAsset",
 		options(context) {
@@ -155,6 +172,7 @@ function clearCopiedAttributes() {
 				expect(info.mode).toBeUndefined();
 				expect(info.timestamps.mtime).toBe(initialMtime.getTime());
 				compilation.emitAsset(emitted.name, emitted.source, { timestamps: undefined });
+				compilation.emitAsset(emitted.name, emitted.source, { development: true });
 
 				const updated = compilation.getAsset("update.txt");
 				compilation.updateAsset(updated.name, updated.source, { timestamps: undefined });
@@ -166,9 +184,20 @@ function clearCopiedAttributes() {
 					updated.source,
 					({ mode, timestamps, ...info }) => info
 				);
+				expect(Object.hasOwn(compilation.getAsset(updated.name).info, "timestamps")).toBe(false);
+				compilation.updateAsset(updated.name, updated.source, () => ({
+					mode: undefined,
+					timestamps: undefined
+				}));
+				const forwarded = compilation.getAsset("forwarded.txt");
+				compilation.emitAsset(forwarded.name, forwarded.source, {
+					...compilation.getAsset(updated.name).info
+				});
 
 				for (const name of names) {
 					const { info } = compilation.getAsset(name);
+					expect(Object.hasOwn(info, "mode")).toBe(true);
+					expect(Object.hasOwn(info, "timestamps")).toBe(true);
 					expect(info.mode).toBeUndefined();
 					expect(info.timestamps).toBeUndefined();
 				}
