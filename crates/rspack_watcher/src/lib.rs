@@ -146,6 +146,10 @@ enum WatcherOp {
     event_handler: Box<dyn EventHandler + Send>,
     done: oneshot::Sender<()>,
   },
+  Refresh {
+    path: InternedPath,
+    done: oneshot::Sender<bool>,
+  },
   Close {
     done: oneshot::Sender<Result<()>>,
   },
@@ -166,7 +170,7 @@ pub struct FsWatcher {
 
 struct FsWatcherInner {
   path_manager: Arc<PathManager>,
-  disk_watcher: DiskWatcher,
+  disk_watcher: Option<DiskWatcher>,
   executor: Executor,
   scanner: Scanner,
   analyzer: Arc<RecommendedAnalyzer>,
@@ -180,7 +184,12 @@ impl FsWatcher {
 
     let path_manager =
       Arc::new(PathManager::new(ignored).with_follow_symlinks(options.follow_symlinks));
-    let trigger = Arc::new(Trigger::new(Arc::clone(&path_manager), tx));
+    let (op_tx, op_rx) = mpsc::unbounded_channel();
+    let trigger = Arc::new(Trigger::start(
+      Arc::clone(&path_manager),
+      tx,
+      Some(op_tx.downgrade()),
+    ));
     let analyzer = Arc::clone(&trigger.analyzer);
     let disk_watcher = DiskWatcher::new(
       options.follow_symlinks,
@@ -197,17 +206,18 @@ impl FsWatcher {
 
     let inner = FsWatcherInner {
       path_manager: Arc::clone(&path_manager),
-      disk_watcher,
+      disk_watcher: Some(disk_watcher),
       executor,
       scanner,
       analyzer,
       trigger: Arc::clone(&trigger),
     };
 
+    spawn_owner_thread(inner, op_rx);
     Self {
       paused,
       trigger,
-      op_tx: spawn_owner_thread(inner),
+      op_tx,
       path_manager,
       aggregated,
       #[cfg(feature = "testing")]
@@ -328,9 +338,7 @@ impl FsWatcher {
   }
 }
 
-fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<WatcherOp> {
-  let (tx, mut rx) = mpsc::unbounded_channel::<WatcherOp>();
-
+fn spawn_owner_thread(mut inner: FsWatcherInner, mut rx: mpsc::UnboundedReceiver<WatcherOp>) {
   let owner_loop = async move {
     let mut closed = false;
     while let Some(op) = rx.recv().await {
@@ -364,6 +372,19 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
             .await;
           let _ = done.send(());
         }
+        WatcherOp::Refresh { path, done } => {
+          let ready = !closed && {
+            inner.analyzer.invalidate_path(&path);
+            match inner.mount_roots() {
+              Ok(()) => true,
+              Err(error) => {
+                inner.executor.on_error(error);
+                false
+              }
+            }
+          };
+          let _ = done.send(ready);
+        }
         WatcherOp::Close { done } if closed => {
           let _ = done.send(Ok(()));
         }
@@ -386,8 +407,6 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
       runtime.block_on(owner_loop);
     })
     .expect("spawn watcher thread");
-
-  tx
 }
 
 impl FsWatcherInner {
@@ -417,7 +436,7 @@ impl FsWatcherInner {
   }
 
   async fn close(&mut self) -> Result<()> {
-    self.disk_watcher.close();
+    self.disk_watcher.take();
     self.scanner.close();
     self.executor.close().await;
     self.trigger.lock().expect("should lock trigger").take();
@@ -456,11 +475,7 @@ impl FsWatcherInner {
     //     in flight for that write would then be suppressed as a duplicate.
     self.record_initial_file_mtimes();
 
-    let watch_patterns = self.analyzer.analyze(self.path_manager.access());
-    if let Err(error) = self.disk_watcher.watch(watch_patterns.into_iter()) {
-      self.analyzer.invalidate_all();
-      return Err(error);
-    }
+    self.mount_roots()?;
     let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
     if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
       for (path, change) in changed_in_contexts {
@@ -481,6 +496,24 @@ impl FsWatcherInner {
     self.scanner.scan(start_time);
 
     Ok(())
+  }
+
+  fn mount_roots(&mut self) -> Result<()> {
+    let roots = self.analyzer.analyze(self.path_manager.access());
+    // A watch on a directory can disappear with it. Its parent reports the
+    // removal and the later recreation, including on Windows.
+    let parents = roots.iter().filter_map(|root| {
+      root.path.parent().map(|parent| WatchPattern {
+        path: InternedPath::from(parent),
+        mode: notify::RecursiveMode::NonRecursive,
+      })
+    });
+    self
+      .disk_watcher
+      .as_mut()
+      .expect("open disk watcher")
+      .watch(roots.iter().cloned().chain(parents))
+      .inspect_err(|_| self.analyzer.invalidate_all())
   }
 
   fn record_initial_file_mtimes(&self) {

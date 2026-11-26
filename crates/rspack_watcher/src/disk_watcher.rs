@@ -1,117 +1,142 @@
-use std::{sync::Arc, time::Duration};
+use std::{
+  collections::BTreeMap,
+  ops::Bound::{Included, Unbounded},
+  path::{Path, PathBuf},
+  sync::Arc,
+  time::Duration,
+};
 
 use notify::{
-  Event, EventKind, RecommendedWatcher, Watcher,
+  Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
   event::{ModifyKind, RenameMode},
 };
-use rspack_paths::InternedPath;
+use rspack_paths::{InternedPath, InternedPathMap};
 use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use crate::{FsEventKind, WatchPattern, analyzer::Analyzer, trigger};
 
-/// `DiskWatcher` is responsible for managing the underlying file system watcher
-/// and keeping track of the currently watched paths.
+/// notify removes descendants when unwatching a recursive inotify root. Keep
+/// independently owned, overlapping roots on separate backend instances.
+struct WatchGroup {
+  watcher: RecommendedWatcher,
+  roots: BTreeMap<PathBuf, RecursiveMode>,
+}
+
+impl WatchGroup {
+  fn new(config: notify::Config, trigger: Arc<trigger::Trigger>) -> notify::Result<Self> {
+    let watcher = RecommendedWatcher::new(
+      move |result: notify::Result<Event>| match result {
+        Ok(event) => handle_event(event, &trigger),
+        Err(e) => {
+          tracing::error!(target: "rspack_watcher::fs_event", "file watcher error: {e:?}");
+          eprintln!("Error in file watcher: {e:?}");
+        }
+      },
+      config,
+    )?;
+    Ok(Self {
+      watcher,
+      roots: BTreeMap::new(),
+    })
+  }
+
+  fn can_mount(&self, path: &Path, mode: RecursiveMode) -> bool {
+    if self.roots.contains_key(path)
+      || path
+        .ancestors()
+        .skip(1)
+        .any(|parent| self.roots.get(parent) == Some(&RecursiveMode::Recursive))
+    {
+      return false;
+    }
+    mode == RecursiveMode::NonRecursive
+      || self
+        .roots
+        .range::<Path, _>((Included(path), Unbounded))
+        .next()
+        .is_none_or(|(next, _)| !next.starts_with(path))
+  }
+}
+
 pub struct DiskWatcher {
-  /// The actual file system watcher from the `notify` crate.
-  inner: Option<RecommendedWatcher>,
-  /// A set of pattern that are currently being watched.
+  groups: Vec<WatchGroup>,
   watch_patterns: HashSet<WatchPattern>,
+  config: notify::Config,
+  trigger: Arc<trigger::Trigger>,
 }
 
 impl DiskWatcher {
-  /// Creates a new `DiskWatcher` with the given configuration and trigger.
   pub fn new(
     follow_symlinks: bool,
     poll_interval: Option<u32>,
     trigger: Arc<trigger::Trigger>,
   ) -> Self {
-    let config = match poll_interval {
-      Some(poll) => notify::Config::default()
-        .with_follow_symlinks(follow_symlinks)
-        .with_poll_interval(Duration::from_millis(u64::from(poll))),
-      None => notify::Config::default().with_follow_symlinks(follow_symlinks),
-    };
-
-    let inner = RecommendedWatcher::new(
-      move |result: notify::Result<Event>| match result {
-        Ok(event) => handle_event(event, &trigger),
-
-        Err(e) => {
-          tracing::error!(target: "rspack_watcher::fs_event", "file watcher error: {e:?}");
-          eprintln!("Error in file watcher: {e:?}",);
-        }
-      },
-      config,
-    )
-    .expect("Failed to create disk watcher");
-
-    DiskWatcher {
-      inner: Some(inner),
+    let mut config = notify::Config::default().with_follow_symlinks(follow_symlinks);
+    if let Some(poll) = poll_interval {
+      config = config.with_poll_interval(Duration::from_millis(u64::from(poll)));
+    }
+    let group =
+      WatchGroup::new(config, Arc::clone(&trigger)).expect("Failed to create disk watcher");
+    Self {
+      groups: vec![group],
       watch_patterns: HashSet::default(),
+      config,
+      trigger,
     }
   }
 
-  /// Watches the given path with the specified recursive mode.
-  ///
-  /// # Returns
-  ///
-  /// * `rspack_error::Result<()>` - Ok if successful, otherwise an error.
   pub fn watch(
     &mut self,
     patterns: impl Iterator<Item = WatchPattern>,
   ) -> rspack_error::Result<()> {
-    let new_patterns: HashSet<WatchPattern> = patterns.collect();
-
-    let new_paths = new_patterns.iter().map(|p| &p.path).collect::<HashSet<_>>();
-
-    // Collect stale paths that are no longer needed, then unwatch and remove them.
-    let stale_paths: HashSet<InternedPath> = self
-      .watch_patterns
-      .iter()
-      .filter(|p| !new_paths.contains(&p.path))
-      .map(|p| p.path.clone())
-      .collect();
-
-    for path in &stale_paths {
-      // A failed unwatch must not stop the new patterns from being watched. For example, on
-      // Linux `notify` can return `EINVAL` for a subdirectory that was deleted while its parent
-      // was watched recursively (https://github.com/notify-rs/notify/issues/709).
-      if let Some(watcher) = &mut self.inner
-        && let Err(e) = watcher.unwatch(path)
-        && !matches!(e.kind, notify::ErrorKind::WatchNotFound)
-      {
-        tracing::warn!(
-          target: "rspack_watcher::disk_watcher",
-          path = ?path,
-          "failed to unwatch stale path: {e:?}",
-        );
+    let mut desired = InternedPathMap::default();
+    for pattern in patterns {
+      let mode = desired.entry(pattern.path).or_insert(pattern.mode);
+      if pattern.mode == RecursiveMode::Recursive {
+        *mode = RecursiveMode::Recursive;
       }
     }
-
-    self
-      .watch_patterns
-      .retain(|p| !stale_paths.contains(&p.path));
-
-    for pattern in new_patterns {
+    for (path, &mode) in &desired {
+      let pattern = WatchPattern {
+        path: path.clone(),
+        mode,
+      };
       if self.watch_patterns.contains(&pattern) {
         continue;
       }
-
-      if let Some(watcher) = &mut self.inner {
-        watcher
-          .watch(&pattern.path, pattern.mode)
-          .map_err(|e| rspack_error::error!(e.to_string()))?;
-      }
-
+      let group = match self.groups.iter_mut().find(|g| g.can_mount(path, mode)) {
+        Some(group) => group,
+        None => {
+          let group = WatchGroup::new(self.config, Arc::clone(&self.trigger))
+            .map_err(|e| rspack_error::error!(e.to_string()))?;
+          self.groups.push_mut(group)
+        }
+      };
+      group
+        .watcher
+        .watch(path, mode)
+        .map_err(|e| rspack_error::error!(e.to_string()))?;
+      group.roots.insert(path.to_path_buf(), mode);
       self.watch_patterns.insert(pattern);
     }
 
+    // Install every replacement before releasing any old coverage, even on a retry.
+    self.watch_patterns.retain(|pattern| {
+      if desired.get(&pattern.path) == Some(&pattern.mode) {
+        return true;
+      }
+      let group = self.groups.iter_mut()
+        .find(|g| g.roots.get(pattern.path.as_path()) == Some(&pattern.mode))
+        .expect("mounted watch group");
+      if let Err(e) = group.watcher.unwatch(&pattern.path)
+        && !matches!(e.kind, notify::ErrorKind::WatchNotFound) {
+        tracing::warn!(target: "rspack_watcher::disk_watcher", path = ?pattern.path, "failed to unwatch stale path: {e:?}");
+      }
+      group.roots.remove(pattern.path.as_path());
+      false
+    });
+    self.groups.retain(|group| !group.roots.is_empty());
     Ok(())
-  }
-
-  pub fn close(&mut self) {
-    // the trigger.tx is dropped in the FsWatcher
-    std::mem::drop(self.inner.take());
   }
 }
 

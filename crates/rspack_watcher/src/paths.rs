@@ -1103,6 +1103,17 @@ impl PathManager {
     self.watchers.is_watched_directory(path) || self.registered_ancestors.contains_key(path)
   }
 
+  pub(crate) fn has_registered_descendants(&self, path: &InternedPath) -> bool {
+    self.registered_ancestors.contains_key(path)
+  }
+
+  pub(crate) fn has_absent_context_below(&self, path: &InternedPath) -> bool {
+    self
+      .absent_directories
+      .iter()
+      .any(|context| context.starts_with(path.as_path()))
+  }
+
   fn is_below_context(&self, path: &InternedPath) -> bool {
     path.ancestors().skip(1).any(|ancestor| {
       self

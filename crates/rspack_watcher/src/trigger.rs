@@ -110,6 +110,7 @@ struct EventProcessor {
   path_manager: Arc<PathManager>,
   /// Sender for communicating file system events to the watcher executor.
   tx: UnboundedSender<ResolvedEvents>,
+  owner: Option<tokio::sync::mpsc::WeakUnboundedSender<crate::WatcherOp>>,
   analyzer: Arc<RecommendedAnalyzer>,
 }
 
@@ -141,12 +142,22 @@ enum Origin {
 
 impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
+  #[cfg(any(test, feature = "testing"))]
   pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<ResolvedEvents>) -> Self {
+    Self::start(path_manager, tx, None)
+  }
+
+  pub(super) fn start(
+    path_manager: Arc<PathManager>,
+    tx: UnboundedSender<ResolvedEvents>,
+    owner: Option<tokio::sync::mpsc::WeakUnboundedSender<crate::WatcherOp>>,
+  ) -> Self {
     let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind, Origin)>();
     let analyzer = Arc::default();
     let processor = EventProcessor {
       path_manager,
       tx,
+      owner,
       analyzer: Arc::clone(&analyzer),
     };
 
@@ -212,6 +223,23 @@ impl Trigger {
 }
 
 impl EventProcessor {
+  async fn refresh_watches(&self, path: &InternedPath) -> bool {
+    let Some(owner) = &self.owner else {
+      return true;
+    };
+    let Some(owner) = owner.upgrade() else {
+      return false;
+    };
+    let (done, ready) = tokio::sync::oneshot::channel();
+    owner
+      .send(crate::WatcherOp::Refresh {
+        path: path.clone(),
+        done,
+      })
+      .is_ok()
+      && ready.await.unwrap_or(false)
+  }
+
   /// Called when a file system event occurs.
   /// Finds all dependencies related to the given path and triggers events for each.
   /// # Example
@@ -271,6 +299,16 @@ impl EventProcessor {
     let initial_missing = removed && scanned;
     let metadata = std::fs::symlink_metadata(path).ok();
     let exists = metadata.is_some();
+    // Install coverage on the nearest existing directory before a recovery
+    // scan reads its contents. Reconcile on the owner, alongside watch().
+    if metadata.as_ref().is_none_or(|m| m.is_dir())
+      && (self.path_manager.has_registered_descendants(path)
+        || self.path_manager.watchers.is_explicit_context(path))
+      && (appeared || (!exists && !scanned) || self.path_manager.has_absent_context_below(path))
+      && !self.refresh_watches(path).await
+    {
+      return;
+    }
     let pending = if context.is_none() {
       self.path_manager.watchers.pending_change(path)
     } else {
@@ -397,7 +435,11 @@ impl EventProcessor {
       kind,
     });
     let mut recovered = Vec::new();
-    if appeared && path.is_dir() && !path.is_symlink() {
+    if appeared
+      && self.path_manager.has_registered_descendants(path)
+      && path.is_dir()
+      && !path.is_symlink()
+    {
       // On Linux, inotify adds a new directory's watch before emitting its
       // Create event, so files written before that watch existed are already
       // on disk; later writes produce their own events. On every backend, a
