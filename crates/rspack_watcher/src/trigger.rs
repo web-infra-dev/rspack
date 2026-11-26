@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use rspack_paths::{InternedPath, InternedPathDashSet};
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
@@ -121,6 +121,7 @@ struct EventProcessor {
 /// immediately, and a dedicated thread drains the buffer one event at a time.
 pub struct Trigger {
   pending: UnboundedSender<(InternedPath, FsEventKind, Origin)>,
+  pub(super) parent_watches: RwLock<crate::disk_watcher::ParentWatches>,
   pub(crate) analyzer: Arc<RecommendedAnalyzer>,
 }
 
@@ -169,20 +170,19 @@ impl Trigger {
     std::thread::Builder::new()
       .name("rspack-fs-event-filter".to_string())
       .spawn(move || {
-        let runtime = tokio::runtime::Builder::new_current_thread()
-          .enable_all()
-          .build()
-          .expect("create watcher event filter runtime");
-
-        runtime.block_on(async move {
+        crate::run_watcher_loop(std::pin::pin!(async move {
           while let Some((path, kind, origin)) = incoming.recv().await {
             processor.process(&path, kind, origin).await;
           }
-        });
+        }));
       })
       .expect("spawn watcher event filter thread");
 
-    Self { pending, analyzer }
+    Self {
+      pending,
+      analyzer,
+      parent_watches: Default::default(),
+    }
   }
 
   /// Queues an explicit event from `FsWatcher::trigger_event` without blocking.

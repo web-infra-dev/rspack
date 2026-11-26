@@ -362,3 +362,29 @@ async fn an_unreadable_sibling_does_not_prevent_recovery_of_a_missing_branch() {
   wait_for(&mut events, &target).await;
   watcher.close().await.expect("close watcher");
 }
+
+#[tokio::test]
+async fn a_parent_watch_only_checks_entries_needed_for_recovery() {
+  let temp = tempfile::tempdir().expect("create fixture");
+  let root = temp.path().canonicalize().expect("resolve fixture");
+  let project = root.join("project");
+  fs::create_dir(&project).expect("create watched directory");
+  let sibling = root.join("unrelated.js");
+  let file = project.join("file.js");
+  let (ignored, arm) = pause_at(sibling.clone());
+  let watcher = FsWatcher::new(Default::default(), ignored);
+  let mut events = watch(&watcher, &[], &[&file], &[]).await;
+  let (mut called, release) = arm();
+  fs::write(sibling, "unrelated").expect("write outside the watched root");
+  fs::write(&file, "changed").expect("write watched file");
+  let checked_sibling = tokio::select! {
+    _ = &mut called => true,
+    () = wait_for(&mut events, &file) => tokio::time::timeout(Duration::from_millis(250), &mut called).await.is_ok(),
+  };
+  let _ = release.send(());
+  assert!(
+    !checked_sibling,
+    "an unrelated sibling reached the user-supplied ignored function"
+  );
+  watcher.close().await.expect("close watcher");
+}

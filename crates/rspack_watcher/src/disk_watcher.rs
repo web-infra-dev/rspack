@@ -1,11 +1,17 @@
-use std::{collections::BTreeMap, path::PathBuf, sync::Arc, time::Duration};
+#[cfg(not(target_os = "macos"))]
+use std::collections::BTreeMap;
+use std::{
+  path::{Path, PathBuf},
+  sync::Arc,
+  time::Duration,
+};
 
 use notify::{
   Event, EventKind, RecommendedWatcher, RecursiveMode, Watcher,
   event::{ModifyKind, RenameMode},
 };
 use rspack_paths::InternedPath;
-use rspack_util::fx_hash::FxHashSet as HashSet;
+use rspack_util::fx_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
 use crate::{FsEventKind, WatchPattern, analyzer::Analyzer, trigger};
 
@@ -25,6 +31,53 @@ impl Mount {
     } else {
       Err(error)
     }
+  }
+}
+
+/// A parent-only watch should deliver changes to the watched branches, not their siblings.
+#[derive(Default)]
+pub(super) struct ParentWatches {
+  directories: HashSet<PathBuf>,
+  children: HashSet<PathBuf>,
+}
+
+impl ParentWatches {
+  fn new(mounts: &HashMap<PathBuf, Mount>) -> Self {
+    let directories: HashSet<_> = mounts
+      .iter()
+      .filter(|(path, mount)| {
+        !mount.required
+          && !path.ancestors().skip(1).any(|ancestor| {
+            mounts
+              .get(ancestor)
+              .is_some_and(|parent| parent.mode == RecursiveMode::Recursive)
+          })
+      })
+      .map(|(path, _)| path.clone())
+      .collect();
+    let mut children = HashSet::default();
+    for (root, mount) in mounts {
+      if mount.required {
+        for child in root.ancestors() {
+          if child
+            .parent()
+            .is_some_and(|parent| directories.contains(parent))
+          {
+            children.insert(child.to_path_buf());
+          }
+        }
+      }
+    }
+    Self {
+      directories,
+      children,
+    }
+  }
+
+  fn accepts(&self, path: &Path) -> bool {
+    path
+      .parent()
+      .is_none_or(|parent| !self.directories.contains(parent) || self.children.contains(path))
   }
 }
 
@@ -142,7 +195,7 @@ impl DiskWatcher {
     if !self.retry && patterns == self.watch_patterns {
       return Ok(());
     }
-    let mut mounts = BTreeMap::new();
+    let mut mounts = HashMap::default();
     for pattern in &patterns {
       if let Some(parent) = pattern.path.parent() {
         mounts.entry(parent.to_path_buf()).or_insert(Mount {
@@ -159,6 +212,8 @@ impl DiskWatcher {
         mount.mode = RecursiveMode::Recursive;
       }
     }
+    let parents = ParentWatches::new(&mounts);
+    *self.trigger.parent_watches.write().expect("watch parents") = parents;
     self.retry = true;
     self
       .update(&mounts)
@@ -210,7 +265,7 @@ impl DiskWatcher {
   }
 
   #[cfg(target_os = "macos")]
-  fn update(&mut self, mounts: &BTreeMap<PathBuf, Mount>) -> notify::Result<()> {
+  fn update(&mut self, mounts: &HashMap<PathBuf, Mount>) -> notify::Result<()> {
     // Editing a running FSEvents stream stops delivery for every root.
     // Start its replacement in one batch while the old stream is still live.
     let mut next = backend(self.config, Arc::clone(&self.trigger))?;
@@ -224,7 +279,7 @@ impl DiskWatcher {
   }
 
   #[cfg(not(target_os = "macos"))]
-  fn update(&mut self, mounts: &BTreeMap<PathBuf, Mount>) -> notify::Result<()> {
+  fn update(&mut self, mounts: &HashMap<PathBuf, Mount>) -> notify::Result<()> {
     for (path, mount) in mounts {
       if self.groups.iter().any(|g| {
         g.roots
@@ -293,6 +348,14 @@ pub(crate) fn handle_event(event: Event, trigger: &trigger::Trigger) {
   }
 
   for (index, path) in event.paths.into_iter().map(InternedPath::from).enumerate() {
+    if !trigger
+      .parent_watches
+      .read()
+      .expect("watch parents")
+      .accepts(&path)
+    {
+      continue;
+    }
     let kind = match event.kind {
       EventKind::Create(_) | EventKind::Modify(ModifyKind::Name(RenameMode::To)) => {
         FsEventKind::Create

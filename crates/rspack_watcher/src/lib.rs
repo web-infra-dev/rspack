@@ -339,6 +339,15 @@ impl FsWatcher {
   }
 }
 
+// Both watcher threads drive long-lived event loops on this same runtime entry point.
+fn run_watcher_loop(task: Pin<&mut dyn Future<Output = ()>>) {
+  tokio::runtime::Builder::new_current_thread()
+    .enable_all()
+    .build()
+    .expect("create watcher runtime")
+    .block_on(task);
+}
+
 fn spawn_owner_thread(mut inner: FsWatcherInner, mut rx: mpsc::UnboundedReceiver<WatcherOp>) {
   let owner_loop = async move {
     while let Some(op) = rx.recv().await {
@@ -391,14 +400,7 @@ fn spawn_owner_thread(mut inner: FsWatcherInner, mut rx: mpsc::UnboundedReceiver
 
   std::thread::Builder::new()
     .name("rspack-fs-watcher".to_string())
-    .spawn(move || {
-      let runtime = tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .expect("create watcher runtime");
-
-      runtime.block_on(owner_loop);
-    })
+    .spawn(move || run_watcher_loop(std::pin::pin!(owner_loop)))
     .expect("spawn watcher thread");
 }
 
