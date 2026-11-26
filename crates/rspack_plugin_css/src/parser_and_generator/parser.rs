@@ -274,17 +274,11 @@ impl<'context> CssModuleParser<'context> {
   pub fn new(
     generator_options: &'context CssModuleGeneratorOptions,
     parser_options: &'context CssAutoOrModuleParserOptions,
+    export_type: Option<CssExportType>,
     parse_context: ParseContext<'context>,
   ) -> Self {
     let source = remove_bom(parse_context.source.clone());
     let source_code: Arc<str> = source.source().into_string_lossy().into();
-
-    let export_type = parse_context
-      .build_info
-      .css
-      .as_deref()
-      .and_then(|css_build_info| css_build_info.export_type)
-      .or(parser_options.export_type);
 
     Self {
       parser_options,

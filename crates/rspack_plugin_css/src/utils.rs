@@ -52,19 +52,16 @@ pub(crate) fn source_order_to_i32(source_order: u32) -> i32 {
 }
 
 pub(crate) fn css_module_export_type(module: &dyn Module) -> Option<CssExportType> {
-  module
-    .build_info()
-    .css
-    .as_deref()
-    .and_then(|css| css.export_type)
-    .or_else(|| {
-      module.as_normal_module().and_then(|module| {
-        module
-          .parser_and_generator()
-          .downcast_ref::<CssParserAndGenerator>()
-          .and_then(|parser_and_generator| parser_and_generator.export_type)
-      })
-    })
+  let build_info = module.build_info();
+  if let Some(parser_and_generator) = module.as_normal_module().and_then(|module| {
+    module
+      .parser_and_generator()
+      .downcast_ref::<CssParserAndGenerator>()
+  }) {
+    parser_and_generator.effective_export_type(&build_info)
+  } else {
+    build_info.css.as_deref().and_then(|css| css.export_type)
+  }
 }
 
 pub(crate) fn css_render_conditions_from_module(
