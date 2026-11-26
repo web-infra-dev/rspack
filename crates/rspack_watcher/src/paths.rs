@@ -563,6 +563,20 @@ impl PathManager {
     });
   }
 
+  pub(super) fn report_restored_directory(
+    &self,
+    path: &InternedPath,
+    subscribers: &[Arc<InternedPath>],
+    mtime: SystemTime,
+  ) {
+    if let Some(registrations) = self.missing.scan_subscribers.get()
+      && let Some(current) = registrations.get(path)
+      && subscribers.iter().any(|s| Arc::ptr_eq(s, &current))
+    {
+      self.file_times.record(path).reported = ReportedBaseline::Present(mtime);
+    }
+  }
+
   /// Whether a removal was already reported for this path. The scanner must
   /// still report an absence with no prior record.
   pub fn is_known_absent(&self, path: &InternedPath) -> bool {
@@ -903,7 +917,7 @@ impl PathManager {
             .and_then(|_| {
               self
                 .watchers
-                .queue_context_change(path, directory, scan, state, |dep| {
+                .queue_context_change(path, directory, mtime, scan, state, |dep| {
                   self.missing.scan_subscriber(dep)
                 })
             })
