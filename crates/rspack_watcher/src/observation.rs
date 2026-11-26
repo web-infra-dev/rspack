@@ -1,122 +1,117 @@
-//! Tracks writes that could supersede a running scan’s file or directory observations.
-use std::{
-  collections::BTreeSet,
-  sync::{Arc, Mutex},
-};
+//! Invalidations affecting directory walks that are still reading from disk.
+use std::sync::{Arc, Mutex};
 
-use rspack_paths::{InternedPath, InternedPathMap};
+use rspack_paths::{InternedPath, InternedPathSet};
+use rspack_util::fx_hash::FxHashMap;
 
 pub(super) enum Mutation {
+  FileTime,
   Unchanged,
   Entry,
   Subtree,
 }
 
 #[derive(Default)]
-pub(super) struct Observations {
-  sequence: u64,
-  active: BTreeSet<u64>,
-  entries: InternedPathMap<u64>,
-  subtrees: InternedPathMap<u64>,
-  context_changes: InternedPathMap<u64>,
+struct Invalidations {
+  file_times: InternedPathSet,
+  entries: InternedPathSet,
+  subtrees: InternedPathSet,
+  subscriptions: InternedPathSet,
 }
 
-pub(super) struct ScanEpoch {
+#[derive(Default)]
+pub(super) struct Observations {
+  next_walk: u64,
+  active: FxHashMap<u64, Invalidations>,
+}
+
+pub(super) struct ActiveWalk {
   observations: Arc<Mutex<Observations>>,
-  sequence: u64,
+  id: u64,
 }
 
 #[derive(Clone)]
 pub(super) struct Scan {
-  pub(super) epoch: Arc<ScanEpoch>,
+  pub(super) walk: Arc<ActiveWalk>,
   pub(super) root: InternedPath,
 }
 
-impl ScanEpoch {
+impl ActiveWalk {
   pub(super) fn start(observations: &Arc<Mutex<Observations>>) -> Arc<Self> {
     let mut state = observations.lock().expect("watch observations poisoned");
-    let sequence = state.advance();
-    state.active.insert(sequence);
+    let id = state.next_walk;
+    state.next_walk += 1;
+    state.active.insert(id, Invalidations::default());
     Arc::new(Self {
       observations: Arc::clone(observations),
-      sequence,
+      id,
     })
   }
 }
 
-impl Drop for ScanEpoch {
+impl Drop for ActiveWalk {
   fn drop(&mut self) {
-    let mut state = self
+    self
       .observations
       .lock()
-      .expect("watch observations poisoned");
-    state.active.remove(&self.sequence);
-    let Some(&oldest) = state.active.first() else {
-      *state = Observations::default();
-      return;
-    };
-    if self.sequence < oldest {
-      state.entries.retain(|_, version| *version > oldest);
-      state.subtrees.retain(|_, version| *version > oldest);
-      state.context_changes.retain(|_, version| *version > oldest);
-    }
+      .expect("watch observations poisoned")
+      .active
+      .remove(&self.id);
   }
 }
 
 impl Observations {
-  fn advance(&mut self) -> u64 {
-    self.sequence += 1;
-    self.sequence
-  }
-
   pub(super) fn context_changed(&mut self, path: &InternedPath) {
-    if !self.active.is_empty() {
-      let version = self.advance();
-      self.context_changes.insert(path.clone(), version);
+    for walk in self.active.values_mut() {
+      walk.subscriptions.insert(path.clone());
     }
   }
 
   pub(super) fn same_subscription(&self, scan: &Scan, context: &InternedPath) -> bool {
-    self
-      .context_changes
-      .get(context)
-      .is_none_or(|v| *v <= scan.epoch.sequence)
+    !self.active[&scan.walk.id].subscriptions.contains(context)
+  }
+
+  pub(super) fn file_time_was_read(&self, scan: &Scan, path: &InternedPath) -> bool {
+    self.active[&scan.walk.id].file_times.contains(path)
   }
 
   pub(super) fn accepts(&self, scan: &Scan, path: &InternedPath) -> bool {
-    let version = scan.epoch.sequence;
-    self.entries.get(path).is_none_or(|v| *v <= version) && self.covers_subtree(scan, path)
+    !self.active[&scan.walk.id].entries.contains(path) && self.covers_subtree(scan, path)
   }
 
   pub(super) fn covers_subtree(&self, scan: &Scan, path: &InternedPath) -> bool {
-    let version = scan.epoch.sequence;
-    self.subtrees.is_empty()
-      || !path.ancestors().any(|ancestor| {
-        self
-          .subtrees
-          .get(&InternedPath::from(ancestor))
-          .is_some_and(|v| *v > version)
-      })
+    let invalid = &self.active[&scan.walk.id].subtrees;
+    invalid.is_empty()
+      || !path
+        .ancestors()
+        .any(|p| invalid.contains(&InternedPath::from(p)))
   }
 
-  pub(super) fn observe(&mut self, path: &InternedPath, scan: Option<&Scan>, mutation: Mutation) {
-    if matches!(mutation, Mutation::Unchanged) {
-      return;
-    }
-    let Some(&oldest) = self.active.first() else {
-      return;
-    };
-    let version = scan.map_or_else(|| self.advance(), |scan| scan.epoch.sequence);
-    // A scan need only leave a version for an older scan, never for itself.
-    if version > oldest {
+  pub(super) fn observe_live(&mut self, path: &InternedPath, mutation: Mutation) {
+    for walk in self.active.values_mut() {
       match mutation {
-        Mutation::Unchanged => {}
-        Mutation::Subtree => {
-          self.subtrees.insert(path.clone(), version);
+        Mutation::FileTime => {
+          walk.file_times.insert(path.clone());
         }
         Mutation::Entry => {
-          self.entries.insert(path.clone(), version);
+          walk.entries.insert(path.clone());
         }
+        Mutation::Subtree => {
+          walk.subtrees.insert(path.clone());
+        }
+        Mutation::Unchanged => {}
+      }
+    }
+  }
+
+  pub(super) fn invalidate_subtree<'a>(
+    &mut self,
+    path: &InternedPath,
+    readers: impl Iterator<Item = &'a Scan> + Clone,
+  ) {
+    for (id, walk) in &mut self.active {
+      if !readers.clone().any(|scan| scan.walk.id == *id) {
+        walk.subtrees.insert(path.clone());
       }
     }
   }

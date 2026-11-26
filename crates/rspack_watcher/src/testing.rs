@@ -80,10 +80,24 @@ impl DirectoryAnalyzer {
   pub fn scan_contexts(&self) -> tokio::task::JoinHandle<Vec<InternedPath>> {
     let paths = Arc::clone(&self.paths);
     tokio::spawn(async move {
+      let changed = Arc::new(Mutex::new(Vec::new()));
       paths
-        .scan_contexts(SystemTime::UNIX_EPOCH)
-        .await
+        .scan_contexts(
+          SystemTime::UNIX_EPOCH,
+          Arc::new({
+            let changed = Arc::clone(&changed);
+            move |path, change| {
+              changed
+                .lock()
+                .expect("scan results poisoned")
+                .push((path, change))
+            }
+          }),
+        )
+        .await;
+      std::mem::take(&mut *changed.lock().expect("scan results poisoned"))
         .into_iter()
+        .filter(|(_, change)| change.pending.has_subscribers())
         .map(|(path, _)| path)
         .collect()
     })
@@ -96,13 +110,21 @@ impl DirectoryAnalyzer {
   }
 
   pub async fn queue_context_changes_since(&self, start: SystemTime) {
-    for (path, change) in self.paths.scan_contexts(start).await {
-      self.trigger.on_context_change(path, change);
-    }
+    self
+      .paths
+      .scan_contexts(start, Arc::clone(&self.trigger.scan_sink))
+      .await;
   }
 
   pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
     self.paths.collect_time_info_entries()
+  }
+
+  /// Return the commit of a scan whose filesystem metadata has already been read.
+  pub fn hold_scanned_file(&self, root: InternedPath, path: InternedPath) -> impl FnOnce() + use<> {
+    self
+      .paths
+      .hold_scanned_file(root, path, Arc::clone(&self.trigger.scan_sink))
   }
 
   pub async fn update(

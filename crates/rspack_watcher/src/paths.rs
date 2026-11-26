@@ -1,3 +1,4 @@
+mod scan;
 use std::{
   ffi::OsStr,
   fmt::Debug,
@@ -12,18 +13,23 @@ use rspack_error::Result;
 use rspack_paths::{
   InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathIndexSet, InternedPathSet,
 };
-use rspack_util::{
-  fx_hash::FxHashMap,
-  time::{current_time, system_time_to_millis},
-};
+use rspack_util::{fx_hash::FxHashMap, time::current_time};
+pub(crate) use scan::{DirectoryScans, ScanSink};
+
+pub(super) fn is_absent(error: &std::io::Error) -> bool {
+  matches!(
+    error.kind(),
+    std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
+  )
+}
 
 use super::{
   FsEventKind, FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, ignored::IgnoredMatcher,
 };
 use crate::{
-  observation::{Mutation, Observations, Scan, ScanEpoch},
+  observation::{Mutation, Observations, Scan},
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
-  watcher_manager::{ContextChange, MemberKind, WatcherManager},
+  watcher_manager::{MemberKind, ScannedEntry, WatcherManager},
 };
 
 /// An iterator that chains together references to all files, directories, and missing paths
@@ -263,6 +269,26 @@ impl PathTracker {
       .or_insert_with(|| Arc::new(registered.clone()));
     Some(Arc::downgrade(&handle))
   }
+  fn is_scan_subscriber(&self, subscriber: &Arc<InternedPath>) -> bool {
+    self
+      .scan_subscribers
+      .get()
+      .and_then(|map| map.get(subscriber.as_ref()))
+      .is_some_and(|current| Arc::ptr_eq(subscriber, &current))
+  }
+
+  fn with_scan_subscriber(
+    &self,
+    path: &InternedPath,
+    recipients: &[Arc<InternedPath>],
+    write: impl FnOnce(),
+  ) {
+    if let Some(registered) = self.scan_subscribers.get().and_then(|map| map.get(path))
+      && recipients.iter().any(|sub| Arc::ptr_eq(sub, &registered))
+    {
+      write();
+    }
+  }
 }
 
 /// One value of watchpack's `files` map, as written by `setFileTime`: the mtime
@@ -416,10 +442,7 @@ impl FileTimes {
 }
 
 enum ContextObservation {
-  Scan {
-    initial: bool,
-    changed_since: Option<u64>,
-  },
+  Scan { initial: bool },
   Event,
   Reported,
 }
@@ -509,22 +532,15 @@ impl PathManager {
     self.scan_has_subscription(&state, scan, Some(path)) && state.covers_subtree(scan, path)
   }
 
-  // Check and commit together, after reading metadata and awaiting ignored.
-  pub(super) fn observe<R>(
+  pub(super) fn observe_live<R>(
     &self,
     path: &InternedPath,
-    scan: Option<&Scan>,
-    write: impl FnOnce(&Observations) -> (R, Mutation),
-  ) -> Option<R> {
+    write: impl FnOnce() -> (R, Mutation),
+  ) -> R {
     let mut state = self.watchers.lock_observations();
-    if scan.is_some_and(|s| {
-      !self.scan_has_subscription(&state, s, path.parent()) || !state.accepts(s, path)
-    }) {
-      return None;
-    }
-    let (result, mutation) = write(&state);
-    state.observe(path, scan, mutation);
-    Some(result)
+    let (result, mutation) = write();
+    state.observe_live(path, mutation);
+    result
   }
 
   pub fn with_follow_symlinks(mut self, follow_symlinks: bool) -> Self {
@@ -543,7 +559,7 @@ impl PathManager {
   /// Record an initial baseline mtime for `path`, but only if no present
   /// baseline already exists. A reported absence counts as no
   /// baseline because the file is back. This is the "incremental" form used by
-  /// `FsWatcher::wait_for_event`: on the first `watch()` call we record
+  /// `FsWatcherInner::register_paths`: on the first `watch()` call we record
   /// mtimes for all newly-registered files; on subsequent `watch()` calls
   /// we MUST skip files that already have a baseline, otherwise we risk
   /// snapshotting a mtime that the user has just bumped via `writeFile`.
@@ -551,81 +567,159 @@ impl PathManager {
   /// Use `has_mtime_changed` (which atomically reads-and-updates the
   /// baseline) to advance the recorded mtime in response to real events.
   pub fn set_file_time_if_absent(&self, path: InternedPath, mtime: SystemTime) {
-    self.record(&path, || {
-      let mut record = self.file_times.record(&path);
-      if !matches!(record.reported, ReportedBaseline::Present(_)) {
-        record.reported = ReportedBaseline::Present(mtime);
-      }
-      record.time.get_or_insert_with(|| FileTime::initial(mtime));
+    self.observe_live(&path, || {
+      self.record(&path, || {
+        let mut record = self.file_times.record(&path);
+        if !matches!(record.reported, ReportedBaseline::Present(_)) {
+          record.reported = ReportedBaseline::Present(mtime);
+        }
+        record.time.get_or_insert_with(|| FileTime::initial(mtime));
+      });
+      ((), Mutation::FileTime)
     });
   }
 
   /// The scanner reported `path` as changed: the build will know this mtime,
   /// so it becomes the deduplication baseline as well as the time info.
   pub fn set_reported_file_time(&self, path: &InternedPath, mtime: SystemTime) {
-    self.record(path, || {
-      let mut record = self.file_times.record(path);
-      record.reported = ReportedBaseline::Present(mtime);
-      record.set_time(mtime, true, true);
+    self.observe_live(path, || {
+      self.record(path, || {
+        let mut record = self.file_times.record(path);
+        record.reported = ReportedBaseline::Present(mtime);
+        record.set_time(mtime, true, true);
+      });
+      ((), Mutation::FileTime)
     });
   }
 
-  pub(super) fn reconcile_missing_change(
+  pub(super) async fn recheck_scanned_entry(
     &self,
     path: &InternedPath,
-    subscribers: &[Arc<InternedPath>],
-    scanned_mtime: SystemTime,
-    kind: FsEventKind,
-    metadata: std::io::Result<std::fs::Metadata>,
-    mut observe_descendant_removal: impl FnMut(&InternedPath) -> bool,
+    original: ScannedEntry,
+  ) -> Option<ScannedEntry> {
+    let (entry, changed_type) = self.observe_live(path, || {
+      if !self.files.all.contains(path)
+        && !self.missing.all.contains(path)
+        && !self.may_contain_records(path)
+        && !self.watchers.has_member(path, |_| true)
+      {
+        return ((None, false), Mutation::Unchanged);
+      }
+      match std::fs::symlink_metadata(path) {
+        Ok(metadata) => {
+          let mtime = metadata.modified().or_else(|_| metadata.created()).ok();
+          let directory = metadata.is_dir();
+          let entry = if directory {
+            ScannedEntry::Directory(mtime)
+          } else {
+            ScannedEntry::File
+          };
+          let replaced = directory != original.directory()
+            || original.kind() == FsEventKind::Remove
+            || metadata.is_symlink();
+          let updated = mtime.is_some_and(|mtime| {
+            self
+              .file_times
+              .get(path)
+              .is_some_and(|old| old.mtime != mtime)
+              && self.store_file_time(path, mtime, false, true)
+          });
+          (
+            (Some(entry), replaced),
+            if updated {
+              Mutation::Entry
+            } else {
+              Mutation::Unchanged
+            },
+          )
+        }
+        Err(error) if is_absent(&error) => {
+          self.forget_removed_path(path);
+          (
+            (
+              Some(ScannedEntry::Missing {
+                directory: original.directory(),
+              }),
+              false,
+            ),
+            Mutation::Subtree,
+          )
+        }
+        Err(_) => ((None, false), Mutation::Unchanged),
+      }
+    });
+    if changed_type {
+      self.set_context_entry(path, false, None).await;
+    }
+    entry
+  }
+
+  pub(super) fn is_scanned_file_recipient(&self, subscriber: &Arc<InternedPath>) -> bool {
+    self.files.is_scan_subscriber(subscriber) || self.missing.is_scan_subscriber(subscriber)
+  }
+
+  pub(super) fn scan_event_for(
+    &self,
+    path: &InternedPath,
+    subscriber: &Arc<InternedPath>,
+    entry: ScannedEntry,
+  ) -> Option<FsEventKind> {
+    let dep = subscriber.as_ref();
+    let missing = self.missing.is_scan_subscriber(subscriber);
+    if dep != path {
+      if !missing && !self.watchers.is_context_subscriber(subscriber) {
+        return None;
+      }
+      return Some(
+        if self.absent_directories.contains(dep) || (missing && self.is_known_absent(dep)) {
+          FsEventKind::Remove
+        } else {
+          FsEventKind::Change
+        },
+      );
+    }
+    let eligible = missing
+      || match entry {
+        ScannedEntry::File => self.files.is_scan_subscriber(subscriber),
+        ScannedEntry::Directory(_) => self.watchers.is_context_subscriber(subscriber),
+        ScannedEntry::Missing { .. } => {
+          self.files.is_scan_subscriber(subscriber)
+            || self.watchers.is_context_subscriber(subscriber)
+        }
+      };
+    eligible.then(|| entry.kind())
+  }
+
+  pub(super) fn report_scan_delivery(
+    &self,
+    path: &InternedPath,
+    recipients: &[Arc<InternedPath>],
+    scanned_mtime: Option<SystemTime>,
+    entry: ScannedEntry,
   ) {
     let _index = self.lock_index();
-    let Some(registration) = self
-      .missing
-      .scan_subscribers
-      .get()
-      .and_then(|map| map.get(path))
-    else {
-      return;
-    };
-    if !subscribers.iter().any(|s| Arc::ptr_eq(s, &registration)) {
-      return;
-    }
-    match (kind, metadata) {
-      (FsEventKind::Change, Ok(metadata)) => {
-        let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
-          return;
-        };
-        let mut record = self.file_times.record(path);
-        if metadata.is_dir() && mtime == scanned_mtime {
-          record.report_change(mtime);
-        } else {
-          // The snapshot sees the replacement. Its own change is still due.
-          record.set_time(mtime, false, true);
-        }
-        self.link_record(path);
-      }
-      (FsEventKind::Remove, Err(error))
-        if matches!(
-          error.kind(),
-          std::io::ErrorKind::NotFound | std::io::ErrorKind::NotADirectory
-        ) =>
-      {
-        *self.file_times.record(path) = FileRecord {
-          time: None,
-          reported: ReportedBaseline::Absent,
-        };
-        // PathTracker::remove locks the registration set before the subscriber map.
-        drop(registration);
-        for child in self.recorded_subtree(path).into_iter().skip(1) {
-          if (self.files.all.contains(&child) || self.missing.all.contains(&child))
-            && observe_descendant_removal(&child)
-          {
-            self.file_times.clear(&child, FileRecord::clear_present);
-            self.unlink_unrecorded(&child);
+    match entry {
+      ScannedEntry::Directory(Some(mtime)) if Some(mtime) == scanned_mtime => {
+        self.missing.with_scan_subscriber(path, recipients, || {
+          let mut record = self.file_times.record(path);
+          if record.time.is_some_and(|time| time.mtime == mtime) {
+            record.report_change(mtime);
           }
-        }
-        self.unlink_unrecorded(path);
+        });
+      }
+      ScannedEntry::Missing { .. } => {
+        let mark_absent = || {
+          let mut record = self.file_times.record(path);
+          if record.time.is_none() {
+            record.reported = ReportedBaseline::Absent;
+          }
+        };
+        self
+          .files
+          .with_scan_subscriber(path, recipients, mark_absent);
+        self
+          .missing
+          .with_scan_subscriber(path, recipients, mark_absent);
       }
       _ => {}
     }
@@ -646,25 +740,101 @@ impl PathManager {
     }
   }
 
-  pub(super) fn set_missing(
+  pub(super) fn set_missing(&self, path: &InternedPath, report_absence: bool) {
+    self.observe_live(path, || {
+      self.forget_removed_path(path);
+      if report_absence {
+        self.set_reported_file_removal(path);
+      }
+      ((), Mutation::Subtree)
+    })
+  }
+
+  fn forget_removed_path(&self, path: &InternedPath) {
+    let subtree = self.may_contain_records(path);
+    self.remove_file_time(path, false);
+    if subtree {
+      self.remove_file_times_under(path, false);
+    }
+  }
+
+  // When the moved ancestor has no subscriber of its own, its native event
+  // is the only removal available for the registered paths below it.
+  pub(super) fn has_registered_descendants(&self, path: &InternedPath) -> bool {
+    self.registered_ancestors.contains_key(path)
+  }
+
+  pub(super) fn is_uncovered_ancestor(&self, path: &InternedPath) -> bool {
+    self.registered_ancestors.contains_key(path)
+      && !self.files.all.contains(path)
+      && !self.missing.all.contains(path)
+      && !self.watchers.is_explicit_context(path)
+      && !self.is_below_context(path)
+  }
+
+  fn registered_contexts_below(&self, path: &InternedPath) -> Vec<InternedPath> {
+    self
+      .directories
+      .all
+      .iter()
+      .filter(|p| **p != *path && p.starts_with(path.as_path()))
+      .map(|p| p.clone())
+      .collect()
+  }
+
+  fn remove_observed_path(&self, path: &InternedPath) -> Vec<InternedPath> {
+    let mut removed = InternedPathSet::default();
+    if self.is_uncovered_ancestor(path) {
+      let _index = self.lock_index();
+      for child in self.recorded_subtree(path).into_iter().skip(1) {
+        if (self.files.all.contains(&child) || self.missing.all.contains(&child))
+          && self.file_times.get(&child).is_some()
+        {
+          removed.insert(child);
+        }
+      }
+      // An explicitly registered empty directory need never have contributed a member.
+      removed.extend(
+        self
+          .registered_contexts_below(path)
+          .into_iter()
+          .filter(|p| !self.absent_directories.contains(p)),
+      );
+    }
+    self.forget_removed_path(path);
+    for child in &removed {
+      if self.files.all.contains(child) || self.missing.all.contains(child) {
+        self.set_reported_file_removal(child);
+      }
+    }
+    removed.into_iter().collect()
+  }
+
+  pub(super) fn read_disk_entry(
     &self,
     path: &InternedPath,
-    scan: Option<&Scan>,
     report_absence: bool,
-  ) -> bool {
-    self
-      .observe(path, scan, |_| {
-        let subtree = self.may_contain_records(path);
-        self.remove_file_time(path, false);
-        if subtree {
-          self.remove_file_times_under(path, false);
-        }
-        if report_absence {
+  ) -> std::io::Result<(Option<std::fs::Metadata>, Vec<InternedPath>)> {
+    match std::fs::symlink_metadata(path) {
+      Ok(meta) => return Ok((Some(meta), Vec::new())),
+      Err(error) if !is_absent(&error) => return Err(error),
+      _ => {}
+    }
+    // Commit the absence together with its confirmation: a concurrent scan
+    // may have seen a recreated directory after the first stat.
+    self.observe_live(path, || match std::fs::symlink_metadata(path) {
+      Err(error) if is_absent(&error) => {
+        let removed = self.remove_observed_path(path);
+        if report_absence && (self.files.all.contains(path) || self.missing.all.contains(path)) {
           self.set_reported_file_removal(path);
         }
-        ((), Mutation::Subtree)
-      })
-      .is_some()
+        (Ok((None, removed)), Mutation::Subtree)
+      }
+      result => (
+        result.map(|meta| (Some(meta), Vec::new())),
+        Mutation::Unchanged,
+      ),
+    })
   }
 
   /// Drop a removed path's time info and present baseline. A reported absence
@@ -700,6 +870,7 @@ impl PathManager {
     self.unlink_unrecorded(dir);
     for context in self.directories.all.iter() {
       if context.starts_with(dir.as_ref() as &Path) {
+        self.watchers.retire_directory_scan(&context);
         self.absent_directories.insert(context.clone());
       }
     }
@@ -813,186 +984,51 @@ impl PathManager {
     }
   }
 
-  /// watchpack's initial scan of a `DirectoryWatcher`, for this cycle's newly
-  /// registered contexts: index every file and subdirectory below them, so
-  /// `collect_time_info_entries` reports them like watchpack does. A path the
-  /// live watch already observed with the same mtime keeps its record.
-  ///
-  /// Returns the files that changed since `start_time` (watchpack's
-  /// `checkStartTime`): they changed before the watch was active, so no event
-  /// will come for them.
-  pub async fn scan_contexts(&self, start_time: SystemTime) -> Vec<(InternedPath, ContextChange)> {
-    let contexts: Vec<InternedPath> = self.directories.added.iter().map(|p| p.clone()).collect();
-    self
-      .scan_below(contexts, false, Some(system_time_to_millis(start_time)))
-      .await
-  }
-
-  /// Index every file and subdirectory below `roots`, minus what `ignored`
-  /// excludes (watchpack's `DirectoryWatcher` initial scan). Roots that are
-  /// `recovered` contexts coming back are rescanned like watchpack's
-  /// `doScan(false)`: the files directly in them are stamped with the
-  /// observation time, since one changed while away may have kept its mtime.
-  /// Returns the files whose safe time is at or after `changed_since`.
-  async fn scan_below(
-    &self,
-    roots: Vec<InternedPath>,
-    recovered: bool,
-    changed_since: Option<u64>,
-  ) -> Vec<(InternedPath, ContextChange)> {
-    let mut changed = Vec::new();
-    if roots.is_empty() {
-      return changed;
-    }
-    let epoch = ScanEpoch::start(&self.watchers.observations);
-    // Each directory carries the real paths of the directories above it: with
-    // `followSymlinks`, a link back into its own ancestry is a loop, while two
-    // links to one directory are two aliases, each scanned.
-    let mut pending: Vec<_> = roots
-      .into_iter()
-      .filter_map(|dir| {
-        let root = dir
-          .ancestors()
-          .map(InternedPath::from)
-          .find(|p| self.watchers.is_explicit_context(p))?;
-        let scan = Scan {
-          epoch: Arc::clone(&epoch),
-          root,
-        };
-        Some((dir, Vec::new(), recovered, scan))
-      })
-      .collect();
-    while let Some((dir, mut ancestry, observed, scan)) = pending.pop() {
-      if !self.can_scan_children(&scan, &dir) {
-        continue;
-      }
-      if self.follow_symlinks {
-        let Ok(real) = std::fs::canonicalize(&dir) else {
-          continue;
-        };
-        if ancestry.contains(&real) {
-          continue;
-        }
-        ancestry.push(real);
-      }
-      let Ok(entries) = std::fs::read_dir(&dir) else {
-        continue;
-      };
-      for entry in entries.flatten() {
-        let path = InternedPath::from(entry.path());
-        if !self.is_ignored_path(path.as_ref()).await
-          && let Ok((metadata, symlink)) = Self::scan_metadata(ancestry.last(), &path)
-        {
-          let observation = self.observe_member(
-            &path,
-            &metadata,
-            symlink,
-            Some(&scan),
-            ContextObservation::Scan {
-              initial: !observed,
-              changed_since,
-            },
-          );
-          if metadata.is_dir()
-            && (observation.is_some() || self.watchers.has_member(&path, |member| member.directory))
-          {
-            pending.push((path.clone(), ancestry.clone(), false, scan.clone()));
-          }
-          if let Some((_, change)) = observation {
-            if let Some(change) = change {
-              changed.push((path, change));
-            }
-            continue;
-          }
-        }
-        // A stale child can have live siblings. Losing coverage of the directory retires the walk.
-        if !self.can_scan_children(&scan, &dir) {
-          break;
-        }
-      }
-    }
-    changed.retain(|(_, change)| change.pending.has_subscribers());
-    changed
-  }
-
-  fn observe_member(
+  fn record_member(
     &self,
     path: &InternedPath,
     metadata: &std::fs::Metadata,
     symlink: bool,
-    scan: Option<&Scan>,
     origin: ContextObservation,
-  ) -> Option<(bool, Option<ContextChange>)> {
-    self.observe(path, scan, |state| {
-      if scan.is_none() && !self.is_below_context(path) {
-        return ((false, None), Mutation::Entry);
+  ) -> (bool, Mutation) {
+    let directory = metadata.is_dir();
+    // An initial scan can follow a directory symlink whose live event records the link as a file.
+    let replaced = !symlink
+      && self
+        .watchers
+        .has_member(path, |old| if directory { old.file } else { old.directory });
+    if replaced {
+      // A registered file's baseline has already advanced for this event.
+      let keep_file = matches!(origin, ContextObservation::Reported)
+        && (self.files.all.contains(path) || self.missing.all.contains(path));
+      if directory {
+        self.remove_file_time(path, keep_file);
+      } else {
+        self.remove_file_times_under(path, keep_file);
       }
-      let directory = metadata.is_dir();
-      // An initial scan can follow a directory symlink whose live event records the link as a file.
-      let replaced = !symlink
-        && self
-          .watchers
-          .has_member(path, |old| if directory { old.file } else { old.directory });
-      if replaced {
-        // A registered file's baseline has already advanced for this event.
-        let keep_file = matches!(origin, ContextObservation::Reported)
-          && (self.files.all.contains(path) || self.missing.all.contains(path));
-        if directory {
-          self.remove_file_time(path, keep_file);
-        } else {
-          self.remove_file_times_under(path, keep_file);
+    }
+    let mtime = metadata.modified().or_else(|_| metadata.created()).ok();
+    let updated = self.record(path, || {
+      if directory {
+        if let Some(mtime) = mtime {
+          mtime_accuracy(mtime);
         }
+        return self.watchers.add_member(path, MemberKind::Directory);
       }
-      let mtime = metadata.modified().or_else(|_| metadata.created()).ok();
-      let updated = self.record(path, || {
-        if directory {
-          if let Some(mtime) = mtime {
-            mtime_accuracy(mtime);
-          }
-          return self.watchers.add_member(path, MemberKind::Directory);
-        }
-        self.watchers.add_member(path, MemberKind::File);
-        matches!(origin, ContextObservation::Reported)
-          || mtime.is_none_or(|mtime| self.file_times.record(path).observe_member(mtime, &origin))
-      });
-      let change = match (&origin, scan) {
-        (
-          ContextObservation::Scan {
-            changed_since: Some(since),
-            ..
-          },
-          Some(scan),
-        ) => {
-          let changed_at = if directory {
-            metadata.created().ok().or(mtime)
-          } else if self.files.all.contains(path) || self.missing.all.contains(path) {
-            None
-          } else {
-            mtime
-          };
-          changed_at
-            .filter(|time| mtime_safe_time(*time) >= *since)
-            .and_then(|_| {
-              self
-                .watchers
-                .queue_context_change(path, directory, mtime, scan, state, |dep| {
-                  self.missing.scan_subscriber(dep)
-                })
-            })
-        }
-        _ => None,
-      };
-      (
-        (updated, change),
-        if !directory && !updated && !replaced {
-          Mutation::Unchanged
-        } else if replaced {
-          Mutation::Subtree
-        } else {
-          Mutation::Entry
-        },
-      )
-    })
+      self.watchers.add_member(path, MemberKind::File);
+      matches!(origin, ContextObservation::Reported)
+        || mtime.is_none_or(|mtime| self.file_times.record(path).observe_member(mtime, &origin))
+    });
+    (
+      updated,
+      if !directory && !updated && !replaced {
+        Mutation::Unchanged
+      } else if replaced {
+        Mutation::Subtree
+      } else {
+        Mutation::Entry
+      },
+    )
   }
 
   /// An event named `path` below a registered context: index it the way the
@@ -1011,7 +1047,7 @@ impl PathManager {
     &self,
     path: &InternedPath,
     judged: bool,
-    scan: Option<&Scan>,
+    sink: Option<&ScanSink>,
   ) -> bool {
     let mut recovered: Vec<_> = self
       .absent_directories
@@ -1024,7 +1060,7 @@ impl PathManager {
       for context in &recovered {
         self.absent_directories.remove(context);
       }
-      self.scan_below(recovered, true, None).await;
+      self.scan_below(recovered, true, None, sink.cloned()).await;
     }
 
     let registered_directory = self.watchers.is_explicit_context(path);
@@ -1045,39 +1081,38 @@ impl PathManager {
       if !metadata.is_file() {
         return true;
       }
-      if self
-        .observe(path, scan, |_| {
-          if !self.absent_directories.contains(path) {
-            let keep_file =
-              judged && (self.files.all.contains(path) || self.missing.all.contains(path));
-            self.remove_file_times_under(path, keep_file);
-          }
-          ((), Mutation::Subtree)
-        })
-        .is_none()
-      {
-        return false;
-      }
+      self.observe_live(path, || {
+        if !self.absent_directories.contains(path) {
+          let keep_file =
+            judged && (self.files.all.contains(path) || self.missing.all.contains(path));
+          self.remove_file_times_under(path, keep_file);
+        }
+        ((), Mutation::Subtree)
+      });
       if !self.is_below_context(path) {
         return true;
       }
     }
-    let Some((changed, _)) = self.observe_member(
-      path,
-      &metadata,
-      metadata.is_symlink(),
-      scan,
-      if judged {
-        ContextObservation::Reported
-      } else {
-        ContextObservation::Event
-      },
-    ) else {
-      return false;
-    };
+    let changed = self.observe_live(path, || {
+      if !self.is_below_context(path) {
+        return (false, Mutation::Entry);
+      }
+      self.record_member(
+        path,
+        &metadata,
+        metadata.is_symlink(),
+        if judged {
+          ContextObservation::Reported
+        } else {
+          ContextObservation::Event
+        },
+      )
+    });
     // A known directory can emit an attribute-only event; only a new one needs a scan.
     if metadata.is_dir() && changed {
-      self.scan_below(vec![path.clone()], false, None).await;
+      self
+        .scan_below(vec![path.clone()], false, None, sink.cloned())
+        .await;
     }
     metadata.is_dir() || changed
   }
@@ -1141,6 +1176,21 @@ impl PathManager {
     initial: bool,
     ignore_when_equal: bool,
   ) -> bool {
+    self.observe_live(path, || {
+      (
+        self.store_file_time(path, mtime, initial, ignore_when_equal),
+        Mutation::FileTime,
+      )
+    })
+  }
+
+  fn store_file_time(
+    &self,
+    path: &InternedPath,
+    mtime: SystemTime,
+    initial: bool,
+    ignore_when_equal: bool,
+  ) -> bool {
     self.record(path, || {
       self
         .file_times
@@ -1170,10 +1220,10 @@ impl PathManager {
   /// Equal mtimes are only stale once they are past the filesystem accuracy window.
   #[cfg(test)]
   pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
-    self.observe_mtime_change(path, None)
+    self.observe_mtime_change(path)
   }
 
-  pub(super) fn observe_mtime_change(&self, path: &InternedPath, scan: Option<&Scan>) -> bool {
+  pub(super) fn observe_mtime_change(&self, path: &InternedPath) -> bool {
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       return true;
     }
@@ -1181,20 +1231,108 @@ impl PathManager {
     let Some(current_mtime) = disk_mtime(path) else {
       return true;
     };
-    let mtime_ms = mtime_to_millis(current_mtime);
-    let present = ReportedBaseline::Present(current_mtime);
-    let aged = mtime_ms.saturating_add(mtime_accuracy(current_mtime)) < current_time();
-    self
-      .observe(path, scan, |_| {
-        if aged && self.file_times.reported(path) == present {
-          return (false, Mutation::Unchanged);
+    self.observe_live(path, || self.record_mtime_change(path, current_mtime))
+  }
+
+  fn record_mtime_change(&self, path: &InternedPath, mtime: SystemTime) -> (bool, Mutation) {
+    let aged = mtime_to_millis(mtime).saturating_add(mtime_accuracy(mtime)) < current_time();
+    if aged && self.file_times.reported(path) == ReportedBaseline::Present(mtime) {
+      return (false, Mutation::Unchanged);
+    }
+    self.record(path, || self.file_times.record(path).report_change(mtime));
+    (true, Mutation::Entry)
+  }
+
+  /// A rename can leave a replacement at an unregistered ancestor before the
+  /// event processor runs. Reconcile only its surviving registrations and
+  /// let each retained context enumerate its own members.
+  pub(super) async fn reconcile_retained_subtree(
+    &self,
+    root: &InternedPath,
+    present_kind: FsEventKind,
+    sink: &ScanSink,
+  ) -> crate::EventBatch {
+    let targets: InternedPathSet = self
+      .access()
+      .all()
+      .filter(|dep| dep != root && dep.starts_with(root.as_path()))
+      .collect();
+    let mut targets: Vec<_> = targets.into_iter().collect();
+    // Observe the children before removing their old parent's subtree records.
+    targets.sort_unstable_by(|a, b| b.cmp(a));
+    let mut directories = Vec::new();
+    let mut changes = Vec::new();
+    for path in targets {
+      let (kind, scan_directory) = self.observe_live(&path, || {
+        let missing = self.missing.all.contains(&path);
+        let file = missing || self.files.all.contains(&path);
+        let context = self.watchers.is_explicit_context(&path);
+        if !file && !context {
+          return ((None, false), Mutation::Unchanged);
         }
-        self.record(path, || {
-          self.file_times.record(path).report_change(current_mtime)
-        });
-        (true, Mutation::Entry)
-      })
-      .unwrap_or(false)
+        match path.metadata() {
+          Ok(metadata) => {
+            let directory = metadata.is_dir();
+            let mut changed = false;
+            let mut mutation = Mutation::Unchanged;
+            if context {
+              if directory {
+                self.absent_directories.remove(&path);
+                self.set_last_watch_events(&path);
+                changed = true;
+              } else if !self.absent_directories.contains(&path) {
+                self.remove_file_times_under(&path, file);
+              }
+              mutation = Mutation::Subtree;
+            }
+            if file && let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
+              if !directory || missing {
+                let (updated, write) = self.record_mtime_change(&path, mtime);
+                changed |= updated;
+                if !context {
+                  mutation = write;
+                }
+              } else {
+                // Keep a truthful snapshot without delivering a directory
+                // appearance to a registration that only accepts files.
+                self.file_times.clear(&path, FileRecord::clear_present);
+                self.store_file_time(&path, mtime, false, true);
+                mutation = Mutation::Subtree;
+              }
+            }
+            let kind = if context && !directory && !file {
+              FsEventKind::Remove
+            } else {
+              present_kind
+            };
+            ((changed.then_some(kind), context && directory), mutation)
+          }
+          Err(error) if is_absent(&error) => {
+            let known = self.file_times.get(&path).is_some()
+              || (context && !self.absent_directories.contains(&path));
+            self.forget_removed_path(&path);
+            if file && known {
+              self.set_reported_file_removal(&path);
+            }
+            (
+              (known.then_some(FsEventKind::Remove), false),
+              Mutation::Subtree,
+            )
+          }
+          Err(_) => ((None, false), Mutation::Unchanged),
+        }
+      });
+      if scan_directory {
+        directories.push(path.clone());
+      }
+      if let Some(kind) = kind {
+        changes.push(crate::FsEvent { path, kind });
+      }
+    }
+    self
+      .scan_below(directories, true, None, Some(Arc::clone(sink)))
+      .await;
+    changes
   }
 
   /// Update the paths, directories, and missing paths in the `PathManager`.

@@ -120,6 +120,60 @@ async fn a_paused_scan_does_not_restore_a_removed_child() {
 }
 
 #[tokio::test]
+async fn an_outstanding_metadata_read_cannot_overwrite_a_live_observation() {
+  for recreate_directory in [false, true] {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().canonicalize().unwrap();
+    let nested = root.join("nested");
+    let child = nested.join("entry.js");
+    fs::create_dir(&nested).unwrap();
+    fs::File::create(&child)
+      .unwrap()
+      .set_modified(UNIX_EPOCH + Duration::from_secs(1_600_000_000))
+      .unwrap();
+    let mut analyzer = DirectoryAnalyzer::default();
+    update(&analyzer, empty(), added(&root), empty()).await;
+    analyzer.scan_contexts().await.unwrap();
+    let finish_old_read = analyzer.hold_scanned_file((&root).into(), (&child).into());
+    if recreate_directory {
+      fs::remove_dir_all(&nested).unwrap();
+      notify(
+        &mut analyzer,
+        &nested,
+        EventKind::Remove(RemoveKind::Folder),
+      )
+      .await;
+      fs::create_dir(&nested).unwrap();
+    }
+    fs::File::create(&child)
+      .unwrap()
+      .set_modified(UNIX_EPOCH + Duration::from_secs(1_600_000_020))
+      .unwrap();
+    if recreate_directory {
+      notify(
+        &mut analyzer,
+        &nested,
+        EventKind::Create(notify::event::CreateKind::Folder),
+      )
+      .await;
+    } else {
+      notify(&mut analyzer, &child, EventKind::Modify(ModifyKind::Any)).await;
+    }
+    finish_old_read();
+    assert!(
+      matches!(
+        entry(&analyzer.collect_time_info_entries().0, &child),
+        Some(TimeInfoEntry::Entry {
+          timestamp: 1_600_000_020_000,
+          ..
+        })
+      ),
+      "recreated directory: {recreate_directory}"
+    );
+  }
+}
+
+#[tokio::test]
 async fn a_paused_scan_cannot_write_into_a_new_subscription_to_the_same_context() {
   let fixture = tempfile::tempdir().unwrap();
   let root = fixture.path().canonicalize().unwrap();
@@ -298,28 +352,496 @@ async fn a_later_parent_subscription_cannot_adopt_a_paused_scan() {
 }
 
 #[tokio::test]
-async fn a_slow_scan_does_not_replace_a_directory_observed_by_a_newer_scan() {
+async fn a_busy_directory_runs_one_more_enumeration_for_overlapping_requests() {
+  use std::sync::atomic::{AtomicUsize, Ordering};
+
   let fixture = tempfile::tempdir().unwrap();
   let root = fixture.path().canonicalize().unwrap();
-  let child = root.join("child");
-  fs::write(&child, "").unwrap();
-  let (analyzer, release, scan) = paused_scan(&root, &child).await;
-  fs::remove_file(&child).unwrap();
-  fs::create_dir(&child).unwrap();
-  analyzer.scan_contexts().await.unwrap();
-  fs::remove_dir(&child).unwrap();
-  fs::write(&child, "").unwrap();
+  let first = root.join("first.js");
+  let late = root.join("late.js");
+  fs::write(&first, "").unwrap();
+  let (gate, waiting, release) = pause_at(&first);
+  let FsWatcherIgnored::Function(gate) = gate else {
+    unreachable!()
+  };
+  let visits = Arc::new(AtomicUsize::new(0));
+  let ignored = FsWatcherIgnored::Function(Arc::new({
+    let visits = Arc::clone(&visits);
+    move |path| {
+      if Path::new(&path) == first {
+        visits.fetch_add(1, Ordering::Relaxed);
+      }
+      gate(path)
+    }
+  }));
+  let analyzer = DirectoryAnalyzer::with_ignored(ignored);
+  update(&analyzer, empty(), added(&root), empty()).await;
+  let scan = analyzer.scan_contexts();
+  waiting.await.unwrap();
+  let mut second = std::pin::pin!(analyzer.queue_context_changes_since(UNIX_EPOCH));
+  let mut third = std::pin::pin!(analyzer.queue_context_changes_since(UNIX_EPOCH));
+  for request in [&mut second, &mut third] {
+    tokio::select! {
+      biased;
+      () = request => panic!("an overlapping request completed during the first enumeration"),
+      () = std::future::ready(()) => {}
+    }
+  }
+  fs::write(&late, "").unwrap();
   release.send(()).unwrap();
   scan.await.unwrap();
-  let (files, directories) = analyzer.collect_time_info_entries();
-  assert_eq!(
-    entry(&files, &child),
-    Some(&TimeInfoEntry::ExistenceOnlyTimeEntry)
-  );
+  tokio::join!(second, third);
+  assert_eq!(visits.load(Ordering::Relaxed), 2);
   assert!(matches!(
-    entry(&directories, &child),
-    Some(TimeInfoEntry::OnlySafeTimeEntry { .. })
+    entry(&analyzer.collect_time_info_entries().0, &late),
+    Some(TimeInfoEntry::Entry { .. })
   ));
+}
+
+#[tokio::test]
+async fn scans_deliver_known_changes_before_a_slow_sibling_finishes() {
+  for explicit in [false, true] {
+    let fixture = tempfile::tempdir().unwrap();
+    let root = fixture.path().canonicalize().unwrap();
+    for name in ["a.js", "b.js"] {
+      fs::write(root.join(name), "").unwrap();
+    }
+    let (entered, waiting) = oneshot::channel();
+    let (release, resume) = oneshot::channel();
+    let gate = Mutex::new((None, Some((entered, resume))));
+    let ignored = FsWatcherIgnored::Function(Arc::new({
+      let root = root.clone();
+      move |path| {
+        let mut gate = gate.lock().unwrap();
+        let paused = if Path::new(&path).parent() == Some(root.as_path()) {
+          gate
+            .0
+            .replace(InternedPath::from(path.as_str()))
+            .and_then(|first| {
+              gate
+                .1
+                .take()
+                .map(|(entered, resume)| (first, entered, resume))
+            })
+        } else {
+          None
+        };
+        Box::pin(async move {
+          if let Some((first, entered, resume)) = paused {
+            entered.send(first).unwrap();
+            resume.await.unwrap();
+          }
+          false
+        })
+      }
+    }));
+    struct Handler(tokio::sync::mpsc::UnboundedSender<String>);
+    impl rspack_watcher::EventHandler for Handler {
+      fn on_change(&self, path: String) -> rspack_error::Result<()> {
+        self.0.send(path).unwrap();
+        Ok(())
+      }
+    }
+    impl rspack_watcher::EventAggregateHandler for Handler {
+      fn on_event_handle(
+        &self,
+        _: rspack_util::fx_hash::FxHashSet<String>,
+        _: rspack_util::fx_hash::FxHashSet<String>,
+      ) {
+      }
+    }
+    let watcher = rspack_watcher::FsWatcher::new(Default::default(), ignored);
+    let (tx, mut events) = tokio::sync::mpsc::unbounded_channel();
+    let scan = watcher.watch(
+      (
+        explicit
+          .then(|| InternedPath::from(root.join("a.js")))
+          .into_iter(),
+        std::iter::empty(),
+      ),
+      (std::iter::once(root.into()), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
+      UNIX_EPOCH,
+      Box::new(Handler(tx.clone())),
+      Box::new(Handler(tx)),
+    );
+    let first = timeout(Duration::from_secs(5), waiting)
+      .await
+      .unwrap()
+      .unwrap();
+    let delivered = timeout(Duration::from_secs(2), async {
+      while let Some(event) = events.recv().await {
+        if Some(event.as_str()) == first.to_str() {
+          return;
+        }
+      }
+      panic!("watcher closed before reporting the file");
+    })
+    .await;
+    let (files, _) = watcher.collect_time_info_entries();
+    release.send(()).unwrap();
+    scan.await;
+    watcher.close().await.unwrap();
+    delivered.expect("report the file before the slow sibling finishes");
+    assert!(matches!(
+      entry(&files, &first),
+      Some(TimeInfoEntry::Entry { .. })
+    ));
+  }
+}
+
+#[tokio::test]
+async fn an_unsubscribed_ancestor_move_notifies_its_retained_dependencies() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let root = dir.join("src");
+  let pages = root.join("pages");
+  let generated = InternedPath::from(pages.join("generated"));
+  let file = InternedPath::from(generated.join("entry.js"));
+  let marker = InternedPath::from(dir.join("marker.js"));
+  fs::create_dir_all(&generated).unwrap();
+  fs::write(&file, "").unwrap();
+  fs::write(&marker, "").unwrap();
+  let mut analyzer = DirectoryAnalyzer::default();
+  update(
+    &analyzer,
+    (vec![file.clone(), marker.clone()], vec![]),
+    added(&root),
+    added(&generated),
+  )
+  .await;
+  analyzer.scan_contexts().await.unwrap();
+  update(&analyzer, empty(), removed(&root), empty()).await;
+  fs::rename(&pages, dir.join("archive")).unwrap();
+  analyzer.on_native_event(Event::new(EventKind::Remove(RemoveKind::Folder)).add_path(pages));
+  analyzer.on_scanned_change(&marker);
+  let mut removed = dependencies_until(&mut analyzer, &marker).await;
+  removed.sort_by(|a, b| a.0.cmp(&b.0));
+  assert_eq!(
+    removed,
+    vec![
+      (generated, FsEventKind::Remove),
+      (file, FsEventKind::Remove)
+    ]
+  );
+}
+
+#[tokio::test]
+async fn a_scanned_directory_replaced_by_a_file_only_notifies_eligible_subscribers() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let root = dir.join("src");
+  let sub = InternedPath::from(root.join("sub"));
+  fs::create_dir_all(&sub).unwrap();
+  let (mut analyzer, marker, release) = hold_event_processor(&dir, &dir.join("control")).await;
+  update(
+    &analyzer,
+    empty(),
+    (vec![(&root).into(), sub.clone()], vec![]),
+    empty(),
+  )
+  .await;
+  analyzer.queue_context_changes().await;
+  fs::remove_dir(&sub).unwrap();
+  fs::write(&sub, "file").unwrap();
+  analyzer.on_scanned_change(&marker);
+  release.send(()).unwrap();
+  assert_eq!(
+    deliveries_until(&mut analyzer, &marker).await,
+    vec![(sub, vec![(root.into(), FsEventKind::Change)])]
+  );
+}
+
+#[tokio::test]
+async fn a_disk_removal_acknowledges_a_scan_removal_after_the_member_is_gone() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let root = dir.join("src");
+  let file = InternedPath::from(root.join("entry.js"));
+  fs::create_dir(&root).unwrap();
+  fs::write(&file, "").unwrap();
+  let (mut analyzer, marker, release) = hold_event_processor(&dir, &dir.join("control")).await;
+  update(&analyzer, added(&file), added(&root), empty()).await;
+  analyzer.scan_contexts().await.unwrap();
+  fs::remove_file(&file).unwrap();
+  analyzer
+    .on_native_event(Event::new(EventKind::Remove(RemoveKind::File)).add_path(file.to_path_buf()));
+  analyzer.queue_context_changes().await;
+  analyzer.on_scanned_change(&marker);
+  release.send(()).unwrap();
+  let events = deliveries_until(&mut analyzer, &marker).await;
+  assert_eq!(events.len(), 1, "{events:?}");
+  assert_eq!(events[0].0, file);
+  assert!(events[0].1.contains(&(file, FsEventKind::Remove)));
+}
+
+#[tokio::test]
+async fn an_ancestor_rename_reconciles_retained_children_under_its_replacement() {
+  for replace_with_file in [false, true] {
+    let fixture = tempfile::tempdir().unwrap();
+    let dir = fixture.path().canonicalize().unwrap();
+    let root = dir.join("src");
+    let pages = root.join("pages");
+    let nested = pages.join("generated/nested");
+    let file = InternedPath::from(nested.join("entry.js"));
+    let stale = nested.join("stale.js");
+    let marker = InternedPath::from(dir.join("marker.js"));
+    fs::create_dir_all(&nested).unwrap();
+    for p in [file.as_path(), &stale, marker.as_path()] {
+      fs::write(p, "").unwrap();
+    }
+    let mut analyzer = DirectoryAnalyzer::default();
+    update(
+      &analyzer,
+      (vec![file.clone(), marker.clone()], vec![]),
+      (vec![(&root).into(), (&nested).into()], vec![]),
+      empty(),
+    )
+    .await;
+    analyzer.scan_contexts().await.unwrap();
+    update(&analyzer, empty(), removed(&root), empty()).await;
+    fs::rename(&pages, dir.join("archive")).unwrap();
+    if replace_with_file {
+      fs::write(&pages, "").unwrap();
+    } else {
+      fs::create_dir_all(&nested).unwrap();
+      fs::File::create(&file)
+        .unwrap()
+        .set_modified(UNIX_EPOCH + Duration::from_secs(1_600_000_020))
+        .unwrap();
+      fs::write(nested.join("fresh.js"), "").unwrap();
+    }
+    analyzer.on_native_event(
+      Event::new(EventKind::Modify(ModifyKind::Name(
+        notify::event::RenameMode::From,
+      )))
+      .add_path(pages),
+    );
+    analyzer.on_scanned_change(&marker);
+    deliveries_until(&mut analyzer, &marker).await;
+    let (files, dirs) = analyzer.collect_time_info_entries();
+    assert_eq!(entry(&files, &stale), None);
+    if replace_with_file {
+      assert_eq!(entry(&files, &file), Some(&TimeInfoEntry::Null));
+      assert_eq!(entry(&dirs, &nested), Some(&TimeInfoEntry::Null));
+    } else {
+      assert!(matches!(
+        entry(&files, &file),
+        Some(TimeInfoEntry::Entry {
+          timestamp: 1_600_000_020_000,
+          ..
+        })
+      ));
+      assert!(matches!(
+        entry(&files, &nested.join("fresh.js")),
+        Some(TimeInfoEntry::Entry { .. })
+      ));
+    }
+  }
+}
+
+#[tokio::test]
+async fn an_empty_retained_context_is_notified_when_its_ancestor_moves() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let root = dir.join("src");
+  let pages = root.join("pages");
+  let nested = InternedPath::from(pages.join("empty"));
+  let marker = InternedPath::from(dir.join("marker"));
+  fs::create_dir_all(&pages).unwrap();
+  fs::write(&marker, "").unwrap();
+  let mut analyzer = DirectoryAnalyzer::default();
+  update(&analyzer, added(&marker), added(&root), empty()).await;
+  analyzer.scan_contexts().await.unwrap();
+  fs::create_dir(&nested).unwrap();
+  update(
+    &analyzer,
+    empty(),
+    (vec![nested.clone()], vec![root.into()]),
+    empty(),
+  )
+  .await;
+  analyzer.scan_contexts().await.unwrap();
+  fs::rename(&pages, dir.join("archive")).unwrap();
+  analyzer.on_native_event(Event::new(EventKind::Remove(RemoveKind::Folder)).add_path(pages));
+  analyzer.on_scanned_change(&marker);
+  let events = dependencies_until(&mut analyzer, &marker).await;
+  assert_eq!(events, vec![(nested, FsEventKind::Remove)]);
+}
+
+#[tokio::test]
+async fn rechecking_a_retired_scan_cannot_notify_a_later_file_subscription() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let root = dir.join("src");
+  let nested = root.join("nested");
+  let file = InternedPath::from(nested.join("entry.js"));
+  fs::create_dir_all(&nested).unwrap();
+  fs::write(&file, "").unwrap();
+  let (mut analyzer, marker, release) = hold_event_processor(&dir, &root).await;
+  analyzer.queue_context_changes().await;
+  update(&analyzer, added(&file), removed(&root), empty()).await;
+  fs::rename(&nested, dir.join("archive")).unwrap();
+  analyzer.on_scanned_change(&marker);
+  release.send(()).unwrap();
+  let events = dependencies_until(&mut analyzer, &marker).await;
+  assert!(events.is_empty(), "{events:?}");
+  assert_eq!(
+    entry(&analyzer.collect_time_info_entries().0, &file),
+    Some(&TimeInfoEntry::Null)
+  );
+}
+
+#[tokio::test]
+async fn adding_a_file_registration_cannot_promote_an_older_context_only_removal() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let root = dir.join("src");
+  let file = InternedPath::from(root.join("child.js"));
+  fs::create_dir(&root).unwrap();
+  fs::write(&file, "").unwrap();
+  let (mut analyzer, marker, release) = hold_event_processor(&dir, &root).await;
+  analyzer.scan_contexts().await.unwrap();
+  fs::remove_file(&file).unwrap();
+  analyzer.queue_context_changes().await;
+  update(&analyzer, added(&file), empty(), empty()).await;
+  analyzer.on_scanned_change(&marker);
+  release.send(()).unwrap();
+  let event = timeout(Duration::from_secs(5), async {
+    loop {
+      let event = analyzer.next_events_with_raw().await;
+      if !event.1.is_empty() {
+        return event;
+      }
+    }
+  })
+  .await
+  .unwrap();
+  assert_eq!(event, (None, vec![(root.into(), FsEventKind::Change)]));
+}
+
+#[tokio::test]
+async fn only_missing_subscribers_receive_a_retained_file_becoming_a_directory() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let root = dir.join("src");
+  let parent = root.join("generated");
+  let file = InternedPath::from(parent.join("file.js"));
+  let missing = InternedPath::from(parent.join("missing.js"));
+  let marker = InternedPath::from(dir.join("marker"));
+  fs::create_dir_all(&parent).unwrap();
+  for path in [&file, &missing, &marker] {
+    fs::write(path, "").unwrap();
+  }
+  let mut analyzer = DirectoryAnalyzer::default();
+  update(
+    &analyzer,
+    (vec![file.clone(), marker.clone()], vec![]),
+    added(&root),
+    added(&missing),
+  )
+  .await;
+  analyzer.scan_contexts().await.unwrap();
+  update(&analyzer, empty(), removed(&root), empty()).await;
+  fs::rename(&parent, dir.join("archive")).unwrap();
+  fs::create_dir_all(&file).unwrap();
+  fs::create_dir(&missing).unwrap();
+  analyzer.on_native_event(
+    Event::new(EventKind::Modify(ModifyKind::Name(
+      notify::event::RenameMode::From,
+    )))
+    .add_path(parent),
+  );
+  analyzer.on_scanned_change(&marker);
+  assert_eq!(
+    dependencies_until(&mut analyzer, &marker).await,
+    vec![(missing, FsEventKind::Change)]
+  );
+}
+
+#[tokio::test]
+async fn an_explicit_backfill_supersedes_an_older_context_metadata_read() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let root = dir.join("src");
+  let file = InternedPath::from(root.join("entry.js"));
+  fs::create_dir(&root).unwrap();
+  fs::File::create(&file)
+    .unwrap()
+    .set_modified(UNIX_EPOCH + Duration::from_secs(1_600_000_000))
+    .unwrap();
+  let (mut analyzer, marker, release) = hold_event_processor(&dir, &root).await;
+  analyzer.scan_contexts().await.unwrap();
+  let finish = analyzer.hold_scanned_file(root.into(), file.clone());
+  fs::File::create(&file)
+    .unwrap()
+    .set_modified(UNIX_EPOCH + Duration::from_secs(1_600_000_020))
+    .unwrap();
+  update(&analyzer, added(&file), empty(), empty()).await;
+  analyzer.scan(UNIX_EPOCH);
+  let updated = || {
+    matches!(
+      entry(&analyzer.collect_time_info_entries().0, &file),
+      Some(TimeInfoEntry::Entry {
+        timestamp: 1_600_000_020_000,
+        ..
+      })
+    )
+  };
+  timeout(Duration::from_secs(5), async {
+    while !updated() {
+      tokio::task::yield_now().await;
+    }
+  })
+  .await
+  .unwrap();
+  finish();
+  let retained = updated();
+  analyzer.on_scanned_change(&marker);
+  release.send(()).unwrap();
+  deliveries_until(&mut analyzer, &marker).await;
+  assert!(
+    retained,
+    "the old context read overwrote the explicit file scan"
+  );
+}
+
+#[tokio::test]
+async fn a_rescan_reports_known_members_missing_from_the_directory_listing() {
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let root = dir.join("src");
+  let nested = root.join("nested");
+  let child = nested.join("context-only.js");
+  let file = InternedPath::from(root.join("entry.js"));
+  let marker = InternedPath::from(dir.join("marker.js"));
+  fs::create_dir_all(&nested).unwrap();
+  for path in [file.as_path(), &child, marker.as_path()] {
+    fs::write(path, "").unwrap();
+  }
+  let mut analyzer = DirectoryAnalyzer::default();
+  update(
+    &analyzer,
+    (vec![file.clone(), marker.clone()], vec![]),
+    added(&root),
+    empty(),
+  )
+  .await;
+  analyzer.scan_contexts().await.unwrap();
+  fs::remove_file(&file).unwrap();
+  fs::remove_dir_all(&nested).unwrap();
+  analyzer.queue_context_changes().await;
+  analyzer.on_scanned_change(&marker);
+  let events = deliveries_until(&mut analyzer, &marker).await;
+  assert!(
+    events
+      .iter()
+      .any(|(p, deps)| p == &file && deps.contains(&(file.clone(), FsEventKind::Remove)))
+  );
+  let (files, directories) = analyzer.collect_time_info_entries();
+  assert_eq!(entry(&files, &file), Some(&TimeInfoEntry::Null));
+  assert_eq!(entry(&files, &child), None);
+  assert_eq!(entry(&directories, &nested), None);
 }
 
 #[tokio::test]
@@ -555,6 +1077,24 @@ async fn hold_event_processor(
     .expect("wait for the event processor")
     .expect("reach the blocker");
   (analyzer, marker, release)
+}
+
+async fn dependencies_until(
+  analyzer: &mut DirectoryAnalyzer,
+  marker: &InternedPath,
+) -> Vec<(InternedPath, FsEventKind)> {
+  timeout(Duration::from_secs(5), async {
+    let mut events = Vec::new();
+    loop {
+      let deps = analyzer.next_events().await;
+      if deps.iter().any(|(dep, _)| dep == marker) {
+        return events;
+      }
+      events.extend(deps);
+    }
+  })
+  .await
+  .expect("deliver the marker")
 }
 
 async fn deliveries_until(
@@ -827,7 +1367,7 @@ async fn a_queued_removal_clears_a_known_missing_timestamp_after_its_context_ret
 }
 
 #[tokio::test]
-async fn a_queued_directory_removal_clears_only_stale_registered_descendants() {
+async fn a_queued_directory_removal_clears_descendants_seen_before_the_move() {
   let fixture = tempfile::tempdir().unwrap();
   let dir = fixture.path().canonicalize().unwrap();
   let root = dir.join("src");
@@ -870,16 +1410,9 @@ async fn a_queued_directory_removal_clears_only_stale_registered_descendants() {
     vec![(generated.clone(), FsEventKind::Remove)]
   )));
   let (files, _) = analyzer.collect_time_info_entries();
-  for path in [&generated, &file, &missing] {
+  for path in [&generated, &file, &missing, &newer] {
     assert_eq!(entry(&files, path), Some(&TimeInfoEntry::Null), "{path:?}");
   }
-  assert!(matches!(
-    entry(&files, &newer),
-    Some(TimeInfoEntry::Entry {
-      timestamp: 1_600_000_010_000,
-      ..
-    })
-  ));
 }
 
 #[tokio::test]

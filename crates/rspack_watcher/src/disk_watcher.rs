@@ -9,6 +9,47 @@ use rspack_util::fx_hash::FxHashSet as HashSet;
 
 use crate::{FsEventKind, WatchPattern, analyzer::Analyzer, trigger};
 
+#[cfg(target_os = "linux")]
+#[derive(Default)]
+struct InotifyRoots {
+  ancestors: rspack_paths::InternedPathSet,
+  removed: rspack_paths::InternedPathSet,
+}
+
+#[cfg(target_os = "linux")]
+impl InotifyRoots {
+  fn observe(roots: &std::sync::Mutex<Self>, event: &Event) {
+    let removed = match event.kind {
+      EventKind::Remove(_) | EventKind::Modify(ModifyKind::Name(RenameMode::From)) => {
+        event.paths.as_slice()
+      }
+      EventKind::Modify(ModifyKind::Name(RenameMode::Both)) => {
+        &event.paths[..event.paths.len().min(1)]
+      }
+      _ => return,
+    };
+    let mut roots = roots.lock().expect("inotify roots poisoned");
+    for path in removed {
+      let path = InternedPath::from(path);
+      if roots.ancestors.contains(&path) {
+        roots.removed.insert(path);
+      }
+    }
+  }
+
+  fn update(&mut self, patterns: &HashSet<WatchPattern>) -> rspack_paths::InternedPathSet {
+    self.ancestors.clear();
+    for pattern in patterns {
+      for ancestor in pattern.path.ancestors() {
+        if !self.ancestors.insert(InternedPath::from(ancestor)) {
+          break;
+        }
+      }
+    }
+    std::mem::take(&mut self.removed)
+  }
+}
+
 /// `DiskWatcher` is responsible for managing the underlying file system watcher
 /// and keeping track of the currently watched paths.
 pub struct DiskWatcher {
@@ -16,6 +57,8 @@ pub struct DiskWatcher {
   inner: Option<RecommendedWatcher>,
   /// A set of pattern that are currently being watched.
   watch_patterns: HashSet<WatchPattern>,
+  #[cfg(target_os = "linux")]
+  inotify_roots: Arc<std::sync::Mutex<InotifyRoots>>,
 }
 
 impl DiskWatcher {
@@ -32,9 +75,17 @@ impl DiskWatcher {
       None => notify::Config::default().with_follow_symlinks(follow_symlinks),
     };
 
+    #[cfg(target_os = "linux")]
+    let inotify_roots = Arc::new(std::sync::Mutex::new(InotifyRoots::default()));
+    #[cfg(target_os = "linux")]
+    let native_roots = Arc::clone(&inotify_roots);
     let inner = RecommendedWatcher::new(
       move |result: notify::Result<Event>| match result {
-        Ok(event) => handle_event(event, &trigger),
+        Ok(event) => {
+          #[cfg(target_os = "linux")]
+          InotifyRoots::observe(&native_roots, &event);
+          handle_event(event, &trigger);
+        }
 
         Err(e) => {
           tracing::error!(target: "rspack_watcher::fs_event", "file watcher error: {e:?}");
@@ -48,6 +99,8 @@ impl DiskWatcher {
     DiskWatcher {
       inner: Some(inner),
       watch_patterns: HashSet::default(),
+      #[cfg(target_os = "linux")]
+      inotify_roots,
     }
   }
 
@@ -65,12 +118,56 @@ impl DiskWatcher {
     let new_paths = new_patterns.iter().map(|p| &p.path).collect::<HashSet<_>>();
 
     // Collect stale paths that are no longer needed, then unwatch and remove them.
-    let stale_paths: HashSet<InternedPath> = self
+    let mut stale_paths: HashSet<InternedPath> = self
       .watch_patterns
       .iter()
       .filter(|p| !new_paths.contains(&p.path))
       .map(|p| p.path.clone())
       .collect();
+
+    // inotify drops descendant descriptors on MOVED_FROM, even if the old
+    // name is a directory again by the time the next watch starts.
+    #[cfg(target_os = "linux")]
+    {
+      let removed = self
+        .inotify_roots
+        .lock()
+        .expect("inotify roots poisoned")
+        .update(&new_patterns);
+      if !removed.is_empty() {
+        stale_paths.extend(
+          self
+            .watch_patterns
+            .iter()
+            .filter(|p| {
+              p.path
+                .ancestors()
+                .any(|a| removed.contains(&InternedPath::from(a)))
+            })
+            .map(|p| p.path.clone()),
+        );
+      }
+    }
+    let recursive: HashSet<_> = self
+      .watch_patterns
+      .iter()
+      .filter(|p| p.mode == notify::RecursiveMode::Recursive && stale_paths.contains(&p.path))
+      .map(|p| p.path.clone())
+      .collect();
+    if !recursive.is_empty() {
+      stale_paths.extend(
+        self
+          .watch_patterns
+          .iter()
+          .filter(|p| {
+            p.path
+              .ancestors()
+              .skip(1)
+              .any(|a| recursive.contains(&InternedPath::from(a)))
+          })
+          .map(|p| p.path.clone()),
+      );
+    }
 
     for path in &stale_paths {
       // A failed unwatch must not stop the new patterns from being watched. For example, on

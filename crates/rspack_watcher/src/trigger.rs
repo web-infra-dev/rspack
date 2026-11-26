@@ -1,4 +1,7 @@
-use std::sync::Arc;
+use std::{
+  collections::VecDeque,
+  sync::{Arc, Mutex},
+};
 
 use rspack_paths::{InternedPath, InternedPathDashSet};
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
@@ -10,7 +13,7 @@ use crate::{
   EventBatch, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
   observation::Mutation,
-  paths::PathManager,
+  paths::{PathManager, ScanSink},
   watcher_manager::{ContextChange, ContextLookup, WatcherManager},
 };
 
@@ -96,6 +99,38 @@ impl<D: ContextLookup> DependencyFinder<'_, D> {
   }
 }
 
+fn raw_event(
+  path: &InternedPath,
+  kind: FsEventKind,
+  initial_missing: bool,
+  associated_event: &mut Vec<(InternedPath, FsEventKind)>,
+  is_file: impl Fn(&InternedPath) -> bool,
+) -> (Option<FsEvent>, Option<InternedPath>) {
+  let context_removal = (kind == FsEventKind::Remove
+    && !initial_missing
+    && associated_event
+      .iter()
+      .any(|(associated, kind)| associated != path && *kind == FsEventKind::Change))
+  .then(|| path.clone());
+  let context_only_removal = context_removal.is_some() && !is_file(path);
+  if context_removal.is_some() {
+    associated_event.retain_mut(|(associated, associated_kind)| {
+      if *associated_kind == FsEventKind::Remove && !is_file(associated) {
+        if associated == path {
+          return false;
+        }
+        *associated_kind = FsEventKind::Change;
+      }
+      true
+    });
+  }
+  let raw = (!associated_event.is_empty() && !context_only_removal).then(|| FsEvent {
+    path: path.clone(),
+    kind,
+  });
+  (raw, context_removal)
+}
+
 /// Classifies one raw file system event: drops what the `ignored` filter
 /// rejects, normalizes the kind against the disk, and resolves which registered
 /// dependencies the event should wake up.
@@ -111,6 +146,7 @@ struct EventProcessor {
   /// Sender for communicating file system events to the watcher executor.
   tx: UnboundedSender<ResolvedEvents>,
   analyzer: Arc<RecommendedAnalyzer>,
+  scan_sink: ScanSink,
 }
 
 /// `Trigger` is responsible for sending file system events to the event channel
@@ -119,16 +155,15 @@ struct EventProcessor {
 /// It only buffers: the OS watcher callback hands an event over and returns
 /// immediately, and a dedicated thread drains the buffer one event at a time.
 pub struct Trigger {
-  pending: UnboundedSender<(InternedPath, FsEventKind, Origin)>,
+  queue: EventQueue,
+  pub(super) scan_sink: ScanSink,
   pub(crate) analyzer: Arc<RecommendedAnalyzer>,
 }
 
 /// Where an event comes from.
 enum Origin {
   /// The OS watcher; `appeared` when it created or renamed the path into place.
-  Disk {
-    appeared: bool,
-  },
+  Disk { appeared: bool },
   /// An explicit event supplied through `FsWatcher::trigger_event`.
   Injected,
   /// A scan, for what changed while the watch was not active yet: a file a
@@ -136,15 +171,60 @@ enum Origin {
   /// registered path the scanner backfills. Already judged a change, it is
   /// never dropped as a duplicate or as attribute-only.
   Scan,
-  Context(ContextChange),
+}
+
+enum Work {
+  Input(InternedPath, FsEventKind, Origin),
+  Notify(InternedPath, ContextChange),
+}
+
+type Rechecks = Vec<(InternedPath, ContextChange)>;
+
+#[derive(Clone)]
+struct EventQueue {
+  tx: UnboundedSender<Work>,
+  // While an earlier input waits on JS, new discoveries may already have
+  // changed on disk. Finish that input with a fresh check, before delivery.
+  after_input: Arc<Mutex<VecDeque<Rechecks>>>,
+}
+
+impl EventQueue {
+  fn push(&self, path: InternedPath, kind: FsEventKind, origin: Origin) {
+    let mut waiting = self.after_input.lock().expect("watch input queue poisoned");
+    if self.tx.send(Work::Input(path, kind, origin)).is_ok() {
+      waiting.push_back(Vec::new());
+    }
+  }
+
+  fn scan_sink(&self) -> ScanSink {
+    let tx = self.tx.downgrade();
+    let after_input = Arc::clone(&self.after_input);
+    Arc::new(move |path, change| {
+      let Some(tx) = tx.upgrade() else {
+        return;
+      };
+      let mut waiting = after_input.lock().expect("watch input queue poisoned");
+      if let Some(checks) = waiting.back_mut() {
+        checks.push((path.clone(), change.clone()));
+      }
+      let _ = tx.send(Work::Notify(path, change));
+    })
+  }
 }
 
 impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
   pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<ResolvedEvents>) -> Self {
-    let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind, Origin)>();
+    let (tx_work, mut incoming) = unbounded_channel();
+    let queue = EventQueue {
+      tx: tx_work,
+      after_input: Arc::default(),
+    };
+    let scan_sink = queue.scan_sink();
+    let after_input = Arc::clone(&queue.after_input);
     let analyzer = Arc::default();
     let processor = EventProcessor {
+      scan_sink: Arc::clone(&scan_sink),
       path_manager,
       tx,
       analyzer: Arc::clone(&analyzer),
@@ -164,41 +244,58 @@ impl Trigger {
           .expect("create watcher event filter runtime");
 
         runtime.block_on(async move {
-          while let Some((path, kind, origin)) = incoming.recv().await {
-            processor.process(&path, kind, origin).await;
+          while let Some(work) = incoming.recv().await {
+            match work {
+              Work::Input(path, kind, origin) => {
+                processor.process(&path, kind, origin).await;
+                let checks = after_input
+                  .lock()
+                  .expect("watch input queue poisoned")
+                  .pop_front()
+                  .expect("queued input");
+                for (path, change) in checks {
+                  if let Some(entry) = processor
+                    .path_manager
+                    .recheck_scanned_entry(&path, change.entry)
+                    .await
+                  {
+                    change.pending.rechecked(entry);
+                  }
+                }
+              }
+              Work::Notify(path, change) => processor.deliver_scan(&path, change),
+            }
           }
         });
       })
       .expect("spawn watcher event filter thread");
 
-    Self { pending, analyzer }
+    Self {
+      queue,
+      analyzer,
+      scan_sink,
+    }
   }
 
   /// Queues an explicit event from `FsWatcher::trigger_event` without blocking.
   pub fn on_event(&self, path: &InternedPath, kind: FsEventKind) {
     self.analyzer.invalidate_path(path);
-    let _ = self.pending.send((path.clone(), kind, Origin::Injected));
+    self.queue.push(path.clone(), kind, Origin::Injected);
   }
 
   /// Preserves whether an OS event created or renamed a path into place,
   /// without treating ordinary directory changes as appearances.
   pub(crate) fn on_disk_event(&self, path: &InternedPath, kind: FsEventKind, appeared: bool) {
-    let _ = self
-      .pending
-      .send((path.clone(), kind, Origin::Disk { appeared }));
-  }
-
-  pub(crate) fn on_context_change(&self, path: InternedPath, change: ContextChange) {
-    let _ = self
-      .pending
-      .send((path, FsEventKind::Change, Origin::Context(change)));
+    self
+      .queue
+      .push(path.clone(), kind, Origin::Disk { appeared });
   }
 
   #[cfg(feature = "testing")]
   pub(crate) fn on_scanned_change(&self, path: &InternedPath) {
-    let _ = self
-      .pending
-      .send((path.clone(), FsEventKind::Change, Origin::Scan));
+    self
+      .queue
+      .push(path.clone(), FsEventKind::Change, Origin::Scan);
   }
 
   /// A sender for the scanner's backfilled events. They queue with the live
@@ -206,13 +303,13 @@ impl Trigger {
   /// disk: a removal backfilled for a file back on disk by then is a change.
   pub(crate) fn backfill_sender(&self) -> UnboundedSender<EventBatch> {
     let (tx, mut batches) = unbounded_channel::<EventBatch>();
-    let pending = self.pending.clone();
+    let queue = self.queue.clone();
     std::thread::Builder::new()
       .name("rspack-fs-scan-backfill".to_string())
       .spawn(move || {
         while let Some(batch) = batches.blocking_recv() {
           for event in batch {
-            let _ = pending.send((event.path, event.kind, Origin::Scan));
+            queue.push(event.path, event.kind, Origin::Scan);
           }
         }
       })
@@ -236,15 +333,7 @@ impl EventProcessor {
   /// - `/path`
   /// - `/path/to`
   async fn process(&self, path: &InternedPath, kind: FsEventKind, origin: Origin) {
-    let context = match &origin {
-      Origin::Context(change) => Some(change),
-      _ => None,
-    };
-    if context.is_some_and(|change| !change.pending.has_subscribers()) {
-      return;
-    }
-    let scan = context.map(|change| &change.scan);
-    let scanned = context.is_some() || matches!(origin, Origin::Scan);
+    let scanned = matches!(origin, Origin::Scan);
     let appeared = matches!(origin, Origin::Disk { appeared: true })
       || (matches!(origin, Origin::Injected) && kind == FsEventKind::Create);
     // Drop events inside ignored subtrees. The recursive-root watch delivers
@@ -268,15 +357,20 @@ impl EventProcessor {
     // each event. Keep its records unless the absence was observed, so an
     // unchanged aged mtime is suppressed just as it is by watchpack. Explicit and
     // scanned removals already declare the old record invalid.
-    let removed = kind == FsEventKind::Remove && !matches!(origin, Origin::Disk { .. });
+    let disk = matches!(origin, Origin::Disk { .. });
+    let removal_hint = kind == FsEventKind::Remove;
+    let removed = removal_hint && !disk;
     let initial_missing = removed && scanned;
-    let metadata = std::fs::symlink_metadata(path).ok();
-    let exists = metadata.is_some();
-    let pending = if context.is_none() {
-      self.path_manager.watchers.pending_change(path)
+    let pending = self.path_manager.watchers.pending_change(path);
+    let (metadata, removed_children) = if disk {
+      let Ok(observation) = self.path_manager.read_disk_entry(path, true) else {
+        return;
+      };
+      observation
     } else {
-      None
+      (std::fs::symlink_metadata(path).ok(), Vec::new())
     };
+    let exists = metadata.is_some();
     let kind = match kind {
       FsEventKind::Change | FsEventKind::Create if !exists => FsEventKind::Remove,
       FsEventKind::Remove if exists => FsEventKind::Change,
@@ -286,69 +380,46 @@ impl EventProcessor {
     let accessor = self.path_manager.access();
     let is_watched_path = accessor.files().0.contains(path) || accessor.missing().0.contains(path);
 
-    if let Some(change) = context {
-      // The scan already recorded this entry. Reconcile a later type change under its
-      // write guard; delivery to the scan's subscribers is independent of that write.
-      if kind == FsEventKind::Remove {
-        self.path_manager.set_missing(path, scan, is_watched_path);
-      } else if metadata
-        .as_ref()
-        .is_some_and(|m| m.is_dir() != change.directory || m.is_symlink())
-      {
-        self.path_manager.set_context_entry(path, true, scan).await;
-      }
-    } else {
-      // Drop a removed path's record so it reads as `null`, like watchpack. A
-      // directory moved or deleted as a whole is one event with no per-file
-      // removals, so its descendants' records go with it. Only a path that can
-      // hold records is swept, so deleting many unrelated files stays cheap.
-      if (removed || kind == FsEventKind::Remove)
-        && !self.path_manager.set_missing(
-          path,
-          scan,
-          kind == FsEventKind::Remove && is_watched_path,
-        )
-      {
-        return;
-      }
-
-      // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
-      // written before the watcher was created. Stat the file and compare mtime
-      // against the recorded baseline to suppress events where nothing changed.
-      // Apply the same suppression to Create for already-registered files, since
-      // macOS may emit stale Create events for files that predate the watcher.
-      // A registered-missing path takes its first record here, once it exists.
-      if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_watched_path))
-        && !self.path_manager.observe_mtime_change(path, scan)
-        && !scanned
-      {
-        return;
-      }
-
-      if kind != FsEventKind::Remove
-        && !self
-          .path_manager
-          .set_context_entry(path, scanned || is_watched_path, scan)
-          .await
-      {
-        return;
-      }
-      if self
+    // Drop a removed path's record so it reads as `null`, like watchpack. A
+    // directory moved or deleted as a whole is one event with no per-file
+    // removals, so its descendants' records go with it. Only a path that can
+    // hold records is swept, so deleting many unrelated files stays cheap.
+    if !disk && (removed || kind == FsEventKind::Remove) {
+      self
         .path_manager
-        .observe(path, scan, |_| {
-          self.path_manager.set_last_watch_events(path);
-          let mutation = if metadata.as_ref().is_some_and(|m| m.is_file()) {
-            Mutation::Subtree
-          } else {
-            Mutation::Entry
-          };
-          ((), mutation)
-        })
-        .is_none()
-      {
-        return;
-      }
+        .set_missing(path, kind == FsEventKind::Remove && is_watched_path);
     }
+
+    // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
+    // written before the watcher was created. Stat the file and compare mtime
+    // against the recorded baseline to suppress events where nothing changed.
+    // Apply the same suppression to Create for already-registered files, since
+    // macOS may emit stale Create events for files that predate the watcher.
+    // A registered-missing path takes its first record here, once it exists.
+    if (kind == FsEventKind::Change || (kind == FsEventKind::Create && is_watched_path))
+      && !self.path_manager.observe_mtime_change(path)
+      && !scanned
+    {
+      return;
+    }
+
+    if kind != FsEventKind::Remove
+      && !self
+        .path_manager
+        .set_context_entry(path, scanned || is_watched_path, Some(&self.scan_sink))
+        .await
+    {
+      return;
+    }
+    self.path_manager.observe_live(path, || {
+      self.path_manager.set_last_watch_events(path);
+      let mutation = if metadata.as_ref().is_some_and(|m| m.is_file()) {
+        Mutation::Subtree
+      } else {
+        Mutation::Entry
+      };
+      ((), mutation)
+    });
 
     let finder = self.finder();
     let mut associated_event = finder.find_associated_event(path, kind);
@@ -358,38 +429,49 @@ impl EventProcessor {
     for (associated, associated_kind) in &mut associated_event {
       if associated != path
         && *associated_kind == FsEventKind::Change
-        && std::fs::symlink_metadata(&*associated).is_err()
+        && matches!(
+          self.path_manager.read_disk_entry(associated, false),
+          Ok((None, _))
+        )
       {
         *associated_kind = FsEventKind::Remove;
         self.analyzer.invalidate_path(associated);
-        self.path_manager.set_missing(associated, scan, false);
       }
     }
 
-    let context_removal = (kind == FsEventKind::Remove
-      && !initial_missing
-      && associated_event
-        .iter()
-        .any(|(associated, kind)| associated != path && *kind == FsEventKind::Change))
-    .then(|| path.clone());
-    let context_only_removal = context_removal.is_some() && !finder.contains_file(path);
-    if context_removal.is_some() {
-      associated_event.retain_mut(|(associated, associated_kind)| {
-        if *associated_kind == FsEventKind::Remove && !finder.contains_file(associated) {
-          if associated == path {
-            return false;
-          }
-          *associated_kind = FsEventKind::Change;
-        }
-        true
+    let (raw, context_removal) =
+      raw_event(path, kind, initial_missing, &mut associated_event, |p| {
+        finder.contains_file(p)
       });
-    }
-    let raw = (!associated_event.is_empty() && !context_only_removal).then(|| FsEvent {
-      path: path.clone(),
-      kind,
-    });
     let mut recovered = Vec::new();
-    if appeared && path.is_dir() && !path.is_symlink() {
+    if disk
+      && metadata
+        .as_ref()
+        .is_some_and(|m| removal_hint || appeared || !m.is_dir())
+      && self.path_manager.is_uncovered_ancestor(path)
+    {
+      recovered = self
+        .path_manager
+        .reconcile_retained_subtree(
+          path,
+          if appeared {
+            FsEventKind::Create
+          } else {
+            FsEventKind::Change
+          },
+          &self.scan_sink,
+        )
+        .await;
+      associated_event.extend(
+        recovered
+          .iter()
+          .map(|event| (event.path.clone(), event.kind)),
+      );
+    } else if appeared
+      && self.path_manager.has_registered_descendants(path)
+      && path.is_dir()
+      && !path.is_symlink()
+    {
       // On Linux, inotify adds a new directory's watch before emitting its
       // Create event, so files written before that watch existed are already
       // on disk; later writes produce their own events. On every backend, a
@@ -417,7 +499,7 @@ impl EventProcessor {
 
           if is_registered {
             if finder.files.contains(&entry_path)
-              && !self.path_manager.observe_mtime_change(&entry_path, scan)
+              && !self.path_manager.observe_mtime_change(&entry_path)
             {
               continue;
             }
@@ -438,41 +520,12 @@ impl EventProcessor {
       }
     }
 
-    let current_target =
-      (context.is_some_and(|c| c.directory) && is_watched_path).then(|| path.metadata());
-    let mut state = self.path_manager.watchers.lock_observations();
-    if let Some(change) = context {
-      let (subscribers, restored_mtime) = change.pending.take_subscribers();
-      associated_event.retain(|(dep, _)| subscribers.iter().any(|s| s.as_ref() == dep));
-      if associated_event.is_empty() {
-        return;
-      }
-      if let (Some(scanned_mtime), Some(current)) = (restored_mtime, current_target)
-        && associated_event.iter().any(|(dep, _)| dep == path)
-      {
-        self.path_manager.reconcile_missing_change(
-          path,
-          &subscribers,
-          scanned_mtime,
-          kind,
-          current,
-          |child| {
-            if !state.accepts(&change.scan, child) {
-              return false;
-            }
-            state.observe(child, Some(&change.scan), Mutation::Entry);
-            true
-          },
-        );
-      }
-      self.path_manager.set_last_watch_events(path);
-    } else {
-      if let Some(pending) = pending {
-        pending.acknowledge(&associated_event);
-      }
-      if let Some(pending) = self.path_manager.watchers.pending_change(path) {
-        pending.acknowledge(&associated_event);
-      }
+    let _state = self.path_manager.watchers.lock_observations();
+    if let Some(pending) = pending {
+      pending.acknowledge(&associated_event);
+    }
+    if let Some(pending) = self.path_manager.watchers.pending_change(path) {
+      pending.acknowledge(&associated_event);
     }
     if scanned {
       self.analyzer.invalidate_path(path);
@@ -480,8 +533,53 @@ impl EventProcessor {
         self.analyzer.invalidate_path(associated);
       }
     }
+    for child in removed_children {
+      associated_event.push((child.clone(), FsEventKind::Remove));
+      recovered.push(FsEvent {
+        path: child,
+        kind: FsEventKind::Remove,
+      });
+    }
     self.trigger_events(associated_event, raw, recovered, context_removal);
   }
+
+  fn deliver_scan(&self, path: &InternedPath, change: ContextChange) {
+    let _state = self.path_manager.watchers.lock_observations();
+    let (subscribers, restored_mtime, entry) = change.pending.take_subscribers();
+    if subscribers.is_empty() {
+      return;
+    }
+    let kind = entry.kind();
+    let mut deps = Vec::with_capacity(subscribers.len());
+    for subscriber in &subscribers {
+      let dep = subscriber.as_ref();
+      if let Some(kind) = self.path_manager.scan_event_for(path, subscriber, entry)
+        && !deps.iter().any(|(p, _)| p == dep)
+      {
+        deps.push((dep.clone(), kind));
+      }
+    }
+    if deps.is_empty() {
+      return;
+    }
+    if deps.iter().any(|(dep, _)| dep == path) {
+      self
+        .path_manager
+        .report_scan_delivery(path, &subscribers, restored_mtime, entry);
+    }
+    self.path_manager.set_last_watch_events(path);
+    self.analyzer.invalidate_path(path);
+    for (dep, _) in &deps {
+      self.analyzer.invalidate_path(dep);
+    }
+    let (raw, context_removal) = raw_event(path, kind, false, &mut deps, |dep| {
+      subscribers
+        .iter()
+        .any(|sub| sub.as_ref() == dep && self.path_manager.is_scanned_file_recipient(sub))
+    });
+    self.trigger_events(deps, raw, Vec::new(), context_removal);
+  }
+
   /// Helper to construct a `DependencyFinder` for the current path register state.
   fn finder(&self) -> DependencyFinder<'_> {
     let accessor = self.path_manager.access();

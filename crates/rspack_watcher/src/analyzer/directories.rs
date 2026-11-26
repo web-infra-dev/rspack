@@ -29,6 +29,39 @@ struct DirectoryAnalyzerState {
   paths: InternedPathMap<Option<WatchPattern>>,
   patterns: FxHashMap<WatchPattern, usize>,
   symlink_dependent_paths: InternedPathSet,
+  retired_contexts: InternedPathSet,
+  parent_watches: InternedPathSet,
+}
+
+impl DirectoryAnalyzerState {
+  // Moving an ancestor does not move the individual inotify handles off the
+  // old inodes. Listen at each parent still needed by a retained dependency.
+  fn update_parent_watches(&mut self) {
+    let mut retained = InternedPathSet::default();
+    self.parent_watches.clear();
+    for (dep, pattern) in &self.paths {
+      let mut outermost = None;
+      for parent in dep.ancestors().skip(1) {
+        let parent = InternedPath::from(parent);
+        if self.retired_contexts.contains(&parent) {
+          retained.insert(parent.clone());
+          outermost = Some(parent);
+        }
+      }
+      if let (Some(root), Some(pattern)) = (outermost, pattern) {
+        let boundary = root.parent().unwrap_or(root.as_path());
+        for parent in pattern
+          .path
+          .ancestors()
+          .skip(1)
+          .take_while(|p| p.starts_with(boundary))
+        {
+          self.parent_watches.insert(InternedPath::from(parent));
+        }
+      }
+    }
+    self.retired_contexts = retained;
+  }
 }
 
 impl Analyzer for WatcherDirectoriesAnalyzer {
@@ -70,6 +103,29 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
 
     let mut resolutions = InternedPathMap::default();
     let mut symlink_ancestors = InternedPathMap::default();
+    let (contexts, _, removed_contexts) = path_accessor.directories();
+    let retired: InternedPathSet = removed_contexts
+      .iter()
+      .filter(|dir| !contexts.contains(&**dir))
+      .map(|dir| dir.clone())
+      .collect();
+    if !retired.is_empty() {
+      // Their old physical handles might not have observed a higher ancestor move.
+      dirty.extend(
+        state
+          .paths
+          .keys()
+          .filter(|dep| {
+            dep
+              .ancestors()
+              .skip(1)
+              .any(|p| retired.contains(&InternedPath::from(p)))
+          })
+          .cloned(),
+      );
+      state.retired_contexts.extend(retired);
+    }
+    let update_parents = !dirty.is_empty() || !removed_contexts.is_empty();
     for path in dirty {
       state.symlink_dependent_paths.remove(&path);
       if let Some(Some(pattern)) = state.paths.remove(&path) {
@@ -106,7 +162,25 @@ impl Analyzer for WatcherDirectoriesAnalyzer {
         state.paths.insert(path, pattern);
       }
     }
-    state.patterns.keys().cloned().collect()
+    if update_parents && !state.retired_contexts.is_empty() {
+      state.update_parent_watches();
+    }
+    let mut patterns: Vec<_> = state.patterns.keys().cloned().collect();
+    for dir in &state.parent_watches {
+      let guard = WatchPattern {
+        path: dir.clone(),
+        mode: notify::RecursiveMode::NonRecursive,
+      };
+      if !state.patterns.contains_key(&guard)
+        && !state.patterns.contains_key(&WatchPattern {
+          path: dir.clone(),
+          mode: notify::RecursiveMode::Recursive,
+        })
+      {
+        patterns.push(guard);
+      }
+    }
+    patterns
   }
 
   fn invalidate_path(&self, path: &InternedPath) {

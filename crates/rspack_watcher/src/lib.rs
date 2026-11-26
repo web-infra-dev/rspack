@@ -401,10 +401,7 @@ impl FsWatcherInner {
   ) {
     self.path_manager.reset();
 
-    if let Err(e) = self
-      .wait_for_event(files, directories, missing, start_time)
-      .await
-    {
+    if let Err(e) = self.register_paths(files, directories, missing).await {
       event_aggregate_handler.on_error(e);
       return;
     };
@@ -413,6 +410,25 @@ impl FsWatcherInner {
       .executor
       .wait_for_execute(event_aggregate_handler, event_handler)
       .await;
+
+    // Scan AFTER the disk watcher is registered, not before. notify's `watch()`
+    // registers the underlying inotify/FSEvents watch synchronously, so once it
+    // returns every later change is delivered as a live event. Scanning here
+    // closes a startup race: previously the scan ran (in spawned tasks) before
+    // `disk_watcher.watch()`, so it could snapshot a file's mtime before the
+    // watch was active. A change landing in that gap was seen by neither path —
+    // the scan read the pre-change mtime, and the watch was not yet active to
+    // deliver the event — so no rebuild was triggered. With this order, a change
+    // before the watch is active is on disk by scan time (caught by
+    // `mtime > start_time`), and a change after it is active is delivered live.
+    self.scanner.scan(start_time);
+    let trigger = self.trigger.lock().expect("should lock trigger").clone();
+    if let Some(trigger) = trigger {
+      self
+        .path_manager
+        .scan_contexts(start_time, Arc::clone(&trigger.scan_sink))
+        .await;
+    }
   }
 
   async fn close(&mut self) -> Result<()> {
@@ -424,12 +440,11 @@ impl FsWatcherInner {
     Ok(())
   }
 
-  async fn wait_for_event(
+  async fn register_paths(
     &mut self,
     files: (Vec<InternedPath>, Vec<InternedPath>),
     directories: (Vec<InternedPath>, Vec<InternedPath>),
     missing: (Vec<InternedPath>, Vec<InternedPath>),
-    start_time: SystemTime,
   ) -> Result<()> {
     self
       .path_manager
@@ -460,25 +475,6 @@ impl FsWatcherInner {
       self.analyzer.invalidate_all();
       return Err(error);
     }
-    let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
-    if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
-      for (path, change) in changed_in_contexts {
-        trigger.on_context_change(path, change);
-      }
-    }
-
-    // Scan AFTER the disk watcher is registered, not before. notify's `watch()`
-    // registers the underlying inotify/FSEvents watch synchronously, so once it
-    // returns every later change is delivered as a live event. Scanning here
-    // closes a startup race: previously the scan ran (in spawned tasks) before
-    // `disk_watcher.watch()`, so it could snapshot a file's mtime before the
-    // watch was active. A change landing in that gap was seen by neither path —
-    // the scan read the pre-change mtime, and the watch was not yet active to
-    // deliver the event — so no rebuild was triggered. With this order, a change
-    // before the watch is active is on disk by scan time (caught by
-    // `mtime > start_time`), and a change after it is active is delivered live.
-    self.scanner.scan(start_time);
-
     Ok(())
   }
 
