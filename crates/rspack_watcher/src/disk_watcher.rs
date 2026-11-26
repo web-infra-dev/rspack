@@ -74,10 +74,19 @@ impl ParentWatches {
     }
   }
 
-  fn accepts(&self, path: &Path) -> bool {
-    path
+  fn accepts(&self, path: &Path, kind: EventKind) -> bool {
+    if !path
       .parent()
-      .is_none_or(|parent| !self.directories.contains(parent) || self.children.contains(path))
+      .is_some_and(|parent| self.directories.contains(parent))
+    {
+      return true;
+    }
+    // ReadDirectoryChangesW reports a child's writes as FILE_ACTION_MODIFIED
+    // on the directory in its parent handle. Only its name events aid recovery.
+    if cfg!(windows) && kind == EventKind::Modify(ModifyKind::Any) {
+      return false;
+    }
+    self.children.contains(path)
   }
 }
 
@@ -352,7 +361,7 @@ pub(crate) fn handle_event(event: Event, trigger: &trigger::Trigger) {
       .parent_watches
       .read()
       .expect("watch parents")
-      .accepts(&path)
+      .accepts(&path, event.kind)
     {
       continue;
     }
