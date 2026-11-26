@@ -148,20 +148,8 @@ impl ProvideSharedPlugin {
   ) {
     let title = "rspack.ProvideSharedPlugin";
     let error_header = "No version specified and unable to automatically determine one.";
-    if let Some(version) = version {
-      self.resolved_provide_map.write().await.insert(
-        resource.to_string(),
-        VersionedProvideOptions {
-          share_key: share_key.to_string(),
-          share_scope: share_scope.clone(),
-          version: version.to_owned(),
-          eager,
-          singleton,
-          strict_version,
-          required_version,
-          tree_shaking_mode: tree_shaking_mode.clone(),
-        },
-      );
+    let version = if let Some(version) = version {
+      version.to_owned()
     } else if let Some(description) = resource_data.description() {
       let version = description
         .json()
@@ -171,28 +159,18 @@ impl ProvideSharedPlugin {
         .map(|v| v.to_string())
         .or_else(|| Self::find_parent_package_version(description.path(), share_key));
 
-      if let Some(version) = version {
-        self.resolved_provide_map.write().await.insert(
-          resource.to_string(),
-          VersionedProvideOptions {
-            share_key: share_key.to_string(),
-            share_scope: share_scope.clone(),
-            version: ProvideVersion::Version(version),
-            eager,
-            singleton,
-            strict_version,
-            required_version,
-            tree_shaking_mode: tree_shaking_mode.clone(),
-          },
-        );
-      } else {
-        add_diagnostic(Diagnostic::warn(
-          title.to_string(),
-          format!(
-            "{error_header} No version in description file (usually package.json). Add version to description file {}, or manually specify version in shared config. shared module {key} -> {resource}",
-            description.path().display()
-          ),
-        ));
+      match version {
+        Some(version) => ProvideVersion::Version(version),
+        None => {
+          add_diagnostic(Diagnostic::warn(
+            title.to_string(),
+            format!(
+              "{error_header} No version in description file (usually package.json). Add version to description file {}, or manually specify version in shared config. shared module {key} -> {resource}",
+              description.path().display()
+            ),
+          ));
+          ProvideVersion::False
+        }
       }
     } else {
       add_diagnostic(Diagnostic::warn(
@@ -201,7 +179,22 @@ impl ProvideSharedPlugin {
           "{error_header} No description file (usually package.json) found. Add description file with name and version, or manually specify version in shared config. shared module {key} -> {resource}"
         ),
       ));
-    }
+      ProvideVersion::False
+    };
+
+    self.resolved_provide_map.write().await.insert(
+      resource.to_string(),
+      VersionedProvideOptions {
+        share_key: share_key.to_string(),
+        share_scope: share_scope.clone(),
+        version,
+        eager,
+        singleton,
+        strict_version,
+        required_version,
+        tree_shaking_mode,
+      },
+    );
   }
 }
 
