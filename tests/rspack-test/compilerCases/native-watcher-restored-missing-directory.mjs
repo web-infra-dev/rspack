@@ -1,6 +1,5 @@
 import { EventEmitter, on } from "node:events";
 import fs from "node:fs";
-import os from "node:os";
 import path from "node:path";
 import { setImmediate } from "node:timers/promises";
 
@@ -11,15 +10,14 @@ export default {
 	options() {
 		return { entry: {}, experiments: { nativeWatcher: true } };
 	},
-	async build(_context, compiler) {
-		const root = fs.mkdtempSync(
-			path.join(fs.realpathSync(os.tmpdir()), "rspack-restored-")
-		);
+	async build(context, compiler) {
+		const root = path.join(fs.realpathSync(context.getDist()), "watched");
+		fs.rmSync(root, { force: true, recursive: true });
 		const src = path.join(root, "src");
 		const restored = path.join(src, "restored");
 		const marker = path.join(root, "marker");
 		const old = 1_600_000_000.123;
-		fs.mkdirSync(src);
+		fs.mkdirSync(src, { recursive: true });
 		fs.mkdirSync(marker);
 		fs.utimesSync(marker, old, old);
 		compiler.hooks.afterCompile.tap("RestoreMissingDirectory", compilation => {
@@ -66,7 +64,6 @@ export default {
 			await new Promise((resolve, reject) =>
 				watching.close(error => (error ? reject(error) : resolve()))
 			);
-			fs.rmSync(root, { force: true, recursive: true });
 		}
 	}
 };
