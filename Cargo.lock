@@ -4329,6 +4329,7 @@ dependencies = [
  "rspack_collections",
  "rspack_intern",
  "rspack_macros",
+ "rspack_paths",
  "rspack_util",
  "serde",
  "sha2",

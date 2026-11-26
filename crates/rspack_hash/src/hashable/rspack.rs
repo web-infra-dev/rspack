@@ -1,8 +1,15 @@
 use rspack_collections::Identifier;
 use rspack_intern::Atom;
+use rspack_paths::InternedPath;
 use rspack_util::asset_condition::{AssetCondition, AssetConditions};
 
 use crate::{RspackHash, RspackHasher};
+
+impl RspackHash for InternedPath {
+  fn hash(&self, state: &mut RspackHasher) {
+    self.as_path().hash(state);
+  }
+}
 
 impl RspackHash for Atom {
   fn hash(&self, state: &mut RspackHasher) {
