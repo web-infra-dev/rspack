@@ -16,7 +16,7 @@ ConsoleExporterWeb = (function () {
 	function ConsoleExporterWeb() {
 		this.stoped = false;
 	}
-	(0,_swc_helpers_create_class__rspack_import_0._)(ConsoleExporterWeb, [
+	_swc_helpers_create_class__rspack_import_0._(ConsoleExporterWeb, [
 		{
 			key: "export",
 			value: function _export(evts, cb) {

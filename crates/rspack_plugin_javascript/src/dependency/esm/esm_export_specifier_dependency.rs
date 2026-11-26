@@ -9,6 +9,7 @@ use rspack_core::{
   TemplateReplaceSource, UsedName,
 };
 
+use super::is_stable_local_binding;
 use crate::{Atom, ConstValue, is_export_inlined};
 
 // Create __rspack_context.d(__rspack_exports, {}) for each export.
@@ -24,6 +25,7 @@ pub struct ESMExportSpecifierDependency {
   value: Atom, // id
   const_value: Option<ConstValue>,
   enum_value: Option<TSEnumValue>,
+  this_free: bool,
 }
 
 impl ESMExportSpecifierDependency {
@@ -32,6 +34,7 @@ impl ESMExportSpecifierDependency {
     value: Atom,
     const_value: Option<ConstValue>,
     enum_value: Option<TSEnumValue>,
+    this_free: bool,
     range: DependencyRange,
     loc: Option<DependencyLocation>,
   ) -> Self {
@@ -40,6 +43,7 @@ impl ESMExportSpecifierDependency {
       value,
       const_value,
       enum_value,
+      this_free,
       range,
       loc,
       id: DependencyId::new(),
@@ -67,7 +71,7 @@ impl Dependency for ESMExportSpecifierDependency {
 
   fn get_exports(
     &self,
-    _mg: &ModuleGraph,
+    mg: &ModuleGraph,
     _mg_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
@@ -91,6 +95,8 @@ impl Dependency for ESMExportSpecifierDependency {
             })
             .collect()
         }),
+        this_free: (self.this_free && is_stable_local_binding(mg, &self.id, &self.value))
+          .then_some(true),
         ..Default::default()
       })]),
       priority: Some(1),

@@ -16,7 +16,9 @@ mod provide_dependency;
 
 use std::fmt::Write as _;
 
-use rspack_core::{DependencyCategory, ImportAttributes, ImportPhase, ResourceIdentifier};
+use rspack_core::{
+  DependencyCategory, DependencyId, ImportAttributes, ImportPhase, ModuleGraph, ResourceIdentifier,
+};
 
 pub use self::{
   esm_compatibility_dependency::{ESMCompatibilityDependency, ESMCompatibilityDependencyTemplate},
@@ -53,6 +55,18 @@ pub use self::{
   import_weak_dependency::{ImportWeakDependency, ImportWeakDependencyTemplate},
   provide_dependency::{ProvideDependency, ProvideDependencyTemplate},
 };
+use crate::Atom;
+
+fn is_stable_local_binding(mg: &ModuleGraph, dependency_id: &DependencyId, local: &Atom) -> bool {
+  let Some(module) = mg
+    .get_parent_module(dependency_id)
+    .and_then(|module| mg.module_by_identifier(module))
+  else {
+    return false;
+  };
+  let build_info = module.build_info();
+  !build_info.has_direct_eval && !build_info.mutated_bindings.contains(local)
+}
 
 pub fn create_resource_identifier_for_esm_dependency(
   request: &str,

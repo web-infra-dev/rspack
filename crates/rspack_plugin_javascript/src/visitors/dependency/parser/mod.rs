@@ -7,6 +7,7 @@ mod walk;
 mod walk_block_pre;
 mod walk_module_pre;
 mod walk_pre;
+mod walk_this;
 
 use std::{
   fmt::Display,
@@ -38,6 +39,7 @@ use swc_next_ecma_ast::{
   MemberExpression, MetaProperty, NodeId, ObjectPattern, Program, PropertyKey, PropertyKeyData,
   SourceType, Span, ThisExpression,
 };
+pub(crate) use walk_this::{is_this_free_function, is_this_free_function_expression};
 
 use crate::{
   Atom, BoxJavascriptParserPlugin,
@@ -538,6 +540,7 @@ pub struct JavascriptParser<'parser> {
   pub(crate) collecting_dependencies_for_block: Option<usize>,
   pub(crate) dependencies_in_branch_guard: Option<FxHashMap<DependencyRange, DependencyId>>,
   pub(crate) current_branch_guard: Option<DependencyBranchGuard>,
+  top_level_functions: Option<FxHashMap<Atom, walk_this::TopLevelFunction>>,
 }
 
 impl<'parser> JavascriptParser<'parser> {
@@ -755,6 +758,7 @@ impl<'parser> JavascriptParser<'parser> {
       block_parents: Vec::new(),
       dependencies_in_branch_guard: None,
       current_branch_guard: None,
+      top_level_functions: None,
     }
   }
 

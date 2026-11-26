@@ -3129,6 +3129,16 @@ var {} = {{}};
         }
       }
       ConcatenationBindingTarget::External(used_name) => {
+        let call_context = call_context
+          || binding_resolver
+            .context
+            .exports_info_artifact
+            .get_exports_info_data(&info_id)
+            .get_read_only_export_info_recursive(
+              binding_resolver.context.exports_info_artifact,
+              &export_name,
+            )
+            .is_some_and(|export_info| export_info.this_free());
         let info = module_to_info_map[&info_id].as_external();
         Some(match used_name {
           Some(UsedName::Normal(used_name)) => Ref::Symbol(SymbolRef::new(

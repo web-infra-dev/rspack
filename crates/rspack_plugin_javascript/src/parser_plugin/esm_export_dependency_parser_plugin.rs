@@ -25,7 +25,7 @@ use crate::{
   utils::object_properties::get_import_attributes,
   visitors::{
     BindingState, ExportDefaultDeclaration, ExportImport, ExportLocal, JavascriptParser,
-    create_traceable_error,
+    create_traceable_error, is_this_free_function, is_this_free_function_expression,
   },
 };
 
@@ -188,6 +188,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         .collected_typescript_info
         .as_ref()
         .and_then(|info| info.exported_enums.get(local_id).cloned());
+      let this_free = parser.is_this_free_top_level_function(local_id);
       let variable = CompatibilityPlugin::update_nested_binding_declaration(parser, local_id);
 
       let range = DependencyRange::from(statement_span);
@@ -201,6 +202,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
         },
         const_value,
         enum_value,
+        this_free,
         statement_span.into(),
         loc,
       ))
@@ -372,12 +374,34 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMExportDependencyParserPlugin 
       }
       _ => None,
     };
+    let this_free_binding = match expr_data {
+      ExportDefaultDeclarationKindData::Function(function) => is_this_free_function(ast, function)
+        .then(|| {
+          function.id(ast).map_or_else(
+            || DEFAULT_STAR_JS_WORD.clone(),
+            |identifier| Atom::from(ast.get_utf8(identifier.name(ast))),
+          )
+        }),
+      ExportDefaultDeclarationKindData::Expr(expression) => match ast.expr_data(expression) {
+        ExprData::IdentifierReference(identifier) => {
+          let name = Atom::from(ast.get_utf8(identifier.name(ast)));
+          parser
+            .is_this_free_top_level_function(&name)
+            .then_some(name)
+        }
+        _ => {
+          is_this_free_function_expression(ast, expression).then(|| DEFAULT_STAR_JS_WORD.clone())
+        }
+      },
+      _ => None,
+    };
     let dep = ESMExportExpressionDependency::new(
       expr_span.into(),
       statement_span.into(),
       comment,
       declaration,
       const_value,
+      this_free_binding,
       parser.to_dependency_location(DependencyRange::from(expr_span)),
     );
     parser.add_dependency(BoxDependency::new(dep));

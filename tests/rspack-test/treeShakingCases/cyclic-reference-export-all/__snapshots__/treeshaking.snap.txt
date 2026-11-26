@@ -42,7 +42,7 @@ const PlatformProvider = 1000;
 /* import */ var _App__rspack_import_0 = __webpack_require__("./src/App.js");
 
 
-(0,_App__rspack_import_0["default"])();
+_App__rspack_import_0["default"]();
 
 
 },

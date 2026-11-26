@@ -13,7 +13,10 @@ use rustc_hash::FxHashSet;
 use swc_next_ecma_ast::{Ast, Program};
 use swc_next_ecma_semantic::Semantic;
 
-pub(crate) use self::parser::{StatementPath, member_property_key_to_atom};
+pub(crate) use self::parser::{
+  StatementPath, is_this_free_function, is_this_free_function_expression,
+  member_property_key_to_atom,
+};
 pub use self::{
   context_dependency_helper::{ContextModuleScanResult, create_context_dependency},
   parser::{

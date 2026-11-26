@@ -119,6 +119,7 @@ impl ExportsInfoData {
       export_info.get_used(runtime).dyn_hash(hasher);
       export_info.provided().dyn_hash(hasher);
       export_info.terminal_binding().dyn_hash(hasher);
+      export_info.this_free().dyn_hash(hasher);
       export_info.ns_access().dyn_hash(hasher);
       if let Some(exports_info) = export_info.exports_info() {
         let should_visit = visited

@@ -5,8 +5,8 @@
 /* import */ var _stuff__rspack_import_0 = __webpack_require__("./stuff.js");
 
 
-(0,_stuff__rspack_import_0.bar)();
-var f = (0,_stuff__rspack_import_0.baz)();
+_stuff__rspack_import_0.bar();
+var f = _stuff__rspack_import_0.baz();
 f();
 
 function getClass() {

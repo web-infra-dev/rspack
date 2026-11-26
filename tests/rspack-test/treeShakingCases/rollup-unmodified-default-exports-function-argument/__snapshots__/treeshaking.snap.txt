@@ -23,7 +23,7 @@ function bar() {
 
 
 var answer = (0,_foo__rspack_import_0["default"])();
-var somethingElse = (0,_foo__rspack_import_0.bar)();
+var somethingElse = _foo__rspack_import_0.bar();
 
 console.log(answer);
 

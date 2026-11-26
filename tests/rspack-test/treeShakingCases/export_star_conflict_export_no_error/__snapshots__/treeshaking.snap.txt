@@ -28,7 +28,7 @@ const b = 3;
 /* import */ var _bar_js__rspack_import_0 = __webpack_require__("./bar.js");
 
 
-(0,_bar_js__rspack_import_0.b)();
+_bar_js__rspack_import_0.b();
 
 
 },

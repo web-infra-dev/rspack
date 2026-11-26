@@ -13,7 +13,7 @@ var y = "y";
 
 
 
-(0,_tracker__rspack_import_0.track)("b.js");
+_tracker__rspack_import_0.track("b.js");
 
 
 },
@@ -27,7 +27,7 @@ var z = "z";
 
 
 
-(0,_tracker__rspack_import_0.track)("c.js");
+_tracker__rspack_import_0.track("c.js");
 
 
 },
@@ -40,7 +40,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 
-(0,_tracker__rspack_import_0.track)("index.js");
+_tracker__rspack_import_0.track("index.js");
 
 /* export default */ const __rspack_default_export = ("def");
 

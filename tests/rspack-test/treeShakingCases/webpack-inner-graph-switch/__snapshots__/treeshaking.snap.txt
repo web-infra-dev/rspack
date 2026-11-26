@@ -22,7 +22,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 
 function test() {
-	(0,_module__rspack_import_0["default"])({
+	_module__rspack_import_0["default"]({
 		type: "inline"
 	});
 }

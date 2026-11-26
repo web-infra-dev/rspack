@@ -5,7 +5,7 @@
 /* import */ var _app__rspack_import_0 = __webpack_require__("./lib.js");
 
 
-(0,_app__rspack_import_0.something)();
+_app__rspack_import_0.something();
 // a;
 
 

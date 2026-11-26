@@ -2430,6 +2430,7 @@ impl ConcatenatedModule {
       interop_default_access_used,
       deferred_namespace_object_used,
       needed_namespace_object,
+      this_free,
     } = final_binding_result;
 
     let ids = match binding {
@@ -2468,7 +2469,7 @@ impl ConcatenatedModule {
         (reference, is_property_access)
       }
     };
-    if is_property_access && as_call && !call_context {
+    if is_property_access && as_call && !call_context && !this_free {
       let res = if asi_safe.unwrap_or_default() {
         format!("(0,{reference})")
       } else if let Some(_asi_safe) = asi_safe {
@@ -2554,6 +2555,7 @@ impl ConcatenatedModule {
           interop_default_access_used: None,
           deferred_namespace_object_used: is_deferred.then_some(true),
           needed_namespace_object,
+          this_free: false,
         }
       }
       ConcatenationBindingTarget::InteropDefault => {
@@ -2602,6 +2604,7 @@ impl ConcatenatedModule {
           interop_namespace_object2_used: None,
           deferred_namespace_object_used: None,
           needed_namespace_object: None,
+          this_free: false,
         }
       }
       ConcatenationBindingTarget::EsModule(ids) => {
@@ -2633,6 +2636,7 @@ impl ConcatenatedModule {
           interop_namespace_object2_used: None,
           interop_default_access_used: None,
           deferred_namespace_object_used: None,
+          this_free: false,
         },
         ModuleInfo::External(info) => {
           if is_deferred {
@@ -2650,6 +2654,7 @@ impl ConcatenatedModule {
               interop_default_access_used: None,
               deferred_namespace_object_used: Some(true),
               needed_namespace_object: None,
+              this_free: false,
             };
           }
           FinalBindingResult::from_binding(Binding::Raw(RawBinding {
@@ -2759,6 +2764,16 @@ impl ConcatenatedModule {
       }
       ConcatenationBindingTarget::External(used_name) => {
         let info = info.as_external();
+        let this_free = matches!(used_name, Some(UsedName::Normal(_)))
+          && binding_resolver
+            .context
+            .exports_info_artifact
+            .get_exports_info_data(&info_id)
+            .get_read_only_export_info_recursive(
+              binding_resolver.context.exports_info_artifact,
+              &export_name,
+            )
+            .is_some_and(|export_info| export_info.this_free());
         let binding = match used_name {
           Some(UsedName::Normal(used_name)) => {
             let comment = if used_name == export_name {
@@ -2806,7 +2821,10 @@ impl ConcatenatedModule {
             info_id,
           }),
         };
-        FinalBindingResult::from_binding(binding)
+        FinalBindingResult {
+          this_free,
+          ..FinalBindingResult::from_binding(binding)
+        }
       }
     }
   }
@@ -2831,6 +2849,7 @@ struct FinalBindingResult {
   interop_default_access_used: Option<bool>,
   deferred_namespace_object_used: Option<bool>,
   needed_namespace_object: Option<ModuleIdentifier>,
+  this_free: bool,
 }
 
 impl FinalBindingResult {
@@ -2842,6 +2861,7 @@ impl FinalBindingResult {
       interop_default_access_used: None,
       deferred_namespace_object_used: None,
       needed_namespace_object: None,
+      this_free: false,
     }
   }
 

@@ -22,7 +22,7 @@ __webpack_require__.r(__webpack_exports__);
 
 
 it("export should be unused when only unused functions use it", () => {
-	expect((0,_module__rspack_import_1.y)("a")).toBe("okBAA");
+	expect(_module__rspack_import_1.y("a")).toBe("okBAA");
 	expect(_inner__rspack_import_0.exportAUsed).toBe(true);
 	expect(_inner__rspack_import_0.exportBUsed).toBe(true);
 	if (true) {
@@ -82,13 +82,13 @@ function y(v) {
 function withA(v) {
 	const value = x(v);
 
-	return (0,_inner__rspack_import_0.A)(value);
+	return _inner__rspack_import_0.A(value);
 }
 
 function withB(v) {
 	const value = x(v);
 
-	return (0,_inner__rspack_import_0.B)(value);
+	return _inner__rspack_import_0.B(value);
 }
 
 function withC(v) {

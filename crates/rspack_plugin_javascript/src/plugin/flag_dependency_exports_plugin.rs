@@ -17,6 +17,7 @@ struct FlagDependencyExportsState<'a> {
   mg: &'a ModuleGraph,
   mg_cache: &'a ModuleGraphCacheArtifact,
   exports_info_artifact: &'a mut ExportsInfoArtifact,
+  hot: bool,
 }
 
 impl<'a> FlagDependencyExportsState<'a> {
@@ -24,10 +25,12 @@ impl<'a> FlagDependencyExportsState<'a> {
     mg: &'a ModuleGraph,
     mg_cache: &'a ModuleGraphCacheArtifact,
     exports_info_artifact: &'a mut ExportsInfoArtifact,
+    hot: bool,
   ) -> Self {
     Self {
       mg,
       mg_cache,
+      hot,
       exports_info_artifact,
     }
   }
@@ -79,6 +82,7 @@ impl<'a> FlagDependencyExportsState<'a> {
             self.mg,
             self.mg_cache,
             self.exports_info_artifact,
+            self.hot,
           )
           .unwrap_or_default();
           (module_id, exports_specs)
@@ -216,8 +220,13 @@ async fn finish_modules(
   };
   let module_graph_cache = compilation.module_graph_cache_artifact.clone();
 
-  FlagDependencyExportsState::new(module_graph, &module_graph_cache, exports_info_artifact)
-    .apply(modules);
+  FlagDependencyExportsState::new(
+    module_graph,
+    &module_graph_cache,
+    exports_info_artifact,
+    compilation.hot,
+  )
+  .apply(modules);
 
   Ok(())
 }
@@ -245,6 +254,7 @@ fn collect_module_exports_specs(
   mg: &ModuleGraph,
   mg_cache: &ModuleGraphCacheArtifact,
   exports_info_artifact: &ExportsInfoArtifact,
+  hot: bool,
 ) -> Option<(Vec<(DependencyId, ExportsSpec)>, bool)> {
   let mgm = mg.module_graph_module_by_identifier(module_id)?;
   let all_dependencies = mgm.all_dependencies();
@@ -255,12 +265,19 @@ fn collect_module_exports_specs(
   let mut has_nested_exports = false;
   let mut res = Vec::with_capacity(all_dependencies.len());
   for id in all_dependencies.iter().copied() {
-    let Some(exports_spec) =
+    let Some(mut exports_spec) =
       mg.dependency_by_id(&id)
         .get_exports(mg, mg_cache, exports_info_artifact)
     else {
       continue;
     };
+    if hot && let ExportsOfExportsSpec::Names(names) = &mut exports_spec.exports {
+      for name in names {
+        if let ExportNameOrSpec::ExportSpec(spec) = name {
+          spec.this_free = None;
+        }
+      }
+    }
     has_nested_exports |= exports_spec.has_nested_exports();
     res.push((id, exports_spec));
   }
@@ -420,6 +437,7 @@ struct ParsedExportSpec<'a> {
   hidden: bool,
   inlinable: Option<&'a EvaluatedInlinableValue>,
   default_points_to_self: bool,
+  this_free: bool,
 }
 
 impl<'a> ParsedExportSpec<'a> {
@@ -439,6 +457,7 @@ impl<'a> ParsedExportSpec<'a> {
         hidden: false,
         inlinable: None,
         default_points_to_self: false,
+        this_free: false,
       },
       ExportNameOrSpec::ExportSpec(spec) => Self {
         name: &spec.name,
@@ -453,6 +472,7 @@ impl<'a> ParsedExportSpec<'a> {
         hidden: spec.hidden.unwrap_or(false),
         inlinable: spec.inlinable.as_ref(),
         default_points_to_self: spec.default_points_to_self.unwrap_or(false),
+        this_free: spec.this_free.unwrap_or(false),
       },
     }
   }
@@ -484,6 +504,7 @@ fn merge_exports_without_nested(
       hidden,
       inlinable,
       default_points_to_self,
+      this_free,
       ..
     } = ParsedExportSpec::new(export_name_or_spec, &global_export_info);
 
@@ -494,6 +515,7 @@ fn merge_exports_without_nested(
       terminal_binding,
       inlinable,
       default_points_to_self,
+      this_free,
     );
 
     changed |= set_export_target(
@@ -546,6 +568,7 @@ pub fn merge_exports(
       hidden,
       inlinable,
       default_points_to_self,
+      this_free,
     } = ParsedExportSpec::new(export_name_or_spec, &global_export_info);
 
     let export_info = exports_info
@@ -557,6 +580,7 @@ pub fn merge_exports(
       terminal_binding,
       inlinable,
       default_points_to_self,
+      this_free,
     );
 
     if let Some(exports) = exports {
@@ -610,6 +634,7 @@ fn set_export_base_info(
   terminal_binding: bool,
   inlinable: Option<&EvaluatedInlinableValue>,
   default_points_to_self: bool,
+  this_free: bool,
 ) -> bool {
   let mut changed = false;
   if let Some(provided) = export_info.provided()
@@ -641,6 +666,11 @@ fn set_export_base_info(
 
   if default_points_to_self && !export_info.default_points_to_self() {
     export_info.set_default_points_to_self(true);
+    changed = true;
+  }
+
+  if this_free && !export_info.this_free() {
+    export_info.set_this_free(true);
     changed = true;
   }
   changed

@@ -1,5 +1,8 @@
 use itertools::Itertools;
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsOption, AsPreset},
+};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AsModuleDependency, DEFAULT_EXPORT, Dependency, DependencyCodeGeneration,
@@ -10,6 +13,7 @@ use rspack_core::{
   UsedName, property_access, rspack_sources::ReplacementEnforce,
 };
 
+use super::is_stable_local_binding;
 use crate::{Atom, ConstValue, parser_plugin::JS_DEFAULT_KEYWORD};
 
 #[cacheable]
@@ -46,6 +50,8 @@ pub struct ESMExportExpressionDependency {
   prefix: String,
   declaration: Option<DeclarationId>,
   const_value: Option<ConstValue>,
+  #[cacheable(with=AsOption<AsPreset>)]
+  this_free_binding: Option<Atom>,
   loc: Option<DependencyLocation>,
 }
 
@@ -56,6 +62,7 @@ impl ESMExportExpressionDependency {
     prefix: String,
     declaration: Option<DeclarationId>,
     const_value: Option<ConstValue>,
+    this_free_binding: Option<Atom>,
     loc: Option<DependencyLocation>,
   ) -> Self {
     Self {
@@ -64,6 +71,7 @@ impl ESMExportExpressionDependency {
       range_stmt,
       declaration,
       const_value,
+      this_free_binding,
       prefix,
       loc,
     }
@@ -86,7 +94,7 @@ impl Dependency for ESMExportExpressionDependency {
 
   fn get_exports(
     &self,
-    _mg: &ModuleGraph,
+    mg: &ModuleGraph,
     _mg_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
   ) -> Option<ExportsSpec> {
@@ -97,6 +105,11 @@ impl Dependency for ESMExportExpressionDependency {
           .const_value
           .as_ref()
           .and_then(|const_value| const_value.as_inlinable().cloned()),
+        this_free: self
+          .this_free_binding
+          .as_ref()
+          .is_some_and(|binding| is_stable_local_binding(mg, &self.id, binding))
+          .then_some(true),
         ..Default::default()
       })]),
       priority: Some(1),

@@ -60,6 +60,7 @@ pub struct ExportInfoData {
   exports_info: Option<ExportsInfo>,
   exports_info_owned: bool,
   default_points_to_self: bool,
+  this_free: bool,
   has_use_in_runtime_info: bool,
   global_used: Option<UsageState>,
   // Boxed for the same reason as the target map: the inline map costs ~40
@@ -126,6 +127,7 @@ impl ExportInfoData {
       exports_info: None,
       exports_info_owned: false,
       default_points_to_self: false,
+      this_free: false,
       has_use_in_runtime_info,
       can_mangle_use,
       global_used,
@@ -223,6 +225,10 @@ impl ExportInfoData {
     self.default_points_to_self
   }
 
+  pub fn this_free(&self) -> bool {
+    self.this_free
+  }
+
   /// The names to look up in the nested exports info for `names` accessed on this export.
   ///
   /// The `default` property of a fake namespace object is the exports object the nested exports
@@ -291,6 +297,10 @@ impl ExportInfoData {
 
   pub fn set_default_points_to_self(&mut self, value: bool) {
     self.default_points_to_self = value;
+  }
+
+  pub fn set_this_free(&mut self, value: bool) {
+    self.this_free = value;
   }
 
   pub fn set_used_name(&mut self, name: UsedNameItem) {

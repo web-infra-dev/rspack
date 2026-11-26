@@ -68,6 +68,7 @@ pub struct ExportSpec {
   /// The export is a fake namespace object of a non-ESM module, whose `default` property is the
   /// exports object of that module itself.
   pub default_points_to_self: Option<bool>,
+  pub this_free: Option<bool>,
 }
 
 #[derive(Debug)]

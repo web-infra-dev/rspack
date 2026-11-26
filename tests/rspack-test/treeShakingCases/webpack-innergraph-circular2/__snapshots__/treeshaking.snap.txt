@@ -6,15 +6,15 @@
 
 
 it("should be able to handle circular referenced", () => {
-	expect((0,_module__rspack_import_0.x)()).toEqual([_module__rspack_import_0.y, _module__rspack_import_0.z]);
-	const [_a, b, c, d] = (0,_module__rspack_import_0.a)();
+	expect(_module__rspack_import_0.x()).toEqual([_module__rspack_import_0.y, _module__rspack_import_0.z]);
+	const [_a, b, c, d] = _module__rspack_import_0.a();
 	expect(b()).toEqual([_module__rspack_import_0.a, b, c, d]);
 	expect(c()).toEqual([_module__rspack_import_0.a, b, c, d]);
 	expect(d()).toEqual([_module__rspack_import_0.a, b, c, d]);
-	const [f2, f4] = (0,_module__rspack_import_0.f3)();
+	const [f2, f4] = _module__rspack_import_0.f3();
 	const [f1, _f3] = f2();
 	expect(_f3).toBe(_module__rspack_import_0.f3);
-	expect((0,_module__rspack_import_0.f3)()).toEqual(f1());
+	expect(_module__rspack_import_0.f3()).toEqual(f1());
 	expect(f2()).toEqual(f4());
 });
 

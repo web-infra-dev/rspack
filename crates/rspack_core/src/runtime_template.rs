@@ -1582,7 +1582,12 @@ impl ModuleCodeTemplate {
         "{import_var}{}{comment}{property}",
         if is_deferred { ".a" } else { "" }
       );
-      if is_call && !call_context {
+      if is_call
+        && !call_context
+        && !exports_info
+          .get_read_only_export_info_recursive(&compilation.exports_info_artifact, export_name)
+          .is_some_and(|export_info| export_info.this_free())
+      {
         if let Some(asi_safe) = asi_safe {
           match asi_safe {
             true => format!("(0,{access})"),
