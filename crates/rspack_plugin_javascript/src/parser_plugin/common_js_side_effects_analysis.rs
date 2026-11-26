@@ -22,7 +22,53 @@ impl CommonJsExports {
   }
 }
 
-pub(super) fn common_js_export_write(
+pub(super) enum ExportsEffect {
+  Assign {
+    target: CommonJsExports,
+    value: Expr,
+  },
+  DefineProperty {
+    target: CommonJsExports,
+    descriptor: ObjectExpression,
+  },
+}
+
+impl ExportsEffect {
+  pub(super) fn target(&self) -> &CommonJsExports {
+    match self {
+      Self::Assign { target, .. } | Self::DefineProperty { target, .. } => target,
+    }
+  }
+
+  pub(super) fn all_operands(&self, ast: &Ast<'_>, mut is_pure: impl FnMut(Expr) -> bool) -> bool {
+    match self {
+      Self::Assign { value, .. } => is_pure(*value),
+      Self::DefineProperty { descriptor, .. } => {
+        ast.nodes(descriptor.properties(ast)).all(|property| {
+          property
+            .as_object_property(ast)
+            .is_some_and(|property| is_pure(property.value(ast)))
+        })
+      }
+    }
+  }
+}
+
+pub(super) fn exports_effect(ast: &Ast<'_>, expression: Expr) -> Option<ExportsEffect> {
+  match ast.expr_data(expression) {
+    ExprData::AssignmentExpression(assignment) => {
+      common_js_export_write(ast, assignment).map(|target| ExportsEffect::Assign {
+        target,
+        value: assignment.right(ast),
+      })
+    }
+    ExprData::CallExpression(call) => common_js_define_property(ast, call)
+      .map(|(target, descriptor)| ExportsEffect::DefineProperty { target, descriptor }),
+    _ => None,
+  }
+}
+
+fn common_js_export_write(
   ast: &Ast<'_>,
   assignment: AssignmentExpression,
 ) -> Option<CommonJsExports> {
@@ -48,7 +94,7 @@ pub(super) fn common_js_export_write(
   .then_some(CommonJsExports::ModuleExportsMember)
 }
 
-pub(super) fn common_js_define_property(
+fn common_js_define_property(
   ast: &Ast<'_>,
   call: CallExpression,
 ) -> Option<(CommonJsExports, ObjectExpression)> {

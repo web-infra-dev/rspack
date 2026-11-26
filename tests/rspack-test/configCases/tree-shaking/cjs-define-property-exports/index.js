@@ -8,10 +8,14 @@ import './impure-value.cjs';
 import './shadowed-object.cjs';
 import './module-exports-target.cjs';
 import './non-plain-module-exports.cjs';
+import './sequence-exports.cjs';
+import './var-init-define-property.cjs';
+import './impure-sequence.cjs';
 
 afterAll(() => {
   delete globalThis.__CJS_DEFINE_PROPERTY_IMPURE_VALUE_COUNT__;
   delete globalThis.__CJS_DEFINE_PROPERTY_SHADOWED_COUNT__;
+  delete globalThis.__CJS_DEFINE_PROPERTY_IMPURE_SEQUENCE__;
   delete globalThis.__recordCjsDefinePropertyImpureValue;
 });
 
@@ -24,6 +28,8 @@ it('drops modules whose defineProperty calls only add data properties to exports
     ['TYPESCRIPT', 'ESM', 'MARKER', 'SENTINEL'],
     ['DATA', 'DESCRIPTOR', 'SENTINEL'],
     ['MODULE', 'EXPORTS', 'TARGET', 'SENTINEL'],
+    ['SEQUENCE', 'EXPORTS', 'SENTINEL'],
+    ['VAR', 'INIT', 'DEFINE', 'PROPERTY', 'SENTINEL'],
   ];
 
   for (const parts of sentinels) {
@@ -34,6 +40,7 @@ it('drops modules whose defineProperty calls only add data properties to exports
 it('keeps defineProperty calls with observable effects', () => {
   expect(globalThis.__CJS_DEFINE_PROPERTY_IMPURE_VALUE_COUNT__).toBe(1);
   expect(globalThis.__CJS_DEFINE_PROPERTY_SHADOWED_COUNT__).toBe(1);
+  expect(globalThis.__CJS_DEFINE_PROPERTY_IMPURE_SEQUENCE__).toBe(true);
 });
 
 it('keeps accessor descriptors and non-plain module.exports targets', () => {
@@ -42,6 +49,7 @@ it('keeps accessor descriptors and non-plain module.exports targets', () => {
     ['GETTER', 'DESCRIPTOR', 'SENTINEL'],
     ['ACCESSOR', 'PROPERTY', 'SENTINEL'],
     ['NON', 'PLAIN', 'MODULE', 'EXPORTS', 'SENTINEL'],
+    ['IMPURE', 'SEQUENCE', 'SENTINEL'],
   ];
 
   for (const parts of sentinels) {
