@@ -335,7 +335,7 @@ impl EventProcessor {
       }
       if self
         .path_manager
-        .observe(path, scan, || {
+        .observe(path, scan, |_| {
           self.path_manager.set_last_watch_events(path);
           let mutation = if metadata.as_ref().is_some_and(|m| m.is_file()) {
             Mutation::Subtree

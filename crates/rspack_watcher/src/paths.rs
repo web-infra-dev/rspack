@@ -507,22 +507,12 @@ impl PathManager {
     &self,
     path: &InternedPath,
     scan: Option<&Scan>,
-    write: impl FnOnce() -> (R, Mutation),
-  ) -> Option<R> {
-    self.observe_in_directory(path, scan, None, |_| write())
-  }
-
-  fn observe_in_directory<R>(
-    &self,
-    path: &InternedPath,
-    scan: Option<&Scan>,
-    directory: Option<&Path>,
     write: impl FnOnce(&Observations) -> (R, Mutation),
   ) -> Option<R> {
     let mut state = self.watchers.lock_observations();
-    if scan
-      .is_some_and(|s| !self.scan_has_subscription(&state, s, directory) || !state.accepts(s, path))
-    {
+    if scan.is_some_and(|s| {
+      !self.scan_has_subscription(&state, s, path.parent()) || !state.accepts(s, path)
+    }) {
       return None;
     }
     let (result, mutation) = write(&state);
@@ -595,7 +585,7 @@ impl PathManager {
     report_absence: bool,
   ) -> bool {
     self
-      .observe(path, scan, || {
+      .observe(path, scan, |_| {
         let subtree = self.may_contain_records(path);
         self.remove_file_time(path, false);
         if subtree {
@@ -861,11 +851,7 @@ impl PathManager {
     scan: Option<&Scan>,
     origin: ContextObservation,
   ) -> Option<(bool, Option<ContextChange>)> {
-    let directory = match origin {
-      ContextObservation::Scan { .. } => path.parent(),
-      _ => None,
-    };
-    self.observe_in_directory(path, scan, directory, |state| {
+    self.observe(path, scan, |state| {
       if scan.is_none() && !self.is_below_context(path) {
         return ((false, None), Mutation::Entry);
       }
@@ -988,7 +974,7 @@ impl PathManager {
         return true;
       }
       if self
-        .observe(path, scan, || {
+        .observe(path, scan, |_| {
           if !self.absent_directories.contains(path) {
             let keep_file =
               judged && (self.files.all.contains(path) || self.missing.all.contains(path));
@@ -1127,7 +1113,7 @@ impl PathManager {
     let present = ReportedBaseline::Present(current_mtime);
     let aged = mtime_ms.saturating_add(mtime_accuracy(current_mtime)) < current_time();
     self
-      .observe(path, scan, || {
+      .observe(path, scan, |_| {
         if aged && self.file_times.reported(path) == present {
           return (false, Mutation::Unchanged);
         }
