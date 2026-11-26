@@ -128,7 +128,7 @@ impl JsCompilation {
     env: &Env,
     filename: String,
     new_source_or_function: Either<JsSourceFromJs, Function<'_, JsSourceToJs, JsSourceFromJs>>,
-    asset_info_update_or_function: Option<Either<Object, Function<'_, Reflector, Option<Object>>>>,
+    asset_info_update_or_function: Option<Either<Object, Function<'_, AssetInfo, Option<Object>>>>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -150,15 +150,14 @@ impl JsCompilation {
         let (object, is_patch) = match asset_info_update_or_function {
           Some(Either::A(object)) => (Some(object), true),
           Some(Either::B(update)) => {
-            let result = update.call(original_info.reflector()).to_rspack_result()?;
-            let had_raw_mode = original_info.extras.remove("mode").is_some();
-            let had_raw_timestamps = original_info.extras.remove("timestamps").is_some();
-            if original_info.file_attributes.take().is_some() || had_raw_mode || had_raw_timestamps
-            {
-              // The callback replaces the file attributes. Recreate the JS info so omitted
-              // properties cannot persist on the object passed to the callback.
-              original_info = original_info.clone();
-            }
+            // Only the returned object supplies file attributes to the updated asset.
+            // Do not cache the callback argument as the asset's JS info.
+            let result = update
+              .call(original_info.as_ref().clone().into())
+              .to_rspack_result()?;
+            original_info.file_attributes = None;
+            original_info.extras.remove("mode");
+            original_info.extras.remove("timestamps");
             (result, false)
           }
           None => (None, false),

@@ -10,7 +10,11 @@ use std::{
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use fast_glob::glob_match;
-use futures::{StreamExt, future::BoxFuture, stream::FuturesOrdered};
+use futures::{
+  StreamExt,
+  future::{BoxFuture, join},
+  stream::{FuturesOrdered, FuturesUnordered},
+};
 use regex::Regex;
 use rspack_core::{
   AssetFileAttributes, AssetInfo, AssetInfoRelated, CacheOptions, Compilation, CompilationAsset,
@@ -121,6 +125,7 @@ pub struct CopyGlobOptions {
 #[derive(Debug, Clone)]
 pub struct RunPatternResult {
   pub source_filename: Utf8PathBuf,
+  pub absolute_filename: Utf8PathBuf,
   pub filename: String,
   pub source: BoxSource,
   pub file_attributes: Option<Box<AssetFileAttributes>>,
@@ -185,8 +190,6 @@ impl CopyRspackPlugin {
     pattern.transform_fn.is_none()
       && !matches!(pattern.to, Some(ToOption::Fn(_)))
       && !pattern.copy_permissions
-      && !pattern.preserve_permissions
-      && !pattern.preserve_timestamps
       && !matches!(pattern.to_type, Some(ToType::Template))
       && !matches!(pattern.to, Some(ToOption::String(ref to)) if TEMPLATE_RE.is_match(to))
   }
@@ -200,6 +203,39 @@ impl CopyRspackPlugin {
     let mut hasher = RspackHasher::with_salt(function, salt);
     source.buffer().hash(&mut hasher);
     hasher.digest(digest)
+  }
+
+  async fn read_file_attributes(
+    compilation: &Compilation,
+    absolute_filename: &Utf8Path,
+    pattern: &CopyPattern,
+  ) -> Option<Box<AssetFileAttributes>> {
+    let copy_mode = pattern.copy_permissions || pattern.preserve_permissions;
+    if !copy_mode && !pattern.preserve_timestamps {
+      return None;
+    }
+    let metadata = compilation
+      .input_filesystem
+      .metadata(absolute_filename)
+      .await
+      .ok()?;
+    if !metadata.is_file {
+      return None;
+    }
+    let mode = if copy_mode { metadata.mode } else { None };
+    let timestamps = if pattern.preserve_timestamps {
+      metadata.atime_ms.map(|atime| (atime, metadata.mtime_ms))
+    } else {
+      None
+    };
+    (mode.is_some() || timestamps.is_some()).then(|| {
+      Box::new(AssetFileAttributes {
+        mode,
+        permissions_required: pattern.preserve_permissions,
+        timestamps,
+        removals: Default::default(),
+      })
+    })
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -335,31 +371,8 @@ impl CopyRspackPlugin {
       }
     };
 
-    let copy_mode = pattern.copy_permissions || pattern.preserve_permissions;
-    let file_attributes = if (copy_mode || pattern.preserve_timestamps)
-      && let Ok(metadata) = compilation
-        .input_filesystem
-        .metadata(&absolute_filename)
-        .await
-      && metadata.is_file
-    {
-      let mode = if copy_mode { metadata.mode } else { None };
-      let timestamps = if pattern.preserve_timestamps {
-        metadata.atime_ms.map(|atime| (atime, metadata.mtime_ms))
-      } else {
-        None
-      };
-      (mode.is_some() || timestamps.is_some()).then(|| {
-        Box::new(AssetFileAttributes {
-          mode,
-          permissions_required: pattern.preserve_permissions,
-          timestamps,
-          removals: Default::default(),
-        })
-      })
-    } else {
-      None
-    };
+    let file_attributes =
+      Self::read_file_attributes(compilation, &absolute_filename, pattern).await;
 
     let source = if let Some(transformer) = &pattern.transform_fn {
       let mut source = RawBufferSource::from(source_vec.clone()).boxed();
@@ -411,6 +424,7 @@ impl CopyRspackPlugin {
 
     Ok(Some(RunPatternResult {
       source_filename,
+      absolute_filename,
       filename,
       source,
       file_attributes,
@@ -805,12 +819,31 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
   logger.cache_end(cache_counter);
-  let pending_results = pending_patterns
-    .iter()
-    .map(|pending| CopyRspackPlugin::run_pattern(compilation, pending, &logger))
-    .collect::<FuturesOrdered<_>>()
-    .collect::<Vec<_>>()
-    .await;
+  let ((), pending_results) = {
+    let compilation = &*compilation;
+    // Only cache hits have populated results so far. Read fresh attributes for them.
+    let refresh_attributes = FuturesUnordered::new();
+    for (pattern, results) in self.patterns.iter().zip(&mut results_by_pattern) {
+      if pattern.preserve_permissions || pattern.preserve_timestamps {
+        for result in results.iter_mut().flatten() {
+          refresh_attributes.push(async move {
+            result.file_attributes = CopyRspackPlugin::read_file_attributes(
+              compilation,
+              &result.absolute_filename,
+              pattern,
+            )
+            .await;
+          });
+        }
+      }
+    }
+    let run_patterns = pending_patterns
+      .iter()
+      .map(|pending| CopyRspackPlugin::run_pattern(compilation, pending, &logger))
+      .collect::<FuturesOrdered<_>>()
+      .collect::<Vec<_>>();
+    join(refresh_attributes.collect::<()>(), run_patterns).await
+  };
 
   let mut first_error = None;
   if !pending_patterns.is_empty() {

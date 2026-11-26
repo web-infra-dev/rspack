@@ -5,6 +5,7 @@ import {
 	compile,
 	createProject,
 	rebuild,
+	reusedPatterns,
 	useRealOutputFileSystem,
 	write
 } from "./_copy-plugin-cache.mjs";
@@ -68,7 +69,9 @@ function preserveNativeAttributes() {
 			}
 			fs.utimesSync(source, updatedMtime, updatedMtime);
 
-			const updated = await rebuild(compiler, [source]);
+			const entry = write(compiler.context, "src/index.js", "module.exports = 'changed';\n");
+			const updated = await rebuild(compiler, [entry]);
+			expect(reusedPatterns(updated)).toBe(2);
 			expectAttributes(output("copy.txt"), updatedMtime, 0o711);
 			const { assets } = new Stats(updated).toJson({
 				all: false,
@@ -185,6 +188,14 @@ function clearCopiedAttributes() {
 					({ mode, timestamps, ...info }) => info
 				);
 				expect(Object.hasOwn(compilation.getAsset(updated.name).info, "timestamps")).toBe(false);
+				compilation.updateAsset(updated.name, updated.source, info => {
+					info.mode = 0o600;
+					info.timestamps = { atime: atime.getTime(), mtime: updatedMtime.getTime() };
+					return {};
+				});
+				const updatedInfo = compilation.getAsset(updated.name).info;
+				expect(updatedInfo.mode).toBeUndefined();
+				expect(updatedInfo.timestamps).toBeUndefined();
 				compilation.updateAsset(updated.name, updated.source, () => ({
 					mode: undefined,
 					timestamps: undefined
