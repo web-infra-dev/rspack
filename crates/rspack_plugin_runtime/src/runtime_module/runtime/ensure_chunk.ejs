@@ -1,7 +1,7 @@
-<%- define(ENSURE_CHUNK_HANDLERS) %> = <% if (_hmr) { %><%- REQUIRE_SCOPE %>.f || <% } %>{};
+<% if (_with_handlers) { %><%- define(ENSURE_CHUNK_HANDLERS) %> = <% if (_hot) { %><%- REQUIRE_SCOPE %>.f || <% } %>{};
 // This file contains only the entry chunk.
 // The chunk loading function for additional chunks
-<%- define(ENSURE_CHUNK) %> = <%- basicFunction("chunkId" + _fetch_priority) %> {
+<%- define(ENSURE_CHUNK) %> = <% _fetch_priority = ""; if (_with_fetch_priority) { _fetch_priority = ", fetchPriority"; } %><%- basicFunction("chunkId" + _fetch_priority) %> {
 <% if (_with_hmr) { %>	var promises =
 <% } else { %>	return Promise.all(
 <% } %>		Object.keys(<%- ENSURE_CHUNK_HANDLERS %>).reduce(<%- basicFunction("promises, key") %> {
@@ -22,4 +22,7 @@
 	}) : promise;
 <% } else { %>
 	);
-<% } %>};
+<% } %>};<% } else { %>// The chunk loading function for additional chunks
+// Since all referenced chunks are already included
+// in this file, this function is empty here.
+<%- define(ENSURE_CHUNK) %> = <%- returningFunction("Promise.resolve()", "") %> <% } %>

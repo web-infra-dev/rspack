@@ -29,15 +29,17 @@ impl RuntimeModule for SystemContextRuntimeModule {
     }
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id().to_string(),
+      include_str!("runtime/system_context.ejs").to_string(),
+    )]
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    Ok(format!(
-      "{} = __system_context__",
-      context
-        .runtime_template
-        .render_runtime_global_definition(&RuntimeGlobals::SYSTEM_CONTEXT)
-    ))
+    context.runtime_template.render(self.id(), None)
   }
 }

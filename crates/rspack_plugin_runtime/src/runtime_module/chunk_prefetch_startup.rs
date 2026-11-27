@@ -44,53 +44,35 @@ impl RuntimeModule for ChunkPrefetchStartupRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let compilation = context.compilation;
+    let chunks = &context.compilation.build_chunk_graph_artifact.chunk_by_ukey;
     let chunk_ukey = self.chunk().expect("chunk do not attached");
 
-    let source = self
+    let startup_chunks = self
       .startup_chunks
       .iter()
       .map(|(group_chunks, child_chunks)| {
         let group_chunk_ids = group_chunks
           .iter()
-          .filter_map(|c| {
-            if c.to_owned().eq(&chunk_ukey) {
-              compilation
-                .build_chunk_graph_artifact
-                .chunk_by_ukey
-                .expect_get(c)
-                .id()
-            } else {
-              None
-            }
-          })
+          .filter(|&&ukey| ukey == chunk_ukey)
+          .filter_map(|ukey| chunks.expect_get(ukey).id())
           .collect_vec();
 
         let child_chunk_ids = child_chunks
           .iter()
-          .filter_map(|c| {
-            compilation
-              .build_chunk_graph_artifact
-              .chunk_by_ukey
-              .expect_get(c)
-              .id()
-          })
+          .filter_map(|ukey| chunks.expect_get(ukey).id())
           .collect_vec();
 
-        let source = context.runtime_template.render(
-          self.id(),
-          Some(serde_json::json!({
-            "_chunk_ids": simd_json::to_string(&group_chunk_ids).expect("invalid json to_string"),
-            "_child_chunk_ids": simd_json::to_string(&child_chunk_ids).expect("invalid json to_string"),
-          })),
-        )?;
-
-        Ok(source)
+        serde_json::json!({
+          "chunk_ids": group_chunk_ids,
+          "child_chunk_ids": child_chunk_ids,
+        })
       })
-      .collect::<rspack_error::Result<Vec<String>>>()?
-      .join("\n");
+      .collect_vec();
 
-    Ok(source)
+    context.runtime_template.render(
+      self.id(),
+      Some(serde_json::json!({ "_startup_chunks": startup_chunks })),
+    )
   }
 
   fn stage(&self) -> RuntimeModuleStage {

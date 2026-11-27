@@ -1,3 +1,4 @@
-<%- ON_CHUNKS_LOADED %>(0, <%- _chunk_ids %>, <%- basicFunction("") %> {
-  <%- _child_chunk_ids %>.map(<%- PREFETCH_CHUNK %>);
-}, 5);
+<% for _group in _startup_chunks { if (index > 0) { %>
+<% } %><%- ON_CHUNKS_LOADED %>(0, <%- json_stringify(_group.chunk_ids) %>, <%- basicFunction("") %> {
+  <%- json_stringify(_group.child_chunk_ids) %>.map(<%- PREFETCH_CHUNK %>);
+}, 5);<% } %>

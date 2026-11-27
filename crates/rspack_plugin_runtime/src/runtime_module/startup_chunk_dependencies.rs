@@ -1,6 +1,5 @@
-use std::{iter, sync::LazyLock};
+use std::sync::LazyLock;
 
-use itertools::Itertools;
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
   impl_runtime_module,
@@ -60,76 +59,26 @@ impl RuntimeModule for StartupChunkDependenciesRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let compilation = context.compilation;
-    let runtime_template = context.runtime_template;
-    if let Some(chunk_ukey) = self.chunk() {
-      let chunk_ids = compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_chunk_entry_dependent_chunks_iterable(
-          &chunk_ukey,
-          &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-          &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-        )
-        .map(|chunk_ukey| {
-          compilation
-            .build_chunk_graph_artifact
-            .chunk_by_ukey
-            .expect_get(&chunk_ukey)
-            .expect_id()
-            .clone()
-        })
-        .collect::<Vec<_>>();
+    let graph = &context.compilation.build_chunk_graph_artifact;
+    let chunk_ukey = self
+      .chunk()
+      .expect("should have chunk for StartupChunkDependenciesRuntimeModule");
+    let chunk_ids = graph
+      .chunk_graph
+      .get_chunk_entry_dependent_chunks_iterable(
+        &chunk_ukey,
+        &graph.chunk_by_ukey,
+        &graph.chunk_group_by_ukey,
+      )
+      .map(|chunk_ukey| graph.chunk_by_ukey.expect_get(&chunk_ukey).expect_id())
+      .collect::<Vec<_>>();
 
-      let body = if self.async_chunk_loading {
-        match chunk_ids.len() {
-          1 => format!(
-            "return {}({}).then(next);",
-            runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-            rspack_util::json_stringify(chunk_ids.first().expect("Should has at least one chunk"))
-          ),
-          2 => format!(
-            "return Promise.all([{}]).then(next);",
-            chunk_ids
-              .iter()
-              .map(|cid| format!(
-                "{}({})",
-                runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-                rspack_util::json_stringify(cid)
-              ))
-              .join(",\n")
-          ),
-          _ => format!(
-            "return Promise.all({}.map({}, {})).then(next);",
-            simd_json::to_string(&chunk_ids).expect("invalid json to_string"),
-            runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-            runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-          ),
-        }
-      } else {
-        chunk_ids
-          .iter()
-          .map(|cid| {
-            format!(
-              "{}({});",
-              runtime_template.render_runtime_globals(&RuntimeGlobals::ENSURE_CHUNK),
-              rspack_util::json_stringify(cid)
-            )
-          })
-          .chain(iter::once("return next();".to_string()))
-          .join("\n")
-      };
-
-      let source = runtime_template.render(
-        self.id(),
-        Some(serde_json::json!({
-          "_body": body,
-        })),
-      )?;
-
-      Ok(source)
-    } else {
-      unreachable!("should have chunk for StartupChunkDependenciesRuntimeModule")
-    }
+    context.runtime_template.render(
+      self.id(),
+      Some(serde_json::json!({
+        "_async_chunk_loading": self.async_chunk_loading,
+        "_chunk_ids": chunk_ids,
+      })),
+    )
   }
 }

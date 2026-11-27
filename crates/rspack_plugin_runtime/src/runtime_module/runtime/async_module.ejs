@@ -1,12 +1,12 @@
-<% if (!_supports_symbol) { %><%- var("hasSymbol") %> = typeof Symbol === "function";
-<% } %><%- var("rspackQueues") %> = <%- _queues_symbol %>;
-<% if (_uses_lexical_runtime_globals) { %><%- define(ASYNC_MODULE_EXPORT_SYMBOL) %> = <%- _exports_symbol %>;
-<%- var("rspackExports") %> = <%- ASYNC_MODULE_EXPORT_SYMBOL %>;<% } else { %><%- var("rspackExports") %> = <%- define(ASYNC_MODULE_EXPORT_SYMBOL) %> = <%- _exports_symbol %>;<% } %>
-<%- var("rspackError") %> = <%- _error_symbol %>;
-<%- var("rspackDone") %> = <%- _done_symbol %>;
-<% if (_uses_lexical_runtime_globals) { %><%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL) %> = <%- _defer_symbol %>;
-<%- var("rspackDefer") %> = <%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL %>;<% } else { %><%- var("rspackDefer") %> = <%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL) %> = <%- _defer_symbol %>;<% } %>
-<%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES) %> = <%- basicFunction("asyncDeps") %> {
+<% _supports_symbol = supports("symbol"); _symbol_prefix = ""; if (!_supports_symbol) { _symbol_prefix = "hasSymbol ? "; %><%- var("hasSymbol") %> = typeof Symbol === "function";
+<% } %><%- var("rspackQueues") %> = <%- _symbol_prefix %>Symbol("rspack queues")<% if (!_supports_symbol) { %> : "__rspack_queues"<% } %>;
+<% _uses_lexical_runtime_globals = usesLexicalRuntimeGlobals(); if (!_uses_lexical_runtime_globals) { %><%- var("rspackExports") %> = <% } %><%- define(ASYNC_MODULE_EXPORT_SYMBOL) %> = <%- _symbol_prefix %>Symbol("rspack exports")<% if (!_supports_symbol) { %> : <%- json_stringify(EXPORTS) %><% } %>;
+<% if (_uses_lexical_runtime_globals) { %><%- var("rspackExports") %> = <%- ASYNC_MODULE_EXPORT_SYMBOL %>;
+<% } %><%- var("rspackError") %> = <%- _symbol_prefix %>Symbol("rspack error")<% if (!_supports_symbol) { %> : "__rspack_error"<% } %>;
+<%- var("rspackDone") %> = <%- _symbol_prefix %>Symbol("rspack done")<% if (!_supports_symbol) { %> : "__rspack_done"<% } %>;
+<% if (!_uses_lexical_runtime_globals) { %><%- var("rspackDefer") %> = <% } %><%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL) %> = <%- _symbol_prefix %>Symbol("rspack defer")<% if (!_supports_symbol) { %> : "__rspack_defer"<% } %>;
+<% if (_uses_lexical_runtime_globals) { %><%- var("rspackDefer") %> = <%- DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES_SYMBOL %>;
+<% } %><%- define(DEFERRED_MODULES_ASYNC_TRANSITIVE_DEPENDENCIES) %> = <%- basicFunction("asyncDeps") %> {
 	var hasUnresolvedAsyncSubgraph = asyncDeps.some((id) => {
 		var cache = <%- MODULE_CACHE %>[id];
 		return !cache || cache[rspackDone] === false;

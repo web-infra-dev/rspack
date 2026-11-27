@@ -29,15 +29,17 @@ impl RuntimeModule for AmdDefineRuntimeModule {
     }
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id().to_string(),
+      include_str!("runtime/amd_define.ejs").to_string(),
+    )]
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    Ok(format!(
-      "{} = function () {{ throw new Error('define cannot be used indirect'); }}",
-      context
-        .runtime_template
-        .render_runtime_global_definition(&RuntimeGlobals::AMD_DEFINE),
-    ))
+    context.runtime_template.render(self.id(), None)
   }
 }

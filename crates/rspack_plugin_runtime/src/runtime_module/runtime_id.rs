@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
   impl_runtime_module,
@@ -30,44 +29,28 @@ impl RuntimeModule for RuntimeIdRuntimeModule {
     }
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id().to_string(),
+      include_str!("runtime/runtime_id.ejs").to_string(),
+    )]
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let compilation = context.compilation;
-    if let Some(chunk_ukey) = self.chunk() {
-      let chunk = compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .expect_get(&chunk_ukey);
-
-      let runtime = chunk.runtime();
-
-      if runtime.len() > 1 {
-        panic!("RuntimeIdRuntimeModule must be in a single runtime");
-      }
-
-      let id = compilation
-        .build_chunk_graph_artifact
-        .chunk_graph
-        .get_runtime_id(
-          runtime
-            .iter()
-            .collect_vec()
-            .first()
-            .expect("At least one runtime"),
-        );
-
-      Ok(format!(
-        "{} = {};",
-        context
-          .runtime_template
-          .render_runtime_global_definition(&RuntimeGlobals::RUNTIME_ID),
-        id.as_deref()
-          .map_or_else(|| "null".to_string(), rspack_util::json_stringify_str)
-      ))
-    } else {
-      unreachable!("should attach chunk for css_loading")
+    let graph = &context.compilation.build_chunk_graph_artifact;
+    let chunk_ukey = self.chunk().expect("should attach chunk for runtime_id");
+    let runtime = graph.chunk_by_ukey.expect_get(&chunk_ukey).runtime();
+    if runtime.len() > 1 {
+      panic!("RuntimeIdRuntimeModule must be in a single runtime");
     }
+    let id = graph
+      .chunk_graph
+      .get_runtime_id(runtime.iter().next().expect("At least one runtime"));
+    context
+      .runtime_template
+      .render(self.id(), Some(serde_json::json!({ "_runtime_id": id })))
   }
 }
