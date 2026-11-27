@@ -207,6 +207,10 @@ impl DirectoryScan {
         }
       });
       while let Some((path, metadata)) = rx.recv().await {
+        if !covered() {
+          rx.close();
+          break;
+        }
         paths.finish_scanned_entry(path, metadata, real_dir, requests, changes, &mut children);
       }
       work.await.expect("directory scan worker panicked");
