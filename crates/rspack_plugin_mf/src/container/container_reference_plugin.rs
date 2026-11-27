@@ -99,6 +99,7 @@ async fn factorize(&self, data: &mut ModuleFactoryCreateData) -> Result<Option<B
           config.share_scope.clone(),
           key.clone(),
           runtime_mode,
+          self.options.enhanced,
         )
         .boxed();
         return Ok(Some(remote));

@@ -54,36 +54,47 @@ export default function () {
 
     // Check emitted runtime data, not configuration: issuerLayer is only a
     // compiler filter, and unused configurations do not need a new runtime.
-    if (
-      runtimeRequire.federation.bundlerRuntime.supportsSharedIdentity !== true
-    ) {
-      const unsupportedIdentity = (shareKey, reason) => {
-        throw new Error(
-          `Module Federation shared "${shareKey}" ${reason}. Use an implementation whose bundlerRuntime.supportsSharedIdentity is true; the installed runtime cannot preserve this shared identity.`,
-        );
-      };
-      for (const stages of Object.values(
+    const supportsSharedIdentity =
+      runtimeRequire.federation.bundlerRuntime.supportsSharedIdentity === true;
+    const unsupportedIdentity = (shareKey, reason) => {
+      throw new Error(
+        `Module Federation shared "${shareKey}" ${reason}. Use an implementation whose bundlerRuntime.supportsSharedIdentity is true; the installed runtime cannot preserve this shared identity.`,
+      );
+    };
+    const optInForLayer = (shareKey, kind, layer) => {
+      runtimeRequire.federation.shareScopeDispatch = 'declared';
+      if (!supportsSharedIdentity) {
+        unsupportedIdentity(shareKey, `uses ${kind} layer "${layer}"`);
+      }
+    };
+    for (const stages of Object.values(
+      initializeSharingScopeToInitDataMapping,
+    )) {
+      for (const stage of stages) {
+        if (stage && typeof stage === 'object' && stage.layer != null) {
+          optInForLayer(stage.name, 'provider', stage.layer);
+        }
+      }
+    }
+    for (const data of Object.values(
+      consumesLoadingModuleToConsumeDataMapping,
+    )) {
+      if (data.layer != null) {
+        optInForLayer(data.shareKey, 'consumer', data.layer);
+      }
+    }
+    if (runtimeRequire.federation.shareScopeDispatch === 'declared') {
+      runtimeRequire.federation.additionalShareScopeKeys = Object.keys(
         initializeSharingScopeToInitDataMapping,
-      )) {
-        for (const stage of stages) {
-          if (stage && typeof stage === 'object' && stage.layer != null) {
-            unsupportedIdentity(
-              stage.name,
-              `uses provider layer "${stage.layer}"`,
-            );
-          }
-        }
-      }
-      for (const data of Object.values(
-        consumesLoadingModuleToConsumeDataMapping,
-      )) {
-        if (data.layer != null) {
-          unsupportedIdentity(
-            data.shareKey,
-            `uses consumer layer "${data.layer}"`,
-          );
-        }
-      }
+      )
+        .filter((scope) =>
+          initializeSharingScopeToInitDataMapping[scope].some(
+            (stage) => stage && typeof stage === 'object',
+          ),
+        )
+        .sort();
+    }
+    if (!supportsSharedIdentity) {
       for (const [shareKey, entries] of Object.entries(
         __module_federation_share_fallbacks__ || {},
       )) {
