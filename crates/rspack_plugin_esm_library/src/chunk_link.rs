@@ -291,6 +291,9 @@ pub struct ChunkLinkContext {
    */
   pub raw_import_stmts: FxIndexMap<RawImportSource, ImportSpec>,
 
+  /// First request positions, independent of whether the request renders as an import or export.
+  pub request_order: FxIndexSet<RawImportSource>,
+
   /**
   namespace imports already provided by module init fragments
    */
@@ -359,6 +362,7 @@ impl ChunkLinkContext {
       name_allocator: Default::default(),
       exported_symbols: Default::default(),
       raw_import_stmts: Default::default(),
+      request_order: Default::default(),
       module_external_namespace_imports: Default::default(),
       raw_star_exports: Default::default(),
     }

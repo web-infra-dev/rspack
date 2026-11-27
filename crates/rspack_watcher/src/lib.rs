@@ -408,8 +408,9 @@ impl FsWatcherInner {
   ) -> Option<impl Future<Output = ()> + Send + use<>> {
     self.path_manager.reset();
 
+    let (indexed, ready) = oneshot::channel();
     let scans = match self
-      .prepare_watch(files, directories, missing, start_time)
+      .prepare_watch(files, directories, missing, start_time, indexed)
       .await
     {
       Ok(scans) => scans,
@@ -420,7 +421,7 @@ impl FsWatcherInner {
     };
     self
       .executor
-      .wait_for_execute(event_aggregate_handler, event_handler)
+      .wait_for_execute(event_aggregate_handler, event_handler, ready)
       .await;
 
     while let Some(previous) = self.scans.try_join_next() {
@@ -445,6 +446,7 @@ impl FsWatcherInner {
     directories: (Vec<InternedPath>, Vec<InternedPath>),
     missing: (Vec<InternedPath>, Vec<InternedPath>),
     start_time: SystemTime,
+    indexed: oneshot::Sender<()>,
   ) -> Result<impl Future<Output = ()> + Send + use<>> {
     self
       .path_manager
@@ -499,6 +501,7 @@ impl FsWatcherInner {
         for change in contexts.run(&paths).await {
           trigger.on_scanned_change(&change);
         }
+        let _ = indexed.send(());
       };
       tokio::join!(targets, enumerate);
     })

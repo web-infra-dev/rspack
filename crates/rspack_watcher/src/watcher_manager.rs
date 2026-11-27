@@ -1,6 +1,7 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap};
+use tokio::runtime::Handle;
 
 use crate::paths::{DirectoryScan, FileRecord};
 
@@ -69,14 +70,30 @@ impl DirectoryWatcher {
 
 #[derive(Default)]
 pub(super) struct WatcherManager {
+  scan_workers: OnceLock<Handle>,
+  #[cfg(feature = "testing")]
+  pub(super) metadata_jobs: crate::testing::MetadataJobs,
   pub(super) directories: Arc<InternedPathDashMap<DirectoryWatcher>>,
 }
 
 impl WatcherManager {
+  pub(super) fn bind_scan_workers(&self) {
+    self.scan_workers.get_or_init(Handle::current);
+  }
+
   pub(super) fn directory_scan(&self, dir: &InternedPath) -> Option<Arc<DirectoryScan>> {
     let mut watcher = self.directories.get_mut(dir)?;
     Some(Arc::clone(watcher.scan.get_or_insert_with(|| {
-      Arc::new(DirectoryScan::new(dir.clone()))
+      Arc::new(DirectoryScan::new(
+        dir.clone(),
+        self
+          .scan_workers
+          .get()
+          .expect("register paths before scanning")
+          .clone(),
+        #[cfg(feature = "testing")]
+        Arc::clone(&self.metadata_jobs),
+      ))
     })))
   }
 
