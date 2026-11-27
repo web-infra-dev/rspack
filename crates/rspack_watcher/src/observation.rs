@@ -2,12 +2,11 @@
 use std::sync::{Arc, Mutex};
 
 use rspack_paths::{InternedPath, InternedPathSet};
-use rspack_util::fx_hash::{FxHashMap, FxHashSet};
-
-use crate::paths::RegistrationKind;
+use rspack_util::fx_hash::FxHashMap;
 
 pub(super) enum Mutation {
   Metadata,
+  Unchanged,
   Entry,
   Subtree,
 }
@@ -17,7 +16,7 @@ struct Invalidations {
   metadata_rechecks: InternedPathSet,
   entries: InternedPathSet,
   subtrees: InternedPathSet,
-  registrations: FxHashSet<(InternedPath, RegistrationKind)>,
+  subscriptions: InternedPathSet,
 }
 
 #[derive(Default)]
@@ -29,6 +28,12 @@ pub(super) struct Observations {
 pub(super) struct ActiveWalk {
   observations: Arc<Mutex<Observations>>,
   id: u64,
+}
+
+#[derive(Clone)]
+pub(super) struct Scan {
+  pub(super) walk: Arc<ActiveWalk>,
+  pub(super) root: InternedPath,
 }
 
 impl ActiveWalk {
@@ -56,23 +61,14 @@ impl Drop for ActiveWalk {
 }
 
 impl Observations {
-  pub(super) fn registration_changed(&mut self, path: &InternedPath, kind: RegistrationKind) {
+  pub(super) fn context_changed(&mut self, path: &InternedPath) {
     for walk in self.active.values_mut() {
-      walk.registrations.insert((path.clone(), kind));
-      if kind != RegistrationKind::Directory {
-        walk.metadata_rechecks.insert(path.clone());
-      }
+      walk.subscriptions.insert(path.clone());
     }
   }
-  pub(super) fn same_registration(
-    &self,
-    walk: &ActiveWalk,
-    path: &InternedPath,
-    kind: RegistrationKind,
-  ) -> bool {
-    !self.active[&walk.id]
-      .registrations
-      .contains(&(path.clone(), kind))
+
+  pub(super) fn same_subscription(&self, scan: &Scan, context: &InternedPath) -> bool {
+    !self.active[&scan.walk.id].subscriptions.contains(context)
   }
 
   pub(super) fn needs_metadata_recheck(&self, walk: &ActiveWalk, path: &InternedPath) -> bool {
@@ -112,6 +108,19 @@ impl Observations {
         Mutation::Subtree => {
           walk.subtrees.insert(path.clone());
         }
+        Mutation::Unchanged => {}
+      }
+    }
+  }
+
+  pub(super) fn invalidate_subtree<'a>(
+    &mut self,
+    path: &InternedPath,
+    readers: impl Iterator<Item = &'a Scan> + Clone,
+  ) {
+    for (id, walk) in &mut self.active {
+      if !readers.clone().any(|scan| scan.walk.id == *id) {
+        walk.subtrees.insert(path.clone());
       }
     }
   }

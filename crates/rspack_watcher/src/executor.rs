@@ -1,390 +1,335 @@
-use std::sync::{
-  Arc,
-  atomic::{AtomicBool, AtomicU64, Ordering},
+use std::{
+  sync::{Arc, Mutex, MutexGuard, Weak},
+  time::Duration,
 };
 
 use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use tokio::{
-  sync::{
-    Mutex,
-    mpsc::{self, UnboundedReceiver, UnboundedSender},
-    oneshot,
-  },
-  time::{Duration, Instant},
+  sync::{mpsc, oneshot},
+  task::JoinHandle,
+  time::{Instant, sleep_until},
 };
 
-use super::{EventAggregateHandler, EventHandler, FsEventKind};
-use crate::{EventBatch, FsEvent, ResolvedEvents};
+use crate::{
+  EventAggregateHandler, EventHandler, FsEvent, FsEventKind, ResolvedEvents,
+  paths::PathManager,
+  paused::{BufferedEvent, PausedEvents},
+  trigger::Input,
+};
 
-type ThreadSafetyReceiver<T> = ThreadSafety<UnboundedReceiver<T>>;
-type ThreadSafety<T> = Arc<Mutex<T>>;
-
-/// watchpack's `aggregatedChanges` / `aggregatedRemovals`: the events that
-/// have arrived since the last aggregated batch was delivered. Guarded by a
-/// synchronous mutex so a paused watcher can be drained from JS.
-#[derive(Debug, Default)]
+#[derive(Default, Clone)]
 pub(crate) struct FilesData {
   pub(crate) changed: HashSet<String>,
   pub(crate) deleted: HashSet<String>,
 }
 
 impl FilesData {
+  pub(super) fn record(&mut self, events: &[FsEvent]) {
+    for event in events {
+      let path = event.path.to_string_lossy();
+      if event.kind == FsEventKind::Remove {
+        self.changed.remove(path.as_ref());
+        self.deleted.insert(path.into_owned());
+      } else {
+        self.deleted.remove(path.as_ref());
+        self.changed.insert(path.into_owned());
+      }
+    }
+  }
+
   fn is_empty(&self) -> bool {
     self.changed.is_empty() && self.deleted.is_empty()
   }
 }
 
-pub(crate) type Aggregated = Arc<std::sync::Mutex<FilesData>>;
+#[derive(Default)]
+struct DeliveryState {
+  files: FilesData,
+  paused: bool,
+  pending: PausedEvents,
+  pause_revision: u64,
+  watch_revision: u64,
+  handler: Option<mpsc::UnboundedSender<Message>>,
+  deadline: Option<Instant>,
+}
 
-struct AggregateTime {
-  base: Instant,
-  last_unpaused_event: AtomicU64,
+enum Message {
+  Events(ResolvedEvents),
+  Resume,
+}
+
+#[derive(Clone, Copy)]
+pub(crate) struct WatchCycle {
+  watch_revision: u64,
+  pause_revision: u64,
+}
+
+pub(crate) struct Delivery {
+  state: Mutex<DeliveryState>,
+  timeout: Duration,
   #[cfg(feature = "testing")]
-  trace: crate::testing::ExecutorTrace,
+  pub(crate) trace: crate::testing::ExecutorTrace,
 }
 
-/// `WatcherExecutor` is responsible for managing the execution of file system event handlers,
-/// aggregating file change and delete events, and invoking the provided event handler after
-/// a configurable aggregate timeout. It receives events from a channel, tracks changed and
-/// deleted files, and coordinates the event handling logic.
-pub struct Executor {
-  aggregate_timeout: u32,
-  rx: ThreadSafetyReceiver<ResolvedEvents>,
-  files_data: Aggregated,
-  exec_aggregate_tx: UnboundedSender<ExecAggregateEvent>,
-  exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
-  exec_tx: UnboundedSender<ExecEvent>,
-  exec_rx: ThreadSafetyReceiver<ExecEvent>,
-  paused: Arc<AtomicBool>,
-  aggregate_running: Arc<AtomicBool>,
-  aggregate_time: Arc<AggregateTime>,
-  start_waiting: bool,
-  execute_handle: Option<tokio::task::JoinHandle<()>>,
-  execute_aggregate_handle: Option<tokio::task::JoinHandle<()>>,
+impl Delivery {
+  fn lock(&self) -> MutexGuard<'_, DeliveryState> {
+    self.state.lock().expect("watch deliveries poisoned")
+  }
+
+  pub(crate) fn new(timeout: Option<u32>) -> Self {
+    Self {
+      state: Mutex::new(DeliveryState {
+        paused: true,
+        ..Default::default()
+      }),
+      timeout: Duration::from_millis(u64::from(timeout.unwrap_or(50))),
+      #[cfg(feature = "testing")]
+      trace: Default::default(),
+    }
+  }
+
+  pub(crate) fn pause(&self) {
+    let mut state = self.lock();
+    state.pause_revision += 1;
+    state.paused = true;
+    state.deadline = None;
+  }
+
+  pub(crate) fn pause_revision(&self) -> u64 {
+    self.lock().pause_revision
+  }
+
+  pub(crate) fn begin_watch(&self, pause_revision: u64) -> WatchCycle {
+    let mut state = self.lock();
+    state.paused = true;
+    state.deadline = None;
+    state.watch_revision += 1;
+    WatchCycle {
+      watch_revision: state.watch_revision,
+      pause_revision,
+    }
+  }
+
+  pub(crate) fn finish_watch(&self, cycle: WatchCycle, paths: &PathManager) -> bool {
+    let mut state = self.lock();
+    if state.watch_revision != cycle.watch_revision || state.pause_revision != cycle.pause_revision
+    {
+      return false;
+    }
+    state
+      .files
+      .changed
+      .retain(|p| paths.is_registered(&p.as_str().into()));
+    state
+      .files
+      .deleted
+      .retain(|p| paths.is_registered(&p.as_str().into()));
+    if !state.files.is_empty() {
+      state.deadline = Some(Instant::now() + self.timeout);
+      if let Some(tx) = &state.handler {
+        let _ = tx.send(Message::Resume);
+      }
+    }
+    state.pending.retain_subscriptions(paths);
+    state.paused = false;
+    true
+  }
+
+  pub(crate) fn aggregated(&self, take: bool) -> FilesData {
+    let mut state = self.lock();
+    let mut files = if take {
+      std::mem::take(&mut state.files)
+    } else {
+      state.files.clone()
+    };
+    state.pending.project(&mut files, take);
+    files
+  }
+
+  pub(crate) fn publish(
+    &self,
+    input: Option<Input>,
+    events: Option<ResolvedEvents>,
+    subscribers: Vec<Weak<InternedPath>>,
+  ) {
+    let mut state = self.lock();
+    if state.paused {
+      state.pending.push(input, events, subscribers);
+      return;
+    }
+    self.dispatch(&mut state, events);
+  }
+
+  pub(crate) fn next_replay(&self, cycle: WatchCycle) -> Option<BufferedEvent> {
+    let state = self.lock();
+    if state.paused || state.watch_revision != cycle.watch_revision {
+      return None;
+    }
+    state.pending.front()
+  }
+
+  pub(crate) fn complete_replay(&self, cycle: WatchCycle, events: Option<ResolvedEvents>) {
+    let mut state = self.lock();
+    if !state.paused && state.watch_revision == cycle.watch_revision {
+      let events = state.pending.finish(events);
+      self.dispatch(&mut state, events);
+    } else {
+      state.pending.interrupted(events);
+    }
+  }
+
+  fn take_due_batch(
+    &self,
+    deadline: Instant,
+    rx: &mpsc::UnboundedReceiver<Message>,
+  ) -> Option<FilesData> {
+    let mut state = self.lock();
+    if state.deadline != Some(deadline) || !rx.is_empty() {
+      return None;
+    }
+    state.deadline = None;
+    let files = std::mem::take(&mut state.files);
+    if files.is_empty() {
+      return None;
+    }
+    #[cfg(feature = "testing")]
+    self.trace.lock().expect("executor trace poisoned").push(
+      crate::testing::ExecutorEvent::Aggregated {
+        at: Instant::now().into_std(),
+        changed_files: files.changed.clone(),
+        deleted_files: files.deleted.clone(),
+      },
+    );
+    Some(files)
+  }
+
+  fn dispatch(&self, state: &mut DeliveryState, events: Option<ResolvedEvents>) {
+    let Some(events) = events.filter(|events| !events.dependencies.is_empty()) else {
+      return;
+    };
+    let Some(sender) = state.handler.as_ref() else {
+      return;
+    };
+    let at = Instant::now();
+    state.files.record(&events.dependencies);
+    state.deadline = Some(at + self.timeout);
+    #[cfg(feature = "testing")]
+    self.trace.lock().expect("executor trace poisoned").push(
+      crate::testing::ExecutorEvent::Accepted {
+        at: at.into_std(),
+        events: events
+          .dependencies
+          .iter()
+          .map(|e| (e.path.to_string_lossy().into_owned(), e.kind))
+          .collect(),
+      },
+    );
+    let _ = sender.send(Message::Events(events));
+  }
 }
 
-const DEFAULT_AGGREGATE_TIMEOUT: u32 = 50; // Default timeout in milliseconds
-
-/// `ExecEvent` represents control events for the watcher executor loop.
-/// - `Execute`: Indicates that an event (change or delete) has occurred and the handler should be triggered.
-/// - `Close`: Indicates that the event receiver has been closed and the executor should stop.
-#[derive(Debug)]
-enum ExecAggregateEvent {
-  /// Trigger the execution of the event handler (e.g., after a file change or delete).
-  Execute,
-  /// Signal to close the executor loop (e.g., when the receiver is closed).
-  Close,
-}
-
-enum ExecEvent {
-  Execute(Option<FsEvent>, EventBatch, Option<InternedPath>),
-  Aggregate(FilesData),
-  Close,
+pub(crate) struct Executor {
+  pub(crate) delivery: Arc<Delivery>,
+  task: Option<JoinHandle<()>>,
 }
 
 impl Executor {
-  /// Create a new `WatcherExecutor` with the given receiver and optional aggregate timeout.
-  /// `paused` is shared with [`crate::FsWatcher`] so pausing stays a lock-free
-  /// synchronous operation.
-  pub fn new(
-    rx: UnboundedReceiver<ResolvedEvents>,
-    aggregate_timeout: Option<u32>,
-    paused: Arc<AtomicBool>,
-  ) -> Self {
-    let (exec_aggregate_tx, exec_aggregate_rx) = mpsc::unbounded_channel::<ExecAggregateEvent>();
-    let (exec_tx, exec_rx) = mpsc::unbounded_channel::<ExecEvent>();
-
+  pub(crate) fn new(timeout: Option<u32>) -> Self {
     Self {
-      start_waiting: false,
-      aggregate_running: Arc::new(AtomicBool::new(false)),
-      aggregate_time: Arc::new(AggregateTime {
-        base: Instant::now(),
-        last_unpaused_event: AtomicU64::new(0),
-        #[cfg(feature = "testing")]
-        trace: Default::default(),
-      }),
-      paused,
-      rx: Arc::new(Mutex::new(rx)),
-      files_data: Default::default(),
-      exec_aggregate_tx,
-      exec_aggregate_rx: Arc::new(Mutex::new(exec_aggregate_rx)),
-      exec_rx: Arc::new(Mutex::new(exec_rx)),
-      exec_tx,
-      execute_aggregate_handle: None,
-      execute_handle: None,
-      aggregate_timeout: aggregate_timeout.unwrap_or(DEFAULT_AGGREGATE_TIMEOUT),
+      delivery: Arc::new(Delivery::new(timeout)),
+      task: None,
     }
   }
 
-  /// The pending aggregated sets, shared with [`crate::FsWatcher`].
-  pub fn aggregated(&self) -> Aggregated {
-    Arc::clone(&self.files_data)
+  pub(crate) async fn close(&mut self) {
+    *self.delivery.lock() = DeliveryState::default();
+    self.stop_handler().await;
   }
 
-  #[cfg(feature = "testing")]
-  pub(crate) fn trace(&self) -> crate::testing::ExecutorTrace {
-    Arc::clone(&self.aggregate_time.trace)
-  }
-
-  /// Abort all executor.
-  async fn abort(&mut self) {
-    if let Some(execute_aggregate_handle) = std::mem::take(&mut self.execute_aggregate_handle) {
-      execute_aggregate_handle.abort();
-      // Wait for the aggregate executor to finish
-      // Awaiting a cancelled task might complete as usual if the task was already completed at the time it was cancelled, but most likely it will fail with a [cancelled] JoinError.
-      // So we use Err in this case.
-      if let Err(err) = execute_aggregate_handle.await {
-        debug_assert!(err.is_cancelled());
-      }
-      self.aggregate_running.store(false, Ordering::Relaxed);
-    }
-    if let Some(execute_handle) = std::mem::take(&mut self.execute_handle) {
-      execute_handle.abort();
-      // Wait for the executor to finish
-      if let Err(err) = execute_handle.await {
-        debug_assert!(err.is_cancelled());
-      }
+  async fn stop_handler(&mut self) {
+    if let Some(task) = self.task.take() {
+      task.abort();
+      let _ = task.await;
     }
   }
 
-  /// Abort all executor and close the receiver.
-  pub async fn close(&mut self) {
-    self.abort().await;
-  }
-
-  /// Execute the watcher executor loop.
-  pub async fn wait_for_execute(
+  pub(crate) async fn watch(
     &mut self,
-    event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
-    event_handler: Box<dyn EventHandler + Send>,
+    aggregate: Box<dyn EventAggregateHandler + Send>,
+    raw: Box<dyn EventHandler + Send>,
     context_ready: oneshot::Receiver<()>,
   ) {
-    if !self.start_waiting {
-      let files_data = Arc::clone(&self.files_data);
-
-      let rx = Arc::clone(&self.rx);
-      let exec_aggregate_tx = self.exec_aggregate_tx.clone();
-      let exec_tx = self.exec_tx.clone();
-      let paused = Arc::clone(&self.paused);
-      let aggregate_running = Arc::clone(&self.aggregate_running);
-      let aggregate_time = Arc::clone(&self.aggregate_time);
-
-      let future = async move {
-        while let Some(events) = rx.lock().await.recv().await {
-          // Enqueue raw delivery before allowing an aggregate snapshot to consume it.
-          {
-            let mut files = files_data.lock().expect("aggregated sets poisoned");
-            for event in &events.dependencies {
-              let path = event.path.to_string_lossy().to_string();
-              match event.kind {
-                FsEventKind::Change | FsEventKind::Create => {
-                  files.deleted.remove(&path);
-                  files.changed.insert(path);
-                }
-                FsEventKind::Remove => {
-                  files.changed.remove(&path);
-                  files.deleted.insert(path);
-                }
-              }
-            }
-            // Like Watchpack, only changes received while unpaused restart the
-            // wait. An empty batch (e.g. an unwatched path removed under the
-            // watch root) must not delay a pending batch.
-            if !events.dependencies.is_empty() && !paused.load(Ordering::Relaxed) {
-              let at = Instant::now();
-              aggregate_time.last_unpaused_event.store(
-                at.duration_since(aggregate_time.base).as_nanos() as u64,
-                Ordering::Relaxed,
-              );
-              #[cfg(feature = "testing")]
-              aggregate_time
-                .trace
-                .lock()
-                .expect("executor trace poisoned")
-                .push(crate::testing::ExecutorEvent::Accepted {
-                  at: at.into_std(),
-                  events: events
-                    .dependencies
-                    .iter()
-                    .map(|event| (event.path.to_string_lossy().into_owned(), event.kind))
-                    .collect(),
-                });
-            }
-            let _ = exec_tx.send(ExecEvent::Execute(
-              events.raw,
-              events.recovered,
-              events.context_removal,
-            ));
-          }
-
-          if !paused.load(Ordering::Relaxed) && !aggregate_running.load(Ordering::Relaxed) {
-            let _ = exec_aggregate_tx.send(ExecAggregateEvent::Execute);
-          }
-        }
-
-        let _ = exec_aggregate_tx.send(ExecAggregateEvent::Close);
-        let _ = exec_tx.send(ExecEvent::Close);
-      };
-
-      tokio::spawn(future);
-      self.start_waiting = true;
-    }
-
-    self.paused.store(false, Ordering::Relaxed);
-    // abort the previous handlers if they exist
-    self.abort().await;
-
-    self.run_execute_handler(event_aggregate_handler, event_handler, context_ready);
-
-    // Flush events accumulated during the pause period.
-    // Without this, events that arrived while paused would sit in files_data
-    // indefinitely — the event loop already processed them (added to files_data)
-    // but skipped sending Execute because paused was true. No future OS event
-    // will re-deliver them, so we must kick the aggregate task ourselves.
-    if !self
-      .files_data
-      .lock()
-      .expect("aggregated sets poisoned")
-      .is_empty()
-    {
-      let _ = self.exec_aggregate_tx.send(ExecAggregateEvent::Execute);
-    }
-  }
-
-  fn run_execute_handler(
-    &mut self,
-    event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
-    event_handler: Box<dyn EventHandler + Send>,
-    context_ready: oneshot::Receiver<()>,
-  ) {
-    self.execute_aggregate_handle = Some(create_execute_aggregate_task(
-      self.exec_tx.clone(),
-      Arc::clone(&self.exec_aggregate_rx),
-      Arc::clone(&self.files_data),
-      self.aggregate_timeout as u64,
-      Arc::clone(&self.aggregate_running),
-      Arc::clone(&self.aggregate_time),
+    self.stop_handler().await;
+    let (tx, rx) = mpsc::unbounded_channel();
+    self.delivery.lock().handler = Some(tx);
+    self.task = Some(tokio::spawn(run(
+      Arc::clone(&self.delivery),
+      rx,
+      aggregate,
+      raw,
       context_ready,
-    ));
-
-    self.execute_handle = Some(create_execute_task(
-      event_aggregate_handler,
-      event_handler,
-      Arc::clone(&self.exec_rx),
-    ));
+    )));
   }
 }
 
-fn create_execute_task(
-  event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
-  event_handler: Box<dyn EventHandler + Send>,
-  exec_rx: ThreadSafetyReceiver<ExecEvent>,
-) -> tokio::task::JoinHandle<()> {
-  let future = async move {
-    'deliveries: while let Some(exec_event) = exec_rx.lock().await.recv().await {
-      match exec_event {
-        ExecEvent::Execute(raw, recovered, context_removal) => {
-          for event in raw.into_iter().chain(recovered) {
-            // Handle each event based on its kind
-            let path = event.path.to_string_lossy().to_string();
-            let result = match event.kind {
-              super::FsEventKind::Change | super::FsEventKind::Create => {
-                event_handler.on_change(path)
-              }
-              super::FsEventKind::Remove => event_handler.on_delete(path),
-            };
-            if result.is_err() {
-              continue 'deliveries;
-            }
-          }
-          if let Some(path) = context_removal {
-            let _ = event_handler.on_context_remove(path.to_string_lossy().to_string());
-          }
-        }
-        ExecEvent::Aggregate(files) => {
-          event_aggregate_handler.on_event_handle(files.changed, files.deleted);
-        }
-        ExecEvent::Close => {
-          break;
-        }
-      }
-    }
-  };
-  tokio::spawn(future)
-}
-
-fn create_execute_aggregate_task(
-  exec_tx: UnboundedSender<ExecEvent>,
-  exec_aggregate_rx: ThreadSafetyReceiver<ExecAggregateEvent>,
-  files: Aggregated,
-  aggregate_timeout: u64,
-  running: Arc<AtomicBool>,
-  aggregate_time: Arc<AggregateTime>,
-  context_ready: oneshot::Receiver<()>,
-) -> tokio::task::JoinHandle<()> {
-  let future = async move {
-    // A rebuild reads the new contexts' timestamps as soon as the first aggregate is delivered.
-    if context_ready.await.is_err() {
-      return;
-    }
-
-    loop {
-      let aggregate_rx = {
-        // release the lock on exec_aggregate_rx
-        // and wait for the next event
-        let mut exec_aggregate_rx_guard = exec_aggregate_rx.lock().await;
-        match exec_aggregate_rx_guard.recv().await {
-          Some(event) => event,
-          None => return,
-        }
-      };
-
-      if let ExecAggregateEvent::Execute = aggregate_rx {
-        running.store(true, Ordering::Relaxed);
-        let timeout = Duration::from_millis(aggregate_timeout);
-        // Keep the initial wait for a resume flush, and extend it only for
-        // events received while unpaused.
-        let mut deadline = Instant::now() + timeout;
-        let files = loop {
-          tokio::time::sleep_until(deadline).await;
-
-          // Check the timestamp and take the batch under the same lock used
-          // when recording events, so a new change cannot slip between them.
-          let mut files = files.lock().expect("aggregated sets poisoned");
-          let candidate = aggregate_time.base
-            + Duration::from_nanos(aggregate_time.last_unpaused_event.load(Ordering::Relaxed))
-            + timeout;
-          if candidate > deadline {
-            deadline = candidate;
-            continue;
-          }
-          #[cfg(feature = "testing")]
-          if !files.is_empty() {
-            aggregate_time
-              .trace
-              .lock()
-              .expect("executor trace poisoned")
-              .push(crate::testing::ExecutorEvent::Aggregated {
-                at: Instant::now().into_std(),
-                changed_files: files.changed.clone(),
-                deleted_files: files.deleted.clone(),
-              });
-          }
-          break std::mem::take(&mut *files);
-        };
-        if files.is_empty() {
-          running.store(false, Ordering::Relaxed);
+async fn run(
+  delivery: Arc<Delivery>,
+  mut rx: mpsc::UnboundedReceiver<Message>,
+  aggregate: Box<dyn EventAggregateHandler + Send>,
+  raw: Box<dyn EventHandler + Send>,
+  mut context_ready: oneshot::Receiver<()>,
+) {
+  let mut indexed = false;
+  loop {
+    let deadline = delivery.lock().deadline;
+    let events = if !indexed {
+      tokio::select! {
+        biased;
+        ready = &mut context_ready => {
+          if ready.is_err() { return; }
+          indexed = true;
           continue;
         }
-
-        // A path is in one set only: `Trigger` reports each event by the
-        // path's state on disk, and a later event replaces an earlier one.
-        let _ = exec_tx.send(ExecEvent::Aggregate(files));
-        running.store(false, Ordering::Relaxed);
+        events = rx.recv() => events,
       }
+    } else if let Some(deadline) = deadline {
+      tokio::select! {
+        biased;
+        events = rx.recv() => events,
+        _ = sleep_until(deadline) => {
+          if let Some(files) = delivery.take_due_batch(deadline, &rx) {
+            aggregate.on_event_handle(files.changed, files.deleted);
+          }
+          continue;
+        }
+      }
+    } else {
+      rx.recv().await
+    };
+    let Some(message) = events else { return };
+    let Message::Events(events) = message else {
+      continue;
+    };
+    if delivery.lock().paused {
+      continue;
     }
-  };
+    deliver_raw(&*raw, events);
+  }
+}
 
-  tokio::spawn(future)
+fn deliver_raw(handler: &dyn EventHandler, events: ResolvedEvents) {
+  for event in events.raw.into_iter().chain(events.recovered) {
+    let path = event.path.to_string_lossy().into_owned();
+    let result = match event.kind {
+      FsEventKind::Change | FsEventKind::Create => handler.on_change(path),
+      FsEventKind::Remove => handler.on_delete(path),
+    };
+    if result.is_err() {
+      return;
+    }
+  }
+  if let Some(path) = events.context_removal {
+    let _ = handler.on_context_remove(path.to_string_lossy().into_owned());
+  }
 }

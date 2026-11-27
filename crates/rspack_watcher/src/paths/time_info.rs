@@ -1,22 +1,21 @@
 use std::{ffi::OsStr, path::Path, sync::Arc, time::SystemTime};
 
-use dashmap::mapref::one::MappedRefMut;
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathIndexSet};
 use rspack_util::{fx_hash::FxHashMap, time::current_time};
 
-use super::PathManager;
+use super::{Backfill, PathManager, entries::ContextObservation};
 use crate::{
   TimeInfoEntries, TimeInfoEntry,
-  observation::{Mutation, Observations},
+  directory_watcher::{DirectoryWatcher, FileObservation},
+  observation::Mutation,
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
-  watcher_manager::DirectoryWatcher,
 };
 
 /// One value of watchpack's `files` map, as written by `setFileTime`: the mtime
 /// a path was last seen with, plus the safe time and accuracy fixed at that
 /// observation.
 #[derive(Debug, Clone, Copy)]
-pub(crate) struct FileTime {
+pub(super) struct FileTime {
   pub(super) mtime: SystemTime,
   safe_time: u64,
   accuracy: u64,
@@ -81,6 +80,11 @@ pub(crate) struct FileRecord {
 }
 
 impl FileRecord {
+  pub(super) fn report_change(&mut self, mtime: SystemTime) {
+    self.reported = ReportedBaseline::Present(mtime);
+    self.time = Some(FileTime::observed(mtime));
+  }
+
   pub(super) fn set_time(
     &mut self,
     mtime: SystemTime,
@@ -101,11 +105,52 @@ impl FileRecord {
     true
   }
 
+  pub(crate) fn observe(&mut self, mtime: SystemTime, origin: FileObservation) -> bool {
+    let aged = || mtime_to_millis(mtime).saturating_add(mtime_accuracy(mtime)) < current_time();
+    match origin {
+      FileObservation::Member(ContextObservation::Scan { initial }) => {
+        self.set_time(mtime, initial, true)
+      }
+      FileObservation::Member(ContextObservation::Event) => {
+        if self.time.is_some_and(|old| old.mtime == mtime) && aged() {
+          return false;
+        }
+        self.set_time(mtime, false, false)
+      }
+      FileObservation::Member(ContextObservation::Reported) => true,
+      FileObservation::Registration => {
+        if !matches!(self.reported, ReportedBaseline::Present(_)) {
+          self.reported = ReportedBaseline::Present(mtime);
+        }
+        self.time.get_or_insert_with(|| FileTime::initial(mtime));
+        false
+      }
+      FileObservation::Backfill { changed } => {
+        self.set_time(mtime, true, true);
+        if changed {
+          self.reported = ReportedBaseline::Present(mtime);
+        }
+        changed
+      }
+      FileObservation::Live => {
+        if self.reported == ReportedBaseline::Present(mtime) && aged() {
+          return false;
+        }
+        self.report_change(mtime);
+        true
+      }
+      FileObservation::Snapshot {
+        initial,
+        ignore_when_equal,
+      } => self.set_time(mtime, initial, ignore_when_equal),
+    }
+  }
+
   pub(crate) fn is_empty(&self) -> bool {
     self.time.is_none() && self.reported == ReportedBaseline::Unknown
   }
 
-  pub(super) fn clear_present(&mut self) {
+  pub(crate) fn clear_present(&mut self) {
     self.time = None;
     if matches!(self.reported, ReportedBaseline::Present(_)) {
       self.reported = ReportedBaseline::Unknown;
@@ -140,15 +185,13 @@ impl FileTimes {
       .unwrap_or_default()
   }
 
-  pub(super) fn record(
+  pub(super) fn update<R>(
     &self,
     path: &InternedPath,
-  ) -> MappedRefMut<'_, InternedPath, DirectoryWatcher, FileRecord> {
-    self
-      .0
-      .entry(DirectoryWatcher::owner(path))
-      .or_default()
-      .map(|watcher| watcher.files.entry(path.clone()).or_default())
+    write: impl FnOnce(&mut FileRecord) -> R,
+  ) -> R {
+    let mut watcher = self.0.entry(DirectoryWatcher::owner(path)).or_default();
+    write(watcher.files.entry(path.clone()).or_default())
   }
 
   pub(super) fn clear(&self, path: &InternedPath, clear: impl FnOnce(&mut FileRecord)) {
@@ -165,7 +208,7 @@ impl PathManager {
   /// Record an initial baseline mtime for `path`, but only if no present
   /// baseline already exists. A reported absence counts as no
   /// baseline because the file is back. This is the "incremental" form used by
-  /// `FsWatcher::wait_for_event`: on the first `watch()` call we record
+  /// `FsWatcherInner::register_paths`: on the first `watch()` call we record
   /// mtimes for all newly-registered files; on subsequent `watch()` calls
   /// we MUST skip files that already have a baseline, otherwise we risk
   /// snapshotting a mtime that the user has just bumped via `writeFile`.
@@ -173,23 +216,13 @@ impl PathManager {
   /// Use `has_mtime_changed` (which atomically reads-and-updates the
   /// baseline) to advance the recorded mtime in response to real events.
   pub fn set_file_time_if_absent(&self, path: InternedPath, mtime: SystemTime) {
-    let _observation = self.watchers.begin_metadata_update(&path);
-    self.record(&path, || {
-      let mut record = self.file_times.record(&path);
-      if !matches!(record.reported, ReportedBaseline::Present(_)) {
-        record.reported = ReportedBaseline::Present(mtime);
-      }
-      record.time.get_or_insert_with(|| FileTime::initial(mtime));
-    });
-  }
-
-  /// The scanner reported `path` as changed: the build will know this mtime,
-  /// so it becomes the deduplication baseline as well as the time info.
-  pub fn set_reported_file_time(&self, path: &InternedPath, mtime: SystemTime) {
-    self.record(path, || {
-      let mut record = self.file_times.record(path);
-      record.reported = ReportedBaseline::Present(mtime);
-      record.set_time(mtime, true, true);
+    self.observe_live(&path, || {
+      self.record(&path, || {
+        self
+          .watchers
+          .set_file_time(&path, Some(mtime), FileObservation::Registration)
+      });
+      ((), Mutation::Metadata)
     });
   }
 
@@ -201,21 +234,16 @@ impl PathManager {
 
   /// Record a removal the caller is about to deliver. The scanner relies on
   /// this marker to mean the build was told about the absence.
-  pub fn set_reported_file_removal(&self, path: &InternedPath) {
-    self.file_times.record(path).reported = ReportedBaseline::Absent;
-    if (!self.files.all.contains(path) && !self.missing.all.contains(path))
-      || std::fs::symlink_metadata(path).is_ok()
-    {
+  pub(super) fn set_reported_file_removal(&self, path: &InternedPath) {
+    self
+      .file_times
+      .update(path, |r| r.reported = ReportedBaseline::Absent);
+    if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       self.file_times.clear(path, FileRecord::clear_absent);
     }
   }
 
-  /// watchpack's `setFileTime(filePath, mtime, initial, ignoreWhenEqual)`:
-  /// record `path` as seen with `mtime` — from a scan (`initial`, safe time
-  /// derived from the mtime) or from a live event (safe time = now). With
-  /// `ignore_when_equal`, a record already carrying this mtime is kept as is.
-  /// Returns whether a record was written.
-  pub fn set_file_time(
+  pub(super) fn store_file_time(
     &self,
     path: &InternedPath,
     mtime: SystemTime,
@@ -223,10 +251,14 @@ impl PathManager {
     ignore_when_equal: bool,
   ) -> bool {
     self.record(path, || {
-      self
-        .file_times
-        .record(path)
-        .set_time(mtime, initial, ignore_when_equal)
+      self.watchers.set_file_time(
+        path,
+        Some(mtime),
+        FileObservation::Snapshot {
+          initial,
+          ignore_when_equal,
+        },
+      )
     })
   }
 
@@ -238,7 +270,7 @@ impl PathManager {
     for ancestor in path.ancestors() {
       let ancestor = InternedPath::from(ancestor);
       if let Some(mut watcher) = self.watchers.directories.get_mut(&ancestor)
-        && watcher.is_watched()
+        && (watcher.explicit.is_some() || watcher.parent.is_some())
       {
         watcher.last_watch_event = Some(now);
       }
@@ -252,6 +284,14 @@ impl PathManager {
   /// unfiltered.
   /// Equal mtimes are only stale once they are past the filesystem accuracy window.
   pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
+    self.has_mtime_changed_for(path, None)
+  }
+
+  pub(crate) fn has_mtime_changed_for(
+    &self,
+    path: &InternedPath,
+    backfill: Option<&Backfill>,
+  ) -> bool {
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       return true;
     }
@@ -259,38 +299,24 @@ impl PathManager {
     let Some(current_mtime) = disk_mtime(path) else {
       return true;
     };
-    let aged = mtime_has_aged(current_mtime);
-    let _observation = self.watchers.begin_metadata_update(path);
-    self.record_reported_mtime(path, current_mtime, aged)
-  }
-
-  pub(crate) fn report_scan_mtime(&self, path: &InternedPath, state: &mut Observations) {
-    if let Some(mtime) = disk_mtime(path) {
-      self.record_reported_mtime(path, mtime, mtime_has_aged(mtime));
-      state.observe_live(path, Mutation::Metadata);
-    }
-  }
-
-  fn record_reported_mtime(
-    &self,
-    path: &InternedPath,
-    current_mtime: SystemTime,
-    aged: bool,
-  ) -> bool {
-    let present = ReportedBaseline::Present(current_mtime);
-    // A stale event needs no index lock. Recheck under the write lock in
-    // case the scanner reported this mtime in the meantime.
-    if aged && self.file_times.reported(path) == present {
-      return false;
-    }
-    self.record(path, || {
-      let mut record = self.file_times.record(path);
-      if aged && record.reported == present {
-        return false;
+    self.observe_live(path, || {
+      // A subscription created during the stat must keep its own notification baseline.
+      if !self.watches_file(path, backfill) {
+        return (true, Mutation::Unchanged);
       }
-      record.reported = present;
-      record.time = Some(FileTime::observed(current_mtime));
-      true
+      let changed = self.record(path, || {
+        self
+          .watchers
+          .set_file_time(path, Some(current_mtime), FileObservation::Live)
+      });
+      (
+        changed,
+        if changed {
+          Mutation::Entry
+        } else {
+          Mutation::Metadata
+        },
+      )
     })
   }
 }
@@ -399,7 +425,7 @@ impl PathManager {
         }
         if member.file
           && !file_paths.contains(path)
-          && let Some(time) = watcher.files.get(path).and_then(|record| record.time)
+          && let Some(time) = watcher.files.get(path).and_then(|r| r.time)
         {
           file_safe_times.push((path.clone(), time.narrowed().safe_time));
           file_timestamps.push((path_to_string(path.as_path()), Self::entry(time)));
@@ -469,10 +495,6 @@ impl PathManager {
 
     (file_timestamps, directory_timestamps)
   }
-}
-
-fn mtime_has_aged(mtime: SystemTime) -> bool {
-  mtime_to_millis(mtime).saturating_add(mtime_accuracy(mtime)) < current_time()
 }
 
 pub(crate) fn disk_mtime(path: &InternedPath) -> Option<SystemTime> {

@@ -10,16 +10,9 @@ use tokio::{
   sync::{Mutex as AsyncMutex, oneshot},
 };
 
-use super::{
-  PathManager,
-  scan::{ScanChange, ScanRequest},
-};
+use super::{PathManager, entries::is_absent, scan::ScanRequest};
 
-#[derive(Default)]
-pub(super) struct ScannedDirectory {
-  pub(super) children: Arc<[InternedPath]>,
-  pub(super) changes: Vec<ScanChange>,
-}
+type Children = Arc<[InternedPath]>;
 
 async fn read_on_worker<T: Send + 'static>(
   workers: &Handle,
@@ -31,7 +24,7 @@ async fn read_on_worker<T: Send + 'static>(
     .expect("directory scan worker panicked")
 }
 
-type ScanResult = (Option<PathBuf>, ScannedDirectory);
+type ScanResult = (Option<PathBuf>, Children);
 
 struct QueuedScan {
   request: ScanRequest,
@@ -87,7 +80,8 @@ impl DirectoryScan {
     }
   }
 
-  // Overlapping requests share the next enumeration and keep their own results.
+  // Requests made during an enumeration share the next one. Each keeps its
+  // own start time and subscriptions, and waits for the pass it requested.
   pub(super) async fn enumerate(
     &self,
     paths: &PathManager,
@@ -131,7 +125,15 @@ impl DirectoryScan {
       let dir = self.path.clone();
       match read_on_worker(&self.workers, move || std::fs::canonicalize(dir)).await {
         Ok(real) => Some(real),
-        Err(_) => {
+        Err(error) => {
+          if is_absent(&error) {
+            let requests: Vec<_> = waiting
+              .iter()
+              .filter(|q| !q.reply.is_closed())
+              .map(|q| q.request.clone())
+              .collect();
+            paths.scan_missing(&self.path, true, &requests);
+          }
           for queued in waiting {
             let _ = queued.reply.send(ScanResult::default());
           }
@@ -160,17 +162,44 @@ impl DirectoryScan {
     if requests.is_empty() {
       return;
     }
-    let mut changes = vec![Vec::new(); requests.len()];
-    let children: Arc<[InternedPath]> = self
-      .read_directory(paths, real_dir.as_ref(), &requests, &mut changes)
+    let children: Children = self
+      .read_directory(paths, real_dir.as_ref(), &requests)
       .await
       .into();
-    for (reply, changes) in replies.into_iter().zip(changes) {
-      let pass = ScannedDirectory {
-        children: Arc::clone(&children),
-        changes,
-      };
-      let _ = reply.send((real_dir.clone(), pass));
+    for reply in replies {
+      let _ = reply.send((real_dir.clone(), Arc::clone(&children)));
+    }
+  }
+
+  /// A scanned entry's metadata. `real_dir`, the real path of the directory
+  /// being scanned, is known only with `followSymlinks`; a link is then
+  /// followed like watchpack's scan does, except a dangling link, one into its
+  /// own directory, or one back above itself: those are recorded as
+  /// themselves (`lstat`).
+  pub(super) fn metadata(
+    real_dir: Option<&PathBuf>,
+    path: &InternedPath,
+  ) -> std::io::Result<(std::fs::Metadata, bool)> {
+    let own = std::fs::symlink_metadata(path)?;
+    let symlink = own.is_symlink();
+    let Some(real_dir) = real_dir.filter(|_| own.file_type().is_symlink()) else {
+      return Ok((own, symlink));
+    };
+    let Ok(target) = std::fs::canonicalize(path) else {
+      return Ok((own, symlink));
+    };
+    let into_own_directory = target.parent() == Some(real_dir.as_path());
+    let above_itself = path
+      .file_name()
+      .is_some_and(|name| real_dir.join(name).starts_with(&target));
+    if into_own_directory || above_itself {
+      return Ok((own, symlink));
+    }
+    // Like watchpack, only a link to a directory takes the target's metadata;
+    // a link to a file keeps its own mtime.
+    match std::fs::metadata(&target) {
+      Ok(metadata) if metadata.is_dir() => Ok((metadata, symlink)),
+      _ => Ok((own, symlink)),
     }
   }
 
@@ -179,63 +208,106 @@ impl DirectoryScan {
     paths: &PathManager,
     real_dir: Option<&PathBuf>,
     requests: &[ScanRequest],
-    changes: &mut [Vec<ScanChange>],
   ) -> Vec<InternedPath> {
     let dir = &self.path;
-    let covered = || requests.iter().any(|r| paths.can_scan_children(r, dir));
+    let covered = || {
+      requests
+        .iter()
+        .any(|r| paths.can_scan_children(&r.scan, dir))
+    };
     if !covered() {
       return Vec::new();
     }
+    let mut unseen = paths.watchers.member_paths(dir);
     let directory = dir.clone();
     let listing = read_on_worker(&self.workers, move || {
-      std::fs::read_dir(directory).map(|entries| {
-        entries
-          .flatten()
-          .map(|e| InternedPath::from(e.path()))
-          .collect::<Vec<_>>()
-      })
+      let mut names = Vec::new();
+      let mut complete = true;
+      for entry in std::fs::read_dir(directory)? {
+        match entry {
+          Ok(entry) => names.push(InternedPath::from(entry.path())),
+          Err(_) => complete = false,
+        }
+      }
+      std::io::Result::Ok((names, complete))
     })
     .await;
-    let Ok(names) = listing else {
-      return Vec::new();
+    let (names, complete) = match listing {
+      Ok(listing) => listing,
+      Err(error) => {
+        if is_absent(&error) {
+          paths.scan_missing(dir, true, requests);
+        }
+        return Vec::new();
+      }
     };
-    const METADATA_BATCH: usize = 128;
-    let eligible = stream::iter(names)
+    if complete {
+      for name in &names {
+        unseen.remove(name);
+      }
+      for path in unseen {
+        paths.scan_missing(&path, false, requests);
+      }
+    }
+
+    const MAX_BATCH: usize = 128;
+    let batch_size = names
+      .len()
+      .div_ceil(Self::MAX_METADATA_READS)
+      .clamp(1, MAX_BATCH);
+    let batches = stream::iter(names)
       .take_while(|_| std::future::ready(covered()))
       .filter_map(
         |path| async move { (!paths.is_ignored_path(path.as_path()).await).then_some(path) },
       )
-      .ready_chunks(METADATA_BATCH);
-    tokio::pin!(eligible);
-    let mut children = Vec::new();
-    while let Some(batch) = eligible.next().await {
-      let real = real_dir.cloned();
-      // At most one batch is in flight. Publish completed metadata even if a later stat is slow.
-      let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-      #[cfg(feature = "testing")]
-      let jobs = Arc::clone(&self.metadata_jobs);
-      let work = self.workers.spawn_blocking(move || {
-        #[cfg(feature = "testing")]
-        jobs
-          .lock()
-          .expect("lock metadata job trace")
-          .push((batch.len(), Handle::current().id()));
-        for path in batch {
-          let metadata = PathManager::scan_metadata(real.as_ref(), &path);
-          if tx.send((path, metadata)).is_err() {
-            break;
-          }
+      .ready_chunks(batch_size);
+
+    let (tx, mut rx) = tokio::sync::mpsc::channel(MAX_BATCH);
+    let read = async move {
+      let mut jobs = tokio::task::JoinSet::new();
+      tokio::pin!(batches);
+      while let Some(batch) = batches.next().await {
+        if jobs.len() == Self::MAX_METADATA_READS {
+          jobs
+            .join_next()
+            .await
+            .expect("in-flight batch")
+            .expect("directory scan worker panicked");
         }
-      });
+        let tx = tx.clone();
+        let real = real_dir.cloned();
+        #[cfg(feature = "testing")]
+        let trace = Arc::clone(&self.metadata_jobs);
+        jobs.spawn_blocking_on(
+          move || {
+            #[cfg(feature = "testing")]
+            trace
+              .lock()
+              .expect("lock metadata job trace")
+              .push((batch.len(), Handle::current().id()));
+            for path in batch {
+              let metadata = Self::metadata(real.as_ref(), &path);
+              if tx.blocking_send((path, metadata)).is_err() {
+                break;
+              }
+            }
+          },
+          &self.workers,
+        );
+      }
+      jobs.join_all().await;
+    };
+    let mut children = Vec::new();
+    let publish = async {
       while let Some((path, metadata)) = rx.recv().await {
         if !covered() {
           rx.close();
           break;
         }
-        paths.finish_scanned_entry(path, metadata, real_dir, requests, changes, &mut children);
+        paths.finish_scanned_entry(path, metadata, real_dir, requests, &mut children);
       }
-      work.await.expect("directory scan worker panicked");
-    }
+    };
+    tokio::join!(read, publish);
     children
   }
 }

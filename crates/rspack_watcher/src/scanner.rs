@@ -1,67 +1,87 @@
 use std::{sync::Arc, time::SystemTime};
 
-use tokio::sync::mpsc::UnboundedSender;
+use rspack_paths::InternedPathMap;
 
-use super::{EventBatch, PathManager};
-use crate::observation::ActiveWalk;
+use super::{FsEvent, PathManager};
+use crate::{
+  directory_watcher::DirectoryWatcher,
+  paths::{Backfill, Registration},
+};
+
+pub(crate) type BackfillSink = Arc<dyn Fn(FsEvent, Backfill) + Send + Sync>;
 
 pub struct Scanner {
   path_manager: Arc<PathManager>,
-  tx: Option<UnboundedSender<EventBatch>>,
+  sink: Option<BackfillSink>,
 }
 
 impl Scanner {
-  /// Creates a new `Scanner` that will send events to the provided sender when paths are scanned.
-  pub fn new(tx: UnboundedSender<EventBatch>, path_manager: Arc<PathManager>) -> Self {
+  pub(crate) fn with_sink(sink: BackfillSink, path_manager: Arc<PathManager>) -> Self {
     Self {
       path_manager,
-      tx: Some(tx),
+      sink: Some(sink),
     }
   }
 
+  #[cfg(test)]
+  fn new(
+    tx: tokio::sync::mpsc::UnboundedSender<crate::EventBatch>,
+    path_manager: Arc<PathManager>,
+  ) -> Self {
+    Self::with_sink(
+      Arc::new(move |event, _| {
+        let _ = tx.send(vec![event]);
+      }),
+      path_manager,
+    )
+  }
+
   pub(crate) fn prepare(&self, start: SystemTime) -> impl Future<Output = ()> + Send + use<> {
-    let dirs = self.path_manager.registrations_by_directory();
-    let mut tasks = Vec::with_capacity(dirs.len());
-    if let Some(tx) = &self.tx
+    let mut dirs = InternedPathMap::<Vec<Registration>>::default();
+    self.path_manager.added_registrations(|registration| {
+      dirs
+        .entry(DirectoryWatcher::owner(&registration.path))
+        .or_default()
+        .push(registration);
+    });
+    let mut passes = Vec::with_capacity(dirs.len());
+    if let Some(sink) = &self.sink
       && !dirs.is_empty()
     {
-      let walk = ActiveWalk::start(&self.path_manager.watchers.observations);
+      let batch = crate::observation::ActiveWalk::start(&self.path_manager.watchers.observations);
       for (dir, entries) in dirs {
         let Some(queue) = self.path_manager.watchers.directory_scan(&dir) else {
           continue;
         };
         let paths = Arc::clone(&self.path_manager);
-        let tx = tx.clone();
-        let walk = Arc::clone(&walk);
-        tasks.push(queue.targeted(move || {
-          let events: EventBatch = entries
-            .into_iter()
-            .filter_map(|entry| paths.scan_registered(entry, start, &walk))
-            .collect();
-          if !events.is_empty() {
-            let _ = tx.send(events);
+        let sink = Arc::clone(sink);
+        let batch = Arc::clone(&batch);
+        passes.push(queue.targeted(move || {
+          for entry in entries {
+            if let Some((event, backfill)) = paths.scan_registered(entry, start, &batch) {
+              sink(event, backfill);
+            }
           }
         }));
       }
     }
     async move {
-      futures::future::join_all(tasks).await;
+      futures::future::join_all(passes).await;
     }
   }
 
   #[cfg(any(test, feature = "testing"))]
-  pub fn scan(&self, start: SystemTime) {
+  pub(crate) fn scan(&self, start: SystemTime) {
     tokio::spawn(self.prepare(start));
   }
 
   pub fn close(&mut self) {
-    // Close the scanner by dropping the sender
-    self.tx.take();
+    self.sink.take();
   }
 }
 
 #[cfg(test)]
-use crate::{FsEvent, FsEventKind};
+use crate::FsEventKind;
 
 #[cfg(test)]
 mod tests {

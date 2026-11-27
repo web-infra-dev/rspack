@@ -8,12 +8,11 @@ use std::{
 use notify::{Event, RecursiveMode};
 use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet;
-use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
+use tokio::sync::mpsc::{UnboundedReceiver, unbounded_channel};
 
 use crate::{
-  EventBatch, FsEventKind, FsWatcher, FsWatcherIgnored, ResolvedEvents, TimeInfoEntries,
-  analyzer::Analyzer, disk_watcher::handle_event, paths::PathManager, scanner::Scanner,
-  trigger::Trigger,
+  FsEventKind, FsWatcher, FsWatcherIgnored, ResolvedEvents, TimeInfoEntries, analyzer::Analyzer,
+  disk_watcher::handle_event, paths::PathManager, scanner::Scanner, trigger::Trigger,
 };
 
 /// Recorded under the aggregate-set lock to preserve acceptance and snapshot order.
@@ -55,7 +54,7 @@ pub(crate) type MetadataJobs = Arc<Mutex<Vec<(usize, tokio::runtime::Id)>>>;
 pub struct DirectoryAnalyzer {
   paths: Arc<PathManager>,
   trigger: Arc<Trigger>,
-  scan_tx: UnboundedSender<EventBatch>,
+  scanner: Scanner,
   events: UnboundedReceiver<ResolvedEvents>,
 }
 
@@ -81,24 +80,37 @@ impl DirectoryAnalyzer {
     let paths = Arc::new(PathManager::new(ignored).with_follow_symlinks(true));
     let (tx, events) = unbounded_channel();
     let trigger = Arc::new(Trigger::new(Arc::clone(&paths), tx));
-    let scan_tx = trigger.backfill_sender();
+    let scanner = Scanner::with_sink(trigger.backfill_sink(), Arc::clone(&paths));
     Self {
       paths,
       trigger,
-      scan_tx,
+      scanner,
       events,
     }
   }
+
   pub fn scan_contexts(&self) -> tokio::task::JoinHandle<Vec<InternedPath>> {
     let paths = Arc::clone(&self.paths);
-    let scan = paths.added_context_scan(SystemTime::UNIX_EPOCH);
     tokio::spawn(async move {
-      scan
-        .run(&paths)
-        .await
+      let changed = Arc::new(Mutex::new(Vec::new()));
+      paths
+        .scan_contexts(
+          SystemTime::UNIX_EPOCH,
+          Arc::new({
+            let changed = Arc::clone(&changed);
+            move |path, change| {
+              changed
+                .lock()
+                .expect("scan results poisoned")
+                .push((path, change))
+            }
+          }),
+        )
+        .await;
+      std::mem::take(&mut *changed.lock().expect("scan results poisoned"))
         .into_iter()
-        .filter(|change| change.has_subscribers())
-        .map(|change| change.path.clone())
+        .filter(|(_, change)| change.pending.has_subscribers())
+        .map(|(path, _)| path)
         .collect()
     })
   }
@@ -110,17 +122,21 @@ impl DirectoryAnalyzer {
   }
 
   pub async fn queue_context_changes_since(&self, start: SystemTime) {
-    for change in self.paths.added_context_scan(start).run(&self.paths).await {
-      self.trigger.on_context_change(change);
-    }
+    self
+      .paths
+      .scan_contexts(start, Arc::clone(&self.trigger.scan_sink))
+      .await;
   }
 
   pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
     self.paths.collect_time_info_entries()
   }
 
+  /// Return the commit of a scan whose filesystem metadata has already been read.
   pub fn hold_scanned_file(&self, root: InternedPath, path: InternedPath) -> impl FnOnce() + use<> {
-    self.paths.hold_scanned_file(root, path)
+    self
+      .paths
+      .hold_scanned_file(root, path, Arc::clone(&self.trigger.scan_sink))
   }
 
   pub async fn update(
@@ -163,7 +179,12 @@ impl DirectoryAnalyzer {
   }
 
   pub fn scan(&self, start_time: SystemTime) {
-    Scanner::new(self.scan_tx.clone(), Arc::clone(&self.paths)).scan(start_time);
+    self.scanner.scan(start_time);
+  }
+
+  /// Wait until the targeted scan has queued its notifications.
+  pub async fn queue_registered_changes_since(&self, start_time: SystemTime) {
+    self.scanner.prepare(start_time).await;
   }
 
   pub async fn next_events(&mut self) -> Vec<(InternedPath, FsEventKind)> {

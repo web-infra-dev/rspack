@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use rspack_error::Result;
 use rspack_paths::InternedPath;
 
-use super::{PathTracker, RegistrationKind};
-use crate::{ignored::IgnoredMatcher, watcher_manager::WatcherManager};
+use super::PathTracker;
+use crate::{ignored::IgnoredMatcher, observation::Observations, watcher_manager::WatcherManager};
 
 /// `PathUpdater` is used to update collections of registered paths (files, directories, and missing paths)
 /// by specifying which paths have been added and which have been removed. It holds vectors of paths to be
@@ -14,7 +14,7 @@ pub(super) struct PathUpdater<'a> {
   pub added: Vec<InternedPath>,
   pub removed: Vec<InternedPath>,
   base_dir: PathBuf,
-  manager: Option<(&'a WatcherManager, RegistrationKind)>,
+  manager: Option<(&'a WatcherManager, bool)>,
 }
 
 impl<Added, Removed> From<(Added, Removed)> for PathUpdater<'_>
@@ -33,12 +33,8 @@ where
 }
 
 impl<'a> PathUpdater<'a> {
-  pub(super) fn with_manager(
-    mut self,
-    manager: &'a WatcherManager,
-    kind: RegistrationKind,
-  ) -> Self {
-    self.manager = Some((manager, kind));
+  pub(super) fn with_manager(mut self, manager: &'a WatcherManager, context: bool) -> Self {
+    self.manager = Some((manager, context));
     self
   }
 
@@ -75,7 +71,7 @@ impl<'a> PathUpdater<'a> {
         self.manager,
         &added,
         || watch_tracker.add(added.clone()),
-        |manager| manager.subscribe_context(&added),
+        |manager, state| manager.subscribe_context(&added, state),
       ) {
         registered.push(added);
       }
@@ -91,7 +87,7 @@ impl<'a> PathUpdater<'a> {
         self.manager,
         &removed,
         || watch_tracker.remove(removed.clone()),
-        |manager| manager.unsubscribe_context(&removed),
+        |manager, state| manager.unsubscribe_context(&removed, state),
       ) {
         unregistered.push(removed);
       }
@@ -100,22 +96,23 @@ impl<'a> PathUpdater<'a> {
   }
 }
 
-// Serialize registration changes with capturing and delivering scan notifications.
+// A targeted scan can check its subscription and update the record in one observation lock.
 fn change_registration(
-  manager: Option<(&WatcherManager, RegistrationKind)>,
+  manager: Option<(&WatcherManager, bool)>,
   path: &InternedPath,
   change: impl FnOnce() -> bool,
-  update_context: impl FnOnce(&WatcherManager),
+  update_context: impl FnOnce(&WatcherManager, &mut Observations),
 ) -> bool {
-  let Some((manager, kind)) = manager else {
+  let Some((manager, context)) = manager else {
     return change();
   };
   let mut state = manager.lock_observations();
   let changed = change();
   if changed {
-    state.registration_changed(path, kind);
-    if matches!(kind, RegistrationKind::Directory) {
-      update_context(manager);
+    if context {
+      update_context(manager, &mut state);
+    } else {
+      state.observe_live(path, crate::observation::Mutation::Metadata);
     }
   }
   changed
