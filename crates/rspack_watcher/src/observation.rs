@@ -2,7 +2,9 @@
 use std::sync::{Arc, Mutex};
 
 use rspack_paths::{InternedPath, InternedPathSet};
-use rspack_util::fx_hash::FxHashMap;
+use rspack_util::fx_hash::{FxHashMap, FxHashSet};
+
+use crate::paths::RegistrationKind;
 
 pub(super) enum Mutation {
   Metadata,
@@ -15,7 +17,7 @@ struct Invalidations {
   metadata_rechecks: InternedPathSet,
   entries: InternedPathSet,
   subtrees: InternedPathSet,
-  subscriptions: InternedPathSet,
+  registrations: FxHashSet<(InternedPath, RegistrationKind)>,
 }
 
 #[derive(Default)]
@@ -54,18 +56,36 @@ impl Drop for ActiveWalk {
 }
 
 impl Observations {
-  pub(super) fn context_changed(&mut self, path: &InternedPath) {
+  pub(super) fn registration_changed(&mut self, path: &InternedPath, kind: RegistrationKind) {
     for walk in self.active.values_mut() {
-      walk.subscriptions.insert(path.clone());
+      walk.registrations.insert((path.clone(), kind));
+      if kind != RegistrationKind::Directory {
+        walk.metadata_rechecks.insert(path.clone());
+      }
     }
   }
-
-  pub(super) fn same_subscription(&self, walk: &ActiveWalk, context: &InternedPath) -> bool {
-    !self.active[&walk.id].subscriptions.contains(context)
+  pub(super) fn same_registration(
+    &self,
+    walk: &ActiveWalk,
+    path: &InternedPath,
+    kind: RegistrationKind,
+  ) -> bool {
+    !self.active[&walk.id]
+      .registrations
+      .contains(&(path.clone(), kind))
   }
 
   pub(super) fn needs_metadata_recheck(&self, walk: &ActiveWalk, path: &InternedPath) -> bool {
     self.active[&walk.id].metadata_rechecks.contains(path)
+  }
+
+  pub(super) fn take_metadata_recheck(&mut self, walk: &ActiveWalk, path: &InternedPath) -> bool {
+    self
+      .active
+      .get_mut(&walk.id)
+      .expect("active observation")
+      .metadata_rechecks
+      .remove(path)
   }
 
   pub(super) fn accepts(&self, walk: &ActiveWalk, path: &InternedPath) -> bool {
@@ -80,16 +100,8 @@ impl Observations {
         .any(|p| invalid.contains(&InternedPath::from(p)))
   }
 
-  pub(super) fn invalidate(
-    &mut self,
-    path: &InternedPath,
-    mutation: Mutation,
-    source: Option<&ActiveWalk>,
-  ) {
-    for (id, walk) in &mut self.active {
-      if source.is_some_and(|source| source.id == *id) {
-        continue;
-      }
+  pub(super) fn observe_live(&mut self, path: &InternedPath, mutation: Mutation) {
+    for walk in self.active.values_mut() {
       match mutation {
         Mutation::Metadata => {
           walk.metadata_rechecks.insert(path.clone());

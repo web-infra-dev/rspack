@@ -3,8 +3,8 @@ use std::path::PathBuf;
 use rspack_error::Result;
 use rspack_paths::InternedPath;
 
-use super::PathTracker;
-use crate::{ignored::IgnoredMatcher, observation::Observations, watcher_manager::WatcherManager};
+use super::{PathTracker, RegistrationKind};
+use crate::{ignored::IgnoredMatcher, watcher_manager::WatcherManager};
 
 /// `PathUpdater` is used to update collections of registered paths (files, directories, and missing paths)
 /// by specifying which paths have been added and which have been removed. It holds vectors of paths to be
@@ -14,7 +14,7 @@ pub(super) struct PathUpdater<'a> {
   pub added: Vec<InternedPath>,
   pub removed: Vec<InternedPath>,
   base_dir: PathBuf,
-  manager: Option<(&'a WatcherManager, bool)>,
+  manager: Option<(&'a WatcherManager, RegistrationKind)>,
 }
 
 impl<Added, Removed> From<(Added, Removed)> for PathUpdater<'_>
@@ -33,8 +33,12 @@ where
 }
 
 impl<'a> PathUpdater<'a> {
-  pub(super) fn with_manager(mut self, manager: &'a WatcherManager, context: bool) -> Self {
-    self.manager = Some((manager, context));
+  pub(super) fn with_manager(
+    mut self,
+    manager: &'a WatcherManager,
+    kind: RegistrationKind,
+  ) -> Self {
+    self.manager = Some((manager, kind));
     self
   }
 
@@ -69,8 +73,9 @@ impl<'a> PathUpdater<'a> {
 
       if change_registration(
         self.manager,
+        &added,
         || watch_tracker.add(added.clone()),
-        |manager, state| manager.subscribe_context(&added, state),
+        |manager| manager.subscribe_context(&added),
       ) {
         registered.push(added);
       }
@@ -84,8 +89,9 @@ impl<'a> PathUpdater<'a> {
       };
       if change_registration(
         self.manager,
+        &removed,
         || watch_tracker.remove(removed.clone()),
-        |manager, state| manager.unsubscribe_context(&removed, state),
+        |manager| manager.unsubscribe_context(&removed),
       ) {
         unregistered.push(removed);
       }
@@ -96,17 +102,21 @@ impl<'a> PathUpdater<'a> {
 
 // Serialize registration changes with capturing and delivering scan notifications.
 fn change_registration(
-  manager: Option<(&WatcherManager, bool)>,
+  manager: Option<(&WatcherManager, RegistrationKind)>,
+  path: &InternedPath,
   change: impl FnOnce() -> bool,
-  update_context: impl FnOnce(&WatcherManager, &mut Observations),
+  update_context: impl FnOnce(&WatcherManager),
 ) -> bool {
-  let Some((manager, context)) = manager else {
+  let Some((manager, kind)) = manager else {
     return change();
   };
   let mut state = manager.lock_observations();
   let changed = change();
-  if changed && context {
-    update_context(manager, &mut state);
+  if changed {
+    state.registration_changed(path, kind);
+    if matches!(kind, RegistrationKind::Directory) {
+      update_context(manager);
+    }
   }
   changed
 }

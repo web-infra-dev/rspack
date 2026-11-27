@@ -4,7 +4,7 @@ use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap};
 
 use crate::{
   observation::{Mutation, Observations},
-  paths::FileRecord,
+  paths::{DirectoryScan, FileRecord},
 };
 
 type PendingChanges = InternedPathDashMap<Weak<PendingContextChange>>;
@@ -96,6 +96,8 @@ pub(super) trait ContextLookup {
 
 #[derive(Default)]
 pub(super) struct DirectoryWatcher {
+  scan: Option<Arc<DirectoryScan>>,
+  registered_children: usize,
   pub(super) members: InternedPathMap<ContextMember>,
   pub(super) files: InternedPathMap<FileRecord>,
   pub(super) last_watch_event: Option<u64>,
@@ -115,7 +117,8 @@ impl DirectoryWatcher {
   }
 
   pub(super) fn is_unused(&self) -> bool {
-    self.members.is_empty()
+    self.registered_children == 0
+      && self.members.is_empty()
       && self.files.is_empty()
       && self.last_watch_event.is_none()
       && !self.is_watched()
@@ -139,6 +142,27 @@ pub(super) struct WatcherManager {
 }
 
 impl WatcherManager {
+  pub(super) fn directory_scan(&self, dir: &InternedPath) -> Option<Arc<DirectoryScan>> {
+    let mut watcher = self.directories.get_mut(dir)?;
+    Some(Arc::clone(watcher.scan.get_or_insert_with(|| {
+      Arc::new(DirectoryScan::new(dir.clone()))
+    })))
+  }
+
+  pub(super) fn register_child(&self, path: &InternedPath) {
+    let owner = DirectoryWatcher::owner(path);
+    let mut watcher = self.directories.entry(owner).or_default();
+    watcher.registered_children += 1;
+  }
+
+  pub(super) fn unregister_child(&self, path: &InternedPath) {
+    let owner = DirectoryWatcher::owner(path);
+    self.directories.remove_if_mut(&owner, |_, watcher| {
+      watcher.registered_children -= 1;
+      watcher.is_unused()
+    });
+  }
+
   pub(super) fn clear_event_time(&self, path: &InternedPath) {
     self.directories.remove_if_mut(path, |_, watcher| {
       watcher.last_watch_event = None;
@@ -159,18 +183,16 @@ impl WatcherManager {
 
   pub(super) fn begin_metadata_update(&self, path: &InternedPath) -> MutexGuard<'_, Observations> {
     let mut state = self.lock_observations();
-    state.invalidate(path, Mutation::Metadata, None);
+    state.observe_live(path, Mutation::Metadata);
     state
   }
 
-  pub(super) fn subscribe_context(&self, path: &InternedPath, state: &mut Observations) {
-    state.context_changed(path);
+  pub(super) fn subscribe_context(&self, path: &InternedPath) {
     let mut watcher = self.directories.entry(path.clone()).or_default();
     watcher.explicit = Some(Arc::new(path.clone()));
   }
 
-  pub(super) fn unsubscribe_context(&self, path: &InternedPath, state: &mut Observations) {
-    state.context_changed(path);
+  pub(super) fn unsubscribe_context(&self, path: &InternedPath) {
     self.directories.remove_if_mut(path, |_, watcher| {
       watcher.explicit = None;
       watcher.is_unused()
