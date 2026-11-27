@@ -46,3 +46,5 @@ interface ModuleFederationPluginV1Options {
 ```
 
 The `name` option is required when exposing modules. You can omit it if the plugin only configures remotes or shared dependencies, or has no options enabled. For details about the shared fields, see [ModuleFederationPlugin options](/plugins/module-federation-plugin#options). Module Federation v1 does not support `implementation`, `runtimePlugins`, or `shareStrategy`.
+
+When a consumer sets `eager: true` for a shared dependency, the V1 runtime considers only providers that also set `eager: true`. An eager consumer can use a registered eager provider while remotes are still initializing.
