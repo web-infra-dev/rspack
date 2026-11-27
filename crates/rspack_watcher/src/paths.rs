@@ -15,7 +15,10 @@ use self::{
   update::PathUpdater,
 };
 use super::{FsWatcherIgnored, ignored::IgnoredMatcher};
-use crate::watcher_manager::{MemberKind, WatcherManager};
+use crate::{
+  observation::Mutation,
+  watcher_manager::{MemberKind, WatcherManager},
+};
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
@@ -213,12 +216,37 @@ impl PathManager {
     self
   }
 
+  pub(super) fn observe_live<R>(
+    &self,
+    path: &InternedPath,
+    write: impl FnOnce() -> (R, Mutation),
+  ) -> R {
+    let mut state = self.watchers.lock_observations();
+    let (result, mutation) = write();
+    state.invalidate(path, mutation, None);
+    result
+  }
+
   /// Reset the per-`watch()` diff. File records live with their subscriptions
   /// so a delayed event can still report a write made between watch cycles.
   pub fn reset(&self) {
     self.files.reset();
     self.directories.reset();
     self.missing.reset();
+  }
+
+  pub(crate) fn set_missing(&self, path: &InternedPath, report_absence: bool) {
+    self.observe_live(path, || {
+      let subtree = self.may_contain_records(path);
+      self.remove_file_time(path);
+      if subtree {
+        self.remove_file_times_under(path);
+      }
+      if report_absence {
+        self.set_reported_file_removal(path);
+      }
+      ((), Mutation::Subtree)
+    });
   }
 
   /// Drop a removed path's time info and present baseline. A reported absence

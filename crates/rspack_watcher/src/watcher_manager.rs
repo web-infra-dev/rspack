@@ -1,8 +1,11 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap};
 
-use crate::paths::FileRecord;
+use crate::{
+  observation::{Mutation, Observations},
+  paths::FileRecord,
+};
 
 pub(super) enum MemberKind {
   File,
@@ -67,6 +70,7 @@ impl DirectoryWatcher {
 #[derive(Default)]
 pub(super) struct WatcherManager {
   pub(super) directories: Arc<InternedPathDashMap<DirectoryWatcher>>,
+  pub(super) observations: Arc<Mutex<Observations>>,
 }
 
 impl WatcherManager {
@@ -81,12 +85,29 @@ impl WatcherManager {
     self.directories.get(path)?.last_watch_event
   }
 
+  pub(super) fn lock_observations(&self) -> MutexGuard<'_, Observations> {
+    self
+      .observations
+      .lock()
+      .expect("watch observations poisoned")
+  }
+
+  pub(super) fn begin_metadata_update(&self, path: &InternedPath) -> MutexGuard<'_, Observations> {
+    let mut state = self.lock_observations();
+    state.invalidate(path, Mutation::Metadata, None);
+    state
+  }
+
   pub(super) fn subscribe_context(&self, path: &InternedPath) {
+    let mut state = self.lock_observations();
+    state.context_changed(path);
     let mut watcher = self.directories.entry(path.clone()).or_default();
     watcher.subscriptions.explicit = true;
   }
 
   pub(super) fn unsubscribe_context(&self, path: &InternedPath) {
+    let mut state = self.lock_observations();
+    state.context_changed(path);
     self.directories.remove_if_mut(path, |_, watcher| {
       watcher.subscriptions.explicit = false;
       watcher.is_unused()
