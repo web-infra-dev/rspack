@@ -3,7 +3,6 @@
 	Author Tobias Koppers @sokra
 */
 
-import { tapDefaultStatsHook } from './defaultStatsHooks';
 import type { Compilation, CreateStatsOptionsContext } from '../Compilation';
 import type { Compiler } from '../Compiler';
 import type { StatsOptions } from '../config';
@@ -326,16 +325,13 @@ export class DefaultStatsPresetPlugin {
       (compilation) => {
         for (const key of Object.keys(NAMED_PRESETS)) {
           const defaults = NAMED_PRESETS[key];
-          tapDefaultStatsHook(
-            compilation.hooks.statsPreset.for(key),
-            'DefaultStatsPresetPlugin',
-            (options) => {
+          compilation.hooks.statsPreset
+            .for(key)
+            .tap('DefaultStatsPresetPlugin', (options) => {
               applyDefaults(options, defaults);
-            },
-          );
+            });
         }
-        tapDefaultStatsHook(
-          compilation.hooks.statsNormalize,
+        compilation.hooks.statsNormalize.tap(
           'DefaultStatsPresetPlugin',
           (options, context) => {
             for (const key of Object.keys(DEFAULTS)) {

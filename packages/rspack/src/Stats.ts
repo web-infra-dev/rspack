@@ -11,8 +11,10 @@ import type binding from '@rspack/binding';
 
 import type { Compilation } from './Compilation';
 import type { StatsOptions, StatsValue } from './config';
-import { canCreateDefaultStatsJson } from './stats/defaultStatsHooks';
-import { createDefaultStatsJson } from './stats/DefaultStatsFactoryPlugin';
+import {
+  canCreateDefaultStatsJson,
+  createDefaultStatsJson,
+} from './stats/DefaultStatsFactoryPlugin';
 import type { StatsCompilation } from './stats/statsFactoryUtils';
 
 export type {
@@ -85,8 +87,6 @@ export class Stats {
 
   toJson(opts?: StatsValue, forToString?: boolean): StatsCompilation {
     const rootCompilation = this.compilation;
-    const useDefaultStatsJson =
-      !forToString && canCreateDefaultStatsJson(rootCompilation);
     const options = rootCompilation.createStatsOptions(opts, { forToString });
 
     const statsCompilationMap = new Map<
@@ -126,8 +126,7 @@ export class Stats {
       getInner: this.#getInnerByCompilation.bind(this),
     };
 
-    // Option normalization can register additional hooks.
-    if (useDefaultStatsJson && canCreateDefaultStatsJson(rootCompilation)) {
+    if (!forToString && canCreateDefaultStatsJson(rootCompilation)) {
       return createDefaultStatsJson(rootCompilation, options, context);
     }
 

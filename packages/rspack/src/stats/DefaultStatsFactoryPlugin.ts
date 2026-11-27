@@ -7,7 +7,6 @@
  * Copyright (c) JS Foundation and other contributors
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
-import { tapDefaultStatsHook } from './defaultStatsHooks';
 import * as util from 'node:util';
 
 import type {
@@ -1527,63 +1526,81 @@ const FILTER: Record<
   },
 };
 
+function configureDefaultStatsFactory(
+  stats: StatsFactory,
+  options: StatsOptions,
+) {
+  iterateConfig(SIMPLE_EXTRACTORS, options, (hookFor, fn) => {
+    stats.hooks.extract
+      .for(hookFor)
+      .tap('DefaultStatsFactoryPlugin', (obj, data, ctx) =>
+        fn(obj, data, ctx, options, stats),
+      );
+  });
+  iterateConfig(FILTER, options, (hookFor, fn) => {
+    stats.hooks.filter
+      .for(hookFor)
+      .tap('DefaultStatsFactoryPlugin', (item, ctx, idx, i) =>
+        fn(item, ctx, options, idx, i),
+      );
+  });
+  iterateConfig(SORTERS, options, (hookFor, fn) => {
+    stats.hooks.sort
+      .for(hookFor)
+      .tap('DefaultStatsFactoryPlugin', (comparators, ctx) =>
+        fn(comparators, ctx, options),
+      );
+  });
+  iterateConfig(RESULT_SORTERS, options, (hookFor, fn) => {
+    stats.hooks.sortResults
+      .for(hookFor)
+      .tap('DefaultStatsFactoryPlugin', (comparators, ctx) =>
+        fn(comparators, ctx, options),
+      );
+  });
+  iterateConfig(RESULT_GROUPERS, options, (hookFor, fn) => {
+    stats.hooks.groupResults
+      .for(hookFor)
+      .tap('DefaultStatsFactoryPlugin', (groupConfigs, ctx) =>
+        fn(groupConfigs, ctx, options),
+      );
+  });
+  for (const key of Object.keys(ITEM_NAMES)) {
+    const itemName = ITEM_NAMES[key];
+    stats.hooks.getItemName
+      .for(key)
+      .tap('DefaultStatsFactoryPlugin', () => itemName);
+  }
+  for (const key of Object.keys(MERGER)) {
+    const merger = MERGER[key];
+    stats.hooks.merge.for(key).tap('DefaultStatsFactoryPlugin', merger);
+  }
+}
+
+function hasExternalStatsFactoryHooks(compilation: Compilation): boolean {
+  const { taps, interceptors } = compilation.hooks.statsFactory;
+  return (
+    interceptors.length !== 0 ||
+    taps.some(({ fn }) => fn !== configureDefaultStatsFactory) ||
+    compilation.children.some(hasExternalStatsFactoryHooks)
+  );
+}
+
+export function canCreateDefaultStatsJson(compilation: Compilation): boolean {
+  return (
+    compilation.hooks.statsFactory.taps.length === 1 &&
+    !hasExternalStatsFactoryHooks(compilation)
+  );
+}
+
 export class DefaultStatsFactoryPlugin {
   apply(compiler: Compiler) {
     compiler.hooks.compilation.tap(
       'DefaultStatsFactoryPlugin',
       (compilation) => {
-        tapDefaultStatsHook(
-          compilation.hooks.statsFactory,
+        compilation.hooks.statsFactory.tap(
           'DefaultStatsFactoryPlugin',
-          (stats: StatsFactory, options: StatsOptions) => {
-            iterateConfig(SIMPLE_EXTRACTORS, options, (hookFor, fn) => {
-              stats.hooks.extract
-                .for(hookFor)
-                .tap('DefaultStatsFactoryPlugin', (obj, data, ctx) =>
-                  fn(obj, data, ctx, options, stats),
-                );
-            });
-            iterateConfig(FILTER, options, (hookFor, fn) => {
-              stats.hooks.filter
-                .for(hookFor)
-                .tap('DefaultStatsFactoryPlugin', (item, ctx, idx, i) =>
-                  fn(item, ctx, options, idx, i),
-                );
-            });
-            iterateConfig(SORTERS, options, (hookFor, fn) => {
-              stats.hooks.sort
-                .for(hookFor)
-                .tap('DefaultStatsFactoryPlugin', (comparators, ctx) =>
-                  fn(comparators, ctx, options),
-                );
-            });
-            iterateConfig(RESULT_SORTERS, options, (hookFor, fn) => {
-              stats.hooks.sortResults
-                .for(hookFor)
-                .tap('DefaultStatsFactoryPlugin', (comparators, ctx) =>
-                  fn(comparators, ctx, options),
-                );
-            });
-            iterateConfig(RESULT_GROUPERS, options, (hookFor, fn) => {
-              stats.hooks.groupResults
-                .for(hookFor)
-                .tap('DefaultStatsFactoryPlugin', (groupConfigs, ctx) =>
-                  fn(groupConfigs, ctx, options),
-                );
-            });
-            for (const key of Object.keys(ITEM_NAMES)) {
-              const itemName = ITEM_NAMES[key];
-              stats.hooks.getItemName
-                .for(key)
-                .tap('DefaultStatsFactoryPlugin', () => itemName);
-            }
-            for (const key of Object.keys(MERGER)) {
-              const merger = MERGER[key];
-              stats.hooks.merge
-                .for(key)
-                .tap('DefaultStatsFactoryPlugin', merger);
-            }
-          },
+          configureDefaultStatsFactory,
         );
       },
     );

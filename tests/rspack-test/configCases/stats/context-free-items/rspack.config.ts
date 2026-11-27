@@ -29,7 +29,26 @@ export default {
             { ...options, ids: false },
             { ...options, orphanModules: false, reasonsSpace: 1 },
           ];
-          const results = variants.map((options) => stats.toJson(options));
+          compilation.hooks.statsNormalize.tap(
+            'ContextFreeItemsContract',
+            (options) => {
+              options.hash = true;
+            },
+          );
+          const createStatsFactory = compilation.createStatsFactory;
+          compilation.createStatsFactory = () => {
+            assert.fail(
+              'A statsNormalize tap should still allow the fast path',
+            );
+          };
+          const results = (() => {
+            try {
+              return variants.map((options) => stats.toJson(options));
+            } finally {
+              compilation.createStatsFactory = createStatsFactory;
+            }
+          })();
+          assert.equal(results[0].hash, stats.hash);
           const shared = results[0]
             .chunks!.flatMap((chunk) => chunk.modules!)
             .filter((module) => module.name === './shared.js');

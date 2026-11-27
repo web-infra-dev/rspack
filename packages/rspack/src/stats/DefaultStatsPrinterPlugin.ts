@@ -8,7 +8,6 @@
  * https://github.com/webpack/webpack/blob/main/LICENSE
  */
 
-import { tapDefaultStatsHook } from './defaultStatsHooks';
 import type { Compiler } from '../Compiler';
 import type { StatsColorOptions } from '../config';
 import { compareIds } from '../util/comparators';
@@ -1266,8 +1265,7 @@ export class DefaultStatsPrinterPlugin {
     compiler.hooks.compilation.tap(
       'DefaultStatsPrinterPlugin',
       (compilation) => {
-        tapDefaultStatsHook(
-          compilation.hooks.statsPrinter,
+        compilation.hooks.statsPrinter.tap(
           'DefaultStatsPrinterPlugin',
           (stats, options) => {
             // Put colors into context
