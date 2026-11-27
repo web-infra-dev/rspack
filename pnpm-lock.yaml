@@ -1219,6 +1219,9 @@ importers:
       '@module-federation/runtime-tools':
         specifier: 'catalog:'
         version: 2.9.3
+      '@module-federation/runtime-tools-layers':
+        specifier: https://pkg.pr.new/module-federation/core/@module-federation/runtime-tools@9e4f76fd7d99f2668cf68f16e94da887852fdf2b
+        version: '@module-federation/runtime-tools@https://pkg.pr.new/module-federation/core/@module-federation/runtime-tools@9e4f76fd7d99f2668cf68f16e94da887852fdf2b'
       '@prefresh/core':
         specifier: 'catalog:'
         version: 1.5.11(preact@10.29.8)
@@ -2417,20 +2420,44 @@ packages:
   '@module-federation/error-codes@2.9.3':
     resolution: {integrity: sha512-sXWo6XHOFKC1Dcu9DcSA1okZjtIz2y3uM+NJrAoSpeZ9QSPXielkMWT5PtG7MqGE3OQ+/HDawiLK53IOi3NHcQ==}
 
+  '@module-federation/error-codes@https://pkg.pr.new/module-federation/core/@module-federation/error-codes@9e4f76f':
+    resolution: {integrity: sha512-q+ZDUxBUYjxmfRq0B09mxbr87SyQoWYHeRd8aOUSKcuUTtqKPR5AVPlz3oXkV+U5g2FUGjsMwqMS136cyHxn7A==, tarball: https://pkg.pr.new/module-federation/core/@module-federation/error-codes@9e4f76f}
+    version: 2.9.2
+
   '@module-federation/runtime-core@2.9.3':
     resolution: {integrity: sha512-E6AjfIWFgZOEATxf+GzBIg54Ejp7QFNTxtVzwnnhEEu01dErBo7qLjJvEPXGiN5sJTNf2a4HIW/wZTM23skouQ==}
+
+  '@module-federation/runtime-core@https://pkg.pr.new/module-federation/core/@module-federation/runtime-core@9e4f76f':
+    resolution: {integrity: sha512-eMpUoK+eQkO2uewquwFPa4aH8aDva8+QxvT1yFEdKdkfqfCCpV7IvcR/uIUPxhq3FnZyV+wKDgaNGeqBAenn1Q==, tarball: https://pkg.pr.new/module-federation/core/@module-federation/runtime-core@9e4f76f}
+    version: 2.9.2
 
   '@module-federation/runtime-tools@2.9.3':
     resolution: {integrity: sha512-TGvMRiPAo1h0JCDluSAK90iPbjtGP/+SUDtndseDg6dIXMfcPEKrGJo4HS4waWN+34NDEf5Mn4ixF2F3Jer1pg==}
 
+  '@module-federation/runtime-tools@https://pkg.pr.new/module-federation/core/@module-federation/runtime-tools@9e4f76fd7d99f2668cf68f16e94da887852fdf2b':
+    resolution: {integrity: sha512-+ezsW84V2/Ltklp/vYiD241gQyrnJztu2HxlF3z0VfizmVkP7ec4jX5ddeCIfgC4YCJdp1pk6mkFFfU0MiN0rA==, tarball: https://pkg.pr.new/module-federation/core/@module-federation/runtime-tools@9e4f76fd7d99f2668cf68f16e94da887852fdf2b}
+    version: 2.9.2
+
   '@module-federation/runtime@2.9.3':
     resolution: {integrity: sha512-VCJV1VzKk+jvt+1CcTrslbl3LAKScHFpPxKSviafpMIqeHDWIDEY7ZEbVVJl/GuUjA36R7j0QhOPEjihPcz9/A==}
+
+  '@module-federation/runtime@https://pkg.pr.new/module-federation/core/@module-federation/runtime@9e4f76f':
+    resolution: {integrity: sha512-AsmG4CTjvuDkGkzzY6KBWf+49VUWq2kBjMd5wU0I8VV3Kn/q3a5sl5QfWBxTmKe2SzPhF6R8kOBjrZIkZQ5X0w==, tarball: https://pkg.pr.new/module-federation/core/@module-federation/runtime@9e4f76f}
+    version: 2.9.2
 
   '@module-federation/sdk@2.9.3':
     resolution: {integrity: sha512-cT5ko/JDzGrKe8N+MFPgwb07G8fzmpnZbKZjGjXvT9phagQpiOfV6WQZhu1j+HtO152Frv1vjv/1Hhg2wMUL8g==}
 
+  '@module-federation/sdk@https://pkg.pr.new/module-federation/core/@module-federation/sdk@9e4f76f':
+    resolution: {integrity: sha512-CbTQmHm20j9SYHg8p5EvXYQ/B0BmHaAwNkYh7jkjgw8r+4YVnjdtHmSwF1gkaoPJiYjS2enIWmPWxNpGUVp4QQ==, tarball: https://pkg.pr.new/module-federation/core/@module-federation/sdk@9e4f76f}
+    version: 2.9.2
+
   '@module-federation/webpack-bundler-runtime@2.9.3':
     resolution: {integrity: sha512-SdoOmG85OE7zpX3PUrvckR5GuCVT+Mak340getX6D5ALXsCxM2uU7nrYV9BFfjaRq1c4qlcU1cBfP/dHR06J7Q==}
+
+  '@module-federation/webpack-bundler-runtime@https://pkg.pr.new/module-federation/core/@module-federation/webpack-bundler-runtime@9e4f76f':
+    resolution: {integrity: sha512-0rS/7lWHy56gQjvcklgg0CWdXvGq5raMbYIzcT//3iognRPQCKcN+L6nlpq8C4y0QR6Yw2SJafXBER/T6jHhTw==, tarball: https://pkg.pr.new/module-federation/core/@module-federation/webpack-bundler-runtime@9e4f76f}
+    version: 2.9.2
 
   '@napi-rs/cli@3.10.12':
     resolution: {integrity: sha512-8QDEW10Ld/uAemSP9g5WFIcmKh7I6PMA78ttc2UtZb+6cyAsX7RkVt2H5B658j7504R2JRE6JHs+b0WERHc+4w==}
@@ -9152,15 +9179,27 @@ snapshots:
 
   '@module-federation/error-codes@2.9.3': {}
 
+  '@module-federation/error-codes@https://pkg.pr.new/module-federation/core/@module-federation/error-codes@9e4f76f': {}
+
   '@module-federation/runtime-core@2.9.3':
     dependencies:
       '@module-federation/error-codes': 2.9.3
       '@module-federation/sdk': 2.9.3
 
+  '@module-federation/runtime-core@https://pkg.pr.new/module-federation/core/@module-federation/runtime-core@9e4f76f':
+    dependencies:
+      '@module-federation/error-codes': https://pkg.pr.new/module-federation/core/@module-federation/error-codes@9e4f76f
+      '@module-federation/sdk': https://pkg.pr.new/module-federation/core/@module-federation/sdk@9e4f76f
+
   '@module-federation/runtime-tools@2.9.3':
     dependencies:
       '@module-federation/runtime': 2.9.3
       '@module-federation/webpack-bundler-runtime': 2.9.3
+
+  '@module-federation/runtime-tools@https://pkg.pr.new/module-federation/core/@module-federation/runtime-tools@9e4f76fd7d99f2668cf68f16e94da887852fdf2b':
+    dependencies:
+      '@module-federation/runtime': https://pkg.pr.new/module-federation/core/@module-federation/runtime@9e4f76f
+      '@module-federation/webpack-bundler-runtime': https://pkg.pr.new/module-federation/core/@module-federation/webpack-bundler-runtime@9e4f76f
 
   '@module-federation/runtime@2.9.3':
     dependencies:
@@ -9168,13 +9207,27 @@ snapshots:
       '@module-federation/runtime-core': 2.9.3
       '@module-federation/sdk': 2.9.3
 
+  '@module-federation/runtime@https://pkg.pr.new/module-federation/core/@module-federation/runtime@9e4f76f':
+    dependencies:
+      '@module-federation/error-codes': https://pkg.pr.new/module-federation/core/@module-federation/error-codes@9e4f76f
+      '@module-federation/runtime-core': https://pkg.pr.new/module-federation/core/@module-federation/runtime-core@9e4f76f
+      '@module-federation/sdk': https://pkg.pr.new/module-federation/core/@module-federation/sdk@9e4f76f
+
   '@module-federation/sdk@2.9.3': {}
+
+  '@module-federation/sdk@https://pkg.pr.new/module-federation/core/@module-federation/sdk@9e4f76f': {}
 
   '@module-federation/webpack-bundler-runtime@2.9.3':
     dependencies:
       '@module-federation/error-codes': 2.9.3
       '@module-federation/runtime': 2.9.3
       '@module-federation/sdk': 2.9.3
+
+  '@module-federation/webpack-bundler-runtime@https://pkg.pr.new/module-federation/core/@module-federation/webpack-bundler-runtime@9e4f76f':
+    dependencies:
+      '@module-federation/error-codes': https://pkg.pr.new/module-federation/core/@module-federation/error-codes@9e4f76f
+      '@module-federation/runtime': https://pkg.pr.new/module-federation/core/@module-federation/runtime@9e4f76f
+      '@module-federation/sdk': https://pkg.pr.new/module-federation/core/@module-federation/sdk@9e4f76f
 
   '@napi-rs/cli@3.10.12(@emnapi/core@2.0.0-beta.3)(@emnapi/runtime@2.0.0-beta.3)(@types/node@20.19.43)(emnapi@2.0.0-beta.3)(supports-color@8.1.1)':
     dependencies:
