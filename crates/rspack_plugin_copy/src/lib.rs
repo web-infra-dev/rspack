@@ -336,36 +336,41 @@ impl CopyRspackPlugin {
       }
     };
 
-    let file_attributes =
-      if (pattern.copy_permissions || pattern.preserve_permissions || pattern.preserve_timestamps)
-        && let Ok(metadata) = compilation
-          .input_filesystem
-          .metadata(&absolute_filename)
-          .await
-        && metadata.is_file
-      {
-        let mode = if pattern.copy_permissions {
-          metadata.mode
-        } else {
-          metadata
-            .mode
-            .filter(|_| pattern.preserve_permissions)
-            .map(|mode| mode & 0o777)
-        };
-        let timestamps = metadata
-          .atime_ms
-          .filter(|_| pattern.preserve_timestamps)
-          .map(|atime| (atime, metadata.mtime_ms));
-        (mode.is_some() || timestamps.is_some()).then(|| {
-          Box::new(AssetFileAttributes {
-            mode,
-            permissions_required: pattern.preserve_permissions,
-            timestamps,
-          })
-        })
-      } else {
-        None
-      };
+    let input_filesystem = &compilation.input_filesystem;
+    let metadata = if pattern.preserve_permissions || pattern.preserve_timestamps {
+      input_filesystem
+        .metadata(&absolute_filename)
+        .await
+        .ok()
+        .filter(|metadata| metadata.is_file)
+    } else {
+      None
+    };
+    let mode = if pattern.copy_permissions {
+      input_filesystem
+        .permissions(&absolute_filename)
+        .await
+        .ok()
+        .flatten()
+        .and_then(|permissions| permissions.into_mode())
+        .map(|mode| (mode & 0o7777) as u16)
+    } else {
+      metadata
+        .as_ref()
+        .filter(|_| pattern.preserve_permissions)
+        .and_then(|metadata| metadata.mode)
+        .map(|mode| mode & 0o777)
+    };
+    let timestamps = metadata
+      .filter(|_| pattern.preserve_timestamps)
+      .and_then(|metadata| metadata.atime_ms.map(|atime| (atime, metadata.mtime_ms)));
+    let file_attributes = (mode.is_some() || timestamps.is_some()).then(|| {
+      Box::new(AssetFileAttributes {
+        mode,
+        permissions_required: pattern.preserve_permissions,
+        timestamps,
+      })
+    });
 
     let source = if let Some(transformer) = &pattern.transform_fn {
       let mut source = RawBufferSource::from(source_vec.clone()).boxed();
