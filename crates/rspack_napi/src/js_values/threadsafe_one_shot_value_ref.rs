@@ -197,3 +197,38 @@ impl FromNapiValue for ThreadsafeOneShotRef {
     Self::from_napi_ref(env, napi_ref)
   }
 }
+
+#[derive(Clone)]
+pub struct ThreadsafeValueRef(Arc<ThreadsafeOneShotRef>);
+
+impl std::fmt::Debug for ThreadsafeValueRef {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ThreadsafeValueRef").finish_non_exhaustive()
+  }
+}
+
+impl ToNapiValue for &ThreadsafeValueRef {
+  unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
+    unsafe { ToNapiValue::to_napi_value(env, val.0.as_ref()) }
+  }
+}
+
+impl ToNapiValue for &mut ThreadsafeValueRef {
+  unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
+    unsafe { ToNapiValue::to_napi_value(env, val.0.as_ref()) }
+  }
+}
+
+impl ToNapiValue for ThreadsafeValueRef {
+  unsafe fn to_napi_value(env: sys::napi_env, val: Self) -> Result<sys::napi_value> {
+    unsafe { ToNapiValue::to_napi_value(env, &val) }
+  }
+}
+
+impl FromNapiValue for ThreadsafeValueRef {
+  unsafe fn from_napi_value(env: sys::napi_env, napi_val: sys::napi_value) -> Result<Self> {
+    Ok(Self(Arc::new(unsafe {
+      ThreadsafeOneShotRef::from_napi_value(env, napi_val)?
+    })))
+  }
+}
