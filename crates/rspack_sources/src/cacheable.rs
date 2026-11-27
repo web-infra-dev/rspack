@@ -1,6 +1,14 @@
 //! Cacheable source types for serialization/deserialization.
 #![allow(missing_docs)]
 
+use bytes_str::BytesStr;
+use rkyv::{
+  Place,
+  rancor::{Fallible, Source as RkyvSource},
+  ser::Writer,
+  string::{ArchivedString, StringResolver},
+  with::{ArchiveWith, DeserializeWith, Map, SerializeWith},
+};
 use triomphe::ThinArc;
 
 use crate::{
@@ -13,31 +21,62 @@ use crate::{
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct CacheableSourceMap {
   version: u8,
-  file: Option<String>,
-  sources: Vec<String>,
-  sources_content: Vec<Option<String>>,
-  names: Vec<String>,
-  mappings: String,
-  source_root: Option<String>,
-  debug_id: Option<String>,
+  #[rkyv(with = Map<AsStr>)]
+  file: Option<BytesStr>,
+  #[rkyv(with = Map<AsStr>)]
+  sources: Vec<BytesStr>,
+  #[rkyv(with = Map<Map<AsStr>>)]
+  sources_content: Vec<Option<BytesStr>>,
+  #[rkyv(with = Map<AsStr>)]
+  names: Vec<BytesStr>,
+  #[rkyv(with = AsStr)]
+  mappings: BytesStr,
+  #[rkyv(with = Map<AsStr>)]
+  source_root: Option<BytesStr>,
+  #[rkyv(with = Map<AsStr>)]
+  debug_id: Option<BytesStr>,
   ignore_list: Option<Vec<u32>>,
+}
+
+// Archive text as strings so cache validation checks UTF-8 before restoring BytesStr.
+struct AsStr;
+
+impl ArchiveWith<BytesStr> for AsStr {
+  type Archived = ArchivedString;
+  type Resolver = StringResolver;
+
+  fn resolve_with(field: &BytesStr, resolver: Self::Resolver, out: Place<Self::Archived>) {
+    ArchivedString::resolve_from_str(field.as_str(), resolver, out);
+  }
+}
+
+impl<S> SerializeWith<BytesStr, S> for AsStr
+where
+  S: Writer + Fallible + ?Sized,
+  S::Error: RkyvSource,
+{
+  fn serialize_with(field: &BytesStr, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
+    ArchivedString::serialize_from_str(field.as_str(), serializer)
+  }
+}
+
+impl<D: Fallible + ?Sized> DeserializeWith<ArchivedString, BytesStr, D> for AsStr {
+  fn deserialize_with(field: &ArchivedString, _: &mut D) -> Result<BytesStr, D::Error> {
+    Ok(BytesStr::from_str_slice(field.as_str()))
+  }
 }
 
 impl From<&SourceMap> for CacheableSourceMap {
   fn from(map: &SourceMap) -> Self {
     Self {
       version: map.version,
-      file: map.file.as_deref().map(str::to_owned),
-      sources: map.sources().iter().map(ToString::to_string).collect(),
-      sources_content: map
-        .sources_content()
-        .iter()
-        .map(|content| content.as_deref().map(str::to_owned))
-        .collect(),
-      names: map.names().iter().map(ToString::to_string).collect(),
-      mappings: map.mappings.to_string(),
-      source_root: map.source_root.as_deref().map(str::to_owned),
-      debug_id: map.debug_id.as_deref().map(str::to_owned),
+      file: map.file.clone(),
+      sources: map.sources().to_vec(),
+      sources_content: map.sources_content().to_vec(),
+      names: map.names().to_vec(),
+      mappings: map.mappings.clone(),
+      source_root: map.source_root.clone(),
+      debug_id: map.debug_id.clone(),
       ignore_list: map.ignore_list().map(<[u32]>::to_vec),
     }
   }
@@ -47,18 +86,13 @@ impl From<CacheableSourceMap> for SourceMap {
   fn from(map: CacheableSourceMap) -> Self {
     SourceMap {
       version: map.version,
-      file: map.file.map(Into::into),
-      sources: shared_slice(map.sources.into_iter().map(Into::into)),
-      sources_content: shared_slice(
-        map
-          .sources_content
-          .into_iter()
-          .map(|content| content.map(Into::into)),
-      ),
-      names: shared_slice(map.names.into_iter().map(Into::into)),
-      mappings: map.mappings.into(),
-      source_root: map.source_root.map(Into::into),
-      debug_id: map.debug_id.map(Into::into),
+      file: map.file,
+      sources: shared_slice(map.sources.into_iter()),
+      sources_content: shared_slice(map.sources_content.into_iter()),
+      names: shared_slice(map.names.into_iter()),
+      mappings: map.mappings,
+      source_root: map.source_root,
+      debug_id: map.debug_id,
       ignore_list: map
         .ignore_list
         .map(|items| ThinArc::from_header_and_iter((), items.into_iter())),

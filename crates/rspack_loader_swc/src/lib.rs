@@ -13,7 +13,7 @@ use isolated_dts::{handle_isolated_dts_diagnostics, set_build_info};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsInterned};
 use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RunnerContext};
 use rspack_error::{Diagnostic, Error, Result, SerdeResultToRspackResultExt};
 use rspack_hash::RspackHasher;
@@ -37,14 +37,15 @@ use crate::{
 #[derive(Debug)]
 pub struct SwcLoader {
   identifier: Identifier,
-  options_with_additional: SwcCompilerOptionsWithAdditional,
+  #[cacheable(with=AsInterned)]
+  options_with_additional: Arc<SwcCompilerOptionsWithAdditional>,
 }
 
 impl SwcLoader {
   pub fn new(raw_options: &str) -> Result<Self, serde_json::Error> {
     Ok(Self {
       identifier: SWC_LOADER_IDENTIFIER.into(),
-      options_with_additional: raw_options.try_into()?,
+      options_with_additional: Arc::new(raw_options.try_into()?),
     })
   }
 
