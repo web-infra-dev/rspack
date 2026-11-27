@@ -128,6 +128,8 @@ pub struct CodeGenerationDataTopLevelDeclarations {
 pub struct CodeGenerationDataImportBindings {
   #[cacheable(with=AsMap<AsPreset, AsCacheable>)]
   pub bindings: FxIndexMap<Atom, String>,
+  /// Byte range of the generated module body inside its init fragments.
+  pub module_body: Option<(usize, usize)>,
 }
 
 impl CodeGenerationDataTopLevelDeclarations {
@@ -205,6 +207,7 @@ impl CodeGenerationDataItem for CodeGenerationDataImportBindings {
       name.hash(hasher);
       expression.hash(hasher);
     }
+    self.module_body.hash(hasher);
   }
 }
 

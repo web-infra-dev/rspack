@@ -1,3 +1,5 @@
+use std::cell::RefCell;
+
 use rspack_core::{
   CodeGenerationDataImportBindings, Compilation, ModuleIdentifier, RuntimeSpec, SourceType,
   rspack_sources::{MapOptions, Mapping, Source, SourceMap, utf16_len},
@@ -19,6 +21,7 @@ struct SourceScopes {
   bindings: Vec<(String, Option<String>)>,
   end: Position,
   nested_scopes: Vec<(Position, Position)>,
+  generated_nested_positions: FxHashSet<Position>,
 }
 
 enum SourceOwner {
@@ -114,45 +117,9 @@ pub(super) fn add_import_binding_scopes<'a>(
     return;
   }
 
-  // Chrome treats the encoded scope chain as authoritative. Leave nested
-  // scopes to its normal debugger when we can only describe the module scope.
-  let mut generated_ranges = Vec::new();
-  let mut open = None;
-  let mut previous_mapping = (0, 0);
-  for mapping in map.decoded_mappings() {
-    let generated = (mapping.generated_line - 1, mapping.generated_column);
-    if generated < previous_mapping {
-      return;
-    }
-    previous_mapping = generated;
-    let mapped_source = mapping.original.and_then(|original| {
-      let index = original.source_index as usize;
-      let source = sources.get(index)?.as_ref()?;
-      let position = (original.original_line - 1, original.original_column);
-      let preceding = source
-        .nested_scopes
-        .partition_point(|&(start, _)| start <= position);
-      (preceding == 0 || source.nested_scopes[preceding - 1].1 <= position).then_some(index)
-    });
-    if open.map(|(index, _)| index) != mapped_source {
-      if let Some((index, start)) = open
-        && start < generated
-      {
-        generated_ranges.push((index, start, generated));
-      }
-      open = mapped_source.map(|index| (index, generated));
-    }
-  }
-  if let Some((index, start)) = open {
-    let mut end = (0, 0);
-    source.rope(&mut |text| advance_position(&mut end, text));
-    if start < end {
-      generated_ranges.push((index, start, end));
-    }
-  }
-  if generated_ranges.is_empty() {
+  let Some(generated_ranges) = collect_generated_ranges(source, map, &sources) else {
     return;
-  }
+  };
 
   // Keep indices of existing mapping names unchanged, including duplicates.
   let mut added_names = FxIndexSet::<String>::default();
@@ -234,6 +201,69 @@ pub(super) fn add_import_binding_scopes<'a>(
   map.set_scopes(scopes, vec![ranges.into()]);
 }
 
+fn collect_generated_ranges(
+  source: &dyn Source,
+  map: &SourceMap,
+  scopes: &[Option<SourceScopes>],
+) -> Option<Vec<(usize, Position, Position)>> {
+  let source_indices: FxHashMap<_, _> = map
+    .sources()
+    .iter()
+    .enumerate()
+    .filter(|(index, _)| scopes.get(*index).is_some_and(Option::is_some))
+    .map(|(index, name)| (name.as_str(), index))
+    .collect();
+  let stream_indices = RefCell::new(FxHashMap::<u32, usize>::default());
+  let mut ranges: Vec<(usize, Position, Position)> = Vec::new();
+  let mut overlap = false;
+  // The final mappings can omit unmapped text. Stream the actual mapped
+  // spans so an open range cannot extend into a generated-only footer or gap.
+  source.stream_chunks().stream(
+    &MapOptions::new(true),
+    &mut |chunk, mapping| {
+      let (Some(chunk), Some(original)) = (chunk, mapping.original) else {
+        return;
+      };
+      let Some(&index) = stream_indices.borrow().get(&original.source_index) else {
+        return;
+      };
+      let scope = scopes[index].as_ref().expect("stream index has a scope");
+      let position = (original.original_line - 1, original.original_column);
+      // Chrome treats the encoded chain as authoritative. Leave both authored
+      // and loader-generated nested scopes to its usual scope resolution.
+      if is_nested_position(&scope.nested_scopes, position)
+        || scope.generated_nested_positions.contains(&position)
+      {
+        return;
+      }
+      let start = generated_position(&mapping);
+      let mut end = start;
+      advance_position(&mut end, chunk.as_str());
+      if start == end {
+        return;
+      }
+      if let Some(last) = ranges.last_mut() {
+        if last.2 > start {
+          overlap = true;
+          return;
+        }
+        if last.0 == index && last.2 == start {
+          last.2 = end;
+          return;
+        }
+      }
+      ranges.push((index, start, end));
+    },
+    &mut |index, name, _| {
+      if let Some(&source_index) = source_indices.get(name.as_str()) {
+        stream_indices.borrow_mut().insert(index, source_index);
+      }
+    },
+    &mut |_, _| {},
+  );
+  (!overlap && !ranges.is_empty()).then_some(ranges)
+}
+
 fn parse_source<'a>(
   allocator: &'a Allocator,
   content: &'a str,
@@ -305,6 +335,7 @@ fn authored_scopes(
   }
 
   let authored_lines = SourceLines::new(content);
+  let nested_scopes = nested_scope_ranges(ast, &semantic, content, 0)?;
   let mut locals = FxHashMap::default();
   // Include authored value declarations so DevTools can show them alongside
   // imports. A declaration without a matching generated binding is unavailable.
@@ -324,24 +355,76 @@ fn authored_scopes(
       }
     }
   }
+  let generated_text = generated.source().into_string_lossy();
+  let (body_start, body_end) = data.module_body?;
+  let generated_allocator = Allocator::new();
+  // Inspect the rewritten module body. Init fragments can wrap it in a
+  // function for top-level await without introducing an authored scope.
+  let generated_ast = parse_source(
+    &generated_allocator,
+    generated_text.get(body_start..body_end)?,
+    Lang::Js,
+    AstSourceType::Module,
+  )?;
+  let (generated_ast, generated_semantic) = analyze(
+    generated_ast,
+    AnalyzeOptions {
+      check_syntax: SyntaxChecks::empty(),
+    },
+  )
+  .semantic
+  .into_parts();
+  // SAFETY: We only read nodes owned by this parsed AST.
+  let generated_ast = unsafe { generated_ast.ast() };
   if !locals.is_empty() {
+    let generated_lines = SourceLines::new(&generated_text);
     match_local_values(
       &mut bindings,
       &locals,
       &authored_lines,
-      generated,
+      &generated_lines,
+      generated_declarations(
+        generated_ast,
+        &generated_semantic,
+        &generated_lines,
+        body_start,
+      ),
       module_map,
       source_index,
     );
   }
+  let generated_nested = nested_scope_ranges(
+    generated_ast,
+    &generated_semantic,
+    &generated_text,
+    body_start,
+  )?;
+  let generated_nested_positions =
+    generated_nested_positions(module_map, source_index, &nested_scopes, &generated_nested);
+  Some(SourceScopes {
+    bindings,
+    end: authored_lines.position(content.len())?,
+    nested_scopes,
+    generated_nested_positions,
+  })
+}
 
+fn nested_scope_ranges(
+  ast: &Ast<'_>,
+  semantic: &Semantic<'_>,
+  content: &str,
+  body_start: usize,
+) -> Option<Vec<(Position, Position)>> {
   let mut spans = semantic
     .iter_scopes()
     .filter_map(|entry| {
       let scope = entry.scope;
       (!matches!(scope.kind, ScopeKind::Global | ScopeKind::Module)).then(|| {
         let span = ast.span(scope.node);
-        (span.start as usize, span.end as usize)
+        (
+          body_start + span.start as usize,
+          body_start + span.end as usize,
+        )
       })
     })
     .collect::<Vec<_>>();
@@ -365,12 +448,51 @@ fn authored_scopes(
     }
     offset = end;
   }
-  advance_position(&mut position, content.get(offset..)?);
-  Some(SourceScopes {
-    bindings,
-    end: position,
-    nested_scopes,
-  })
+  Some(nested_scopes)
+}
+
+fn is_nested_position(scopes: &[(Position, Position)], position: Position) -> bool {
+  let preceding = scopes.partition_point(|&(start, _)| start <= position);
+  preceding > 0 && position < scopes[preceding - 1].1
+}
+
+fn generated_nested_positions(
+  map: &SourceMap,
+  source_index: u32,
+  authored_nested: &[(Position, Position)],
+  generated_nested: &[(Position, Position)],
+) -> FxHashSet<Position> {
+  let mut positions = FxHashSet::default();
+  if generated_nested.is_empty() {
+    return positions;
+  }
+  let mut mappings = map.decoded_mappings().peekable();
+  while let Some(mapping) = mappings.next() {
+    let Some(original) = mapping
+      .original
+      .filter(|original| original.source_index == source_index)
+    else {
+      continue;
+    };
+    let start = generated_position(&mapping);
+    let line_end = (start.0 + 1, 0);
+    let end = mappings
+      .peek()
+      .map_or(line_end, |next| generated_position(next).min(line_end));
+    let index = generated_nested.partition_point(|&(_, nested_end)| nested_end <= start);
+    let authored = (original.original_line - 1, original.original_column);
+    if start < end
+      && generated_nested
+        .get(index)
+        .is_some_and(|&(nested_start, _)| nested_start < end)
+      && !is_nested_position(authored_nested, authored)
+    {
+      // An original position may be mapped more than once. If it lands in a
+      // nested scope anywhere in the module, withhold module metadata there.
+      positions.insert(authored);
+    }
+  }
+  positions
 }
 
 fn is_local_value(flags: SymbolFlags) -> bool {
@@ -382,42 +504,24 @@ fn match_local_values(
   bindings: &mut [(String, Option<String>)],
   locals: &FxHashMap<Position, usize>,
   authored: &SourceLines<'_>,
-  generated: &dyn Source,
+  generated: &SourceLines<'_>,
+  mut declarations: Vec<(Position, &str)>,
   map: &SourceMap,
   source_index: u32,
 ) {
-  let generated = generated.source().into_string_lossy();
-  let allocator = Allocator::new();
-  let Some(parsed) = parse_source(&allocator, &generated, Lang::Js, AstSourceType::Unambiguous)
-  else {
-    return;
-  };
-  let (ast, semantic) = analyze(
-    parsed,
-    AnalyzeOptions {
-      check_syntax: SyntaxChecks::empty(),
-    },
-  )
-  .semantic
-  .into_parts();
-  // SAFETY: We only read nodes owned by this parsed AST.
-  let ast = unsafe { ast.ast() };
-  let generated = SourceLines::new(&generated);
-  let mut declarations = generated_declarations(ast, &semantic, &generated);
   declarations.sort_unstable_by_key(|&(position, _)| position);
 
-  let position = |mapping: &Mapping| (mapping.generated_line - 1, mapping.generated_column);
   let mut mappings = map.decoded_mappings().peekable();
   let mut active = None;
   let mut matched = FxHashMap::default();
   for ((line, column), name) in declarations {
     while mappings
       .peek()
-      .is_some_and(|mapping| position(mapping) <= (line, column))
+      .is_some_and(|mapping| generated_position(mapping) <= (line, column))
     {
       active = mappings.next();
     }
-    let Some(mapping) = active.filter(|mapping| position(mapping).0 == line) else {
+    let Some(mapping) = active.filter(|mapping| generated_position(mapping).0 == line) else {
       continue;
     };
     let Some(original) = mapping
@@ -473,6 +577,7 @@ fn generated_declarations<'a>(
   ast: &'a Ast<'_>,
   semantic: &Semantic<'_>,
   source: &SourceLines<'_>,
+  body_start: usize,
 ) -> Vec<(Position, &'a str)> {
   let root = ScopeId::program(ast.source_type());
   let mut declarations = Vec::new();
@@ -484,12 +589,18 @@ fn generated_declarations<'a>(
       continue;
     };
     for declaration in semantic.declarations(entry.id) {
-      if let Some(position) = source.position(ast.span(declaration.node).start as usize) {
+      if let Some(position) =
+        source.position(body_start + ast.span(declaration.node).start as usize)
+      {
         declarations.push((position, name));
       }
     }
   }
   declarations
+}
+
+fn generated_position(mapping: &Mapping) -> Position {
+  (mapping.generated_line - 1, mapping.generated_column)
 }
 
 struct SourceLines<'a> {

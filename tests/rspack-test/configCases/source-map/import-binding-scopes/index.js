@@ -5,6 +5,8 @@ import { fromTs } from "./typed.ts";
 import { fromJsx } from "./jsx-entry.js";
 import { result as fromOriginal } from "./shared-source.js";
 import { result as fromVariant } from "./shared-variant.js";
+import { settings as jsonSettings, preserved as jsonPreserved } from "./settings.json";
+import { beforeWrap } from "./wrapped-entry.js";
 
 const fs = require("fs");
 const base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
@@ -94,6 +96,15 @@ function shadow() {
 	return aliased;
 }
 
+function hasScopeAt(ranges, line, column) {
+	expect(line).toBeGreaterThanOrEqual(0);
+	expect(column).toBeGreaterThanOrEqual(0);
+	return ranges.some(({ start, end }) =>
+		(start[0] < line || start[0] === line && start[1] <= column)
+		&& (end[0] > line || end[0] === line && end[1] > column)
+	);
+}
+
 it("maps original ESM import names to their generated bindings", () => {
 	expect(addDefault(aliased)).toBe(42);
 	expect(namespace.value).toBe(21);
@@ -104,6 +115,10 @@ it("maps original ESM import names to their generated bindings", () => {
 	expect(fromVariant).toBe(200);
 	expect(own).toBe(22);
 	expect(config.port).toBe(4300);
+	expect(jsonSettings.port).toBe(4400);
+	expect(jsonPreserved).toEqual({ enabled: true });
+	expect(beforeWrap).toBe(22);
+	expect(globalThis.wrappedResult).toBe(23);
 	expect(shadow()).toBe("shadowed");
 
 	const bundle = fs.readFileSync(__filename, "utf8");
@@ -127,11 +142,13 @@ it("maps original ESM import names to their generated bindings", () => {
 			const lines = bundle.split("\n");
 			const shadowLine = lines.findIndex(line => line.includes('const aliased = "shadowed";')) + 1;
 			expect(lines[shadowLine]).toMatch(/^\s*debugger;/);
-			const pausedColumn = lines[shadowLine].indexOf("debugger");
-			expect(decoded.generatedRanges.some(({ start, end }) =>
-				(start[0] < shadowLine || start[0] === shadowLine && start[1] <= pausedColumn)
-				&& (end[0] > shadowLine || end[0] === shadowLine && end[1] > pausedColumn)
-			)).toBe(false);
+			expect(hasScopeAt(decoded.generatedRanges, shadowLine, lines[shadowLine].indexOf("debugger"))).toBe(false);
+			const wrappedLine = lines.findIndex(line => line.trim() === "globalThis.wrappedResult = wrappedValue;") + 1;
+			expect(lines[wrappedLine]).toMatch(/^\s*debugger;/);
+			expect(hasScopeAt(decoded.generatedRanges, wrappedLine, lines[wrappedLine].indexOf("debugger"))).toBe(false);
+			const footerLine = lines.findIndex(line => line.trimStart().startsWith("{ const onlyFooter = 60;"));
+			expect(hasScopeAt(decoded.generatedRanges, footerLine, lines[footerLine]?.indexOf("debugger"))).toBe(false);
+			expect(globalThis.scopeFooterValue).toBe(60);
 		}
 	}
 	if (CONFIG_INDEX === 4 || CONFIG_INDEX === 6) {
@@ -142,9 +159,12 @@ it("maps original ESM import names to their generated bindings", () => {
 	const helper = [...bindings].find(([source]) => source.split("?")[0].endsWith("/helper.js"))?.[1];
 	const typed = [...bindings].find(([source]) => source.split("?")[0].endsWith("/typed.ts"))?.[1];
 	const jsx = [...bindings].find(([source]) => source.split("?")[0].endsWith("/jsx-entry.js"))?.[1];
+	const wrapped = [...bindings].find(([source]) => source.split("?")[0].endsWith("/wrapped-entry.js"))?.[1];
 	expect(entry).toBeDefined();
 	expect(typed?.typedValue).toBeDefined();
 	expect(jsx?.jsxValue).toBeDefined();
+	expect(wrapped?.wrappedAlias).toBeDefined();
+	expect(entry.jsonPreserved).toBeDefined();
 	if (CONFIG_INDEX !== 2) {
 		const shared = maps.flatMap(map => map.sources).filter(
 			source => source.split("?")[0].endsWith("/shared-source.js")
@@ -154,6 +174,7 @@ it("maps original ESM import names to their generated bindings", () => {
 	}
 	if (CONFIG_INDEX === 5) {
 		expect(entry.namespace).toBeUndefined();
+		expect(entry.jsonSettings).toBeUndefined();
 		expect(entry.aliased).toMatch(/\/\* \.value \*\/\./);
 		return;
 	}
@@ -162,9 +183,12 @@ it("maps original ESM import names to their generated bindings", () => {
 	expect(entry.addDefault).toBe(`${entry.namespace}["default"]`);
 	expect(entry.config).toBe(`${entry.namespace}.settings`);
 	expect(entry.own).toBe("own");
+	expect(entry.jsonSettings).toMatch(/\.settings$/);
 	expect(helper?.fromLib).toMatch(/\.value$/);
 	const code = CONFIG_INDEX === 2 ? bundle.replaceAll('\\"', '"') : bundle;
 	for (const expression of [entry.namespace, entry.aliased, entry.addDefault, entry.config]) {
 		expect(code).toContain(expression);
 	}
 });
+
+debugger;

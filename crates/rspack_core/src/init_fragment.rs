@@ -19,8 +19,8 @@ use rspack_util::ext::IntoAny;
 use rustc_hash::FxHasher;
 
 use crate::{
-  ExportsArgument, GenerateContext, ModuleCodeTemplate, RuntimeCondition, RuntimeGlobals,
-  merge_runtime, property_name,
+  CodeGenerationDataImportBindings, ExportsArgument, GenerateContext, ModuleCodeTemplate,
+  RuntimeCondition, RuntimeGlobals, merge_runtime, property_name,
 };
 
 pub struct InitFragmentContents {
@@ -231,6 +231,7 @@ fn first(fragments: Vec<BoxInitFragment>) -> BoxInitFragment {
 pub trait InitFragmentRenderContext {
   fn runtime_condition_expression(&mut self, runtime_condition: &RuntimeCondition) -> String;
   fn runtime_template(&mut self) -> &mut ModuleCodeTemplate;
+  fn record_module_body(&mut self, _start: usize, _source: &BoxSource) {}
 }
 
 #[cacheable_dyn]
@@ -322,16 +323,19 @@ pub fn render_init_fragments(
 
   let mut end_contents = vec![];
   let mut concat_source = ConcatSource::default();
+  let mut body_start = 0;
 
   for (key, fragments) in keyed_fragments {
     let f = key.merge_fragments(fragments);
     let contents = f.contents(context)?;
+    body_start += contents.start.len();
     concat_source.add(RawStringSource::from(contents.start));
     if let Some(end_content) = contents.end {
       end_contents.push(RawStringSource::from(end_content))
     }
   }
 
+  context.record_module_body(body_start, &source);
   concat_source.add(source);
 
   for content in end_contents.into_iter().rev() {
@@ -358,6 +362,12 @@ impl InitFragmentRenderContext for GenerateContext<'_> {
 
   fn runtime_template(&mut self) -> &mut ModuleCodeTemplate {
     self.runtime_template
+  }
+
+  fn record_module_body(&mut self, start: usize, source: &BoxSource) {
+    if let Some(bindings) = self.data.get_mut::<CodeGenerationDataImportBindings>() {
+      bindings.module_body = Some((start, start + source.size()));
+    }
   }
 }
 

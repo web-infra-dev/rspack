@@ -1,0 +1,4 @@
+{
+	"settings": { "port": 4400, "mode": "development" },
+	"preserved": { "enabled": true }
+}

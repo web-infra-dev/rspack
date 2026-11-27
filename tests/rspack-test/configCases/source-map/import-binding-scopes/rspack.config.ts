@@ -1,9 +1,23 @@
 import { fileURLToPath } from 'node:url';
-import { DefinePlugin, SourceMapDevToolPlugin } from '@rspack/core';
+import {
+  BannerPlugin,
+  DefinePlugin,
+  SourceMapDevToolPlugin,
+} from '@rspack/core';
 import { defineConfig } from '@rspack/cli';
 
 const configs = [
-  { devtool: 'source-map-scopes' },
+  {
+    devtool: 'source-map-scopes',
+    plugins: [
+      new BannerPlugin({
+        raw: true,
+        footer: true,
+        banner:
+          '{ const onlyFooter = 60; globalThis.scopeFooterValue = onlyFooter; debugger; }',
+      }),
+    ],
+  },
   { devtool: 'inline-nosources-source-map-scopes' },
   { devtool: 'eval-source-map-scopes' },
   {
@@ -47,6 +61,10 @@ export default defineConfig(
           loader: fileURLToPath(
             new URL('./shared-source-loader.cjs', import.meta.url),
           ),
+        },
+        {
+          test: /wrapped-entry\.js$/,
+          loader: fileURLToPath(new URL('./wrap-loader.cjs', import.meta.url)),
         },
       ],
     },
