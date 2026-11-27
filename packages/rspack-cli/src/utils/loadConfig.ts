@@ -84,7 +84,7 @@ export async function loadExtendedConfig(
   configPath: string,
   cwd: string,
   options: CommonOptions,
-  visitedPaths?: Set<string>,
+  ancestors?: readonly string[],
 ): Promise<{
   config: RspackOptions;
   pathMap: WeakMap<RspackOptions, string[]>;
@@ -94,7 +94,7 @@ export async function loadExtendedConfig(
   configPath: string,
   cwd: string,
   options: CommonOptions,
-  visitedPaths?: Set<string>,
+  ancestors?: readonly string[],
 ): Promise<{
   config: MultiRspackOptions;
   pathMap: WeakMap<RspackOptions, string[]>;
@@ -104,7 +104,7 @@ export async function loadExtendedConfig(
   configPath: string,
   cwd: string,
   options: CommonOptions,
-  visitedPaths?: Set<string>,
+  ancestors?: readonly string[],
 ): Promise<{
   config: RspackOptions | MultiRspackOptions;
   pathMap: WeakMap<RspackOptions, string[]>;
@@ -114,25 +114,22 @@ export async function loadExtendedConfig(
   configPath: string,
   cwd: string,
   options: CommonOptions,
-  visitedPaths?: Set<string>,
+  ancestors: readonly string[] = [],
 ): Promise<{
   config: RspackOptions | MultiRspackOptions;
   pathMap: WeakMap<RspackOptions, string[]>;
 }> {
-  const currentVisitedPaths = visitedPaths ?? new Set<string>();
-
   if (checkIsMultiRspackOptions(config)) {
     // If the config is an array, we need to handle each item separately
     const resultPathMap = new WeakMap();
     const extendedConfigs = (await Promise.all(
       config.map(async (item) => {
-        const itemVisitedPaths = new Set(currentVisitedPaths);
         const { config, pathMap } = await loadExtendedConfig(
           item,
           configPath,
           cwd,
           options,
-          itemVisitedPaths,
+          ancestors,
         );
         resultPathMap.set(config, pathMap.get(config));
         return config;
@@ -142,12 +139,6 @@ export async function loadExtendedConfig(
     return { config: extendedConfigs, pathMap: resultPathMap };
   }
 
-  if (currentVisitedPaths.has(configPath)) {
-    throw new Error(
-      `Recursive configuration detected. Config file "${configPath}" extends itself.`,
-    );
-  }
-  currentVisitedPaths.add(configPath);
   // set config path
   const pathMap: WeakMap<RspackOptions, string[]> = new WeakMap();
   pathMap.set(config, [configPath]);
@@ -171,6 +162,7 @@ export async function loadExtendedConfig(
   let resultConfig = configWithoutExtends;
   pathMap.set(resultConfig, [configPath]);
 
+  const configChain = [...ancestors, configPath];
   for (const extendPath of extendsList) {
     let resolvedPath: string;
 
@@ -219,6 +211,14 @@ export async function loadExtendedConfig(
       );
     }
 
+    const cycleStart = configChain.indexOf(resolvedPath);
+    if (cycleStart !== -1) {
+      const cycle = [...configChain.slice(cycleStart), resolvedPath];
+      throw new Error(
+        `Circular extends chain: ${cycle.map((file) => path.relative(cwd, file)).join(' -> ')}`,
+      );
+    }
+
     // Load the extended configuration
     const loadedConfig = await loadConfigByPath(resolvedPath, options);
     const { merge } = await import('rspack-merge');
@@ -230,7 +230,7 @@ export async function loadExtendedConfig(
         resolvedPath,
         cwd,
         options,
-        currentVisitedPaths,
+        configChain,
       )) as {
         config: RspackOptions;
         pathMap: WeakMap<RspackOptions, string[]>;

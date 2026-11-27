@@ -1,6 +1,12 @@
+use std::{
+  collections::{HashMap, HashSet},
+  path::Path,
+};
+
 use rspack_hash::{
   HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest, RspackHasher, write_u64_hex,
 };
+use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
 
 #[test]
 fn encodes_base64_with_standard_padding() {
@@ -275,4 +281,111 @@ fn rspack_hash_object_hashes_object_fields() {
   let expected = expected.digest(&HashDigest::Hex).encoded().to_string();
 
   assert_eq!(derived, expected);
+}
+
+#[test]
+fn hash_set_hashes_independent_of_insertion_order() {
+  fn digest(set: &HashSet<&str>) -> String {
+    let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+    hasher.update(set);
+    hasher.digest(&HashDigest::Hex).encoded().to_string()
+  }
+
+  let mut forward = HashSet::new();
+  forward.insert("alpha");
+  forward.insert("beta");
+  forward.insert("gamma");
+
+  let mut reverse = HashSet::new();
+  reverse.insert("gamma");
+  reverse.insert("beta");
+  reverse.insert("alpha");
+
+  assert_eq!(digest(&forward), digest(&reverse));
+
+  let mut different = HashSet::new();
+  different.insert("alpha");
+  different.insert("beta");
+  different.insert("delta");
+
+  assert_ne!(digest(&forward), digest(&different));
+
+  let empty = HashSet::new();
+  assert_ne!(digest(&forward), digest(&empty));
+
+  let mut interned_a = InternedPathSet::default();
+  interned_a.insert(InternedPath::from("/a"));
+  interned_a.insert(InternedPath::from("/b"));
+  let mut interned_b = InternedPathSet::default();
+  interned_b.insert(InternedPath::from("/b"));
+  interned_b.insert(InternedPath::from("/a"));
+
+  let mut ha = RspackHasher::new(&HashFunction::Xxhash64);
+  ha.update(&interned_a);
+  let mut hb = RspackHasher::new(&HashFunction::Xxhash64);
+  hb.update(&interned_b);
+  assert_eq!(ha.digest(&HashDigest::Hex), hb.digest(&HashDigest::Hex));
+}
+
+#[test]
+fn hash_map_hashes_independent_of_insertion_order_and_respects_boundaries() {
+  fn digest(map: &HashMap<&str, &str>) -> String {
+    let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
+    hasher.update(map);
+    hasher.digest(&HashDigest::Hex).encoded().to_string()
+  }
+
+  let mut forward = HashMap::new();
+  forward.insert("a", "1");
+  forward.insert("b", "2");
+
+  let mut reverse = HashMap::new();
+  reverse.insert("b", "2");
+  reverse.insert("a", "1");
+
+  assert_eq!(digest(&forward), digest(&reverse));
+
+  let mut changed_value = HashMap::new();
+  changed_value.insert("a", "1");
+  changed_value.insert("b", "3");
+  assert_ne!(digest(&forward), digest(&changed_value));
+
+  let mut left_split = HashMap::new();
+  left_split.insert("a,b", "c");
+
+  let mut right_split = HashMap::new();
+  right_split.insert("a", "b,c");
+
+  assert_ne!(digest(&left_split), digest(&right_split));
+
+  let mut interned_a = InternedPathMap::default();
+  interned_a.insert(InternedPath::from("/a"), 1u64);
+  interned_a.insert(InternedPath::from("/b"), 2u64);
+  let mut interned_b = InternedPathMap::default();
+  interned_b.insert(InternedPath::from("/b"), 2u64);
+  interned_b.insert(InternedPath::from("/a"), 1u64);
+
+  let mut ha = RspackHasher::new(&HashFunction::Xxhash64);
+  ha.update(&interned_a);
+  let mut hb = RspackHasher::new(&HashFunction::Xxhash64);
+  hb.update(&interned_b);
+  assert_eq!(ha.digest(&HashDigest::Hex), hb.digest(&HashDigest::Hex));
+}
+
+#[test]
+fn interned_path_hashes_identically_to_path() {
+  let raw = "/tmp/example/module.js";
+  let interned = InternedPath::from(raw);
+  let path = Path::new(raw);
+
+  let mut interned_hasher = RspackHasher::new(&HashFunction::Xxhash64);
+  interned_hasher.update(&interned);
+
+  let mut path_hasher = RspackHasher::new(&HashFunction::Xxhash64);
+  path_hasher.update(path);
+
+  assert_eq!(
+    interned_hasher.digest(&HashDigest::Hex),
+    path_hasher.digest(&HashDigest::Hex)
+  );
 }

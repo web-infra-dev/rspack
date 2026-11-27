@@ -181,12 +181,15 @@ new rspack.LightningCssMinimizerRspackPlugin({
 
 `minimizerOptions` 还支持以下选项：
 
-| 选项            | 类型                                   | 说明                                                                                       |
-| --------------- | -------------------------------------- | ------------------------------------------------------------------------------------------ |
-| `errorRecovery` | `boolean`                              | 解析遇到无效的 CSS 规则或声明时，尽可能恢复并继续处理，而不是直接报错。默认为 `true`。     |
-| `drafts`        | `{ customMedia?: boolean }`            | 启用对草案语法 `@custom-media` 的解析。                                                    |
-| `nonStandard`   | `{ deepSelectorCombinator?: boolean }` | 启用非标准的 `>>>` 和 `/deep/` 选择器组合符。                                              |
-| `pseudoClasses` | 属性可选、值为字符串的对象             | 将伪类替换为类名，支持的键为 `hover`、`active`、`focus`、`focusVisible` 和 `focusWithin`。 |
-| `unusedSymbols` | `string[]`                             | 指定已知未使用的符号，供 Lightning CSS 移除。默认为 `[]`。                                 |
+| 选项            | 类型                                   | 说明                                                                                                             |
+| --------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `errorRecovery` | `boolean`                              | 解析遇到无效的 CSS 规则或声明时，尽可能恢复并继续处理，而不是直接报错。默认为 `true`。                           |
+| `drafts`        | 对象，属性为可选布尔值                 | 通过 [`customMedia`][customMedia] 和 [`scrollNavigationControls`][scrollNavigationControls] 启用相应的草案语法。 |
+| `nonStandard`   | `{ deepSelectorCombinator?: boolean }` | 启用非标准的 `>>>` 和 `/deep/` 选择器组合符。                                                                    |
+| `pseudoClasses` | 属性可选、值为字符串的对象             | 将伪类替换为类名，支持的键为 `hover`、`active`、`focus`、`focusVisible` 和 `focusWithin`。                       |
+| `unusedSymbols` | `string[]`                             | 指定已知未使用的符号，供 Lightning CSS 移除。默认为 `[]`。                                                       |
+
+[customMedia]: /guide/builtin-loaders/lightningcss-loader#custommedia
+[scrollNavigationControls]: /guide/builtin-loaders/lightningcss-loader#scrollnavigationcontrols
 
 草案语法、非标准语法及伪类替换的详细说明见 [Lightning CSS 语法转换文档](https://lightningcss.dev/transpilation.html#draft-syntax)。`unusedSymbols` 的使用方式见[移除未使用的符号](https://lightningcss.dev/minification.html#unused-symbols)。

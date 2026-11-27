@@ -12,11 +12,11 @@ use rspack_cacheable::{
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem, Compilation,
-  CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType, DependencyType, ExportsInfoArtifact,
-  GenerateContext, GeneratorOptions, Module, ModuleGraph, ModuleIdentifier, NO_SOURCE_TYPE_LIST,
-  NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions, RuntimeSpec,
-  SourceType, UsageState,
+  BuildInfo, BuildMetaDefaultObject, BuildMetaExportsType, ChunkGraph, CodeGenerationDataItem,
+  Compilation, CssAutoOrModuleParserOptions, CssBuildInfo, CssExportType, DependencyType,
+  ExportsInfoArtifact, GenerateContext, GeneratorOptions, Module, ModuleGraph, ModuleIdentifier,
+  NO_SOURCE_TYPE_LIST, NormalModule, ParseContext, ParseResult, ParserAndGenerator, ParserOptions,
+  RuntimeSpec, SourceType, UsageState,
   rspack_sources::{BoxSource, Source},
 };
 use rspack_error::{Result, TWithDiagnosticArray};
@@ -81,9 +81,8 @@ impl CssParserAndGenerator {
     }
   }
 
-  fn effective_export_type(&self, module: &dyn Module) -> Option<CssExportType> {
-    module
-      .build_info()
+  pub(crate) fn effective_export_type(&self, build_info: &BuildInfo) -> Option<CssExportType> {
+    build_info
       .css
       .as_deref()
       .and_then(|css| css.export_type)
@@ -152,7 +151,7 @@ impl CodeGenerationDataItem for CodeGenerationDataUnusedLocalIdent {}
 #[async_trait::async_trait]
 impl ParserAndGenerator for CssParserAndGenerator {
   fn source_types(&self, module: &dyn Module, module_graph: &ModuleGraph) -> &[SourceType] {
-    let export_type = self.effective_export_type(module);
+    let export_type = self.effective_export_type(&module.build_info());
     if matches!(
       export_type,
       Some(CssExportType::Style | CssExportType::CssStyleSheet | CssExportType::Text)
@@ -220,16 +219,18 @@ impl ParserAndGenerator for CssParserAndGenerator {
       .named_exports
       .expect("should have named_exports");
 
-    {
+    let resource_data = parse_context.effective_resource_data();
+    let export_type = {
       let build_info = &mut *parse_context.build_info;
       let build_meta = &mut *parse_context.build_meta;
+      let export_type = self.effective_export_type(build_info);
 
       build_info.strict = true;
       build_meta.set_is_css_module(is_css_module(
         parse_context.module_type,
-        parse_context.resource_data.path().map(|path| path.as_str()),
+        resource_data.path().map(|path| path.as_str()),
       ));
-      build_meta.set_need_id_in_concatenation(self.export_type == Some(CssExportType::Style));
+      build_meta.set_need_id_in_concatenation(export_type == Some(CssExportType::Style));
       build_meta.exports_type = if named_exports {
         BuildMetaExportsType::Namespace
       } else {
@@ -240,11 +241,17 @@ impl ParserAndGenerator for CssParserAndGenerator {
       } else {
         BuildMetaDefaultObject::Redirect
       });
-    }
+      export_type
+    };
 
-    CssModuleParser::new(generator_options, parser_options, parse_context)
-      .parse()
-      .await
+    CssModuleParser::new(
+      generator_options,
+      parser_options,
+      export_type,
+      parse_context,
+    )
+    .parse()
+    .await
   }
 
   async fn generate(
@@ -280,17 +287,18 @@ impl ParserAndGenerator for CssParserAndGenerator {
     _mg: &ModuleGraph,
     _cg: &ChunkGraph,
   ) -> Option<Cow<'static, str>> {
+    let build_info = module.build_info();
+    let export_type = self.effective_export_type(&build_info);
     if !self.es_module {
       Some("Module Concatenation is not implemented for CommonJS css exports".into())
-    } else if self.effective_export_type(module) == Some(CssExportType::Style)
-      && module
-        .build_info()
+    } else if export_type == Some(CssExportType::Style)
+      && build_info
         .css
         .as_deref()
         .is_some_and(|css_build_info| css_build_info.has_render_conditions())
     {
       Some("Module Concatenation is not implemented for conditional css style exports".into())
-    } else if self.exports_only || self.effective_export_type(module).is_some() {
+    } else if self.exports_only || export_type.is_some() {
       None
     } else {
       // CSS Module cannot be concatenated as it must appear in css chunk, if it's
@@ -309,7 +317,9 @@ impl ParserAndGenerator for CssParserAndGenerator {
     self.es_module.hash(&mut hasher);
     self.exports_only.hash(&mut hasher);
     self.runtime_public_path.hash(&mut hasher);
-    self.effective_export_type(module).hash(&mut hasher);
+    self
+      .effective_export_type(&module.build_info())
+      .hash(&mut hasher);
     hash::hash_css_modules(module, compilation, &mut hasher);
     Ok(hasher.digest(&compilation.options.output.hash_digest))
   }

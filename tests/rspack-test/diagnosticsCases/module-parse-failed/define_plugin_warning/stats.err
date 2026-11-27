@@ -1,7 +1,8 @@
 WARNING in ./index.js
   ⚠ Module parse warning:
-  ╰─▶   ⚠ DefinePlugin warning: failed to parse "😄"
+  ╰─▶   ⚠ DefinePlugin warning: The value for '__DEV__' is not a valid JavaScript expression.
          ╭────
        1 │ 😄
          · ──
          ╰────
+        help: If you meant to define a string, use JSON.stringify("😄").

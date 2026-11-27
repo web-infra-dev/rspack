@@ -50,14 +50,14 @@ describe('rspack extends feature', () => {
   describe('multiple extends', () => {
     const cwd = resolve(__dirname, './multiple');
 
-    it('should extend from multiple configs', async () => {
+    it('should extend from multiple configs that share a base config', async () => {
       const { exitCode, stderr, stdout } = await run(cwd, []);
 
       expect(stderr).toBeFalsy();
       expect(stdout).toBeTruthy();
       expect(exitCode).toBe(0);
 
-      // Check if the output file has the correct name (from base config)
+      // The filename comes from the shared base config.
       const outputContent = await readFile(
         resolve(cwd, './dist/base.bundle.js'),
         {
@@ -226,21 +226,25 @@ describe('rspack extends feature', () => {
   describe('recursive extends', () => {
     const cwd = resolve(__dirname, './recursive-extends');
 
-    it('should throw an error on recursive extends', async () => {
+    it('should report a config that extends itself', async () => {
       const { exitCode, stderr } = await run(cwd, []);
 
       expect(exitCode).not.toBe(0);
-      expect(stderr).toBeTruthy();
+      expect(stderr).toContain(
+        'Circular extends chain: rspack.config.mts -> rspack.config.mts',
+      );
     });
 
-    it('should throw an error on recursive extends #2', async () => {
+    it('should report the files in an indirect cycle', async () => {
       const { exitCode, stderr } = await run(cwd, [
         '--config',
         'other.config.mts',
       ]);
 
       expect(exitCode).not.toBe(0);
-      expect(stderr).toBeTruthy();
+      expect(stderr).toContain(
+        'Circular extends chain: other.config.mts -> middle.config.json -> other.config.mts',
+      );
     });
   });
 

@@ -9,8 +9,12 @@
  */
 import type binding from '@rspack/binding';
 
-import type { Compilation } from './Compilation';
+import { type Compilation, originalCreateStatsFactory } from './Compilation';
 import type { StatsOptions, StatsValue } from './config';
+import {
+  canCreateDefaultStatsJson,
+  createDefaultStatsJson,
+} from './stats/DefaultStatsFactoryPlugin';
 import type { StatsCompilation } from './stats/statsFactoryUtils';
 
 export type {
@@ -82,19 +86,16 @@ export class Stats {
   }
 
   toJson(opts?: StatsValue, forToString?: boolean): StatsCompilation {
-    const options = this.compilation.createStatsOptions(opts, {
-      forToString,
-    });
-
-    const statsFactory = this.compilation.createStatsFactory(options);
+    const rootCompilation = this.compilation;
+    const options = rootCompilation.createStatsOptions(opts, { forToString });
 
     const statsCompilationMap = new Map<
       Compilation,
       binding.JsStatsCompilation
     >();
 
-    const stats = statsFactory.create('compilation', this.compilation, {
-      compilation: this.compilation,
+    const context = {
+      compilation: rootCompilation,
       getStatsCompilation: (
         compilation: Compilation,
       ): binding.JsStatsCompilation => {
@@ -123,8 +124,25 @@ export class Stats {
         return innerStatsCompilation;
       },
       getInner: this.#getInnerByCompilation.bind(this),
-    });
-    return stats as StatsCompilation;
+    };
+
+    const createStatsFactory = rootCompilation.createStatsFactory;
+    if (
+      !forToString &&
+      createStatsFactory === originalCreateStatsFactory &&
+      canCreateDefaultStatsJson(rootCompilation)
+    ) {
+      return createDefaultStatsJson(rootCompilation, options, context);
+    }
+
+    const statsFactory = Reflect.apply(createStatsFactory, rootCompilation, [
+      options,
+    ]);
+    return statsFactory.create(
+      'compilation',
+      rootCompilation,
+      context,
+    ) as StatsCompilation;
   }
 
   toString(opts?: StatsValue) {

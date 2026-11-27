@@ -78,15 +78,16 @@ use crate::{
   DependenciesDiagnosticsArtifact, Dependency, DependencyId, DependencyRef, DependencyTemplate,
   DependencyTemplateType, DependencyType, Entry, EntryData, EntryOptions, EntryRuntime, Entrypoint,
   ExecuteModuleId, ExportsInfoArtifact, ExternalModuleChunkConditionHook, FileSystemInfo, Filename,
-  ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact, ModuleFactory, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact, ModuleStaticCache, PathData,
-  ProcessRuntimeRequirementsCacheArtifact, ReferencedExport, ResolverFactory, RuntimeGlobals,
-  RuntimeKeyMap, RuntimeMode, RuntimeModule, RuntimeProxyMetadataArtifact, RuntimeSpec,
-  RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver, SideEffectsOptimizeArtifact,
-  SideEffectsStateArtifact, SourceType, Stats, StatsContext, StealCell, ValueCacheVersions,
+  ImportPhase, ImportVarMap, ImportedByDeferModulesArtifact, LoaderBuildDependenciesCache,
+  ModuleFactory, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, ModuleIdsArtifact,
+  ModuleStaticCache, PathData, ProcessRuntimeRequirementsCacheArtifact, ReferencedExport,
+  ResolverFactory, RuntimeGlobals, RuntimeKeyMap, RuntimeMode, RuntimeModule,
+  RuntimeProxyMetadataArtifact, RuntimeSpec, RuntimeSpecMap, RuntimeTemplate, SharedPluginDriver,
+  SideEffectsOptimizeArtifact, SideEffectsStateArtifact, SourceType, Stats, StatsContext,
+  StealCell, ValueCacheVersions,
   compilation::build_module_graph::{
     BuildModuleGraphArtifact, ModuleExecutor, ModuleGraphUpdateResult, UpdateParam,
-    expand_rebuild_modules, update_module_graph,
+    expand_module_executor_results, update_module_graph,
   },
   compiler::{CompilationRecords, CompilerId},
   get_runtime_key,
@@ -239,6 +240,7 @@ pub struct Compilation {
   pub cache: CompilerCache,
   // Compilations and retained incremental artifacts must not keep loader storage open.
   loader_cache: Weak<LoaderCache>,
+  loader_build_dependencies_cache: Option<Arc<LoaderBuildDependenciesCache>>,
   pub resolver_cache: Option<crate::ResolverCache>,
   pub file_system_info: FileSystemInfo,
   pub plugin_driver: SharedPluginDriver,
@@ -369,6 +371,8 @@ impl Compilation {
       options.context.clone(),
       options.output.hash_function,
     );
+    let loader_build_dependencies_cache =
+      (loader_cache.strong_count() > 0).then(|| Arc::new(LoaderBuildDependenciesCache::default()));
     let resolver_cache = (options.experiments.new_cache.resolver
       && !matches!(options.cache, crate::CacheOptions::Disabled))
     .then(|| crate::ResolverCache::new(cache.facade("ResolverCache"), file_system_info.clone()));
@@ -395,6 +399,7 @@ impl Compilation {
       logging,
       cache,
       loader_cache,
+      loader_build_dependencies_cache,
       resolver_cache,
       file_system_info,
       plugin_driver,
@@ -474,6 +479,10 @@ impl Compilation {
 
   pub fn loader_cache(&self) -> Weak<LoaderCache> {
     self.loader_cache.clone()
+  }
+
+  pub fn loader_build_dependencies_cache(&self) -> Option<Arc<LoaderBuildDependenciesCache>> {
+    self.loader_build_dependencies_cache.clone()
   }
 
   pub fn id(&self) -> CompilationId {
@@ -1130,7 +1139,7 @@ impl Compilation {
       .iter()
       .filter_map(|(id, _)| module_graph.module_by_identifier(id).map(|_| *id))
       .collect::<IdentifierSet>();
-    expand_rebuild_modules(module_graph, &mut modules);
+    expand_module_executor_results(module_graph, &mut modules, true);
 
     self.module_graph_cache_artifact.unfreeze();
     if !modules.is_empty() {

@@ -15,7 +15,7 @@ Object {
   exportLocalVarsShouldCleanup: false false,
   exportName: _907JXd qa9TNZ beforeName DrrzNO cUuIkP importName secondImport Smiuub G2XEl2 tWOmVx className classNameOther qa9TNZ qa9TNZ Smiuub qa9TNZ Smiuub,
   exportNameMixedLocalGlobalFunctions: Zi-zuu global-class-name,
-  exportNameOtherFromKeyword: DYXsTP MC78aU,
+  exportNameOtherFromKeyword: DY4sTP MC78aU,
   exportNameOtherFromKeywordWithFrom1: KU-WbM from,
   exportNameOtherFromKeywordWithFrom2: QLe971 HCmf56,
   exportNameOtherNoSpaces: ER1nMu qa9TNZ beforeName DrrzNO,

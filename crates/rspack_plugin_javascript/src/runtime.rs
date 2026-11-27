@@ -65,6 +65,16 @@ pub static AUTO_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
   LazyLock::new(|| PlaceholderFinder::new(AUTO_PUBLIC_PATH_PLACEHOLDER));
 
 pub fn get_hmr_chunk_version<'a>(compilation: &'a Compilation, chunk: &Chunk) -> Option<&'a str> {
+  if !compilation.hot
+    || matches!(chunk.kind(), ChunkKind::HotUpdate)
+    || compilation
+      .build_chunk_graph_artifact
+      .is_runtime_chunk(chunk)
+    || !ChunkGraph::get_chunk_runtime_requirements(compilation, &chunk.ukey())
+      .contains(RuntimeGlobals::HMR_CHUNK_VERSIONS)
+  {
+    return None;
+  }
   chunk.rendered_content_hash_by_source_type(
     &compilation.chunk_hashes_artifact,
     &SourceType::JavaScript,

@@ -1,9 +1,14 @@
 import fs from 'node:fs';
 import querystring from 'node:querystring';
 import { promisify } from 'node:util';
-import { type MessagePort, receiveMessageOnPort } from 'node:worker_threads';
+import {
+  MessageChannel,
+  type MessagePort,
+  receiveMessageOnPort,
+} from 'node:worker_threads';
 
 import { JsLoaderState } from '@rspack/binding';
+import type { Logger } from '../logging/Logger';
 import type { NormalModule } from '../NormalModule';
 import type { LoaderContext } from '../config';
 import type { ResolveCallback } from '../config/adapterRuleUse';
@@ -45,7 +50,6 @@ interface WorkerOptions {
 
   workerData?: {
     workerPort: MessagePort;
-    workerSyncPort: MessagePort;
   };
 }
 
@@ -171,66 +175,77 @@ async function loaderImpl(
 
     return resolveWithOptions;
   };
+  let nextLoggerId = 0;
   loaderContext.getLogger = function getLogger(name) {
+    let loggerId: number | undefined;
+    const sendLog = (method: keyof Logger, args: unknown[]) => {
+      sendRequest(
+        RequestType.GetLogger,
+        (loggerId ??= nextLoggerId++),
+        name,
+        method,
+        args,
+      );
+    };
     return {
       error(...args) {
-        sendRequest(RequestType.GetLogger, 'error', name, args);
+        sendLog('error', args);
       },
       warn(...args) {
-        sendRequest(RequestType.GetLogger, 'warn', name, args);
+        sendLog('warn', args);
       },
       info(...args) {
-        sendRequest(RequestType.GetLogger, 'info', name, args);
+        sendLog('info', args);
       },
       log(...args) {
-        sendRequest(RequestType.GetLogger, 'log', name, args);
+        sendLog('log', args);
       },
       debug(...args) {
-        sendRequest(RequestType.GetLogger, 'debug', name, args);
+        sendLog('debug', args);
       },
       assert(assertion, ...args) {
         if (!assertion) {
-          sendRequest(RequestType.GetLogger, 'error', name, args);
+          sendLog('error', args);
         }
       },
       trace() {
-        sendRequest(RequestType.GetLogger, 'trace', name, ['Trace']);
+        sendLog('trace', ['Trace']);
       },
       clear() {
-        sendRequest(RequestType.GetLogger, 'clear', name, []);
+        sendLog('clear', []);
       },
       status(...args) {
-        sendRequest(RequestType.GetLogger, 'status', name, args);
+        sendLog('status', args);
       },
       group(...args) {
-        sendRequest(RequestType.GetLogger, 'group', name, args);
+        sendLog('group', args);
       },
       groupCollapsed(...args) {
-        sendRequest(RequestType.GetLogger, 'groupCollapsed', name, args);
+        sendLog('groupCollapsed', args);
       },
       groupEnd(...args) {
-        sendRequest(RequestType.GetLogger, 'groupEnd', name, args);
+        sendLog('groupEnd', args);
       },
       profile(label) {
-        sendRequest(RequestType.GetLogger, 'profile', name, [label]);
+        sendLog('profile', [label]);
       },
       profileEnd(label) {
-        sendRequest(RequestType.GetLogger, 'profileEnd', name, [label]);
+        sendLog('profileEnd', [label]);
       },
       time(label) {
-        sendRequest(RequestType.GetLogger, 'time', name, [label]);
+        sendLog('time', [label]);
       },
       timeEnd(label) {
-        sendRequest(RequestType.GetLogger, 'timeEnd', name, [label]);
+        sendLog('timeEnd', [label]);
       },
       timeLog(label, ...args) {
-        sendRequest(RequestType.GetLogger, 'timeLog', name, [label, ...args]);
+        sendLog('timeLog', [label, ...args]);
       },
       timeAggregate(label) {
-        sendRequest(RequestType.GetLogger, 'timeAggregate', name, [label]);
+        sendLog('timeAggregate', [label]);
       },
       timeAggregateEnd(label) {
-        sendRequest(RequestType.GetLogger, 'timeAggregateEnd', name, [label]);
+        sendLog('timeAggregateEnd', [label]);
       },
     };
   } as LoaderContext['getLogger'];
@@ -640,19 +655,16 @@ function createWaitForPendingRequest(
   sendRequest: SendRequestFunction,
 ): WaitForPendingRequestFunction {
   return (requests: SendRequestResult[] | SendRequestResult) => {
+    const pending = Array.isArray(requests) ? requests : [requests];
+    if (pending.length === 0) return [];
     return sendRequest.sync(
       RequestSyncType.WaitForPendingRequest,
-      (Array.isArray(requests) ? requests : [requests]).map((request) => {
-        return request.id;
-      }),
+      pending.map((request) => request.id),
     );
   };
 }
 
-function createSendRequest(
-  workerPort: MessagePort,
-  workerSyncPort: MessagePort,
-): SendRequestFunction {
+function createSendRequest(workerPort: MessagePort): SendRequestFunction {
   const sendRequest = ((requestType, ...args) => {
     const id = nextId++;
     workerPort.postMessage({
@@ -676,14 +688,12 @@ function createSendRequest(
     result.id = id;
     return result;
   }) as SendRequestFunction;
-  sendRequest.sync = createSendRequestSync(workerPort, workerSyncPort);
+  sendRequest.sync = createSendRequestSync(workerPort);
   return sendRequest;
 }
 
-function createSendRequestSync(
-  workerPort: MessagePort,
-  workerSyncPort: MessagePort,
-) {
+function createSendRequestSync(workerPort: MessagePort) {
+  let workerSyncPort: MessagePort | undefined;
   return (requestType: RequestSyncType, ...args: any[]) => {
     const id = nextId++;
 
@@ -692,13 +702,27 @@ function createSendRequestSync(
     const sharedBuffer = new SharedArrayBuffer(8);
     const sharedBufferView = new Int32Array(sharedBuffer);
 
-    workerPort.postMessage({
+    const request: WorkerRequestSyncMessage = {
       type: 'request-sync',
       id,
       requestType,
       data: args,
       sharedBuffer,
-    } satisfies WorkerRequestSyncMessage);
+    };
+    if (workerSyncPort) {
+      workerPort.postMessage(request);
+    } else {
+      const { port1, port2 } = new MessageChannel();
+      request.responsePort = port2;
+      try {
+        workerPort.postMessage(request, [port2]);
+      } catch (error) {
+        port1.close();
+        port2.close();
+        throw error;
+      }
+      workerSyncPort = port1;
+    }
 
     // Atomics.wait returns immediately with the value 'not-equal'
     // Otherwise, the thread is blocked until another thread calls Atomics.notify
@@ -731,10 +755,7 @@ function worker(workerOptions: WorkerOptions) {
   delete workerOptions.workerData;
 
   workerData.workerPort.on('message', handleIncomingResponses);
-  const sendRequest = createSendRequest(
-    workerData.workerPort,
-    workerData.workerSyncPort,
-  );
+  const sendRequest = createSendRequest(workerData.workerPort);
   const waitFor = createWaitForPendingRequest(sendRequest);
 
   loaderImpl(workerOptions, sendRequest, waitFor)

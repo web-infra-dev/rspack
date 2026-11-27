@@ -153,10 +153,8 @@ impl ChunkGroup {
     compilation: &'a Compilation,
   ) -> impl DoubleEndedIterator<Item = &'a Chunk> {
     let graph = &compilation.build_chunk_graph_artifact;
-    let runtime_chunks = graph.runtime_chunks.as_ref();
-    self.loading_chunks_with(&graph.chunk_by_ukey, move |chunk| match runtime_chunks {
-      Some(runtime_chunks) => runtime_chunks.contains(&chunk.ukey()),
-      None => chunk.has_runtime(&graph.chunk_group_by_ukey),
+    self.loading_chunks_with(&graph.chunk_by_ukey, move |chunk| {
+      graph.is_runtime_chunk(chunk)
     })
   }
 

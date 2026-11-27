@@ -1,6 +1,6 @@
 {
   "name": "@rspack/cli",
-  "version": "2.3.3",
+  "version": "2.3.4",
   "description": "CLI for rspack",
   "homepage": "https://rspack.rs",
   "bugs": "https://github.com/web-infra-dev/rspack/issues",
@@ -12,10 +12,7 @@
   "license": "MIT",
   "type": "module",
   "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
-    },
+    ".": "./dist/index.js",
     "./package.json": "./package.json"
   },
   "types": "./dist/index.d.ts",

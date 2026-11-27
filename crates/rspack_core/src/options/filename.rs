@@ -89,12 +89,6 @@ pub struct StringTemplatePlaceholder {
   parameters: PlaceholderParameters,
 }
 
-#[derive(Debug)]
-pub enum FilenameRenderValue<'value> {
-  Value(Cow<'value, str>),
-  Rendered(Cow<'value, str>),
-}
-
 impl StringTemplatePlaceholder {
   pub fn kind(self) -> PlaceholderKind {
     self.kind
@@ -235,6 +229,28 @@ impl<'template> CompiledStringTemplate<'template> {
     })
   }
 
+  pub fn parts(&self) -> impl Iterator<Item = (&str, Option<StringTemplatePlaceholder>)> {
+    self.segments.iter().map(|segment| {
+      let (range, placeholder) = match segment {
+        StringTemplateSegment::Plain(range) => (range, None),
+        StringTemplateSegment::Placeholder { id, range } => {
+          let data = &self.placeholder_data[usize::from(*id)];
+          (
+            range,
+            Some(StringTemplatePlaceholder {
+              kind: data.kind,
+              parameters: data.parameters,
+            }),
+          )
+        }
+      };
+      (
+        &self.template[usize::from(range.start)..usize::from(range.end)],
+        placeholder,
+      )
+    })
+  }
+
   fn render_with_writer(
     &self,
     mut renderer: impl FnMut(StringTemplatePlaceholder, &mut String) -> bool,
@@ -246,26 +262,9 @@ impl<'template> CompiledStringTemplate<'template> {
       .min(MAX_ESTIMATED_TEMPLATE_GROWTH);
     let mut output = String::with_capacity(self.template.len().saturating_add(estimated_growth));
 
-    for segment in &self.segments {
-      match segment {
-        StringTemplateSegment::Plain(range) => {
-          output.push_str(&self.template[usize::from(range.start)..usize::from(range.end)]);
-        }
-        StringTemplateSegment::Placeholder { id, range } => {
-          let data = self
-            .placeholder_data
-            .get(usize::from(*id))
-            .expect("filename placeholder segment references missing side-table data");
-          let start = usize::from(range.start);
-          let end = usize::from(range.end);
-          let placeholder = StringTemplatePlaceholder {
-            kind: data.kind,
-            parameters: data.parameters,
-          };
-          if !renderer(placeholder, &mut output) {
-            output.push_str(&self.template[start..end]);
-          }
-        }
+    for (text, placeholder) in self.parts() {
+      if !placeholder.is_some_and(|placeholder| renderer(placeholder, &mut output)) {
+        output.push_str(text);
       }
     }
 
@@ -274,7 +273,7 @@ impl<'template> CompiledStringTemplate<'template> {
 
   pub fn render_with<'value>(
     &self,
-    mut renderer: impl FnMut(StringTemplatePlaceholder) -> Option<FilenameRenderValue<'value>>,
+    mut renderer: impl FnMut(StringTemplatePlaceholder) -> Option<Cow<'value, str>>,
   ) -> String {
     let mut asset_info = None;
     self.render_with_writer(|placeholder, output| {
@@ -286,24 +285,12 @@ impl<'template> CompiledStringTemplate<'template> {
     })
   }
 
-  pub fn render_with_path_data<'value>(
-    &self,
-    options: PathData<'_>,
-    asset_info: Option<&mut AssetInfo>,
-    renderer: impl FnMut(StringTemplatePlaceholder) -> Option<FilenameRenderValue<'value>>,
-  ) -> String {
-    let file_replacements = FileReplacements::new(options);
-    self.render_with_path_data_and_replacements(options, &file_replacements, asset_info, renderer)
-  }
-
-  /// Same as [`Self::render_with_path_data`], but reuses `file_replacements` that the caller
-  /// computed from `options.filename` once.
   pub fn render_with_path_data_and_replacements<'value>(
     &self,
     options: PathData<'_>,
     file_replacements: &FileReplacements,
     mut asset_info: Option<&mut AssetInfo>,
-    mut renderer: impl FnMut(StringTemplatePlaceholder) -> Option<FilenameRenderValue<'value>>,
+    mut renderer: impl FnMut(StringTemplatePlaceholder) -> Option<Cow<'value, str>>,
   ) -> String {
     if let Some(content_hash) = options.content_hash
       && let Some(asset_info) = asset_info.as_deref_mut()
@@ -471,27 +458,6 @@ impl Filename {
     }
   }
 
-  pub async fn as_json_string_literal_template(
-    &self,
-    options: PathData<'_>,
-    asset_info: Option<&AssetInfo>,
-  ) -> rspack_error::Result<Arc<CompiledStringTemplate<'static>>> {
-    match &self.0 {
-      FilenameKind::Template(template) => {
-        let template = rspack_util::json_stringify_str(template.as_str());
-        Ok(get_or_compile(intern_template(&template)))
-      }
-      FilenameKind::Fn(filename_fn) => {
-        let template = filename_fn.call(&options, asset_info).await?;
-        let template = rspack_util::json_stringify_str(&template);
-        assert_template_len(&template);
-        Ok(Arc::new(CompiledStringTemplate::compile_cow(Cow::Owned(
-          template,
-        ))))
-      }
-    }
-  }
-
   pub fn has_hash_placeholder(&self) -> bool {
     match self.0 {
       FilenameKind::Template(template) => {
@@ -531,17 +497,14 @@ impl Filename {
     options: PathData<'_>,
     asset_info: Option<&mut AssetInfo>,
   ) -> rspack_error::Result<String> {
-    self.render_with(options, asset_info, |_| None).await
-  }
-
-  pub async fn render_with<'value>(
-    &self,
-    options: PathData<'_>,
-    asset_info: Option<&mut AssetInfo>,
-    renderer: impl FnMut(StringTemplatePlaceholder) -> Option<FilenameRenderValue<'value>>,
-  ) -> rspack_error::Result<String> {
     let compiled = self.compiled(options, asset_info.as_deref()).await?;
-    Ok(compiled.render_with_path_data(options, asset_info, renderer))
+    let file_replacements = FileReplacements::new(options);
+    Ok(compiled.render_with_path_data_and_replacements(
+      options,
+      &file_replacements,
+      asset_info,
+      |_| None,
+    ))
   }
 }
 
@@ -717,31 +680,26 @@ impl FileReplacements {
 
 fn render_filename_value(
   placeholder: StringTemplatePlaceholder,
-  value: FilenameRenderValue<'_>,
+  value: Cow<'_, str>,
   asset_info: &mut Option<&mut AssetInfo>,
   output: &mut String,
 ) {
-  match value {
-    FilenameRenderValue::Rendered(value) => output.push_str(&value),
-    FilenameRenderValue::Value(value) => {
-      if matches!(
-        placeholder.kind,
-        PlaceholderKind::Hash
-          | PlaceholderKind::FullHash
-          | PlaceholderKind::ChunkHash
-          | PlaceholderKind::ContentHash
-      ) {
-        assert!(try_render_hash(
-          Some(&value),
-          placeholder.kind,
-          placeholder.parameters,
-          asset_info,
-          output,
-        ));
-      } else {
-        output.push_str(&value);
-      }
-    }
+  if matches!(
+    placeholder.kind,
+    PlaceholderKind::Hash
+      | PlaceholderKind::FullHash
+      | PlaceholderKind::ChunkHash
+      | PlaceholderKind::ContentHash
+  ) {
+    assert!(try_render_hash(
+      Some(&value),
+      placeholder.kind,
+      placeholder.parameters,
+      asset_info,
+      output,
+    ));
+  } else {
+    output.push_str(&value);
   }
 }
 

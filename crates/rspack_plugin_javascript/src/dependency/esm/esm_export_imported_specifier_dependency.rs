@@ -18,12 +18,12 @@ use rspack_core::{
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ForwardId, ImportAttributes, ImportPhase,
   InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions, LazyUntil,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier, NormalInitFragment,
-  NormalReexportItem, ReferencedExport, ResourceIdentifier, RuntimeCondition, RuntimeGlobals,
-  RuntimeSpec, SideEffectsStateArtifact, StarReexportsInfo, TemplateContext, TemplateReplaceSource,
-  UsageState, UsedName, collect_referenced_export_items, create_exports_object_referenced,
-  create_no_exports_referenced, filter_runtime, get_exports_type, get_runtime_key,
-  get_terminal_binding, property_access, property_name,
+  ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
+  NormalInitFragment, NormalReexportItem, ReferencedExport, ResourceIdentifier, RuntimeCondition,
+  RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, StarReexportsInfo, TemplateContext,
+  TemplateReplaceSource, UsageState, UsedName, collect_referenced_export_items,
+  create_exports_object_referenced, create_no_exports_referenced, filter_runtime, get_exports_type,
+  get_runtime_key, get_terminal_binding, property_access, property_name,
   render_make_deferred_namespace_mode_from_exports_type, to_normal_comment,
 };
 use rspack_error::{Diagnostic, Error, Severity};
@@ -791,6 +791,8 @@ impl ESMExportImportedSpecifierDependency {
         if let Some(hidden) = mode.hidden {
           ignored.extend(hidden);
         }
+        let mut ignored = ignored.into_iter().collect::<Vec<_>>();
+        ignored.sort_unstable();
 
         let use_runtime =
           self.has_repeated_dynamic_reexports(mg, runtime, mg_cache, exports_info_artifact);
@@ -820,7 +822,7 @@ impl ESMExportImportedSpecifierDependency {
               "if({}.indexOf(__rspack_import_key) < 0) ",
               json_stringify(&ignored)
             );
-          } else if let Some(item) = ignored.iter().next() {
+          } else if let Some(item) = ignored.first() {
             content += &format!(
               "if(__rspack_import_key !== {}) ",
               rspack_util::json_stringify_str(item)
@@ -948,7 +950,7 @@ impl ESMExportImportedSpecifierDependency {
     name: &str,
     value_key: ValueKey,
   ) -> ESMExportInitFragment {
-    let return_value = Self::get_return_value(name.to_owned(), value_key);
+    let return_value = Self::get_return_value(ctxt.runtime_template, name.to_owned(), value_key);
     let is_circular_module = ctxt
       .compilation
       .circular_modules
@@ -1008,10 +1010,14 @@ impl ESMExportImportedSpecifierDependency {
     )
   }
 
-  fn get_return_value(name: String, value_key: ValueKey) -> String {
+  fn get_return_value(
+    runtime_template: &mut ModuleCodeTemplate,
+    name: String,
+    value_key: ValueKey,
+  ) -> String {
     match value_key {
       ValueKey::False => "/* unused export */ undefined".to_string(),
-      ValueKey::Null => format!("{name}_default.a"),
+      ValueKey::Null => format!("{}.a", runtime_template.default_interop_var(&name)),
       ValueKey::Name => name,
       ValueKey::UsedName(used) => match used {
         UsedName::Normal(used) => format!("{}{}", name, property_access(used, 0)),
@@ -1038,7 +1044,7 @@ impl ESMExportImportedSpecifierDependency {
       runtime_template,
       ..
     } = ctxt;
-    let return_value = Self::get_return_value(name.clone(), value_key);
+    let return_value = Self::get_return_value(runtime_template, name.clone(), value_key);
     let exports_name = module.get_exports_argument();
     format!(
       "if({}({}, {})) {}({}, {{ {}: function() {{ return {}; }} }});\n",
@@ -1259,13 +1265,6 @@ impl DependencyCodeGeneration for ESMExportImportedSpecifierDependency {
 
 #[cacheable_dyn]
 impl Dependency for ESMExportImportedSpecifierDependency {
-  fn may_read_default_export(&self, module_graph: &ModuleGraph) -> bool {
-    self
-      .get_ids(module_graph)
-      .first()
-      .is_none_or(|id| id == "default")
-  }
-
   fn id(&self) -> &DependencyId {
     &self.id
   }
@@ -1804,7 +1803,7 @@ fn render_used_name(used: Option<&UsedName>) -> String {
   }
 }
 
-fn render_dynamic_reexport_excluded(values: &HashSet<Atom>) -> String {
+fn render_dynamic_reexport_excluded(values: &[Atom]) -> String {
   match values.len() {
     0 => "0".to_string(),
     1 => rspack_util::json_stringify_str(

@@ -258,6 +258,55 @@ async fn test_background_scan_refreshes_the_context() {
 }
 
 #[tokio::test]
+async fn test_scanner_remembers_a_removal_until_the_file_is_unregistered() {
+  let temp = TempDir::new().expect("create fixture");
+  let base = temp.path().canonicalize().expect("resolve fixture");
+  let gone = InternedPath::from(base.join("gone.js"));
+  let present = InternedPath::from(base.join("present.js"));
+  fs::write(&present, "").expect("create present file");
+  let mut analyzer = DirectoryAnalyzer::default();
+  analyzer
+    .update(added(&gone), empty(), empty())
+    .await
+    .expect("register absent file");
+  analyzer.scan(std::time::SystemTime::UNIX_EPOCH);
+  assert_eq!(
+    next_events(&mut analyzer).await,
+    vec![(gone.clone(), FsEventKind::Remove)]
+  );
+
+  analyzer
+    .update(
+      (vec![gone.clone(), present.clone()], vec![]),
+      empty(),
+      empty(),
+    )
+    .await
+    .expect("rewatch both files");
+  // The file scan sends removals before changes. A duplicate removal would
+  // arrive before this present file's change.
+  analyzer.scan(std::time::SystemTime::UNIX_EPOCH);
+  assert_eq!(
+    next_events(&mut analyzer).await,
+    vec![(present, FsEventKind::Change)]
+  );
+
+  analyzer
+    .update(removed(&gone), empty(), empty())
+    .await
+    .expect("unregister absent file");
+  analyzer
+    .update(added(&gone), empty(), empty())
+    .await
+    .expect("register absent file again");
+  analyzer.scan(std::time::SystemTime::UNIX_EPOCH);
+  assert_eq!(
+    next_events(&mut analyzer).await,
+    vec![(gone, FsEventKind::Remove)]
+  );
+}
+
+#[tokio::test]
 async fn test_rescan_invalidates_before_empty_paths_and_unsupported_kind_returns() {
   for include_path in [false, true] {
     let temp = TempDir::new().expect("create fixture");
@@ -492,5 +541,50 @@ mod symlinks {
         .expect("empty update");
       assert_patterns(&analyzer, vec![(link, RecursiveMode::NonRecursive)]);
     }
+  }
+}
+
+#[tokio::test]
+async fn nested_contexts_route_unscanned_children_after_either_unsubscribes() {
+  let temp = TempDir::new().expect("create fixture");
+  let outer = InternedPath::from(temp.path().canonicalize().expect("resolve fixture"));
+  let inner = InternedPath::from(outer.join("inner"));
+  fs::create_dir(&inner).expect("create nested context");
+  let event = Event::new(EventKind::Remove(notify::event::RemoveKind::File))
+    .add_path(inner.join("unscanned/child.js"));
+
+  for (unregistered, remaining) in [(&inner, &outer), (&outer, &inner)] {
+    let mut analyzer = DirectoryAnalyzer::default();
+    analyzer
+      .update(empty(), added(&outer), empty())
+      .await
+      .expect("register outer context");
+    analyzer.on_scanned_change(&inner);
+    assert_eq!(
+      next_events(&mut analyzer).await,
+      vec![(outer.clone(), FsEventKind::Change)]
+    );
+    analyzer
+      .update(empty(), added(&inner), added(&inner))
+      .await
+      .expect("also register inner as a context and missing dependency");
+
+    analyzer.on_native_event(event.clone());
+    assert_eq!(
+      next_events(&mut analyzer).await,
+      vec![
+        (inner.clone(), FsEventKind::Change),
+        (outer.clone(), FsEventKind::Change)
+      ]
+    );
+    analyzer
+      .update(empty(), removed(unregistered), removed(&inner))
+      .await
+      .expect("unregister one context and the overlapping missing dependency");
+    analyzer.on_native_event(event.clone());
+    assert_eq!(
+      next_events(&mut analyzer).await,
+      vec![(remaining.clone(), FsEventKind::Change)]
+    );
   }
 }

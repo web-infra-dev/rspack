@@ -690,10 +690,11 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
     context: CreateStatsOptionsContext = {},
   ): NormalizedStatsOptions {
     let optionsOrPreset = statsValue;
-    if (
-      typeof optionsOrPreset === 'boolean' ||
-      typeof optionsOrPreset === 'string'
-    ) {
+    if (typeof optionsOrPreset === 'boolean') {
+      optionsOrPreset = {
+        preset: optionsOrPreset === false ? 'none' : 'normal',
+      };
+    } else if (typeof optionsOrPreset === 'string') {
       optionsOrPreset = { preset: optionsOrPreset };
     }
     if (typeof optionsOrPreset === 'object' && optionsOrPreset !== null) {
@@ -1226,6 +1227,9 @@ BREAKING CHANGE: Asset processing hooks in Compilation has been merged into a si
   static PROCESS_ASSETS_STAGE_ANALYSE = 4000;
   static PROCESS_ASSETS_STAGE_REPORT = 5000;
 }
+
+export const originalCreateStatsFactory =
+  Compilation.prototype.createStatsFactory;
 
 // The AddEntryItemDispatcher class has two responsibilities:
 //

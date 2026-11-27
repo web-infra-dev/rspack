@@ -1,0 +1,6 @@
+@import url("https://example.com/style-shared.css");
+@import url("https://example.com/style-print-only.css");
+
+.style-print {
+	color: blue;
+}

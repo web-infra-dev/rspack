@@ -38,10 +38,9 @@ use crate::{
   module_graph::JsModuleGraph,
   options::entry::JsEntryOptions,
   path_data::{JsPathData, PathWithInfo},
-  print_error_diagnostic,
   source::{JsSourceFromJs, JsSourceToJs},
   stats::{JsStats, JsStatsOptimizationBailout, create_stats_warnings},
-  utils::callbackify,
+  utils::{CallbackError, callbackify},
   with_compilation,
 };
 
@@ -793,7 +792,7 @@ impl JsCompilation {
           .module_executor
           .as_ref()
           .expect("should have module executor");
-        let res: Result<_, ErrorCode> = module_executor
+        let res = module_executor
           .import_module(
             request,
             layer,
@@ -803,8 +802,7 @@ impl JsCompilation {
             ModuleIdentifier::from(original_module),
           )
           .await
-          .to_napi_result_with_message(|error| print_error_diagnostic(error, false));
-        let res = res?;
+          .map_err(|error| CallbackError::from_diagnostic(error, false))?;
 
         let js_result = JsExecuteModuleResult {
           cacheable: res.cacheable,

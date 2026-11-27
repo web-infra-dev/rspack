@@ -553,6 +553,7 @@ impl CopyRspackPlugin {
 
     match glob_entries {
       Ok(mut entries) => {
+        let matched_count = entries.len();
         entries.retain(|entry| {
           pattern.glob_options.ignore.as_ref().is_none_or(|filters| {
             filters
@@ -569,13 +570,17 @@ impl CopyRspackPlugin {
             return Ok(None);
           }
 
+          let message = if matched_count == 0 {
+            format!("No files matched '{glob_query}'. Check `patterns[{index}].from`.")
+          } else {
+            format!(
+              "`patterns[{index}].globOptions.ignore` excluded every file matching '{orig_from}' ({matched_count} total)."
+            )
+          };
           diagnostics
             .lock()
             .expect("failed to obtain lock of `diagnostics`")
-            .push(Diagnostic::error(
-              "CopyRspackPlugin Error".into(),
-              format!("unable to locate '{glob_query}' glob"),
-            ));
+            .push(Diagnostic::error("CopyRspackPlugin Error".into(), message));
           return Ok(None);
         }
 

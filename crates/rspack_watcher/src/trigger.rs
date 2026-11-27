@@ -4,26 +4,32 @@ use rspack_paths::{InternedPath, InternedPathDashSet};
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 use super::{FsEvent, FsEventKind};
+#[cfg(test)]
+use crate::watcher_manager::DirectorySubscriptions;
 use crate::{
   EventBatch, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
   paths::PathManager,
+  watcher_manager::{ContextLookup, WatcherManager},
 };
-/// `DependencyFinder` provides references to sets of files, directories, and missing paths,
-/// allowing efficient lookup and dependency resolution for a given path.
-///
-/// This struct is typically used to determine which registered dependencies (files, directories,
-/// or missing paths) are related to a specific filesystem path, such as when handling file system events.
-pub struct DependencyFinder<'a> {
-  /// Reference to the set of registered file paths.
-  pub files: &'a InternedPathDashSet,
-  /// Reference to the set of registered directory paths.
-  pub directories: &'a InternedPathDashSet,
-  /// Reference to the set of registered missing paths (paths that were expected but not found).
-  pub missing: &'a InternedPathDashSet,
+
+#[cfg(test)]
+impl ContextLookup for InternedPathDashSet {
+  fn subscriptions(&self, path: &InternedPath) -> DirectorySubscriptions {
+    DirectorySubscriptions {
+      explicit: self.contains(path),
+      parent: None,
+    }
+  }
 }
 
-impl<'a> DependencyFinder<'a> {
+struct DependencyFinder<'a, D = WatcherManager> {
+  files: &'a InternedPathDashSet,
+  directories: &'a D,
+  missing: &'a InternedPathDashSet,
+}
+
+impl<D: ContextLookup> DependencyFinder<'_, D> {
   /// Finds all registered dependencies related to the given path.
   ///
   /// This method checks if the path is a directory or file and then determines if it is registered
@@ -51,8 +57,7 @@ impl<'a> DependencyFinder<'a> {
       paths.push((path.clone(), kind));
     }
 
-    // Recursively add all parent directories that are registered as directories or missing.
-    self.recurse_parent_directories(path, &mut paths);
+    self.collect_parent_dependencies(path, &mut paths);
 
     paths
   }
@@ -64,29 +69,27 @@ impl<'a> DependencyFinder<'a> {
 
   /// Checks if the given path is registered as a directory or missing.
   fn contains_directory(&self, path: &InternedPath) -> bool {
-    self.directories.contains(path) || self.missing.contains(path)
+    self.directories.subscriptions(path).explicit || self.missing.contains(path)
   }
 
   fn contains_path(&self, path: &InternedPath) -> bool {
-    self.files.contains(path) || self.directories.contains(path) || self.missing.contains(path)
+    self.contains_file(path) || self.directories.subscriptions(path).explicit
   }
 
-  /// Recursively adds all parent directories that are registered as directories or missing.
-  fn recurse_parent_directories(
+  fn collect_parent_dependencies(
     &self,
     path: &InternedPath,
     paths: &mut Vec<(InternedPath, FsEventKind)>,
   ) {
-    match path.parent() {
-      Some(parent) => {
-        if self.contains_directory(&InternedPath::from(parent)) {
-          // For parent directory, it always FsEventKind::Change its recursive children no matter what kind is
-          paths.push((InternedPath::from(parent), FsEventKind::Change));
-        }
-        self.recurse_parent_directories(&InternedPath::from(parent), paths);
-      }
-      None => {
-        // Reached the root directory, stop recursion
+    let mut parent = path.parent().map(InternedPath::from);
+    while let Some(directory) = parent {
+      let subscriptions = self.directories.subscriptions(&directory);
+      // An event can arrive before a new directory was scanned or after its members were swept.
+      parent = subscriptions
+        .parent
+        .or_else(|| directory.parent().map(InternedPath::from));
+      if subscriptions.explicit || self.missing.contains(&directory) {
+        paths.push((directory, FsEventKind::Change));
       }
     }
   }
@@ -404,12 +407,11 @@ impl EventProcessor {
     let accessor = self.path_manager.access();
 
     let files = accessor.files().0;
-    let directories = accessor.directories().0;
     let missing = accessor.missing().0;
 
     DependencyFinder {
       files,
-      directories,
+      directories: &self.path_manager.watchers,
       missing,
     }
   }

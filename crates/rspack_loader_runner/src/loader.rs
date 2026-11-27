@@ -9,13 +9,12 @@ use std::{
 
 use async_trait::async_trait;
 use derive_more::Debug;
-use memchr::{memchr2, memchr3};
 use rspack_cacheable::cacheable_dyn;
 use rspack_collections::Identifier;
 use rspack_error::Result;
 use rspack_hash::RspackHasher;
-use rspack_paths::{Utf8Path, Utf8PathBuf};
-use rspack_util::identifier::strip_zero_width_space_for_fragment;
+use rspack_paths::{InternedPath, Utf8Path, Utf8PathBuf};
+use rspack_util::identifier::{split_resource, strip_zero_width_space_for_fragment};
 
 use super::{Content, LoaderContext, LoaderFilter, LoaderRunnerOptions};
 
@@ -316,6 +315,11 @@ where
     None
   }
 
+  /// Build dependency paths that fingerprint this loader implementation for caching.
+  fn build_dependencies(&self) -> &[InternedPath] {
+    &[]
+  }
+
   /// Hashes loader-specific inputs into the cache etag before the chain runs.
   fn etag(&self, _context: &Context, _hasher: &mut RspackHasher) {}
 
@@ -396,7 +400,7 @@ pub struct ResourceParsedData {
 }
 
 pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
-  let (path, query, fragment) = path_query_fragment(resource);
+  let (path, query, fragment) = split_resource(resource);
 
   Some(ResourceParsedData {
     path: strip_zero_width_space_for_fragment(path)
@@ -405,52 +409,6 @@ pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
     query: query.map(|q| strip_zero_width_space_for_fragment(q).into_owned()),
     fragment: fragment.map(|f| f.to_owned()),
   })
-}
-
-fn path_query_fragment(input: &str) -> (&str, Option<&str>, Option<&str>) {
-  #[cfg(windows)]
-  let prefix_len = rspack_paths::dos_device_path_prefix_len(input);
-  #[cfg(not(windows))]
-  let prefix_len = 0;
-
-  let path_end = prefix_len + find_resource_delimiter(&input[prefix_len..], true);
-  let (path, rest) = input.split_at(path_end);
-  let (query, rest) = if let Some(query_body) = rest.strip_prefix('?') {
-    let (query, rest) = rest.split_at(1 + find_resource_delimiter(query_body, false));
-    (Some(query), rest)
-  } else {
-    (None, rest)
-  };
-  (path, query, rest.starts_with('#').then_some(rest))
-}
-
-fn find_resource_delimiter(input: &str, allow_query: bool) -> usize {
-  const ESCAPE_START: u8 = 0xe2; // The first UTF-8 byte of U+200B.
-
-  let mut offset = 0;
-  loop {
-    let tail = &input[offset..];
-    let bytes = tail.as_bytes();
-    let next = if allow_query {
-      memchr3(b'?', b'#', ESCAPE_START, bytes)
-    } else {
-      memchr2(b'#', ESCAPE_START, bytes)
-    };
-    let Some(next) = next else {
-      return input.len();
-    };
-    if bytes[next] != ESCAPE_START {
-      return offset + next;
-    }
-
-    // The UTF-8 leading byte can also match other characters.
-    let mut chars = tail[next..].chars();
-    if chars.next() == Some('\u{200b}') && chars.next().is_none() {
-      // A trailing escape ends the path or query without becoming part of it.
-      return offset + next;
-    }
-    offset = input.len() - chars.as_str().len();
-  }
 }
 
 #[cfg(test)]

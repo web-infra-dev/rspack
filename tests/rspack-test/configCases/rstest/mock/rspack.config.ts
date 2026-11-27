@@ -270,6 +270,7 @@ export default defineConfig([
   rstestEntry('./importActualHoisted.js'),
   rstestEntry('./importActualTransitive.js'),
   rstestEntry('./importActualSpreadTransitive.js'),
+  rstestEntry('./importActualCjsDefault.js'),
   rstestEntry('./requireActual.js'),
   rstestEntry('./doMockRequire.js'),
   rstestEntry('./unmockRequire.js'),
@@ -316,6 +317,7 @@ export default defineConfig([
       'rstack/test': 'commonjs rstack/test',
     },
   },
+  rstestEntry('./hoisted-cjs-default.js'),
   {
     ...rstestEntry('./doMockExpression.js'),
     externals: {

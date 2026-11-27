@@ -3,14 +3,8 @@ import path from "node:path";
 const excludes = {
 	normal: [],
 	config: [
-		// This case expects stateful loaders to build again on every compiler.
-		/^css-extract\/rebuild-module$/,
-
 		// Existing bundle/compiler assertions fail in the compatibility suite.
-		/^loader\/context-module$/,
-
-		// Shared extracted CSS can retain different producers' loader dependencies.
-		/^plugins\/mini-css-extract-plugin$/
+		/^loader\/context-module$/
 	]
 };
 

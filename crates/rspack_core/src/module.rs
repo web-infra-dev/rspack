@@ -45,6 +45,7 @@ pub struct BuildContext {
   pub compiler_options: Arc<CompilerOptions>,
   // Background task contexts can outlive a failed build and compiler.close().
   pub loader_cache: Weak<LoaderCache>,
+  pub loader_build_dependencies_cache: Option<Arc<crate::LoaderBuildDependenciesCache>>,
   pub loader_cache_counters: Arc<crate::CacheCounters>,
   pub value_cache_versions: ValueCacheVersions,
   pub file_system_info: FileSystemInfo,
@@ -60,6 +61,7 @@ pub struct NeedBuildContext<'a> {
   pub fresh_module: &'a dyn Module,
   pub file_system_info: &'a FileSystemInfo,
   pub value_cache_versions: &'a ValueCacheVersions,
+  pub force_build: bool,
 }
 
 impl<'a> NeedBuildContext<'a> {
@@ -67,11 +69,13 @@ impl<'a> NeedBuildContext<'a> {
     fresh_module: &'a dyn Module,
     file_system_info: &'a FileSystemInfo,
     value_cache_versions: &'a ValueCacheVersions,
+    force_build: bool,
   ) -> Self {
     Self {
       fresh_module,
       file_system_info,
       value_cache_versions,
+      force_build,
     }
   }
 }

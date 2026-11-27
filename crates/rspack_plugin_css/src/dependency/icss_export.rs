@@ -20,6 +20,44 @@ pub struct CssIcssReference {
   pub dependency_id: DependencyId,
 }
 
+#[cacheable]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CssExportKind {
+  /// Plain `@value`, `:export`, global compose literal, or alias-collision wrapper.
+  Value,
+  /// Local `.class`, `#id`, `@keyframes`, `@counter-style`, `@container`, or grid identifier.
+  LocalIdent,
+  /// Local `--custom-property`, `@property`, `@function`, or `@font-palette-values`.
+  LocalDashedIdent,
+  /// `.class` or `#id` selector bound to an imported ICSS value.
+  /// Resolves to `import`'s scoped `LocalIdent` when the target is one; otherwise
+  /// falls back to the local identifier stored in `value`.
+  ImportedSelector { import: DependencyId },
+  /// Combines an earlier export (`references[0]`) that already exports `import`
+  /// with an `ImportedSelector` (`composes[0]`), suppressing the duplicate `import`
+  /// when `import` resolves to a `LocalIdent` while preserving any extra
+  /// `composes` declared on the selector rule itself.
+  ImportedSelectorExport { import: DependencyId },
+  /// Compose target referencing an imported binding (`references[0]`) that also
+  /// has a matching `ImportedSelector` (`composes[0]`). Resolves to `composes[0]`
+  /// when `import` targets a `LocalIdent`, or falls back to `references[0]` when
+  /// `import` targets a plain value.
+  ImportedSelectorCompose { import: DependencyId },
+}
+
+impl RspackHash for CssExportKind {
+  fn hash(&self, state: &mut RspackHasher) {
+    match self {
+      Self::Value => state.write(b"Value"),
+      Self::LocalIdent => state.write(b"LocalIdent"),
+      Self::LocalDashedIdent => state.write(b"LocalDashedIdent"),
+      Self::ImportedSelector { .. } => state.write(b"ImportedSelector"),
+      Self::ImportedSelectorExport { .. } => state.write(b"ImportedSelectorExport"),
+      Self::ImportedSelectorCompose { .. } => state.write(b"ImportedSelectorCompose"),
+    }
+  }
+}
+
 /// One CSS definition and its composition relationships.
 /// `.button { composes: base from "./base.css" }` owns the generated button
 /// identifier and the ID of the `base` import. `@value gap: 10px` instead owns
@@ -39,7 +77,7 @@ pub struct CssIcssExportDependency {
   /// Space-separated values appended by `composes`; never copied definitions.
   #[rspack_hash(skip)]
   pub composes: Vec<DependencyId>,
-  pub local_ident: bool,
+  pub kind: CssExportKind,
   /// `None` for definitions used internally without declaring a JS export.
   // The module graph hash already includes the resulting export names and state.
   #[rspack_hash(skip)]
@@ -51,7 +89,7 @@ impl CssIcssExportDependency {
     name: SmolStr,
     value: SmolStr,
     references: Vec<CssIcssReference>,
-    local_ident: bool,
+    kind: CssExportKind,
     can_mangle: Option<bool>,
   ) -> Self {
     Self {
@@ -60,7 +98,7 @@ impl CssIcssExportDependency {
       value,
       references,
       composes: Vec::new(),
-      local_ident,
+      kind,
       can_mangle,
     }
   }

@@ -272,29 +272,12 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             }
           });
 
-        let (imports_code, imports_compat_code): (Vec<String>, Vec<String>) = dep_modules
-          .iter()
-          .map(|(_, dep_module)| {
-            runtime_template.import_statement(
-              module,
-              compilation,
-              &dep_module.deps[0].0,
-              &dep_module.import_var,
-              dep_module.request,
-              ImportPhase::Evaluation,
-              false,
-            )
-          })
-          .unzip();
-        let imports_code = imports_code.join("");
-        let imports_compat_code = imports_compat_code.join("");
-
         let import_obj_request_items = dep_modules
-          .into_values()
+          .values()
           .map(|dep_module| {
             let deps = dep_module
               .deps
-              .into_iter()
+              .iter()
               .map(|(dep_id, export_name)| {
                 let export = runtime_template.export_from_import(
                   compilation,
@@ -304,14 +287,14 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
                   true,
                   dep_module.request,
                   &dep_module.import_var,
-                  std::slice::from_ref(&export_name),
-                  &dep_id,
+                  std::slice::from_ref(export_name),
+                  dep_id,
                   false,
                   false,
                   Some(true),
                   ImportPhase::Evaluation,
                 );
-                let name = json_stringify_str(&export_name);
+                let name = json_stringify_str(export_name);
                 format!("{name}: {export}")
               })
               .collect::<Vec<_>>()
@@ -320,6 +303,30 @@ impl ParserAndGenerator for AsyncWasmParserAndGenerator {
             format!("{}: {{\n{deps}\n}}", json_stringify_str(dep_module.request))
           })
           .collect::<Vec<_>>();
+
+        let (imports_code, imports_compat_code): (Vec<String>, Vec<String>) = dep_modules
+          .values()
+          .map(|dep_module| {
+            let (import_content, default_interop) = runtime_template.import_statement(
+              module,
+              compilation,
+              &dep_module.deps[0].0,
+              &dep_module.import_var,
+              dep_module.request,
+              ImportPhase::Evaluation,
+              false,
+            );
+            let compat_content =
+              if default_interop && runtime_template.uses_default_interop(&dep_module.import_var) {
+                runtime_template.default_interop_statement(&dep_module.import_var, false)
+              } else {
+                String::new()
+              };
+            (import_content, compat_content)
+          })
+          .unzip();
+        let imports_code = imports_code.join("");
+        let imports_compat_code = imports_compat_code.join("");
 
         let imports_obj = if !import_obj_request_items.is_empty() {
           Some(format!(

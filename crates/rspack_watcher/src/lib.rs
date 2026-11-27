@@ -6,6 +6,7 @@ mod paths;
 mod scanner;
 mod time;
 mod trigger;
+mod watcher_manager;
 
 #[cfg(feature = "testing")]
 #[doc(hidden)]

@@ -47,6 +47,16 @@ pub struct ParseContext<'a> {
   pub runtime_template: &'a ModuleCodeTemplate,
 }
 
+impl<'a> ParseContext<'a> {
+  /// Returns `module_match_resource` if present, otherwise falls back to `resource_data`.
+  /// Use this for matching, module-type detection, and generated naming semantics (aligned with
+  /// webpack's `NormalModule#getResource`), not for JS runtime semantics that require the
+  /// original resource path or query.
+  pub fn effective_resource_data(&self) -> &'a ResourceData {
+    self.module_match_resource.unwrap_or(self.resource_data)
+  }
+}
+
 #[cacheable]
 #[derive(Debug, Default, Clone)]
 pub struct CollectedTypeScriptInfo {

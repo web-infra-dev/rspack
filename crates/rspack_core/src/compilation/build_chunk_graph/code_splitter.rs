@@ -911,7 +911,6 @@ Remove the 'runtime' option from the entrypoint."
       let mut entry_point_runtime = None;
       let mut depend_on_entries = vec![];
       let mut entry_point_parents = vec![];
-      let mut has_error = false;
 
       {
         let entry_point = compilation
@@ -926,36 +925,41 @@ Remove the 'runtime' option from the entrypoint."
           .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
 
         for dep in depend_on {
-          if let Some(dependency_ukey) = compilation.build_chunk_graph_artifact.entrypoints.get(dep)
+          let message = if let Some(dependency_ukey) =
+            compilation.build_chunk_graph_artifact.entrypoints.get(dep)
           {
             let dependency_chunk_ukey = compilation
               .build_chunk_graph_artifact
               .chunk_group_by_ukey
               .expect_get(dependency_ukey)
               .get_entrypoint_chunk();
-            if referenced_chunks.contains(&dependency_chunk_ukey) {
-              let mut diagnostic = Diagnostic::from(error!(
-                "Entrypoints '{name}' and '{dep}' use 'dependOn' to depend on each other in a circular way."
-              ));
-              diagnostic.chunk = Some(entry_point.get_entrypoint_chunk().as_u32());
-              runtime_errors.push(diagnostic);
-              entry_point_runtime = Some(entry_point_chunk.ukey());
-              has_error = true;
-              break;
+            if !referenced_chunks.contains(&dependency_chunk_ukey) {
+              depend_on_entries.push(dependency_ukey);
+              continue;
             }
-            depend_on_entries.push(dependency_ukey);
+            format!(
+              "Entrypoints '{name}' and '{dep}' use 'dependOn' to depend on each other in a circular way."
+            )
           } else {
-            panic!("Entry {name} depends on {dep}, but this entry was not found");
-          }
+            let entries = compilation.entries.keys().sorted().format("', '");
+            format!(
+              "Entrypoint '{name}' references unknown entry '{dep}' in 'dependOn'. Configured entries: '{entries}'."
+            )
+          };
+          let mut diagnostic = Diagnostic::from(Error::error(message));
+          diagnostic.chunk = Some(entry_point_chunk.ukey().as_u32());
+          runtime_errors.push(diagnostic);
+          entry_point_runtime = Some(entry_point_chunk.ukey());
+          break;
         }
       }
 
-      if has_error {
+      if let Some(runtime_chunk) = entry_point_runtime {
         let entry_point = compilation
           .build_chunk_graph_artifact
           .chunk_group_by_ukey
           .expect_get_mut(ukey);
-        entry_point.set_runtime_chunk(entry_point_runtime.expect("Should set runtime chunk"));
+        entry_point.set_runtime_chunk(runtime_chunk);
       } else {
         {
           for depend in depend_on_entries {

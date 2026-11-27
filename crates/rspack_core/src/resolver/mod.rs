@@ -10,7 +10,7 @@ use std::{
 
 use regex::Regex;
 use rspack_cacheable::{cacheable, with::AsPreset};
-use rspack_error::Error;
+use rspack_error::{Error, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::{DescriptionData, ResourceData};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
@@ -159,14 +159,14 @@ pub async fn resolve_for_error_hints(
       };
       let suggestion =
         format_resolved_resource(&suggested_path, &resource.query, &resource.fragment);
-      return Some(format!("Did you mean '{}'?
-
-The request '{}' failed to resolve only because it was resolved as fully specified,
-probably because the origin is strict ECMAScript Module,
-e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\"type\": \"module\"'.
-
-The extension in the request is mandatory for it to be fully specified.
-Add the extension to the request.", suggestion, args.specifier));
+      let resolution = match args.dependency_category {
+        DependencyCategory::Esm => "Strict ESM resolution",
+        _ => "`resolve.fullySpecified`",
+      };
+      return Some(format!(
+        "Did you mean {}? {resolution} requires an explicit filename and extension, even for a directory's index file.",
+        yellow(&format_args!("'{suggestion}'"))
+      ));
     }
   }
 
@@ -189,14 +189,15 @@ Add the extension to the request.", suggestion, args.specifier));
     let request = format!("./{}", args.specifier);
     if resolver.resolve(base_dir, &request).await.is_ok() {
       return Some(format!(
-          "Did you mean './{}'?
+          "Did you mean {}?
 
 Requests that should resolve in the current directory need to start with './'.
 Requests that start with a name are treated as module requests and resolve within module directories{module_directories}
 
-If changing the source code is not an option, there is also a resolve options called 'preferRelative'
+If changing the source code is not an option, there is also a resolve options called '{}'
 which tries to resolve these kind of requests in the current directory too.",
-          args.specifier
+          yellow(&format_args!("'{request}'")),
+          cyan(&"preferRelative")
         ));
     }
   }
@@ -277,9 +278,13 @@ which tries to resolve these kind of requests in the current directory too.",
           "Found module '{suggestion}'. However, it's not possible to request this module without the extension 
 if its extension was not listed in the `resolve.extensions`. Here're some possible solutions:
 
-1. add the extension `\".{suggestion_ext}\"` to `resolve.extensions` in your rspack configuration
-2. use '{suggestion}' instead of '{specifier}'
-"));
+1. add the extension `{extension}` to `{option}` in your rspack configuration
+2. use {replacement} instead of '{specifier}'
+",
+          extension = cyan(&format_args!("\".{suggestion_ext}\"")),
+          option = cyan(&"resolve.extensions"),
+          replacement = yellow(&format_args!("'{suggestion}'")),
+          ));
         }
 
         return Some(hint.join("\n"));

@@ -429,7 +429,9 @@ The following substitutions are available in template strings
 | [resource-path]          | The path used to resolve the file without any query params                                                            |
 | [namespace]              | The modules namespace. This is usually the library name when building as a library, empty otherwise                   |
 
-When using a function, the same options are available camel-cased via the `info` parameter:
+`[absolute-resource-path]` and `[relative-resource-path]` normalize regular filesystem paths using POSIX rules, including converting `\` to `/` on Windows. For modules backed by regular files, the absolute path comes from the resolved resource.
+
+Function templates receive the same fields in camel case on `info`, including the normalized `info.absoluteResourcePath` and `info.relativeResourcePath`.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1134,50 +1136,46 @@ Note that not setting a `output.library.name` will cause all properties returned
 
 #### Module definition systems
 
-These options will result in a bundle that comes with a complete header to ensure compatibility with various module systems. The `output.library.name` option will take on a different meaning under the following `output.library.type` options.
-
-##### type: 'module'
-
-```js title="rspack.config.mjs"
-export default {
-  output: {
-    library: {
-      // do not specify a `name` here
-      type: 'module',
-    },
-  },
-};
-```
-
-Output ES modules.
-
-This is the more compatibility-oriented ESM library path: Rspack still uses the regular rendering pipeline for chunks and the Rspack runtime and then converts the entry exports into `export` statements. It fits simpler ESM library output, or cases where you mainly want webpack-style `module` semantics.
+Choose the output format based on how consumers load your library. For example, consumers can use `import` to load an ESM library built with `'modern-module'`, or `require()` to load a CommonJS library built with [`'commonjs2'`](#type-commonjs2).
 
 ##### type: 'modern-module'
 
+We recommend `'modern-module'` for ESM libraries.
+
 ```js title="rspack.config.mjs"
 export default {
   output: {
-    library: {
-      // do not specify a `name` here
-      type: 'modern-module',
-    },
+    library: { type: 'modern-module' },
   },
 };
 ```
 
-This configuration enables Rspack's dedicated rendering pipeline for ESM libraries. It emits direct `import` / `export` statements and supports library-oriented tree shaking, scope hoisting, code splitting, and [`output.library.preserveModules`](#outputlibrarypreservemodules).
+If a module is loaded only on demand with `import()`, Rspack splits it into a separate ESM chunk by default. The generated code loads that chunk with native `import()`.
 
-:::tip `module` vs `modern-module`
+To keep the source directory structure in the output, configure [`output.library.preserveModules`](#outputlibrarypreservemodules).
 
-- `module` stays on the regular rendering pipeline for chunks and the Rspack runtime and is closer to webpack-compatible ESM semantics.
-- `modern-module` is handled by a dedicated ESM library plugin that owns chunk rendering, linking, scope hoisting, and splitChunks behavior, making it a better fit for publishable tree-shakable, code-split ESM libraries.
-- `modern-module` currently exists as a separate type to fill the ESM library capability gap; once it is mature enough, the long-term direction is to converge it with `module` into a single `library.type`.
-- `preserveModules` is only available with `modern-module`.
-- When `output.library` is configured and `output.module = true`, Rspack currently defaults `output.library.type` to `modern-module` if you don't specify one explicitly.
-- Mixing `modern-module` with other `library.type` values in the same compilation triggers a warning because its chunk format and loading mechanism apply to the whole compilation.
+To let consumers import the library by its package name, configure the package entry in `package.json`. For a complete example, see [Build an ESM library](/guide/features/esm#build-an-esm-library).
+
+:::tip Usage notes
+
+- Setting the library type to `'modern-module'` or `'module'` enables [`output.module`](#outputmodule) by default. If you already set `output.module: true`, you can omit `type` when configuring `output.library`. It defaults to `'modern-module'`.
+- If you also need another output format such as CommonJS, use a separate build configuration for each format. Rspack warns when you enable `'modern-module'` and another library type in the same compilation because the ESM chunk format and loading mechanism may be incompatible with the other type.
 
 :::
+
+##### type: 'module'
+
+The `'module'` type also builds ESM libraries, but we no longer recommend it for general use. It is mainly for compatibility with existing webpack projects that use `library.type: 'module'`. Leave [`output.library.name`](#outputlibraryname) unset when using this type.
+
+```js title="rspack.config.mjs"
+export default {
+  output: {
+    library: { type: 'module' },
+  },
+};
+```
+
+The `'module'` library type does not preserve ESM live bindings for exports from the library entry. For example, suppose the entry declares `export let count = 0`. After calling a library function that sets `count` to `1`, consumers still read `0` from the imported `count`. With [`'modern-module'`](#type-modern-module), they read the updated value of `1`.
 
 ##### type: 'commonjs2'
 
@@ -1672,11 +1670,7 @@ In `package.json`, use `exports` to specify which output file each import path l
 - **Type:** `boolean`
 - **Default:** `false`
 
-Output JavaScript files as module type.
-
-When enabled, [`output.iife`](#outputiife) defaults to `false` and [`output.scriptType`](#outputscripttype) defaults to `'module'`. Explicit values for these options take precedence over the defaults.
-
-If you set [`output.library.type`](#outputlibrarytype) to 'module' or 'modern-module', Rspack will set `output.module` to `true` for you automatically.
+Set to `true` to emit JavaScript as ES modules (ESM). When building a library, setting [`output.library.type`](#outputlibrarytype) to `'module'` or `'modern-module'` enables this option automatically.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1685,6 +1679,18 @@ export default {
   },
 };
 ```
+
+For examples of building a browser application or an ESM library, see the [ESM output guide](/guide/features/esm).
+
+### Affected defaults
+
+When you enable `output.module`, Rspack automatically adjusts some related defaults to produce output that conforms to the ESM specification. For example:
+
+- [`output.filename`](#outputfilename) defaults to `'[name].mjs'`.
+- [`output.iife`](#outputiife) defaults to `false`, so Rspack omits the immediately invoked function expression (IIFE) around the whole bundle.
+- [`output.scriptType`](#outputscripttype) defaults to `'module'` for script tags created by the runtime.
+- When building a browser application for a target that supports dynamic `import()`, [`output.chunkFormat`](#outputchunkformat) defaults to `'module'` and [`output.chunkLoading`](#outputchunkloading) defaults to `'import'`.
+- If you configure [`output.library`](#outputlibrary) and omit `type`, Rspack defaults to `'modern-module'`.
 
 ## output.path
 
@@ -1786,13 +1792,9 @@ See [Asset base path](/guide/features/asset-base-path) for more details.
 ## output.scriptType
 
 - **Type:** `false | 'text/javascript' | 'module'`
-- **Default:** `false`
+- **Default:** `'module'` when [`output.module`](#outputmodule) is enabled, otherwise `false`
 
-This option allows loading asynchronous chunks with a custom script type, such as `<script type="module" ...>`.
-
-:::tip
-If [`output.module`](#outputmodule) is set to `true`, `output.scriptType` will default to `'module'` instead of `false`.
-:::
+Sets the `type` attribute on `<script>` tags that the Rspack runtime creates to load async chunks. When set to `false`, the runtime omits the attribute. To configure the entry scripts in generated HTML, use [`HtmlRspackPlugin.scriptLoading`](/plugins/html-rspack-plugin#scriptloading).
 
 ```js title="rspack.config.mjs"
 export default {

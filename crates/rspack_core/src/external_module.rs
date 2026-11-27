@@ -654,6 +654,49 @@ impl ExternalModule {
     resolve_external_type(self.external_type.as_str(), &self.dependency_meta)
   }
 
+  /// Renders the CSS text of a `css-import` external module.
+  ///
+  /// These modules have no source of their own, their stylesheet is generated
+  /// from the external request and the `@import` conditions.
+  pub fn css_import_source(&self) -> Option<String> {
+    if self.resolve_external_type() != "css-import" {
+      return None;
+    }
+    let request = self.try_get_request()?;
+    let mut source = format!(
+      "@import url({})",
+      rspack_util::json_stringify_str(request.primary())
+    );
+    if let Some(conditions) = &self.dependency_meta.css_import_conditions {
+      if let Some(layer) = &conditions.layer {
+        source.push_str(" layer(");
+        if let CssLayer::Named(layer) = layer {
+          source.push_str(layer);
+        }
+        source.push(')');
+      }
+      if let Some(supports) = conditions
+        .supports
+        .as_deref()
+        .filter(|value| !value.is_empty())
+      {
+        source.push_str(" supports(");
+        source.push_str(supports);
+        source.push(')');
+      }
+      if let Some(media) = conditions
+        .media
+        .as_deref()
+        .filter(|value| !value.is_empty())
+      {
+        source.push(' ');
+        source.push_str(media);
+      }
+    }
+    source.push(';');
+    Some(source)
+  }
+
   pub async fn chunk_condition_with_hooks(
     &self,
     chunk_ukey: &ChunkUkey,
@@ -1353,40 +1396,10 @@ impl Module for ExternalModule {
           .data_mut()
           .insert(CodeGenerationDataUrl::new(request.primary().to_string()));
       }
-      "css-import" if request.is_some() => {
-        let request = request.expect("request should be some");
-        let mut source = format!(
-          "@import url({})",
-          rspack_util::json_stringify_str(request.primary())
-        );
-        if let Some(conditions) = &self.dependency_meta.css_import_conditions {
-          if let Some(layer) = &conditions.layer {
-            source.push_str(" layer(");
-            if let CssLayer::Named(layer) = layer {
-              source.push_str(layer);
-            }
-            source.push(')');
-          }
-          if let Some(supports) = conditions
-            .supports
-            .as_deref()
-            .filter(|value| !value.is_empty())
-          {
-            source.push_str(" supports(");
-            source.push_str(supports);
-            source.push(')');
-          }
-          if let Some(media) = conditions
-            .media
-            .as_deref()
-            .filter(|value| !value.is_empty())
-          {
-            source.push(' ');
-            source.push_str(media);
-          }
+      "css-import" => {
+        if let Some(source) = self.css_import_source() {
+          cgr.add(SourceType::Css, RawStringSource::from(source).boxed());
         }
-        source.push(';');
-        cgr.add(SourceType::Css, RawStringSource::from(source).boxed());
       }
       _ => {
         let (source, chunk_init_fragments) = self.get_source(

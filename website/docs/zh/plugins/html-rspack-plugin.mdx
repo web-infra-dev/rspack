@@ -78,9 +78,11 @@ export default {
 
 ### 模块脚本
 
-启用 [`output.module`](/config/output#outputmodule) 且未设置 `scriptLoading` 时，插件会生成 `<script type="module">`，而不是 `<script defer>`：
+启用 [`output.module`](/config/output#outputmodule) 后，[`scriptLoading`](#scriptloading) 默认为 `'module'`。插件会为 HTML 中的入口脚本添加 `type="module"`，并将 `src` 指向构建生成的入口文件。
 
 ```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
 export default {
   output: {
     module: true,
@@ -90,7 +92,7 @@ export default {
 ```
 
 ```html
-<script src="main.js" type="module"></script>
+<script src="main.mjs" type="module"></script>
 ```
 
 ### 生产模式压缩

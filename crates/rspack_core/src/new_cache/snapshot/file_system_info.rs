@@ -289,44 +289,58 @@ impl FileSystemInfo {
   ///
   /// See webpack's build dependency resolution implementation:
   /// https://github.com/webpack/webpack/blob/ce97d583e1cd8f3e47b70737de72e91b567a8497/lib/FileSystemInfo.js#L1873-L2523
-  pub async fn resolve_build_dependencies(
+  pub fn resolve_build_dependencies(
     &self,
     paths: impl Iterator<Item = InternedPath>,
-  ) -> ResolvedBuildDependencies {
-    let mut helper = BuildDependencyHelper::new(self.inner.fs.clone(), self.inner.logger.clone());
-    let mut resolved = ResolvedBuildDependencies::default();
-    let mut visited = InternedPathSet::default();
-    let mut queue = VecDeque::new();
-    queue.extend(paths);
+  ) -> BoxFuture<'_, ResolvedBuildDependencies> {
+    self.resolve_build_dependencies_impl(paths.collect())
+  }
 
-    while let Some(dependency) = queue.pop_front() {
-      if !visited.insert(dependency.clone()) {
-        continue;
-      }
-      match self.inner.fs.metadata(dependency.assert_utf8()).await {
-        Ok(metadata) if metadata.is_directory => {
-          resolved.contexts.insert(dependency.clone());
-        }
-        Ok(_) => {
-          resolved.files.insert(dependency.clone());
-        }
-        Err(_) => {
-          resolved.missing.insert(dependency.clone());
-        }
-      }
-      if is_node_package_path(&dependency) {
-        continue;
-      }
-      if let Some(children) = helper.resolve(dependency.assert_utf8()).await {
-        queue.extend(
-          children
-            .into_iter()
-            .map(|path| InternedPath::from(path.as_path())),
-        );
-      }
-    }
+  #[inline(never)]
+  fn resolve_build_dependencies_impl(
+    &self,
+    mut queue: VecDeque<InternedPath>,
+  ) -> BoxFuture<'_, ResolvedBuildDependencies> {
+    Box::pin(async move {
+      let mut helper = None;
+      let mut resolved = ResolvedBuildDependencies::default();
+      let mut visited = InternedPathSet::default();
 
-    resolved
+      while let Some(dependency) = queue.pop_front() {
+        if !visited.insert(dependency.clone()) {
+          continue;
+        }
+        let is_missing = match self.inner.fs.metadata(dependency.assert_utf8()).await {
+          Ok(metadata) if metadata.is_directory => {
+            resolved.contexts.insert(dependency.clone());
+            false
+          }
+          Ok(_) => {
+            resolved.files.insert(dependency.clone());
+            false
+          }
+          Err(_) => {
+            resolved.missing.insert(dependency.clone());
+            true
+          }
+        };
+        if is_missing || is_node_package_path(&dependency) {
+          continue;
+        }
+        let helper = helper.get_or_insert_with(|| {
+          BuildDependencyHelper::new(self.inner.fs.clone(), self.inner.logger.clone())
+        });
+        if let Some(children) = helper.resolve(dependency.assert_utf8()).await {
+          queue.extend(
+            children
+              .into_iter()
+              .map(|path| InternedPath::from(path.as_path())),
+          );
+        }
+      }
+
+      resolved
+    })
   }
 
   /// Use the legacy cache's path matching with webpack's precedence:

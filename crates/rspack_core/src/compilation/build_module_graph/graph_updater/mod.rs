@@ -10,11 +10,17 @@ use self::{cutout::Cutout, repair::repair};
 use super::BuildModuleGraphArtifact;
 use crate::{Compilation, DependencyId, ExportsInfoArtifact, ModuleGraph};
 
-/// Include modules generated from module executor results in an explicit rebuild.
-/// Rebuild every producer of a shared generated module so repair cannot recreate
-/// it from stale dependency data. Ordinary file updates use their tracked
-/// dependencies instead, preserving rebuild locality.
-pub fn expand_rebuild_modules(module_graph: &ModuleGraph, modules: &mut IdentifierSet) {
+/// Expand `modules` across `is_module_executor_result()` dependencies.
+///
+/// Always propagates forward to generated modules so rebuilding a producer refreshes
+/// its generated results. When `include_sibling_producers` is true (explicit
+/// `rebuildModule`), also pulls in other producers of shared generated modules so
+/// repair cannot recreate them from stale dependency data.
+pub fn expand_module_executor_results(
+  module_graph: &ModuleGraph,
+  modules: &mut IdentifierSet,
+  include_sibling_producers: bool,
+) {
   let mut queue = modules.iter().copied().collect::<Vec<_>>();
   let mut expanded_generated = IdentifierSet::default();
   while let Some(module) = queue.pop() {
@@ -26,14 +32,20 @@ pub fn expand_rebuild_modules(module_graph: &ModuleGraph, modules: &mut Identifi
         continue;
       }
       let generated = *connection.module_identifier();
-      if !expanded_generated.insert(generated) {
+      if module_graph.module_by_identifier(&generated).is_none()
+        || !expanded_generated.insert(generated)
+      {
         continue;
       }
       if modules.insert(generated) {
         queue.push(generated);
       }
+      if !include_sibling_producers {
+        continue;
+      }
       for incoming in module_graph.get_incoming_connections(&generated) {
         if let Some(producer) = incoming.original_module_identifier
+          && module_graph.module_by_identifier(&producer).is_some()
           && modules.insert(producer)
         {
           queue.push(producer);
@@ -74,7 +86,7 @@ pub struct ModuleGraphUpdateResult {
 pub async fn update_module_graph(
   compilation: &Compilation,
   mut artifact: BuildModuleGraphArtifact,
-  mut exports_info_artifact: ExportsInfoArtifact,
+  exports_info_artifact: ExportsInfoArtifact,
   params: Vec<UpdateParam>,
 ) -> ModuleGraphUpdateResult {
   // Also covers rebuildModule and entry additions outside the make phase.
@@ -84,16 +96,18 @@ pub async fn update_module_graph(
     .map(|cache| cache.begin_build());
   let mut cutout = Cutout::default();
 
-  let build_dependencies = cutout.cutout_artifact(compilation, &mut artifact, params);
+  let mut force_build_modules = IdentifierSet::default();
+  let build_dependencies =
+    cutout.cutout_artifact(compilation, &mut artifact, params, &mut force_build_modules);
 
-  let revoked_modules = artifact.revoked_modules().copied().collect();
-  let result = compilation
-    .plugin_driver
-    .compilation_hooks
-    .revoked_modules
-    .call(compilation, &revoked_modules)
-    .await;
-  if let Err(error) = result {
+  let revoked_modules_hook = &compilation.plugin_driver.compilation_hooks.revoked_modules;
+  // Notify only about modules removed by this cutout, before repair can create
+  // new wrappers for the same identifiers. The cumulative affected set still
+  // includes modules that were already rebuilt by earlier graph updates.
+  if let Err(error) = revoked_modules_hook
+    .call(compilation, &force_build_modules)
+    .await
+  {
     return ModuleGraphUpdateResult {
       artifact,
       exports_info_artifact,
@@ -101,21 +115,26 @@ pub async fn update_module_graph(
     };
   }
 
-  let result;
-  (artifact, exports_info_artifact, result) = repair(
+  let (mut artifact, exports_info_artifact, mut result) = repair(
     compilation,
     artifact,
     exports_info_artifact,
     build_dependencies,
+    force_build_modules,
   )
   .await;
   if result.is_ok() {
-    cutout.fix_artifact(&mut artifact);
+    let revoked_modules = cutout.fix_artifact(&mut artifact);
     let module_graph = artifact.get_module_graph();
     for id in artifact.affected_modules.active() {
       if let Some(module) = module_graph.module_by_identifier(id) {
         module.freeze_build_meta();
       }
+    }
+    if !revoked_modules.is_empty() {
+      result = revoked_modules_hook
+        .call(compilation, &revoked_modules)
+        .await;
     }
   }
   ModuleGraphUpdateResult {

@@ -425,7 +425,7 @@ fn object_member_access_may_have_side_effects(
     if property.computed(ast) || property.method(ast) || property.kind(ast) != PropertyKind::Init {
       return true;
     }
-    property_key_is(property.key(ast), ctx, "__proto__")
+    property_key_is(ast, property.key(ast), "__proto__")
   })
 }
 
@@ -436,8 +436,7 @@ fn property_key_may_have_side_effects(key: PropertyKey, ctx: SideEffectsContext<
   }
 }
 
-fn property_key_is(key: PropertyKey, ctx: SideEffectsContext<'_, '_>, expected: &str) -> bool {
-  let ast = ctx.ast;
+pub(super) fn property_key_is(ast: &Ast<'_>, key: PropertyKey, expected: &str) -> bool {
   match classify_property_key(ast, key) {
     PropertyKeyValue::IdentifierName(identifier) => ast.get_utf8(identifier.name(ast)) == expected,
     PropertyKeyValue::StringLiteral(string) => {

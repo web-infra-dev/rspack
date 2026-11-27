@@ -41,4 +41,16 @@ export default defineConfig([
       },
     },
   },
+  {
+    output: {
+      filename: 'missing-dependOn-[name].js',
+    },
+    entry: {
+      vendor: './a',
+      app: {
+        import: './b',
+        dependOn: ['vendor', 'vendors'],
+      },
+    },
+  },
 ]);

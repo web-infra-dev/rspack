@@ -21,7 +21,7 @@ cleanupUnusedCatalogs: true
 
 catalog:
   '@actions/core': '3.0.1'
-  '@ast-grep/napi': '^0.51.2'
+  '@ast-grep/napi': '^0.51.3'
   '@babel/core': '^7.29.13'
   '@babel/preset-react': '^7.29.7'
   '@discoveryjs/json-ext': '^1.1.0'
@@ -41,12 +41,14 @@ catalog:
   '@rspack/lite-tapable': '1.3.0'
   '@rspack/plugin-preact-refresh': '2.0.2'
   '@rspack/plugin-react-refresh': '^2.0.3'
-  '@rspress/core': '2.1.3'
-  '@rspress/plugin-algolia': '2.1.3'
-  '@rspress/plugin-rss': '2.1.3'
+  '@rspress/core': '2.1.4'
+  '@rspress/plugin-algolia': '2.1.4'
+  '@rspress/plugin-rss': '2.1.4'
   '@rstackjs/doc-ui': '1.14.12'
   '@rstackjs/create-toolkit': '2.2.11'
   '@rstackjs/load-config': '^1.0.2'
+  '@rstackjs/maintainer-skills': '^1.0.0'
+  '@rstackjs/skills': '^1.0.0'
   '@rstest/core': '0.12.6'
   '@rstest/playwright': '0.12.6'
   '@swc-next/parser': '0.7.0'
@@ -78,7 +80,7 @@ catalog:
   'connect-next': '^5.0.0'
   'core-js': '3.51.0'
   'cross-env': '^10.1.0'
-  'cspell': '^10.4.1'
+  'cspell': '^10.5.2'
   'cspell-ban-words': '0.0.4'
   'css-loader': '^7.1.5'
   'csv-stringify': '^6.9.0'
@@ -97,13 +99,13 @@ catalog:
   'heading-case': '^2.0.3'
   'html-loader': '^5.1.0'
   'html-rspack-plugin': '^6.1.11'
-  'http-proxy-middleware': '^4.2.1'
+  'http-proxy-middleware': '^4.2.2'
   'iconv-lite': '^0.7.3'
   'image-minimizer-webpack-plugin': '^5.0.0'
   'javascript-stringify': '^2.1.0'
   'jest-diff': '^30.5.2'
   'jiti': '^2.7.0'
-  'jsdom': '^31.0.0'
+  'jsdom': '^31.0.1'
   'json-loader': '^0.5.7'
   'json5': '^2.2.3'
   'less': '4.9.1'
@@ -117,9 +119,9 @@ catalog:
   'mini-svg-data-uri': '^1.4.4'
   'node-polyfill-webpack-plugin': '^4.1.0'
   'open': '^11.0.4'
-  'path-serializer': '0.7.0'
-  'playwright': '1.65.0'
-  'postcss': '^8.5.32'
+  'path-serializer': '0.8.1'
+  'playwright': '1.65.1'
+  'postcss': '^8.5.33'
   'postcss-loader': '^8.2.1'
   'postcss-pxtorem': '^6.1.0'
   'preact': '^10.29.8'
@@ -139,7 +141,7 @@ catalog:
   'rspack-merge': '1.0.1'
   'rspack-vue-loader': '^17.7.2'
   'rspress-plugin-font-open-sans': '1.0.4'
-  'rstack': '^0.9.1'
+  'rstack': '^0.9.4'
   'sass-loader': '^17.1.0'
   'semver': '^7.8.6'
   'source-map': '^0.8.0'
@@ -150,15 +152,15 @@ catalog:
   'terser-webpack-plugin': '^5.6.1'
   'tinypool': '^2.2.0'
   'toml': '^5.0.1'
-  'ts-checker-rspack-plugin': '^1.7.2'
+  'ts-checker-rspack-plugin': '^1.8.0'
   'typescript': '^6.0.3'
   'url-loader': '^4.1.1'
   'vue': '^3.5.45'
   'wast-loader': '^1.14.1'
   'watchpack': '2.6.4'
-  'webpack-sources': '3.7.0'
+  'webpack-sources': '3.7.1'
   'worker-rspack-loader': '^3.1.5'
-  'ws': '^8.22.1'
+  'ws': '^8.23.0'
   'xxhashjs': '^0.2.2'
   'yamljs': '^0.3.0'
   'zx': '8.8.5'
@@ -174,6 +176,21 @@ allowBuilds:
   core-js: false
   'es5-ext': false
   'esbuild': true
+
+permissions:
+  '@rstackjs/maintainer-skills':
+    skills:
+      - create-draft-release-notes
+      - pr-creator
+      - release-blog-writer
+      - rstack-docs-writer
+      - rstack-eco-ci-debug
+  '@rstackjs/skills':
+    skills:
+      - rspress-description-generator
+  rstack:
+    skills:
+      - rstack-cli-docs
 
 dedupePeers: true
 
@@ -207,7 +224,7 @@ minimumReleaseAgeExclude:
 patchedDependencies:
   # Remove after https://github.com/tinylibs/tinypool/pull/145 is released.
   tinypool@2.2.0: patches/tinypool@2.2.0.patch
-  webpack-sources@3.7.0: patches/webpack-sources@3.7.0.patch
+  webpack-sources@3.7.1: patches/webpack-sources@3.7.1.patch
 
 # Prevent un-reviewed build scripts
 strictDepBuilds: true

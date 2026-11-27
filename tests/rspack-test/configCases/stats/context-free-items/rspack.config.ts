@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
-import type { Compiler, RspackOptions, StatsOptions } from '@rspack/core';
+import {
+  Compilation,
+  type Compiler,
+  type RspackOptions,
+  type StatsOptions,
+} from '@rspack/core';
 
 export default {
   context: import.meta.dirname,
@@ -29,7 +34,14 @@ export default {
             { ...options, ids: false },
             { ...options, orphanModules: false, reasonsSpace: 1 },
           ];
+          compilation.hooks.statsNormalize.tap(
+            'ContextFreeItemsContract',
+            (options) => {
+              options.hash = true;
+            },
+          );
           const results = variants.map((options) => stats.toJson(options));
+          assert.equal(results[0].hash, stats.hash);
           const shared = results[0]
             .chunks!.flatMap((chunk) => chunk.modules!)
             .filter((module) => module.name === './shared.js');
@@ -42,6 +54,38 @@ export default {
             shared[0].issuerPath![0],
             shared[1].issuerPath![0],
           );
+
+          const createStatsFactory = compilation.createStatsFactory;
+          for (const target of [compilation, Compilation.prototype]) {
+            const descriptor = Object.getOwnPropertyDescriptor(
+              target,
+              'createStatsFactory',
+            );
+            let calls = 0;
+            target.createStatsFactory = function (this: Compilation, options) {
+              assert.strictEqual(this, compilation);
+              calls++;
+              const factory = createStatsFactory.call(this, options);
+              factory.hooks.extract
+                .for('compilation')
+                .tap('BuildId', (json) => {
+                  json.buildId = 'ci-42';
+                });
+              return factory;
+            };
+            try {
+              const json = stats.toJson({ all: false });
+              assert.equal(calls, 1);
+              assert('buildId' in json);
+              assert.equal(json.buildId, 'ci-42');
+            } finally {
+              if (descriptor) {
+                Object.defineProperty(target, 'createStatsFactory', descriptor);
+              } else {
+                Reflect.deleteProperty(target, 'createStatsFactory');
+              }
+            }
+          }
 
           const factory = compilation.createStatsFactory(
             compilation.createStatsOptions(options, {}),
@@ -144,13 +188,20 @@ export default {
           );
           assert.deepEqual(publicResult.extraIssuerPath, [{}]);
 
-          compilation.hooks.statsFactory.tap('ForceGenericStats', () => {});
+          let interceptedCalls = 0;
+          compilation.hooks.statsFactory.intercept({
+            call() {
+              interceptedCalls++;
+            },
+          });
           for (let i = 0; i < variants.length; i++) {
             assert.equal(
               JSON.stringify(results[i]),
               JSON.stringify(stats.toJson(variants[i])),
             );
           }
+
+          assert.equal(interceptedCalls, variants.length);
 
           let calls = 0;
           compilation.hooks.statsFactory.tap(

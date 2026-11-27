@@ -18,12 +18,15 @@ export const cutOffMessage = (
   name: string,
   message: string,
 ): string => {
-  const nextLine = stack.indexOf('\n');
-  if (nextLine === -1) {
-    return stack === message ? '' : stack;
+  const prefix = `${name}: ${message}`;
+  if (stack === prefix || stack === message || (!message && stack === name)) {
+    return '';
   }
-  const firstLine = stack.slice(0, nextLine);
-  return firstLine === `${name}: ${message}`
-    ? stack.slice(nextLine + 1)
-    : stack;
+  if (stack.startsWith(`${prefix}\n`)) {
+    return stack.slice(prefix.length + 1);
+  }
+  if (!message && stack.startsWith(`${name}\n`)) {
+    return stack.slice(name.length + 1);
+  }
+  return stack;
 };

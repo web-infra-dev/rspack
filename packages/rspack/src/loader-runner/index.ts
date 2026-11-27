@@ -35,6 +35,7 @@ import {
   type LoaderContext,
   type ResolveCallback,
 } from '../config/adapterRuleUse';
+import type { Logger } from '../logging/Logger';
 import { NormalModule } from '../NormalModule';
 import type { ResolveContext } from '../Resolver';
 import { NonErrorEmittedError, type RspackError } from '../RspackError';
@@ -61,7 +62,7 @@ import {
   invalidateCodeFilterTextCache,
   matchesCodeFilter,
 } from './codeFilter';
-import { LoaderDependenciesState } from './dependencies';
+import { hasDependencyChanges, LoaderDependenciesState } from './dependencies';
 import * as pool from './service';
 import { type HandleIncomingRequest, RequestType } from './service';
 import {
@@ -101,7 +102,10 @@ export class LoaderObject {
   loaderItem: JsLoaderItem;
 
   constructor(loaderItem: JsLoaderItem, compiler: Compiler) {
-    const splittedRequest = parseResourceWithoutFragment(loaderItem.loader);
+    const splittedRequest = parseResourceWithoutFragment(
+      loaderItem.loader,
+      compiler._lastCompilation,
+    );
     this.path = splittedRequest.path;
     this.fragment = '';
     this.options = splittedRequest.query
@@ -282,12 +286,19 @@ export async function runLoaders(
     : undefined;
   const contextDirectory = resourcePath ? dirname(resourcePath) : null;
 
-  // execution state
-  const dependencies = new LoaderDependenciesState(
-    context.dependencies,
-    context.addedDependencies,
-    context.removedDependencies,
-  );
+  const { addedDependencies, removedDependencies } = context;
+  let dependencies: LoaderDependenciesState | undefined;
+  const getDependencyState = () =>
+    (dependencies ??= new LoaderDependenciesState(
+      context.dependencies,
+      addedDependencies,
+      removedDependencies,
+    ));
+
+  // Changes from an earlier loader stage must be merged even if this one adds none.
+  if (hasDependencyChanges(addedDependencies, removedDependencies)) {
+    getDependencyState();
+  }
 
   /// Construct `loaderContext`
   const loaderContext = {} as LoaderContext;
@@ -303,28 +314,28 @@ export async function runLoaders(
   loaderContext.resourceFragment = resourceFragment!;
   loaderContext.dependency = loaderContext.addDependency =
     function addDependency(file) {
-      dependencies.addFile(file);
+      getDependencyState().addFile(file);
     };
   loaderContext.addContextDependency = function addContextDependency(context) {
-    dependencies.addContext(context);
+    getDependencyState().addContext(context);
   };
   loaderContext.addMissingDependency = function addMissingDependency(context) {
-    dependencies.addMissing(context);
+    getDependencyState().addMissing(context);
   };
   loaderContext.addBuildDependency = function addBuildDependency(file) {
-    dependencies.addBuild(file);
+    getDependencyState().addBuild(file);
   };
   loaderContext.getDependencies = function getDependencies() {
-    return dependencies.fileDependencies();
+    return getDependencyState().fileDependencies();
   };
   loaderContext.getContextDependencies = function getContextDependencies() {
-    return dependencies.contextDependencies();
+    return getDependencyState().contextDependencies();
   };
   loaderContext.getMissingDependencies = function getMissingDependencies() {
-    return dependencies.missingDependencies();
+    return getDependencyState().missingDependencies();
   };
   loaderContext.clearDependencies = function clearDependencies() {
-    dependencies.clearDependencies();
+    getDependencyState().clearDependencies();
     context.cacheable = true;
   };
 
@@ -758,7 +769,7 @@ export async function runLoaders(
       );
     }
   }
-  dependencies.mergeChanges();
+  dependencies?.mergeChanges();
 
   const getWorkerLoaderSpan = () => {
     let start = loaderContext.loaderIndex;
@@ -867,6 +878,7 @@ export async function runLoaders(
   const getWorkerLoaderHandlers = function (): {
     handleIncomingRequest: HandleIncomingRequest;
   } {
+    let loggers: Logger[] | undefined;
     return {
       handleIncomingRequest(requestType, ...args) {
         switch (requestType) {
@@ -924,8 +936,10 @@ export async function runLoaders(
             });
           }
           case RequestType.GetLogger: {
-            const [type, name, arg] = args;
-            (loaderContext.getLogger(name) as any)[type](...arg);
+            const [id, name, method, logArgs] = args;
+            loggers ??= [];
+            const logger = (loggers[id] ??= loaderContext.getLogger(name));
+            (logger as any)[method](...logArgs);
             break;
           }
           case RequestType.EmitError: {
@@ -1121,7 +1135,7 @@ export async function runLoaders(
           }
           if (!fn) continue;
 
-          dependencies.resetChanges();
+          dependencies?.resetChanges();
           let args: any[];
           try {
             args = await isomorphoicRun(fn, [
@@ -1130,7 +1144,7 @@ export async function runLoaders(
               currentLoaderObject.loaderItem.data,
             ]);
           } finally {
-            dependencies.mergeChanges();
+            dependencies?.mergeChanges();
           }
 
           const hasArg = args.some((value: any) => value !== undefined);
@@ -1198,7 +1212,7 @@ export async function runLoaders(
             ]);
             invalidateCodeFilterTextCache(codeFilterTextCache);
           } finally {
-            dependencies.mergeChanges();
+            dependencies?.mergeChanges();
           }
         }
 
@@ -1252,7 +1266,9 @@ export async function runLoaders(
     commitCustomFieldsToRust(context._module.buildInfo);
   }
 
-  context.addedDependencies = dependencies.added;
-  context.removedDependencies = dependencies.removed;
+  if (dependencies) {
+    context.addedDependencies = dependencies.added;
+    context.removedDependencies = dependencies.removed;
+  }
   return context;
 }

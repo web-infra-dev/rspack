@@ -9,7 +9,7 @@ use std::{
 };
 
 use atomic_refcell::AtomicRefCell;
-use chunk_versions::{HotModuleReplacementChunkVersionsRuntimeModule, is_versioned};
+use chunk_versions::HotModuleReplacementChunkVersionsRuntimeModule;
 use hot_module_replacement::HotModuleReplacementRuntimeModule;
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
@@ -560,6 +560,14 @@ async fn generate_hot_update(
       }
     }
   }
+  let mut old_module_chunk_counts = HashMap::<ModuleId, usize>::default();
+  for (_, modules) in old_chunks.values() {
+    for module_id in modules {
+      *old_module_chunk_counts
+        .entry(module_id.clone())
+        .or_default() += 1;
+    }
+  }
   let empty_runtime = RuntimeSpec::default();
   let empty_modules = ModuleIdSet::default();
   for chunk_id in old_chunks.keys().chain(
@@ -584,6 +592,28 @@ async fn generate_hot_update(
         .build_chunk_graph_artifact
         .chunk_by_ukey
         .get(&ukey)
+    });
+
+    // Content-based ids such as `size`/`total-size` are reassigned when the chunk graph changes, so an id
+    // can point at a different chunk than in the previous build. Merging the old chunk's modules into the
+    // new chunk then renders modules with a runtime they were not generated for. Treat the current chunk as
+    // a full replacement when none of the old chunk's exclusive modules survive in it. Modules shared by
+    // several old chunks (such as the lazy compilation client) do not identify a chunk on their own.
+    let reused_chunk_id = current_chunk_ukey.is_some_and(|ukey| {
+      let chunk_graph = &compilation.build_chunk_graph_artifact.chunk_graph;
+      let mut exclusive_old_modules = old_module_ids
+        .iter()
+        .filter(|module_id| old_module_chunk_counts.get(*module_id) == Some(&1));
+      let Some(first) = exclusive_old_modules.next() else {
+        return false;
+      };
+      std::iter::once(first)
+        .chain(exclusive_old_modules)
+        .all(|old_module_id| {
+          all_module_ids
+            .get(old_module_id)
+            .is_none_or(|module| !chunk_graph.is_module_in_chunk(module, ukey))
+        })
     });
 
     if let Some(current_chunk) = current_chunk {
@@ -700,7 +730,7 @@ async fn generate_hot_update(
           *module_identifier,
           &compilation.build_chunk_graph_artifact.chunk_by_ukey,
         );
-      if old_runtime == &new_runtime && runtimes.contains(&new_runtime) {
+      if !reused_chunk_id && old_runtime == &new_runtime && runtimes.contains(&new_runtime) {
         let new_hash = compilation
           .code_generation_results
           .get_hash(module_identifier, Some(&new_runtime));
@@ -733,6 +763,8 @@ async fn generate_hot_update(
         runtime_modules,
       ));
     }
+    // A reused id still gets a regular delta so chunks that are already installed receive the new module
+    // factories. Only the old chunk's modules are skipped; `new_modules` is built from the current chunk.
     if !new_modules.is_empty() || !new_runtime_modules.is_empty() {
       updates.push((false, new_modules, new_runtime_modules));
     }
@@ -1075,6 +1107,21 @@ async fn additional_tree_runtime_requirements(
   );
 
   Ok(())
+}
+
+fn is_versioned(compilation: &Compilation, chunk: &Chunk) -> bool {
+  let graph = &compilation.build_chunk_graph_artifact;
+  !graph.is_runtime_chunk(chunk)
+    // A shared chunk can be initial in one runtime and async in another.
+    && chunk
+      .groups()
+      .iter()
+      .any(|group| !graph.chunk_group_by_ukey.expect_get(group).is_initial())
+    && graph.chunk_graph.has_chunk_module_by_source_type(
+      &chunk.ukey(),
+      SourceType::JavaScript,
+      compilation.get_module_graph(),
+    )
 }
 
 #[plugin_hook(CompilationAdditionalChunkRuntimeRequirements for HotModuleReplacementPlugin)]
