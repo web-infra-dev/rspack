@@ -188,6 +188,7 @@ impl BuildModuleGraphArtifact {
 
     self.affected_modules.mark_as_remove(module_identifier);
     self.issuer_update_modules.remove(module_identifier);
+    self.module_to_lazy_make.revoke_module(module_identifier);
     self.module_graph.revoke_module(module_identifier)
   }
 

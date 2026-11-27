@@ -2,15 +2,11 @@ use std::{collections::VecDeque, sync::Arc};
 
 use rspack_util::time::current_time;
 
-use super::{
-  TaskContext, lazy::process_unlazy_dependencies, process_dependencies::ProcessDependenciesTask,
-};
+use super::{TaskContext, process_dependencies::ProcessDependenciesTask};
 use crate::{
   AsyncDependenciesBlockRef, BoxModule, BuildContext, DependenciesBlock, DependencyParents,
   DependencyRef, ModuleRef, SharedPluginDriver,
-  compilation::build_module_graph::{
-    ForwardedIdSet, HasLazyDependencies, LazyDependencies, module_build_cache::ModuleBuildCache,
-  },
+  compilation::build_module_graph::module_build_cache::ModuleBuildCache,
   module_declared_side_effect_free,
   utils::task_loop::{Task, TaskResult, TaskType},
 };
@@ -19,7 +15,6 @@ use crate::{
 pub struct BuildTask {
   pub build_context: Arc<BuildContext>,
   pub module: BoxModule,
-  pub forwarded_ids: ForwardedIdSet,
   pub module_build_cache: Option<ModuleBuildCache>,
   pub force_build: bool,
 }
@@ -33,7 +28,6 @@ impl Task<TaskContext> for BuildTask {
     let Self {
       build_context,
       mut module,
-      forwarded_ids,
       module_build_cache,
       force_build,
     } = *self;
@@ -52,7 +46,6 @@ impl Task<TaskContext> for BuildTask {
       return Ok(vec![Box::new(BuildResultTask {
         build_result: ModuleBuildResult::Cached(cached_module),
         plugin_driver,
-        forwarded_ids,
       })]);
     }
 
@@ -79,7 +72,6 @@ impl Task<TaskContext> for BuildTask {
     Ok(vec![Box::new(BuildResultTask {
       build_result: ModuleBuildResult::Built(result),
       plugin_driver,
-      forwarded_ids,
     })])
   }
 }
@@ -94,7 +86,6 @@ pub(super) enum ModuleBuildResult {
 pub(super) struct BuildResultTask {
   pub build_result: ModuleBuildResult,
   pub plugin_driver: SharedPluginDriver,
-  pub forwarded_ids: ForwardedIdSet,
 }
 
 #[async_trait::async_trait]
@@ -106,7 +97,6 @@ impl Task<TaskContext> for BuildResultTask {
     let BuildResultTask {
       build_result,
       plugin_driver,
-      mut forwarded_ids,
     } = *self;
     let module = match build_result {
       ModuleBuildResult::Built(mut module) => {
@@ -170,16 +160,12 @@ impl Task<TaskContext> for BuildResultTask {
 
     let module_graph = &mut context.artifact.module_graph;
     let side_effect_free = module_declared_side_effect_free(module.as_ref()) == Some(true);
-    let mut lazy_dependencies = LazyDependencies::default();
     let mut queue = VecDeque::new();
     let mut all_dependencies = vec![];
     let mut handle_block =
       |dependencies: &[DependencyRef], current_block: Option<&AsyncDependenciesBlockRef>| {
         for (index_in_block, dependency) in dependencies.iter().enumerate() {
           let dependency_id = *dependency.id();
-          if side_effect_free && let Some(until) = dependency.lazy_until() {
-            lazy_dependencies.insert(dependency, until);
-          }
           all_dependencies.push(dependency_id);
           module_graph.set_parents(
             dependency_id,
@@ -209,48 +195,28 @@ impl Task<TaskContext> for BuildResultTask {
     }
 
     let module_identifier = module.identifier();
+    let has_lazy_dependencies = context.artifact.module_to_lazy_make.classify(
+      module_identifier,
+      side_effect_free,
+      module.get_dependencies(),
+      context
+        .build_context
+        .compiler_options
+        .optimization
+        .provided_exports,
+      module_graph,
+    );
 
     module_graph.add_module(module);
 
-    let mut tasks: Vec<Box<dyn Task<TaskContext>>> = vec![];
+    if has_lazy_dependencies {
+      all_dependencies.retain(|dependency| !module_graph.is_lazy_dependency(dependency));
+    }
 
-    let dependencies_to_process = if !lazy_dependencies.is_empty() {
-      for dependency_id in lazy_dependencies.all_lazy_dependencies() {
-        module_graph.add_lazy_dependency(dependency_id);
-      }
-      all_dependencies.retain(|dep| !module_graph.is_lazy_dependency(dep));
-
-      if let Some(HasLazyDependencies::Pending(pending_forwarded_ids)) = context
-        .artifact
-        .module_to_lazy_make
-        .update_module_lazy_dependencies(module_identifier, Some(lazy_dependencies))
-      {
-        forwarded_ids.append(pending_forwarded_ids);
-      }
-      if let Some(task) = process_unlazy_dependencies(
-        &context.artifact.module_to_lazy_make,
-        module_graph,
-        forwarded_ids,
-        module_identifier,
-      ) {
-        tasks.push(Box::new(task));
-      }
-
-      all_dependencies
-    } else {
-      context
-        .artifact
-        .module_to_lazy_make
-        .update_module_lazy_dependencies(module_identifier, None);
-      all_dependencies
-    };
-
-    tasks.push(Box::new(ProcessDependenciesTask {
-      dependencies: dependencies_to_process,
+    Ok(vec![Box::new(ProcessDependenciesTask {
+      dependencies: all_dependencies,
       original_module_identifier: module_identifier,
       from_unlazy: false,
-    }));
-
-    Ok(tasks)
+    })])
   }
 }

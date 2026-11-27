@@ -32,7 +32,7 @@ use super::{
 };
 use crate::{
   AsContextDependency, ConnectionState, Context, ExportsInfoArtifact, ForwardId, ImportAttributes,
-  ImportPhase, JavascriptParserUrl, LazyUntil, Module, ModuleGraph, ModuleGraphCacheArtifact,
+  ImportPhase, JavascriptParserUrl, LazyRole, Module, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleLayer, ReferencedExport, RuntimeSpec, SideEffectsStateArtifact,
   create_exports_object_referenced,
 };
@@ -176,9 +176,7 @@ pub trait Dependency:
     ForwardId::All
   }
 
-  /// Static classification used when collecting a side-effect-free module's reexports.
-  /// Whether the dependency is currently deferred belongs to the module graph.
-  fn lazy_until(&self) -> Option<LazyUntil> {
+  fn lazy_role(&self) -> Option<LazyRole> {
     None
   }
 }

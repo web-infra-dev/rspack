@@ -17,7 +17,7 @@ use rspack_core::{
   ExportModeReexportNamespaceObject, ExportModeReexportUndefined, ExportModeUnused,
   ExportNameOrSpec, ExportPresenceMode, ExportProvided, ExportSpec, ExportsInfoArtifact,
   ExportsOfExportsSpec, ExportsSpec, ExportsType, ForwardId, ImportAttributes, ImportPhase,
-  InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions, LazyUntil,
+  InitFragmentExt, InitFragmentKey, InitFragmentStage, JavascriptParserOptions, LazyRole,
   ModuleCodeTemplate, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
   NormalInitFragment, NormalReexportItem, ReferencedExport, ResourceIdentifier, RuntimeCondition,
   RuntimeGlobals, RuntimeSpec, SideEffectsStateArtifact, StarReexportsInfo, TemplateContext,
@@ -1578,11 +1578,10 @@ impl Dependency for ESMExportImportedSpecifierDependency {
     }
   }
 
-  fn lazy_until(&self) -> Option<LazyUntil> {
-    Some(if let Some(name) = &self.name {
-      LazyUntil::Id(name.clone())
-    } else {
-      LazyUntil::Fallback
+  fn lazy_role(&self) -> Option<LazyRole> {
+    Some(match &self.name {
+      Some(name) => LazyRole::NamedReexport(name.clone()),
+      None => LazyRole::StarReexport,
     })
   }
 }

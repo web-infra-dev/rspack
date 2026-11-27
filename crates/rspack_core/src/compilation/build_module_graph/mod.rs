@@ -14,9 +14,7 @@ pub use self::{
   graph_updater::{
     ModuleGraphUpdateResult, UpdateParam, expand_module_executor_results, update_module_graph,
   },
-  lazy_barrel_artifact::{
-    ForwardId, ForwardedIdSet, HasLazyDependencies, LazyDependencies, LazyUntil, ModuleToLazyMake,
-  },
+  lazy_barrel_artifact::{ForwardId, LazyMakeState, LazyRole, ModuleToLazyMake},
   module_executor::{ExecuteModuleId, ExecutedRuntimeModule, ModuleExecutor},
 };
 pub use crate::BuildModuleGraphArtifact;

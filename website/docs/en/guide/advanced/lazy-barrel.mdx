@@ -163,6 +163,29 @@ In this case:
 - ❌ `Button` is not a named export in the barrel file—it's from `export * from './Button'`
 - ❌ Rspack must build `./Button.js` and potentially all other star re-exports to find which module exports `Button`
 
+## Imports in barrel files
+
+A side-effect-free barrel file can have its own `import` statements:
+
+```js title="components/index.js"
+import { animate } from './heavy-animation';
+
+export { Button } from './Button';
+export const Dialog = () => animate();
+```
+
+When only re-exported names are imported from the barrel file, Rspack does not build the modules its `import` statements reach:
+
+```js title="src/index.js"
+import { Button } from './components';
+```
+
+- ✅ `heavy-animation.js` is not built. `Button` is imported from `./Button` directly, so the barrel file never runs and its imports are not needed.
+
+The imports are built once the barrel file has to run: when one of its own exports (`Dialog` here) is imported, or a name it re-exports from an `import defer` namespace.
+
+This relies on [`optimization.providedExports`](/config/optimization#optimizationprovidedexports), which is enabled by default. When it is disabled, the imports of a barrel file are always built.
+
 ## FAQ
 
 ### 1. Does lazy barrel support CommonJS?
