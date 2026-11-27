@@ -6,7 +6,7 @@ use rspack_collections::Identifiable;
 use rspack_core::{CodeFilter, Content, LoaderContext, LoaderDependencies, Module, RunnerContext};
 use rspack_error::ToStringResultToRspackResultExt;
 use rspack_loader_runner::State as LoaderState;
-use rspack_napi::ThreadsafeOneShotRef;
+use rspack_napi::{ThreadsafeOneShotRef, ThreadsafeValueRef};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -30,6 +30,8 @@ pub struct JsLoaderItem {
   #[napi(ts_type = "string | RegExp")]
   pub code_filter: Option<Either<String, rspack_regex::RspackRegex>>,
   pub filter_matched: bool,
+  #[napi(ts_type = "unknown")]
+  pub options: Option<ThreadsafeValueRef>,
 }
 
 #[napi(object, object_to_js = false)]
@@ -62,6 +64,11 @@ impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
         .filter()
         .and_then(|filter| filter.code().map(into_js_code_filter)),
       filter_matched: value.filter_matched(),
+      options: value
+        .loader()
+        .js_options()
+        .and_then(|v| v.downcast_ref::<ThreadsafeValueRef>())
+        .cloned(),
     }
   }
 }
@@ -83,6 +90,7 @@ where
         normal_executed: false,
         code_filter: None,
         filter_matched: false,
+        options: None,
       };
     }
     Self {
@@ -94,6 +102,7 @@ where
       normal_executed: false,
       code_filter: None,
       filter_matched: false,
+      options: None,
     }
   }
 }

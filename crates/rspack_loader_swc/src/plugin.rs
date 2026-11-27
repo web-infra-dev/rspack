@@ -55,27 +55,26 @@ pub(crate) async fn resolve_loader(
   l: &ModuleRuleUseLoader,
   _data: &mut ModuleFactoryCreateData,
 ) -> Result<Option<BoxLoader>> {
-  let loader_request = &l.loader;
   let options = l.options.as_deref().unwrap_or("{}");
 
-  if loader_request.starts_with(SWC_LOADER_IDENTIFIER) {
-    if let Some(loader) = SWC_LOADER_CACHE
-      .read()
-      .await
-      .get(&(Cow::Borrowed(loader_request), Cow::Borrowed(options)))
-    {
+  if l.loader.starts_with(SWC_LOADER_IDENTIFIER) {
+    let loader_request = l.loader_with_ident();
+    if let Some(loader) = SWC_LOADER_CACHE.read().await.get(&(
+      Cow::Borrowed(loader_request.as_ref()),
+      Cow::Borrowed(options),
+    )) {
       return Ok(Some(loader.clone()));
     }
 
     let loader = Arc::new(
       SwcLoader::new(options)
         .to_rspack_result_with_detail(options, "failed to parse builtin:swc-loader options")?
-        .with_identifier(loader_request.as_str().into()),
+        .with_identifier(loader_request.as_ref().into()),
     );
 
     SWC_LOADER_CACHE.write().await.insert(
       (
-        Cow::Owned(loader_request.to_owned()),
+        Cow::Owned(loader_request.into_owned()),
         Cow::Owned(options.to_owned()),
       ),
       loader.clone(),

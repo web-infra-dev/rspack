@@ -21,7 +21,4 @@ pub struct CompilerOptions {
   pub optimization: Optimization,
   pub amd: Option<String>,
   pub bail: bool,
-  pub __references: References,
 }
-
-pub type References = serde_json::Map<String, serde_json::Value>;

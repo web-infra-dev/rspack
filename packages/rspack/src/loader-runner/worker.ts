@@ -460,7 +460,9 @@ async function loaderImpl(
       const entry = loaderContext.loaders[loaderContext.loaderIndex];
       return entry.options && typeof entry.options === 'object'
         ? entry.options
-        : entry.query;
+        : entry.ident && entry.options === undefined
+          ? ''
+          : entry.query;
     },
   });
 

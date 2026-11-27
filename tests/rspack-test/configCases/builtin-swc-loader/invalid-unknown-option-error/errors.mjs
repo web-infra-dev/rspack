@@ -1,3 +1,5 @@
 export default [
-  [/Failed to create Rspack compiler instance, check the Rspack configuration./],
+  [
+    /Invalid option "unknownOption" for "builtin:swc-loader": expected a JSON-serializable value, got function\./,
+  ],
 ];

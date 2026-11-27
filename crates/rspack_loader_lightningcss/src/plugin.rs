@@ -47,10 +47,10 @@ pub(crate) async fn resolve_loader(
   l: &ModuleRuleUseLoader,
   _data: &mut ModuleFactoryCreateData,
 ) -> Result<Option<BoxLoader>> {
-  let loader_request = &l.loader;
   let options = l.options.as_deref().unwrap_or("{}");
 
-  if loader_request.starts_with(LIGHTNINGCSS_LOADER_IDENTIFIER) {
+  if l.loader.starts_with(LIGHTNINGCSS_LOADER_IDENTIFIER) {
+    let loader_request = l.loader_with_ident();
     let config: crate::config::RawConfig = serde_json::from_str(options)
       .to_rspack_result_with_detail(
         options,
@@ -60,7 +60,7 @@ pub(crate) async fn resolve_loader(
     return Ok(Some(Arc::new(crate::LightningCssLoader::new(
       None,
       Config::try_from(config)?,
-      loader_request,
+      loader_request.as_ref(),
     ))));
   }
 

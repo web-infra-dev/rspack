@@ -1,5 +1,7 @@
 #![allow(unused_imports)]
 
+use std::sync::Arc;
+
 use rspack::builder::{Builder as _, ModuleRuleBuilder};
 use rspack_core::{
   Compiler, Experiments, ModuleOptions, ModuleRuleEffect, ModuleRuleMatcher, ModuleRuleUse,
@@ -26,13 +28,18 @@ async fn lightningcss() {
           ..Default::default()
         },
         effect: ModuleRuleEffect {
-          r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
-          loader: "builtin:lightningcss-loader".to_string(),
-          options: Some(json!({
-            "include": 1 // lower nesting syntax
-          }).to_string()),
-          metadata: None,
-        }]),
+          r#use: ModuleRuleUse::Array(vec![Arc::new(ModuleRuleUseLoader {
+            loader: "builtin:lightningcss-loader".to_string(),
+            options: Some(
+              json!({
+                "include": 1 // lower nesting syntax
+              })
+              .to_string(),
+            ),
+            ident: None,
+            metadata: None,
+            js_options: None,
+          })]),
           ..Default::default()
         },
         ..Default::default()
@@ -67,27 +74,32 @@ async fn swc() {
           ..Default::default()
         },
         effect: ModuleRuleEffect {
-          r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
-          loader: "builtin:swc-loader".to_string(),
-          options: Some(json!({
-            "jsc": {
-              "parser": {
-                "syntax": "ecmascript",
-                "jsx": true,
-              },
-              "transform": {
-                "react": {
-                  "runtime": "classic",
-                  "pragma": "React.createElement",
-                  "pragmaFrag": "React.Fragment",
-                  "throwIfNamespace": true,
-                  "useBuiltins": false
+          r#use: ModuleRuleUse::Array(vec![Arc::new(ModuleRuleUseLoader {
+            loader: "builtin:swc-loader".to_string(),
+            options: Some(
+              json!({
+                "jsc": {
+                  "parser": {
+                    "syntax": "ecmascript",
+                    "jsx": true,
+                  },
+                  "transform": {
+                    "react": {
+                      "runtime": "classic",
+                      "pragma": "React.createElement",
+                      "pragmaFrag": "React.Fragment",
+                      "throwIfNamespace": true,
+                      "useBuiltins": false
+                    }
+                  }
                 }
-              }
-            }
-          }).to_string()),
-          metadata: None,
-        }]),
+              })
+              .to_string(),
+            ),
+            ident: None,
+            metadata: None,
+            js_options: None,
+          })]),
           ..Default::default()
         },
         ..Default::default()
@@ -123,32 +135,40 @@ async fn react_refresh() {
         },
         effect: ModuleRuleEffect {
           r#use: ModuleRuleUse::Array(vec![
-          ModuleRuleUseLoader {
-            loader: "builtin:react-refresh-loader".to_string(),
-            options: None,
-            metadata: None,
-          },
-          ModuleRuleUseLoader {
-          loader: "builtin:swc-loader".to_string(),
-          options: Some(json!({
-            "jsc": {
-              "parser": {
-                "syntax": "ecmascript",
-                "jsx": true,
-              },
-              "transform": {
-                "react": {
-                  "runtime": "classic",
-                  "pragma": "React.createElement",
-                  "pragmaFrag": "React.Fragment",
-                  "throwIfNamespace": true,
-                  "useBuiltins": false
-                }
-              }
-            }
-          }).to_string()),
-          metadata: None,
-        }]),
+            Arc::new(ModuleRuleUseLoader {
+              loader: "builtin:react-refresh-loader".to_string(),
+              options: None,
+              ident: None,
+              metadata: None,
+              js_options: None,
+            }),
+            Arc::new(ModuleRuleUseLoader {
+              loader: "builtin:swc-loader".to_string(),
+              options: Some(
+                json!({
+                  "jsc": {
+                    "parser": {
+                      "syntax": "ecmascript",
+                      "jsx": true,
+                    },
+                    "transform": {
+                      "react": {
+                        "runtime": "classic",
+                        "pragma": "React.createElement",
+                        "pragmaFrag": "React.Fragment",
+                        "throwIfNamespace": true,
+                        "useBuiltins": false
+                      }
+                    }
+                  }
+                })
+                .to_string(),
+              ),
+              ident: None,
+              metadata: None,
+              js_options: None,
+            }),
+          ]),
           ..Default::default()
         },
         ..Default::default()
@@ -185,32 +205,40 @@ async fn preact_refresh() {
         },
         effect: ModuleRuleEffect {
           r#use: ModuleRuleUse::Array(vec![
-          ModuleRuleUseLoader {
-            loader: "builtin:preact-refresh-loader".to_string(),
-            options: None,
-            metadata: None,
-          },
-          ModuleRuleUseLoader {
-          loader: "builtin:swc-loader".to_string(),
-          options: Some(json!({
-            "jsc": {
-              "parser": {
-                "syntax": "ecmascript",
-                "jsx": true,
-              },
-              "transform": {
-                "react": {
-                  "runtime": "classic",
-                  "pragma": "Preact.h",
-                  "pragmaFrag": "Preact.Fragment",
-                  "throwIfNamespace": true,
-                  "useBuiltins": false
-                }
-              }
-            }
-          }).to_string()),
-          metadata: None,
-        }]),
+            Arc::new(ModuleRuleUseLoader {
+              loader: "builtin:preact-refresh-loader".to_string(),
+              options: None,
+              ident: None,
+              metadata: None,
+              js_options: None,
+            }),
+            Arc::new(ModuleRuleUseLoader {
+              loader: "builtin:swc-loader".to_string(),
+              options: Some(
+                json!({
+                  "jsc": {
+                    "parser": {
+                      "syntax": "ecmascript",
+                      "jsx": true,
+                    },
+                    "transform": {
+                      "react": {
+                        "runtime": "classic",
+                        "pragma": "Preact.h",
+                        "pragmaFrag": "Preact.Fragment",
+                        "throwIfNamespace": true,
+                        "useBuiltins": false
+                      }
+                    }
+                  }
+                })
+                .to_string(),
+              ),
+              ident: None,
+              metadata: None,
+              js_options: None,
+            }),
+          ]),
           ..Default::default()
         },
         ..Default::default()

@@ -972,6 +972,7 @@ export interface JsLoaderItem {
   pitchExecuted: boolean
   codeFilter?: string | RegExp
   filterMatched: boolean
+  options?: unknown
 }
 
 export interface JsLoaderItemState {
@@ -2869,6 +2870,8 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
+  jsOptions?: unknown
+  ident?: string
   metadata?: RawLoaderMetadata
 }
 
@@ -2935,7 +2938,6 @@ export interface RawOptions {
   node?: RawNodeOption
   amd?: string
   bail: boolean
-  __references: Record<string, any>
   __virtual_files?: Array<JsVirtualFile>
 }
 

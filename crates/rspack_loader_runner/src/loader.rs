@@ -313,6 +313,11 @@ where
   fn execution_kind(&self) -> LoaderExecutionKind {
     LoaderExecutionKind::Native
   }
+
+  /// Returns an optional reference to the JavaScript loader options object.
+  fn js_options(&self) -> Option<&(dyn std::any::Any + Send + Sync)> {
+    None
+  }
 }
 
 impl<C: Send> From<Arc<dyn Loader<C>>> for LoaderItem<C> {

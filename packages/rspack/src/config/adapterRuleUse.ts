@@ -4,6 +4,7 @@ import type {
   RawModuleRuleUse,
   RawOptions,
 } from '@rspack/binding';
+import { ParallelLoaderOptions } from '../RuleSetCompiler';
 import { getLightningcssLoaderOptions } from '../builtin-loader/lightningcss';
 import { getSwcLoaderOptions } from '../builtin-loader/swc';
 import type { Compilation } from '../Compilation';
@@ -500,6 +501,7 @@ export function createRawModuleRuleUses(
   uses: RuleSetUseItem | RuleSetUseItem[],
   path: string,
   options: ComposeJsUseOptions,
+  isFuncUse = false,
 ): RawModuleRuleUse[] {
   const normalizeRuleSetUseItem = (
     item: RuleSetUseItem,
@@ -508,7 +510,7 @@ export function createRawModuleRuleUses(
   const allUses = Array.isArray(uses)
     ? [...uses].map(normalizeRuleSetUseItem)
     : [normalizeRuleSetUseItem(uses)];
-  return createRawModuleRuleUsesImpl(allUses, path, options);
+  return createRawModuleRuleUsesImpl(allUses, path, options, isFuncUse);
 }
 
 export type GetLoaderOptions = (
@@ -570,10 +572,35 @@ export function serializeLoaderOptionsForCache(
   }
 }
 
+function serializeBuiltinLoaderOptions(
+  options: unknown,
+  loader: string,
+): string {
+  return JSON.stringify(
+    options,
+    function (key, value: unknown) {
+      const original: unknown = this[key];
+      if (
+        typeof original === 'function' ||
+        typeof value === 'function' ||
+        typeof value === 'symbol'
+      ) {
+        const target = key ? `option "${key}"` : 'options';
+        throw new TypeError(
+          `Invalid ${target} for "${loader}": expected a JSON-serializable value, got ${typeof original}.`,
+        );
+      }
+      return value;
+    },
+    2,
+  );
+}
+
 function createRawModuleRuleUsesImpl(
   uses: (RuleSetLoaderWithOptions | Falsy)[],
   path: string,
   options: ComposeJsUseOptions,
+  isFuncUse: boolean,
 ): RawModuleRuleUse[] {
   if (!uses.length) {
     return [];
@@ -594,7 +621,7 @@ function createRawModuleRuleUsesImpl(
         ? undefined
         : typeof temp === 'string'
           ? temp
-          : JSON.stringify(temp, null, 2);
+          : serializeBuiltinLoaderOptions(temp, use.loader);
       isBuiltin = true;
     }
 
@@ -616,15 +643,18 @@ function createRawModuleRuleUsesImpl(
           codeFilter,
         }
       : undefined;
+    const { loader, ident, referenceOptions } = resolveStringifyLoaders(
+      use,
+      `${path}[${index}]`,
+      options.compiler,
+      hasLoaderMetadata,
+      isFuncUse,
+    );
     return {
-      loader: resolveStringifyLoaders(
-        use,
-        `${path}[${index}]`,
-        options.compiler,
-        isBuiltin,
-        fingerprintOptions,
-      ),
+      loader,
       options: o,
+      jsOptions: !isBuiltin ? referenceOptions : undefined,
+      ident,
       metadata,
     };
   });
@@ -645,14 +675,22 @@ function resolveStringifyLoaders(
   use: RuleSetLoaderWithOptions,
   path: string,
   compiler: Compiler,
-  isBuiltin: boolean,
-  normalizedOptions: RuleSetLoaderWithOptions['options'],
-) {
+  hasLoaderMetadata: boolean,
+  isFuncUse: boolean,
+): { loader: string; ident?: string; referenceOptions?: unknown } {
   const obj = parseResource(use.loader);
   let ident = use.ident;
+  let declaredOptionlessIdent: string | undefined;
 
-  if (use.options === null) {
-  } else if (use.options === undefined) {
+  if (use.options === null || use.options === undefined) {
+    // Static rules snapshot loader_references into ModuleOptions.loader_references
+    // before compilation starts; functional Rule.use runs dynamically per module
+    // where a fallback path ident would not reach Rust's static map and could
+    // collide with object options sharing the same rule path.
+    if (!isFuncUse && !obj.query && hasLoaderMetadata) {
+      ident = use.ident ?? path;
+      declaredOptionlessIdent = ident;
+    }
   } else if (typeof use.options === 'string') obj.query = `?${use.options}`;
   else if (use.ident) obj.query = `??${(ident = use.ident)}`;
   else if (typeof use.options === 'object' && use.options.ident)
@@ -668,23 +706,30 @@ function resolveStringifyLoaders(
     );
   }
 
-  if (use.options && typeof use.options === 'object') {
+  const referenceOptions =
+    use.options && typeof use.options === 'object'
+      ? parallelism
+        ? new ParallelLoaderOptions(use.options, parallelism)
+        : use.options
+      : undefined;
+
+  if (referenceOptions !== undefined) {
     if (!ident) ident = '[[missing ident]]';
-    compiler.__internal__ruleSet.references.set(ident, use.options);
+    compiler.__internal__ruleSet.references.set(ident, referenceOptions);
+  } else if (declaredOptionlessIdent) {
+    // Record declared optionless idents (and overwrite any previous options) so
+    // JS LoaderObject can distinguish them from unknown inline ??idents.
     compiler.__internal__ruleSet.references.set(
-      `${ident}$$parallelism`,
-      parallelism,
+      declaredOptionlessIdent,
+      undefined,
     );
-    if (isBuiltin) {
-      // Inline builtin loaders resolve their options from this native map.
-      compiler.__internal__ruleSet.builtinReferences.set(
-        ident,
-        normalizedOptions,
-      );
-    }
   }
 
-  return obj.path + obj.query + obj.fragment;
+  return {
+    loader: obj.path + obj.query + obj.fragment,
+    ident: declaredOptionlessIdent,
+    referenceOptions,
+  };
 }
 
 export function isUseSourceMap(
