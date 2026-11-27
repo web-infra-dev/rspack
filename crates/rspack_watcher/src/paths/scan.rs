@@ -125,7 +125,7 @@ impl PathManager {
       self.file_times.clear(path, |record| record.time = None);
     }
     if !self.watchers.is_explicit_context(path) {
-      self.last_watch_events.remove(path);
+      self.watchers.clear_event_time(path);
     }
     self.unlink_unrecorded(path);
     true
