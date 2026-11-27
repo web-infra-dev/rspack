@@ -1,0 +1,12 @@
+{
+  "browser": {
+    "./local.js": false,
+    "./literal.js#ignored": false
+  },
+  "imports": {
+    "#array": [
+      "pkg/entry.js",
+      "./fallback.js"
+    ]
+  }
+}
