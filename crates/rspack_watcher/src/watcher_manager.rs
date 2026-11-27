@@ -1,4 +1,8 @@
+use std::sync::Arc;
+
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap};
+
+use crate::paths::FileRecord;
 
 pub(super) enum MemberKind {
   File,
@@ -19,7 +23,7 @@ pub(super) struct DirectorySubscriptions {
 }
 
 impl DirectorySubscriptions {
-  fn is_active(&self) -> bool {
+  pub(super) fn is_active(&self) -> bool {
     self.explicit || self.parent.is_some()
   }
 }
@@ -31,21 +35,52 @@ pub(super) trait ContextLookup {
 #[derive(Default)]
 pub(super) struct DirectoryWatcher {
   pub(super) members: InternedPathMap<ContextMember>,
-  subscriptions: DirectorySubscriptions,
+  pub(super) files: InternedPathMap<FileRecord>,
+  pub(super) last_watch_event: Option<u64>,
+  pub(super) subscriptions: DirectorySubscriptions,
 }
 
 impl DirectoryWatcher {
-  fn is_unused(&self) -> bool {
-    self.members.is_empty() && !self.subscriptions.is_active()
+  pub(super) fn owner(path: &InternedPath) -> InternedPath {
+    path
+      .parent()
+      .map_or_else(|| path.clone(), InternedPath::from)
+  }
+
+  pub(super) fn is_unused(&self) -> bool {
+    self.members.is_empty()
+      && self.files.is_empty()
+      && self.last_watch_event.is_none()
+      && !self.subscriptions.is_active()
+  }
+
+  pub(super) fn clear_file(&mut self, path: &InternedPath, clear: impl FnOnce(&mut FileRecord)) {
+    if let Some(record) = self.files.get_mut(path) {
+      clear(record);
+      if record.is_empty() {
+        self.files.remove(path);
+      }
+    }
   }
 }
 
 #[derive(Default)]
 pub(super) struct WatcherManager {
-  pub(super) directories: InternedPathDashMap<DirectoryWatcher>,
+  pub(super) directories: Arc<InternedPathDashMap<DirectoryWatcher>>,
 }
 
 impl WatcherManager {
+  pub(super) fn clear_event_time(&self, path: &InternedPath) {
+    self.directories.remove_if_mut(path, |_, watcher| {
+      watcher.last_watch_event = None;
+      watcher.is_unused()
+    });
+  }
+
+  pub(super) fn event_time(&self, path: &InternedPath) -> Option<u64> {
+    self.directories.get(path)?.last_watch_event
+  }
+
   pub(super) fn subscribe_context(&self, path: &InternedPath) {
     let mut watcher = self.directories.entry(path.clone()).or_default();
     watcher.subscriptions.explicit = true;
