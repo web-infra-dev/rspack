@@ -14,7 +14,7 @@ use crate::{
   module::ModuleObject,
 };
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsLoaderItem {
   pub loader: String,
   pub r#type: String,
@@ -30,7 +30,14 @@ pub struct JsLoaderItem {
   #[napi(ts_type = "string | RegExp")]
   pub code_filter: Option<Either<String, rspack_regex::RspackRegex>>,
   pub filter_matched: bool,
+}
 
+#[napi(object, object_to_js = false)]
+pub struct JsLoaderItemState {
+  pub data: serde_json::Value,
+  pub normal_executed: bool,
+  pub pitch_executed: bool,
+  pub filter_matched: bool,
   pub no_pitch: bool,
 }
 
@@ -55,8 +62,6 @@ impl From<&rspack_loader_runner::LoaderItem<RunnerContext>> for JsLoaderItem {
         .filter()
         .and_then(|filter| filter.code().map(into_js_code_filter)),
       filter_matched: value.filter_matched(),
-
-      no_pitch: false,
     }
   }
 }
@@ -78,7 +83,6 @@ where
         normal_executed: false,
         code_filter: None,
         filter_matched: false,
-        no_pitch: false,
       };
     }
     Self {
@@ -90,7 +94,6 @@ where
       normal_executed: false,
       code_filter: None,
       filter_matched: false,
-      no_pitch: false,
     }
   }
 }
@@ -180,7 +183,7 @@ impl From<JsLoaderDependencies> for LoaderDependencies {
   }
 }
 
-#[napi(object)]
+#[napi(object, object_from_js = false)]
 pub struct JsLoaderContext {
   pub resource: String,
   #[napi(js_name = "_module", ts_type = "Module")]
@@ -192,8 +195,6 @@ pub struct JsLoaderContext {
   pub content: Either3<String, Buffer, Null>,
   #[napi(ts_type = "any")]
   pub additional_data: Option<ThreadsafeOneShotRef>,
-  #[napi(js_name = "__internal__parseMeta")]
-  pub parse_meta: HashMap<String, String>,
   pub source_map: Option<Buffer>,
   pub cacheable: bool,
   pub dependencies: JsLoaderDependencies,
@@ -206,6 +207,24 @@ pub struct JsLoaderContext {
   pub loader_state: JsLoaderState,
   pub loader_chain_start: u32,
   pub loader_chain_end: u32,
+}
+
+#[napi(object, object_to_js = false)]
+pub struct JsLoaderContextState {
+  /// Content maybe empty in pitching stage
+  pub content: Either3<String, Buffer, Null>,
+  #[napi(ts_type = "any")]
+  pub additional_data: Option<ThreadsafeOneShotRef>,
+  #[napi(js_name = "__internal__parseMeta")]
+  pub parse_meta: HashMap<String, String>,
+  pub source_map: Option<Buffer>,
+  pub cacheable: bool,
+  pub dependencies: JsLoaderDependencies,
+  pub added_dependencies: JsLoaderDependencies,
+  pub removed_dependencies: JsLoaderDependencies,
+
+  pub loader_items: Vec<JsLoaderItemState>,
+  pub loader_index: i32,
   #[napi(js_name = "__internal__error")]
   pub error: Option<RspackError>,
   #[napi(js_name = "__internal__diagnostics")]
@@ -241,9 +260,6 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       ),
       hot: cx.hot,
       content,
-      // Since js side only set parse meta, and can't read it, so we can use Default here to only bring the
-      // set values from js side to rust side.
-      parse_meta: Default::default(),
       additional_data,
       source_map: cx
         .source_map()
@@ -257,8 +273,6 @@ impl TryFrom<&mut LoaderContext<RunnerContext>> for JsLoaderContext {
       loader_items: cx.loader_items.iter().map(Into::into).collect(),
       loader_index: cx.loader_index,
       loader_state: cx.state().into(),
-      error: None,
-      diagnostics: None,
       loader_chain_start: execution_span.start as u32,
       loader_chain_end: execution_span.end as u32,
     })

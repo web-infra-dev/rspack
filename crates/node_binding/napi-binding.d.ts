@@ -928,7 +928,6 @@ export interface JsLoaderContext {
   /** Content maybe empty in pitching stage */
   content: string | Buffer | null
   additionalData?: any
-  __internal__parseMeta: Record<string, string>
   sourceMap?: Buffer
   cacheable: boolean
   dependencies: JsLoaderDependencies
@@ -939,6 +938,20 @@ export interface JsLoaderContext {
   loaderState: Readonly<JsLoaderState>
   loaderChainStart: number
   loaderChainEnd: number
+}
+
+export interface JsLoaderContextState {
+  /** Content maybe empty in pitching stage */
+  content: string | Buffer | null
+  additionalData?: any
+  __internal__parseMeta: Record<string, string>
+  sourceMap?: Buffer
+  cacheable: boolean
+  dependencies: JsLoaderDependencies
+  addedDependencies: JsLoaderDependencies
+  removedDependencies: JsLoaderDependencies
+  loaderItems: Array<JsLoaderItemState>
+  loaderIndex: number
   __internal__error?: RspackError
   __internal__diagnostics?: Array<JsRspackDiagnostic>
 }
@@ -958,6 +971,13 @@ export interface JsLoaderItem {
   normalExecuted: boolean
   pitchExecuted: boolean
   codeFilter?: string | RegExp
+  filterMatched: boolean
+}
+
+export interface JsLoaderItemState {
+  data: any
+  normalExecuted: boolean
+  pitchExecuted: boolean
   filterMatched: boolean
   noPitch: boolean
 }
@@ -2728,6 +2748,12 @@ export interface RawLimitChunkCountPluginOptions {
   maxChunks: number
 }
 
+export interface RawLoaderMetadata {
+  cache: boolean
+  optionsCacheKey: string
+  codeFilter?: string | RegExp
+}
+
 export interface RawManifestExposeOption {
   path: string
   name: string
@@ -2843,9 +2869,7 @@ export interface RawModuleRule {
 export interface RawModuleRuleUse {
   loader: string
   options?: string
-  cache: boolean
-  optionsCacheKey: string
-  codeFilter?: string | RegExp
+  metadata?: RawLoaderMetadata
 }
 
 export interface RawNewCache {

@@ -109,7 +109,7 @@ pub(crate) async fn resolve_loader(
       // Use `str::ends_with` instead of `Path::extension` to avoid unnecessary allocation
       let path = path.as_str();
 
-      let build_dependencies = if l.cache {
+      let build_dependencies = if l.cache() {
         vec![InternedPath::from(Utf8Path::new(path).as_std_path())]
       } else {
         Vec::new()

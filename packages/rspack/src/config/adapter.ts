@@ -100,6 +100,11 @@ export const getRawOptions = (
   const mode = options.mode;
   const experiments = options.experiments as ExperimentsWithDefaults;
   const cache = options.cache!;
+  const loaderCache =
+    cache !== false &&
+    typeof experiments.newCache === 'object' &&
+    experiments.newCache !== null &&
+    experiments.newCache.loader;
   return {
     name: options.name,
     mode,
@@ -112,6 +117,7 @@ export const getRawOptions = (
       mode,
       context: options.context!,
       experiments,
+      loaderCache,
     }),
     optimization: options.optimization as Required<Optimization>,
     stats: getRawStats(options.stats),
