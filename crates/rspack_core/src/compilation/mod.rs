@@ -1372,6 +1372,8 @@ pub struct CompilationAsset {
 #[derive(Debug, Clone)]
 pub struct AssetFileAttributes {
   pub mode: Option<u16>,
+  /// Whether a permission error fails the build.
+  pub permissions_required: bool,
   /// Access and modification times in milliseconds since the Unix epoch.
   pub timestamps: Option<(u64, u64)>,
 }

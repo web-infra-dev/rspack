@@ -588,25 +588,36 @@ impl Compiler {
       if let Some(attributes) = &asset.info.file_attributes
         && (need_write
           || stat.as_ref().is_none_or(|stat| {
-            attributes.mode.is_some_and(|mode| stat.mode != Some(mode))
+            let mode_mask = if attributes.permissions_required {
+              0o777
+            } else {
+              0o7777
+            };
+            attributes
+              .mode
+              .is_some_and(|mode| stat.mode.map(|mode| mode & mode_mask) != Some(mode))
               || attributes
                 .timestamps
                 .is_some_and(|(_, mtime)| stat.mtime_ms != mtime)
           }))
       {
         if let Some(mode) = attributes.mode {
-          if !self.output_filesystem.supports_set_permissions() {
+          if attributes.permissions_required && !self.output_filesystem.supports_set_permissions() {
             return Err(rspack_error::error!(
               "Failed to set permissions for {file_path}: output file system cannot set file permissions"
             ));
           }
-          self
+          if let Err(error) = self
             .output_filesystem
             .set_permissions(&file_path, FilePermissions::from_mode(u32::from(mode)))
             .await
-            .map_err(|error| {
-              rspack_error::error!("Failed to set permissions for {file_path}: {error}")
-            })?;
+          {
+            let message = format!("Failed to set permissions for {file_path}: {error}");
+            if attributes.permissions_required {
+              return Err(rspack_error::error!("{message}"));
+            }
+            self.compilation.get_logger("rspack.Compiler").warn(message);
+          }
         }
         if let Some((atime, mtime)) = attributes.timestamps {
           self

@@ -2185,9 +2185,9 @@ export interface RawCopyPattern {
    */
   info?: RawInfo
   /**
-   * Determines whether to copy file permissions from the source to the destination.
-   * When set to true, the plugin will preserve executable permissions and other file modes.
-   * This is particularly useful when copying scripts or executable files.
+   * Legacy alias for `preservePermissions`, used when that option is unset.
+   * Permission failures are logged as warnings and the build continues.
+   * @deprecated Use `preservePermissions` instead. This option will be removed in a future release.
    * @default false
    */
   copyPermissions?: boolean

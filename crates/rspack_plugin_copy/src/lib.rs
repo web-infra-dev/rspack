@@ -103,7 +103,7 @@ pub struct CopyPattern {
   pub force: bool,
   pub priority: i32,
   pub glob_options: CopyGlobOptions,
-  pub copy_permissions: Option<bool>,
+  pub copy_permissions: bool,
   pub preserve_permissions: bool,
   pub preserve_timestamps: bool,
   #[debug(skip)]
@@ -121,7 +121,6 @@ pub struct CopyGlobOptions {
 #[derive(Debug, Clone)]
 pub struct RunPatternResult {
   pub source_filename: Utf8PathBuf,
-  pub absolute_filename: Utf8PathBuf,
   pub filename: String,
   pub source: BoxSource,
   pub file_attributes: Option<Box<AssetFileAttributes>>,
@@ -185,7 +184,7 @@ impl CopyRspackPlugin {
   fn is_cacheable(pattern: &CopyPattern) -> bool {
     pattern.transform_fn.is_none()
       && !matches!(pattern.to, Some(ToOption::Fn(_)))
-      && !pattern.copy_permissions.unwrap_or(false)
+      && !pattern.copy_permissions
       // Attribute changes may arrive without a modified or removed path from the compiler.
       && !pattern.preserve_permissions
       && !pattern.preserve_timestamps
@@ -337,23 +336,36 @@ impl CopyRspackPlugin {
       }
     };
 
-    let file_attributes = if (pattern.preserve_permissions || pattern.preserve_timestamps)
-      && let Ok(metadata) = compilation
-        .input_filesystem
-        .metadata(&absolute_filename)
-        .await
-      && metadata.is_file
-    {
-      let mode = metadata.mode.filter(|_| pattern.preserve_permissions);
-      let timestamps = metadata
-        .atime_ms
-        .filter(|_| pattern.preserve_timestamps)
-        .map(|atime| (atime, metadata.mtime_ms));
-      (mode.is_some() || timestamps.is_some())
-        .then(|| Box::new(AssetFileAttributes { mode, timestamps }))
-    } else {
-      None
-    };
+    let file_attributes =
+      if (pattern.copy_permissions || pattern.preserve_permissions || pattern.preserve_timestamps)
+        && let Ok(metadata) = compilation
+          .input_filesystem
+          .metadata(&absolute_filename)
+          .await
+        && metadata.is_file
+      {
+        let mode = if pattern.copy_permissions {
+          metadata.mode
+        } else {
+          metadata
+            .mode
+            .filter(|_| pattern.preserve_permissions)
+            .map(|mode| mode & 0o777)
+        };
+        let timestamps = metadata
+          .atime_ms
+          .filter(|_| pattern.preserve_timestamps)
+          .map(|atime| (atime, metadata.mtime_ms));
+        (mode.is_some() || timestamps.is_some()).then(|| {
+          Box::new(AssetFileAttributes {
+            mode,
+            permissions_required: pattern.preserve_permissions,
+            timestamps,
+          })
+        })
+      } else {
+        None
+      };
 
     let source = if let Some(transformer) = &pattern.transform_fn {
       let mut source = RawBufferSource::from(source_vec.clone()).boxed();
@@ -405,7 +417,6 @@ impl CopyRspackPlugin {
 
     Ok(Some(RunPatternResult {
       source_filename,
-      absolute_filename,
       filename,
       source,
       file_attributes,
@@ -705,21 +716,10 @@ impl CopyRspackPlugin {
     &self,
     compilation: &mut Compilation,
     results_by_pattern: Vec<Option<Vec<RunPatternResult>>>,
-  ) -> Vec<(Utf8PathBuf, Utf8PathBuf)> {
-    let mut permission_copies = Vec::new();
-    for (index, result) in
+  ) {
+    for (_, result) in
       order_pattern_results(results_by_pattern, |index| self.patterns[index].priority)
     {
-      let pattern = &self.patterns[index];
-      let copy_permissions =
-        pattern.copy_permissions.unwrap_or(false) && !pattern.preserve_permissions;
-      let permission_copy = copy_permissions.then(|| {
-        (
-          result.absolute_filename.clone(),
-          compilation.options.output.path.join(&result.filename),
-        )
-      });
-
       if let Some(exist_asset) = compilation.assets_mut().get_mut(&result.filename) {
         if !result.force {
           continue;
@@ -748,13 +748,7 @@ impl CopyRspackPlugin {
           CompilationAsset::new(Some(Arc::new(result.source)), asset_info),
         );
       }
-
-      if let Some(permission_copy) = permission_copy {
-        permission_copies.push(permission_copy);
-      }
     }
-
-    permission_copies
   }
 }
 
@@ -897,46 +891,8 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .map(|diagnostic| diagnostic.with_title("CopyRspackPlugin")),
   );
 
-  let permission_copies = self.emit_pattern_results(compilation, results_by_pattern);
+  self.emit_pattern_results(compilation, results_by_pattern);
   logger.time_end(start);
-
-  // Handle permission copying after all assets are emitted
-  for (source_path, dest_path) in permission_copies.iter() {
-    if let Ok(Some(permissions)) = compilation.input_filesystem.permissions(source_path).await {
-      // Make sure the output directory exists
-      if let Some(parent) = dest_path.parent() {
-        compilation
-          .output_filesystem
-          .create_dir_all(parent)
-          .await
-          .unwrap_or_else(|e| {
-            logger.warn(format!("Failed to create directory {parent:?}: {e}"));
-          });
-      }
-
-      // Make sure the file exists before trying to set permissions
-      if !dest_path.exists() {
-        logger.warn(format!(
-          "Destination file {dest_path:?} does not exist, cannot copy permissions"
-        ));
-        continue;
-      }
-
-      if let Err(e) = compilation
-        .output_filesystem
-        .set_permissions(dest_path, permissions)
-        .await
-      {
-        logger.warn(format!(
-          "Failed to copy permissions from {source_path:?} to {dest_path:?}: {e}"
-        ));
-      } else {
-        logger.log(format!(
-          "Successfully copied permissions from {source_path:?} to {dest_path:?}"
-        ));
-      }
-    }
-  }
 
   Ok(())
 }

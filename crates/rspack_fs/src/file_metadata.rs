@@ -9,7 +9,7 @@ pub struct FileMetadata {
   pub is_file: bool,
   pub is_directory: bool,
   pub is_symlink: bool,
-  /// Unix read, write, and execute permission bits, when available.
+  /// Unix permission bits, including special mode bits, when available.
   pub mode: Option<u16>,
   /// Access time in milliseconds since the Unix epoch, when available.
   pub atime_ms: Option<u64>,
@@ -52,7 +52,7 @@ impl TryFrom<Metadata> for FileMetadata {
       .as_millis() as u64;
     let ctime_ms = Self::get_ctime_ms(&metadata);
     #[cfg(unix)]
-    let mode = Some((std::os::unix::fs::MetadataExt::mode(&metadata) & 0o777) as u16);
+    let mode = Some((std::os::unix::fs::MetadataExt::mode(&metadata) & 0o7777) as u16);
     #[cfg(not(unix))]
     let mode = None;
 

@@ -454,27 +454,9 @@ export default {
 
 ### copyPermissions
 
-- **类型：** `boolean`
-- **默认值：** `false`
+[`preservePermissions`](#preservepermissions) 的已弃用别名。请改用 `preservePermissions`。`copyPermissions` 将在未来版本移除。
 
-是否将源文件的权限复制到目标文件。
-
-```js title="rspack.config.mjs"
-export default {
-  plugins: [
-    new rspack.CopyRspackPlugin({
-      patterns: [
-        {
-          from: 'src/executable.sh',
-          copyPermissions: true, // 保留可执行权限
-        },
-      ],
-    }),
-  ],
-};
-```
-
-这对于复制可执行文件、脚本或任何权限重要的文件特别有用。当设置为 `true` 时，插件将尝试在目标文件上设置与源文件相同的权限。
+显式设置 `preservePermissions` 时以它为准，包括设为 `false`。使用旧选项时，设置权限失败会记录警告，构建继续。
 
 ### info
 
