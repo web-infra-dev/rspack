@@ -62,14 +62,15 @@ impl PathManager {
         let added = self.record(path, || {
           self.watchers.add_member(path, MemberKind::Directory)
         });
-        return (added, Mutation::Entry);
+        // Recording membership alone cannot supersede another walk's metadata read.
+        return (added, Mutation::Metadata);
       }
       self.record(path, || self.watchers.add_member(path, MemberKind::File));
       let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
         return (true, Mutation::Entry);
       };
       if judged {
-        return (true, Mutation::Entry);
+        return (true, Mutation::Metadata);
       }
       let aged = mtime_to_millis(mtime).saturating_add(mtime_accuracy(mtime)) < current_time();
       if aged
