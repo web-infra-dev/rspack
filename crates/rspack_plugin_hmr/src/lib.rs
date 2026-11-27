@@ -843,6 +843,9 @@ async fn generate_hot_update(
       compilation.extend_diagnostics(diagnostics);
 
       for entry in manifest {
+        if full && entry.has_filename {
+          continue;
+        }
         let filename = if entry.has_filename {
           entry.filename.clone()
         } else {
