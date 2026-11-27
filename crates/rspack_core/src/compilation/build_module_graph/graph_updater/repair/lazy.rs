@@ -11,18 +11,20 @@ pub fn request_lazy_dependencies(
   side_effect_free: bool,
   dependencies: &[DependencyRef],
 ) -> Vec<Box<dyn Task<TaskContext>>> {
-  let dependencies = module_to_lazy_make.request(
-    module_identifier,
-    side_effect_free,
-    dependencies,
-    module_graph,
-  );
-  if dependencies.is_empty() {
-    return vec![];
-  }
-  vec![Box::new(ProcessDependenciesTask {
-    dependencies,
-    original_module_identifier: module_identifier,
-    from_unlazy: true,
-  })]
+  module_to_lazy_make
+    .request(
+      module_identifier,
+      side_effect_free,
+      dependencies,
+      module_graph,
+    )
+    .into_iter()
+    .map(|(original_module_identifier, dependencies)| {
+      Box::new(ProcessDependenciesTask {
+        dependencies,
+        original_module_identifier,
+        from_unlazy: true,
+      }) as Box<dyn Task<TaskContext>>
+    })
+    .collect()
 }
