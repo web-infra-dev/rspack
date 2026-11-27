@@ -120,3 +120,111 @@ async fn a_blocked_context_scan_does_not_prevent_unwatch_or_close() {
     .expect("close while the old scan is still waiting")
     .expect("close watcher");
 }
+
+#[tokio::test]
+async fn initial_and_live_directories_batch_metadata_on_the_registration_pool() {
+  use notify::{Event, EventKind, event::CreateKind};
+  use tokio::runtime::Handle;
+
+  let temp = tempfile::tempdir().unwrap();
+  let root = temp.path().canonicalize().unwrap();
+  let watched = root.join("watched");
+  let staging = root.join("staging");
+  for dir in [&watched, &staging] {
+    fs::create_dir(dir).unwrap();
+    for i in 0..256 {
+      fs::write(dir.join(format!("{i}.js")), "").unwrap();
+    }
+  }
+  let mut analyzer = DirectoryAnalyzer::default();
+  analyzer
+    .update(
+      Default::default(),
+      (vec![(&watched).into()], vec![]),
+      Default::default(),
+    )
+    .await
+    .unwrap();
+  let owner = Handle::current().id();
+  let check = |analyzer: &DirectoryAnalyzer| {
+    let jobs = analyzer.take_metadata_jobs();
+    assert_eq!(jobs.iter().map(|(files, _)| files).sum::<usize>(), 256);
+    assert!(jobs.len() < 256, "one blocking job for each file");
+    assert!(jobs.iter().all(|(_, runtime)| *runtime == owner));
+  };
+  analyzer.scan_contexts().await.unwrap();
+  check(&analyzer);
+
+  let moved = watched.join("moved");
+  fs::rename(&staging, &moved).unwrap();
+  analyzer.on_native_event(Event::new(EventKind::Create(CreateKind::Folder)).add_path(moved));
+  timeout(Duration::from_secs(5), analyzer.next_events())
+    .await
+    .unwrap();
+  check(&analyzer);
+}
+
+#[tokio::test]
+async fn an_entry_backfill_waits_for_the_new_context_snapshot_before_rebuilding() {
+  use rspack_util::fx_hash::FxHashSet;
+  use rspack_watcher::{EventAggregateHandler, EventHandler, FsWatcher, FsWatcherOptions};
+  use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
+
+  struct Aggregate(UnboundedSender<()>);
+  impl EventAggregateHandler for Aggregate {
+    fn on_event_handle(&self, _: FxHashSet<String>, _: FxHashSet<String>) {
+      let _ = self.0.send(());
+    }
+  }
+  struct Raw(UnboundedSender<String>);
+  impl EventHandler for Raw {
+    fn on_change(&self, path: String) -> rspack_error::Result<()> {
+      let _ = self.0.send(path);
+      Ok(())
+    }
+  }
+  let temp = tempfile::tempdir().unwrap();
+  let root = temp.path().canonicalize().unwrap();
+  let assets = root.join("assets");
+  let manifest = assets.join("manifest.txt");
+  let entry = root.join("index.js");
+  fs::create_dir(&assets).unwrap();
+  fs::write(&manifest, "").unwrap();
+  fs::write(&entry, "").unwrap();
+  let (ignored, blocked, release) = block_first_visit(&manifest);
+  let watcher = FsWatcher::new(
+    FsWatcherOptions {
+      aggregate_timeout: Some(1),
+      ..Default::default()
+    },
+    ignored,
+  );
+  let (changes, mut raw) = unbounded_channel();
+  let (aggregates, mut rebuilds) = unbounded_channel();
+  let installing = watcher.watch(
+    (std::iter::once((&entry).into()), std::iter::empty()),
+    (std::iter::once((&assets).into()), std::iter::empty()),
+    (std::iter::empty(), std::iter::empty()),
+    SystemTime::UNIX_EPOCH,
+    Box::new(Aggregate(aggregates)),
+    Box::new(Raw(changes)),
+  );
+  let deadline = Duration::from_secs(5);
+  timeout(deadline, blocked).await.unwrap().unwrap();
+  timeout(deadline, async {
+    while Path::new(&raw.recv().await.expect("raw watcher event")) != entry {}
+  })
+  .await
+  .unwrap();
+  let early = timeout(Duration::from_millis(75), rebuilds.recv()).await;
+  let _ = release.send(());
+  installing.await;
+  assert!(early.is_err(), "rebuild before the manifest was indexed");
+  timeout(deadline, rebuilds.recv()).await.unwrap().unwrap();
+  assert!(
+    watcher.collect_time_info_entries().0.iter().any(
+      |(name, value)| Path::new(name) == manifest && matches!(value, TimeInfoEntry::Entry { .. })
+    )
+  );
+  watcher.close().await.unwrap();
+}

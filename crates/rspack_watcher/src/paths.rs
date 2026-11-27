@@ -443,6 +443,7 @@ impl PathManager {
       impl Iterator<Item = InternedPath>,
     ),
   ) -> Result<()> {
+    self.watchers.bind_scan_workers();
     let mut registered = Vec::new();
     let mut unregistered = Vec::new();
     for (paths, tracker, kind) in [

@@ -1,0 +1,39 @@
+```mjs title=main.mjs
+export { value as a } from "./fixtures/a.mjs";
+import "./shared.mjs";
+
+// order-a
+
+// order-c
+
+// ./index.js
+
+
+
+
+export { value as c } from "./fixtures/c.mjs";
+
+```
+
+```mjs title=other.mjs
+import "./shared.mjs";
+
+// ./other.js
+
+
+export {};
+
+```
+
+```mjs title=shared.mjs
+import "./fixtures/b.mjs";
+
+// order-b
+
+// ./shared.js
+
+(globalThis.order ??= []).push("shared");
+
+export {};
+
+```

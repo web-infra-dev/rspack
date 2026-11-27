@@ -12,7 +12,7 @@ use rspack_cacheable::{
   cacheable, cacheable_dyn,
   rkyv::string::ArchivedString,
   utils::PortablePath,
-  with::{As, AsInner, AsInnerConverter, AsOption, AsPreset, Skip},
+  with::{As, AsInner, AsInterned, AsInternedConverter, AsOption, AsPreset, Skip},
 };
 use rspack_error::{Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{RspackHash, RspackHasher};
@@ -357,7 +357,7 @@ pub struct DescriptionData {
   path: PathBuf,
 
   /// Raw package.json
-  #[cacheable(with=AsInner<AsPreset>)]
+  #[cacheable(with=AsInterned<AsPreset>)]
   json: DescriptionJson,
 }
 
@@ -369,7 +369,7 @@ enum DescriptionJson {
   Owned(Arc<serde_json::Value>),
 }
 
-impl AsInnerConverter for DescriptionJson {
+impl AsInternedConverter for DescriptionJson {
   type Inner = serde_json::Value;
 
   fn to_inner(&self) -> &Self::Inner {
@@ -379,8 +379,8 @@ impl AsInnerConverter for DescriptionJson {
     }
   }
 
-  fn from_inner(json: Self::Inner) -> Self {
-    Self::Owned(Arc::new(json))
+  fn from_interned(json: Arc<Self::Inner>) -> Self {
+    Self::Owned(json)
   }
 }
 
