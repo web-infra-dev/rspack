@@ -3,7 +3,12 @@ mod scan;
 mod time_info;
 mod update;
 
-use std::{fmt::Debug, ops::Deref, path::Path, sync::Arc};
+use std::{
+  fmt::Debug,
+  ops::Deref,
+  path::Path,
+  sync::{Arc, OnceLock, Weak},
+};
 
 use dashmap::setref::multiple::RefMulti;
 use rspack_error::Result;
@@ -16,7 +21,7 @@ use self::{
 };
 use super::{FsWatcherIgnored, ignored::IgnoredMatcher};
 use crate::{
-  observation::Mutation,
+  observation::{Mutation, Observations},
   watcher_manager::{MemberKind, WatcherManager},
 };
 
@@ -130,6 +135,7 @@ struct PathTracker {
   added: InternedPathDashSet,
   removed: InternedPathDashSet,
   all: InternedPathDashSet,
+  scan_subscribers: OnceLock<InternedPathDashMap<Arc<InternedPath>>>,
 }
 
 impl PathTracker {
@@ -146,9 +152,29 @@ impl PathTracker {
 
   /// Removes a path from the tracker; whether it was tracked.
   fn remove(&self, path: InternedPath) -> bool {
-    let tracked = self.all.remove(&path).is_some();
+    let tracked = self
+      .all
+      .remove_if(&path, |path| {
+        if let Some(subscribers) = self.scan_subscribers.get() {
+          subscribers.remove(path);
+        }
+        true
+      })
+      .is_some();
     self.removed.insert(path);
     tracked
+  }
+
+  // Hold the set entry while acquiring the handle, so re-registering this path
+  // cannot give an earlier directory change to the replacement subscription.
+  fn scan_subscriber(&self, path: &InternedPath) -> Option<Weak<InternedPath>> {
+    let registered = self.all.get(path)?;
+    let handle = self
+      .scan_subscribers
+      .get_or_init(InternedPathDashMap::default)
+      .entry(registered.clone())
+      .or_insert_with(|| Arc::new(registered.clone()));
+    Some(Arc::downgrade(&handle))
   }
 }
 
@@ -236,17 +262,24 @@ impl PathManager {
   }
 
   pub(crate) fn set_missing(&self, path: &InternedPath, report_absence: bool) {
-    self.observe_live(path, || {
-      let subtree = self.may_contain_records(path);
-      self.remove_file_time(path);
-      if subtree {
-        self.remove_file_times_under(path);
-      }
-      if report_absence {
-        self.set_reported_file_removal(path);
-      }
-      ((), Mutation::Subtree)
-    });
+    self.set_missing_while_observing(path, report_absence, &mut self.watchers.lock_observations());
+  }
+
+  pub(crate) fn set_missing_while_observing(
+    &self,
+    path: &InternedPath,
+    report_absence: bool,
+    state: &mut Observations,
+  ) {
+    let subtree = self.may_contain_records(path);
+    self.remove_file_time(path);
+    if subtree {
+      self.remove_file_times_under(path);
+    }
+    if report_absence {
+      self.set_reported_file_removal(path);
+    }
+    state.invalidate(path, Mutation::Subtree, None);
   }
 
   /// Drop a removed path's time info and present baseline. A reported absence
@@ -420,15 +453,15 @@ impl PathManager {
   ) -> Result<()> {
     let mut registered = Vec::new();
     let mut unregistered = Vec::new();
-    for (paths, tracker) in [
-      (PathUpdater::from(files), &self.files),
-      (
-        PathUpdater::from(directories).with_contexts(&self.watchers),
-        &self.directories,
-      ),
-      (PathUpdater::from(missing), &self.missing),
+    for (paths, tracker, context) in [
+      (PathUpdater::from(files), &self.files, false),
+      (PathUpdater::from(directories), &self.directories, true),
+      (PathUpdater::from(missing), &self.missing, false),
     ] {
-      let (added, removed) = paths.update(tracker, &self.ignored).await?;
+      let (added, removed) = paths
+        .with_manager(&self.watchers, context)
+        .update(tracker, &self.ignored)
+        .await?;
       registered.extend(added);
       unregistered.extend(removed);
     }

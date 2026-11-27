@@ -12,7 +12,7 @@ use super::PathManager;
 use crate::{
   observation::{ActiveWalk, Mutation, Observations},
   time::{mtime_accuracy, mtime_safe_time},
-  watcher_manager::MemberKind,
+  watcher_manager::{MemberKind, PendingContextChange},
 };
 
 #[derive(Clone)]
@@ -56,7 +56,7 @@ impl PathManager {
   /// Returns the files that changed since `start_time` (watchpack's
   /// `checkStartTime`): they changed before the watch was active, so no event
   /// will come for them.
-  pub async fn scan_contexts(&self, start_time: SystemTime) -> Vec<InternedPath> {
+  pub async fn scan_contexts(&self, start_time: SystemTime) -> Vec<Arc<PendingContextChange>> {
     let contexts: Vec<InternedPath> = self.directories.added.iter().map(|p| p.clone()).collect();
     self
       .scan_below(contexts, false, Some(system_time_to_millis(start_time)))
@@ -74,7 +74,7 @@ impl PathManager {
     roots: Vec<InternedPath>,
     recovered: bool,
     changed_since: Option<u64>,
-  ) -> Vec<InternedPath> {
+  ) -> Vec<Arc<PendingContextChange>> {
     let mut changed = Vec::new();
     if roots.is_empty() {
       return changed;
@@ -137,7 +137,7 @@ impl PathManager {
     path: &InternedPath,
     real_dir: Option<&PathBuf>,
     metadata: std::io::Result<Metadata>,
-    changed: &mut Vec<InternedPath>,
+    changed: &mut Vec<Arc<PendingContextChange>>,
   ) -> bool {
     let mut state = self.watchers.lock_observations();
     if !self.scan_has_subscription(&state, request, path.parent()) {
@@ -180,9 +180,37 @@ impl PathManager {
     if let (Some(time), Some(since)) = (changed_at, request.changed_since)
       && mtime_safe_time(time) >= since
     {
-      changed.push(path.clone());
+      let mut subscribers = Vec::new();
+      for ancestor in path.ancestors().skip(usize::from(!directory)) {
+        let dep = InternedPath::from(ancestor);
+        if state.same_subscription(&request.walk, &dep)
+          && let Some(subscription) = self.watchers.context_subscriber(&dep)
+        {
+          subscribers.push(subscription);
+        }
+        if let Some(subscription) = self.missing.scan_subscriber(&dep) {
+          subscribers.push(subscription);
+        }
+      }
+      if let Some(change) =
+        PendingContextChange::register(&self.watchers.pending_changes, path, subscribers)
+      {
+        changed.push(change);
+      }
     }
     directory
+  }
+
+  pub(crate) fn missing_scan_subscriber(
+    &self,
+    path: &InternedPath,
+  ) -> Option<std::sync::Weak<InternedPath>> {
+    self
+      .missing
+      .scan_subscribers
+      .get()?
+      .get(path)
+      .map(|current| Arc::downgrade(&current))
   }
 
   #[cfg(feature = "testing")]

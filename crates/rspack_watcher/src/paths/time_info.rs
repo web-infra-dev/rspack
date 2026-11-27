@@ -7,6 +7,7 @@ use rspack_util::{fx_hash::FxHashMap, time::current_time};
 use super::PathManager;
 use crate::{
   TimeInfoEntries, TimeInfoEntry,
+  observation::{Mutation, Observations},
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
   watcher_manager::DirectoryWatcher,
 };
@@ -239,7 +240,7 @@ impl PathManager {
     for ancestor in path.ancestors() {
       let ancestor = InternedPath::from(ancestor);
       if let Some(mut watcher) = self.watchers.directories.get_mut(&ancestor)
-        && watcher.subscriptions.is_active()
+        && watcher.is_watched()
       {
         watcher.last_watch_event = Some(now);
       }
@@ -260,10 +261,25 @@ impl PathManager {
     let Some(current_mtime) = disk_mtime(path) else {
       return true;
     };
-    let mtime_ms = mtime_to_millis(current_mtime);
-    let present = ReportedBaseline::Present(current_mtime);
-    let aged = mtime_ms.saturating_add(mtime_accuracy(current_mtime)) < current_time();
+    let aged = mtime_has_aged(current_mtime);
     let _observation = self.watchers.begin_metadata_update(path);
+    self.record_reported_mtime(path, current_mtime, aged)
+  }
+
+  pub(crate) fn report_scan_mtime(&self, path: &InternedPath, state: &mut Observations) {
+    if let Some(mtime) = disk_mtime(path) {
+      self.record_reported_mtime(path, mtime, mtime_has_aged(mtime));
+      state.invalidate(path, Mutation::Metadata, None);
+    }
+  }
+
+  fn record_reported_mtime(
+    &self,
+    path: &InternedPath,
+    current_mtime: SystemTime,
+    aged: bool,
+  ) -> bool {
+    let present = ReportedBaseline::Present(current_mtime);
     // A stale event needs no index lock. Recheck under the write lock in
     // case the scanner reported this mtime in the meantime.
     if aged && self.file_times.reported(path) == present {
@@ -455,6 +471,10 @@ impl PathManager {
 
     (file_timestamps, directory_timestamps)
   }
+}
+
+fn mtime_has_aged(mtime: SystemTime) -> bool {
+  mtime_to_millis(mtime).saturating_add(mtime_accuracy(mtime)) < current_time()
 }
 
 pub(crate) fn disk_mtime(path: &InternedPath) -> Option<SystemTime> {

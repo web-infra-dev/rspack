@@ -78,7 +78,27 @@ impl DirectoryAnalyzer {
   }
   pub fn scan_contexts(&self) -> tokio::task::JoinHandle<Vec<InternedPath>> {
     let paths = Arc::clone(&self.paths);
-    tokio::spawn(async move { paths.scan_contexts(SystemTime::UNIX_EPOCH).await })
+    tokio::spawn(async move {
+      paths
+        .scan_contexts(SystemTime::UNIX_EPOCH)
+        .await
+        .into_iter()
+        .filter(|change| change.has_subscribers())
+        .map(|change| change.path.clone())
+        .collect()
+    })
+  }
+
+  pub async fn queue_context_changes(&self) {
+    self
+      .queue_context_changes_since(SystemTime::UNIX_EPOCH)
+      .await;
+  }
+
+  pub async fn queue_context_changes_since(&self, start: SystemTime) {
+    for change in self.paths.scan_contexts(start).await {
+      self.trigger.on_context_change(change);
+    }
   }
 
   pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {

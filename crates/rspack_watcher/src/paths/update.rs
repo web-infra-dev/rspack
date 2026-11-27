@@ -4,7 +4,7 @@ use rspack_error::Result;
 use rspack_paths::InternedPath;
 
 use super::PathTracker;
-use crate::{ignored::IgnoredMatcher, watcher_manager::WatcherManager};
+use crate::{ignored::IgnoredMatcher, observation::Observations, watcher_manager::WatcherManager};
 
 /// `PathUpdater` is used to update collections of registered paths (files, directories, and missing paths)
 /// by specifying which paths have been added and which have been removed. It holds vectors of paths to be
@@ -14,7 +14,7 @@ pub(super) struct PathUpdater<'a> {
   pub added: Vec<InternedPath>,
   pub removed: Vec<InternedPath>,
   base_dir: PathBuf,
-  contexts: Option<&'a WatcherManager>,
+  manager: Option<(&'a WatcherManager, bool)>,
 }
 
 impl<Added, Removed> From<(Added, Removed)> for PathUpdater<'_>
@@ -27,14 +27,14 @@ where
       added: added.collect(),
       removed: removed.collect(),
       base_dir: std::env::current_dir().unwrap_or_default(),
-      contexts: None,
+      manager: None,
     }
   }
 }
 
 impl<'a> PathUpdater<'a> {
-  pub(super) fn with_contexts(mut self, contexts: &'a WatcherManager) -> Self {
-    self.contexts = Some(contexts);
+  pub(super) fn with_manager(mut self, manager: &'a WatcherManager, context: bool) -> Self {
+    self.manager = Some((manager, context));
     self
   }
 
@@ -67,10 +67,11 @@ impl<'a> PathUpdater<'a> {
         continue;
       }
 
-      if watch_tracker.add(added.clone()) {
-        if let Some(contexts) = self.contexts {
-          contexts.subscribe_context(&added);
-        }
+      if change_registration(
+        self.manager,
+        || watch_tracker.add(added.clone()),
+        |manager, state| manager.subscribe_context(&added, state),
+      ) {
         registered.push(added);
       }
     }
@@ -81,13 +82,31 @@ impl<'a> PathUpdater<'a> {
       } else {
         InternedPath::from(self.base_dir.join(removed.as_ref()))
       };
-      if watch_tracker.remove(removed.clone()) {
-        if let Some(contexts) = self.contexts {
-          contexts.unsubscribe_context(&removed);
-        }
+      if change_registration(
+        self.manager,
+        || watch_tracker.remove(removed.clone()),
+        |manager, state| manager.unsubscribe_context(&removed, state),
+      ) {
         unregistered.push(removed);
       }
     }
     Ok((registered, unregistered))
   }
+}
+
+// Serialize registration changes with capturing and delivering scan notifications.
+fn change_registration(
+  manager: Option<(&WatcherManager, bool)>,
+  change: impl FnOnce() -> bool,
+  update_context: impl FnOnce(&WatcherManager, &mut Observations),
+) -> bool {
+  let Some((manager, context)) = manager else {
+    return change();
+  };
+  let mut state = manager.lock_observations();
+  let changed = change();
+  if changed && context {
+    update_context(manager, &mut state);
+  }
+  changed
 }
