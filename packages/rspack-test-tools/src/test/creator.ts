@@ -133,20 +133,20 @@ export class BasicCaseCreator {
     testConfig: TTestConfig,
     options: IBasicCaseCreatorOptions,
   ) {
-    beforeAll(async () => {
-      await tester.prepare();
-    });
-
     let starter = null;
-    let chain = new Promise<void>((resolve, reject) => {
+    // The compile queue can start before the test runner invokes beforeAll.
+    const prepared = new Promise<void>((resolve) => {
       starter = resolve;
-    });
+    }).then(() => tester.prepare());
+    beforeAll(() => prepared);
+
     const ender = this.registerConcurrentTask(
       name,
       starter!,
       options.concurrent as number,
     );
     const env = this.createConcurrentEnv();
+    let chain = prepared;
     for (let index = 0; index < tester.total; index++) {
       let stepSignalResolve = null;
       const stepSignal = new Promise<Error>((resolve, reject) => {
