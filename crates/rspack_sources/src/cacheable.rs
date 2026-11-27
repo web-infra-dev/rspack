@@ -21,27 +21,27 @@ use crate::{
 #[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 pub struct CacheableSourceMap {
   version: u8,
-  #[rkyv(with = Map<AsUtf8String>)]
+  #[rkyv(with = Map<AsStr>)]
   file: Option<BytesStr>,
-  #[rkyv(with = Map<AsUtf8String>)]
+  #[rkyv(with = Map<AsStr>)]
   sources: Vec<BytesStr>,
-  #[rkyv(with = Map<Map<AsUtf8String>>)]
+  #[rkyv(with = Map<Map<AsStr>>)]
   sources_content: Vec<Option<BytesStr>>,
-  #[rkyv(with = Map<AsUtf8String>)]
+  #[rkyv(with = Map<AsStr>)]
   names: Vec<BytesStr>,
-  #[rkyv(with = AsUtf8String)]
+  #[rkyv(with = AsStr)]
   mappings: BytesStr,
-  #[rkyv(with = Map<AsUtf8String>)]
+  #[rkyv(with = Map<AsStr>)]
   source_root: Option<BytesStr>,
-  #[rkyv(with = Map<AsUtf8String>)]
+  #[rkyv(with = Map<AsStr>)]
   debug_id: Option<BytesStr>,
   ignore_list: Option<Vec<u32>>,
 }
 
 // Archive text as strings so cache validation checks UTF-8 before restoring BytesStr.
-struct AsUtf8String;
+struct AsStr;
 
-impl ArchiveWith<BytesStr> for AsUtf8String {
+impl ArchiveWith<BytesStr> for AsStr {
   type Archived = ArchivedString;
   type Resolver = StringResolver;
 
@@ -50,7 +50,7 @@ impl ArchiveWith<BytesStr> for AsUtf8String {
   }
 }
 
-impl<S> SerializeWith<BytesStr, S> for AsUtf8String
+impl<S> SerializeWith<BytesStr, S> for AsStr
 where
   S: Writer + Fallible + ?Sized,
   S::Error: RkyvSource,
@@ -60,7 +60,7 @@ where
   }
 }
 
-impl<D: Fallible + ?Sized> DeserializeWith<ArchivedString, BytesStr, D> for AsUtf8String {
+impl<D: Fallible + ?Sized> DeserializeWith<ArchivedString, BytesStr, D> for AsStr {
   fn deserialize_with(field: &ArchivedString, _: &mut D) -> Result<BytesStr, D::Error> {
     Ok(BytesStr::from_str_slice(field.as_str()))
   }
