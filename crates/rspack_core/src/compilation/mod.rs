@@ -830,7 +830,7 @@ impl Compilation {
     Ok(())
   }
   #[instrument("Compilation:emit_asset",skip_all, fields(filename = filename))]
-  pub fn emit_asset(&mut self, filename: String, mut asset: CompilationAsset) {
+  pub fn emit_asset(&mut self, filename: String, asset: CompilationAsset) {
     if let Some(mut original) = self.assets.remove(&filename)
       && let Some(original_source) = &original.source
       && let Some(asset_source) = asset.get_source()
@@ -862,10 +862,6 @@ impl Compilation {
         self.assets.insert(filename, asset);
         return;
       }
-      asset.info.file_attributes = AssetFileAttributes::merge(
-        original.info.file_attributes.take(),
-        asset.info.file_attributes.take(),
-      );
       self.set_asset_info(&filename, Some(asset.get_info()), Some(original.get_info()));
       original.info = asset.info;
       self.assets.insert(filename, original);
@@ -1371,61 +1367,13 @@ pub struct CompilationAsset {
   pub info: BindingCell<AssetInfo>,
 }
 
-/// File metadata applied when the asset is written and exposed through AssetInfo.
+/// Source file attributes applied when emitting a copied asset.
 #[cacheable]
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone)]
 pub struct AssetFileAttributes {
   pub mode: Option<u16>,
-  /// Whether a failure to set the mode should fail emission.
-  pub permissions_required: bool,
   /// Access and modification times in milliseconds since the Unix epoch.
   pub timestamps: Option<(u64, u64)>,
-  pub removals: AssetFileAttributeRemovals,
-}
-
-impl AssetFileAttributes {
-  fn has_values(&self) -> bool {
-    self.mode.is_some() || self.timestamps.is_some()
-  }
-
-  pub fn mode_for_output(&self) -> Option<u16> {
-    if cfg!(unix) { self.mode } else { None }
-  }
-
-  pub fn discard_undefined(attributes: &mut Option<Box<Self>>) {
-    if let Some(values) = attributes {
-      values.removals = Default::default();
-      if !values.has_values() {
-        *attributes = None;
-      }
-    }
-  }
-
-  fn merge(old: Option<Box<Self>>, new: Option<Box<Self>>) -> Option<Box<Self>> {
-    let Some(mut new) = new else {
-      return old;
-    };
-    if let Some(old) = old {
-      if new.mode.is_none() && !new.removals.mode {
-        new.mode = old.mode;
-        new.permissions_required = old.permissions_required;
-        new.removals.mode = old.removals.mode;
-      }
-      if new.timestamps.is_none() && !new.removals.timestamps {
-        new.timestamps = old.timestamps;
-        new.removals.timestamps = old.removals.timestamps;
-      }
-    }
-    Some(new)
-  }
-}
-
-/// Explicitly undefined fields retained when AssetInfo is read or passed to another asset.
-#[cacheable]
-#[derive(Debug, Clone, Copy, Default)]
-pub struct AssetFileAttributeRemovals {
-  pub mode: bool,
-  pub timestamps: bool,
 }
 
 impl From<BoxSource> for CompilationAsset {
@@ -1498,7 +1446,6 @@ pub struct AssetInfo {
   pub is_over_size_limit: Option<bool>,
   /// the plugin that created the asset
   pub asset_type: ManifestAssetType,
-  /// Permissions and timestamps carried by this asset, including across JS re-emission.
   pub file_attributes: Option<Box<AssetFileAttributes>>,
 
   /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
@@ -1579,8 +1526,6 @@ impl AssetInfo {
       .or_else(|| self.source_filename.take());
     self.version = another.version;
     self.related.merge_another(another.related);
-    self.file_attributes =
-      AssetFileAttributes::merge(self.file_attributes.take(), another.file_attributes);
 
     // merge vec fields
     self.chunk_hash.extend(another.chunk_hash);

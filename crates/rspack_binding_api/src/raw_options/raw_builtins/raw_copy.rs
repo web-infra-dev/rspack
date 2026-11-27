@@ -85,16 +85,15 @@ pub struct RawCopyPattern {
   /// you can set `info.minimized` to `true`.
   /// @default undefined
   pub info: Option<RawInfo>,
-  /// Legacy alias for `preservePermissions`, used when that option is unset.
-  /// A failed permission update is logged and the build continues.
-  /// @deprecated Use `preservePermissions` instead.
+  /// Determines whether to copy file permissions from the source to the destination.
+  /// When set to true, the plugin will preserve executable permissions and other file modes.
+  /// This is particularly useful when copying scripts or executable files.
   /// @default false
   pub copy_permissions: Option<bool>,
-  /// Preserve the source file's Unix permission bits, including executable permissions.
-  /// A failed permission update fails the build.
+  /// Preserve the source file's Unix read, write, and execute permissions.
   /// @default false
   pub preserve_permissions: Option<bool>,
-  /// Preserve the source file's access and modification timestamps.
+  /// Preserve the source file's access and modification times.
   /// @default false
   pub preserve_timestamps: Option<bool>,
   /// Allows to modify the file contents.
@@ -204,7 +203,7 @@ impl From<RawCopyPattern> for CopyPattern {
         dot: glob_options.dot,
         ignore: glob_options.ignore,
       },
-      copy_permissions: preserve_permissions.is_none() && copy_permissions.unwrap_or_default(),
+      copy_permissions,
       preserve_permissions: preserve_permissions.unwrap_or_default(),
       preserve_timestamps: preserve_timestamps.unwrap_or_default(),
       transform_fn: transform.map(|transformer| -> TransformerFn {

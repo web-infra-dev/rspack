@@ -8,12 +8,7 @@ export type JsFilename =
 
 export type RawLazyCompilationTest = RegExp | ((module: Module) => boolean);
 
-export type AssetInfo = KnownAssetInfo & {
-	/** Unix permissions applied when the asset is written. */
-	mode?: number | undefined;
-	/** Access and modification times in milliseconds since the Unix epoch. */
-	timestamps?: { atime: number; mtime: number } | undefined;
-} & Record<string, any>;
+export type AssetInfo = KnownAssetInfo & Record<string, any>;
 
 export type CustomPluginName = string;
 
@@ -2190,20 +2185,19 @@ export interface RawCopyPattern {
    */
   info?: RawInfo
   /**
-   * Legacy alias for `preservePermissions`, used when that option is unset.
-   * A failed permission update is logged and the build continues.
-   * @deprecated Use `preservePermissions` instead.
+   * Determines whether to copy file permissions from the source to the destination.
+   * When set to true, the plugin will preserve executable permissions and other file modes.
+   * This is particularly useful when copying scripts or executable files.
    * @default false
    */
   copyPermissions?: boolean
   /**
-   * Preserve the source file's Unix permission bits, including executable permissions.
-   * A failed permission update fails the build.
+   * Preserve the source file's Unix read, write, and execute permissions.
    * @default false
    */
   preservePermissions?: boolean
   /**
-   * Preserve the source file's access and modification timestamps.
+   * Preserve the source file's access and modification times.
    * @default false
    */
   preserveTimestamps?: boolean
@@ -3538,7 +3532,7 @@ export interface ThreadsafeNodeFS {
   readUntil: (fd: number, code: number, position: number) => Promise<Buffer | void>
   readToEnd: (fd: number, position: number) => Promise<Buffer | void>
   chmod?: (name: string, mode: number) => Promise<void>
-  utimes?: (name: string, atime: number, mtime: number) => Promise<void>
+  utimes?: (name: string, atimeMs: number, mtimeMs: number) => Promise<void>
 }
 
 export declare function transform(source: string, options: string): Promise<TransformOutput>

@@ -151,14 +151,7 @@ impl WritableFileSystem for NodeFileSystem {
       )
     })?;
     utimes
-      .call_with_promise(
-        (
-          path.as_str().to_string(),
-          atime_ms as f64 / 1000.0,
-          mtime_ms as f64 / 1000.0,
-        )
-          .into(),
-      )
+      .call_with_promise((path.as_str().to_string(), atime_ms as f64, mtime_ms as f64).into())
       .await
       .to_fs_result()
   }

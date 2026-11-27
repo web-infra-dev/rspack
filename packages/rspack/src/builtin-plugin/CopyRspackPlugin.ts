@@ -30,6 +30,7 @@ export const CopyRspackPlugin = create(
       pattern.noErrorOnMissing ??= false;
       pattern.priority ??= 0;
       pattern.globOptions ??= {};
+      pattern.copyPermissions ??= false;
 
       const originalTransform = pattern.transform;
       if (originalTransform) {

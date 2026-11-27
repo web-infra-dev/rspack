@@ -58,7 +58,7 @@ pub struct ThreadsafeNodeFS {
   // Not every output file system supports changing file metadata.
   #[napi(ts_type = "(name: string, mode: number) => Promise<void>")]
   pub chmod: Option<Chmod>,
-  #[napi(ts_type = "(name: string, atime: number, mtime: number) => Promise<void>")]
+  #[napi(ts_type = "(name: string, atimeMs: number, mtimeMs: number) => Promise<void>")]
   pub utimes: Option<Utimes>,
 }
 
@@ -70,7 +70,7 @@ pub struct NodeFsStats {
   pub atime_ms: f64,
   pub mtime_ms: f64,
   pub ctime_ms: f64,
-  pub birthtime_ms: f64,
+  pub birthtime_ms: u32,
   pub size: u32,
   pub mode: u32,
 }

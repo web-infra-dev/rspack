@@ -7,14 +7,10 @@ use napi::{
   sys,
 };
 use napi_derive::napi;
-use rspack_core::{AssetFileAttributeRemovals, AssetFileAttributes, Reflector};
+use rspack_core::Reflector;
 use rspack_napi::unknown_to_json_value;
 use rspack_napi_macros::field_names;
 use rustc_hash::FxHashSet;
-use serde_json::{Map, Value};
-
-// Keep the deprecated copyPermissions error policy when plugins pass AssetInfo back to Rust.
-pub(crate) const LEGACY_COPY_PERMISSIONS: &str = "__rspackLegacyCopyPermissions";
 
 #[derive(Clone)]
 #[napi(object)]
@@ -76,8 +72,7 @@ pub struct KnownAssetInfo {
 /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
 pub struct AssetInfo {
   known: KnownAssetInfo,
-  extras: Map<String, Value>,
-  file_attributes: Option<Box<AssetFileAttributes>>,
+  extras: serde_json::Map<String, serde_json::Value>,
 }
 
 impl FromNapiValue for AssetInfo {
@@ -86,8 +81,7 @@ impl FromNapiValue for AssetInfo {
       let known = KnownAssetInfo::from_napi_value(env, napi_val)?;
       let known_field_names = FxHashSet::from_iter(KnownAssetInfo::field_names());
 
-      let mut extras = Map::new();
-      let mut file_attribute_removals = AssetFileAttributeRemovals::default();
+      let mut extras = serde_json::Map::new();
       let object = Object::from_napi_value(env, napi_val)?;
       let names = Array::from_napi_value(env, object.get_property_names()?.raw())?;
       for index in 0..names.len() {
@@ -95,30 +89,13 @@ impl FromNapiValue for AssetInfo {
           && !known_field_names.contains(&name)
         {
           let value = object.get_named_property::<Unknown>(&name)?;
-          let removal = match name.as_str() {
-            "mode" => Some(&mut file_attribute_removals.mode),
-            "timestamps" => Some(&mut file_attribute_removals.timestamps),
-            _ => None,
-          };
-          if let Some(removal) = removal
-            && value.get_type()? == napi::ValueType::Undefined
-            && object.has_own_property(&name)?
-          {
-            *removal = true;
-            continue;
-          }
           if let Some(json_value) = unknown_to_json_value(value)? {
             extras.insert(name, json_value);
           }
         }
       }
 
-      let file_attributes = take_file_attributes(&mut extras, file_attribute_removals);
-      Ok(Self {
-        known,
-        extras,
-        file_attributes,
-      })
+      Ok(Self { known, extras })
     }
   }
 }
@@ -130,24 +107,6 @@ impl ToNapiValue for AssetInfo {
       let mut js_object = Object::from_napi_value(env, napi_value)?;
       for (key, value) in val.extras {
         js_object.set_named_property(&key, value)?;
-      }
-      if let Some(attributes) = val.file_attributes {
-        if let Some(mode) = attributes.mode {
-          js_object.set_named_property("mode", u32::from(mode))?;
-          if !attributes.permissions_required {
-            js_object.set_named_property(LEGACY_COPY_PERMISSIONS, true)?;
-          }
-        } else if attributes.removals.mode {
-          js_object.set_named_property("mode", ())?;
-        }
-        if let Some((atime, mtime)) = attributes.timestamps {
-          let mut timestamps = Object::new(&Env::from_raw(env))?;
-          timestamps.set_named_property("atime", atime as f64)?;
-          timestamps.set_named_property("mtime", mtime as f64)?;
-          js_object.set_named_property("timestamps", timestamps)?;
-        } else if attributes.removals.timestamps {
-          js_object.set_named_property("timestamps", ())?;
-        }
       }
       Ok(napi_value)
     }
@@ -167,11 +126,7 @@ impl ValidateNapiValue for AssetInfo {}
 
 impl From<AssetInfo> for rspack_core::AssetInfo {
   fn from(js_value: AssetInfo) -> Self {
-    let AssetInfo {
-      known,
-      extras,
-      file_attributes,
-    } = js_value;
+    let AssetInfo { known, extras } = js_value;
 
     let KnownAssetInfo {
       immutable,
@@ -221,58 +176,10 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
       css_unused_idents: css_unused_idents.map(|i| i.into_iter().map(Into::into).collect()),
       is_over_size_limit,
       asset_type: asset_type.map_or_default(Into::into),
-      file_attributes,
+      file_attributes: None,
       extras,
     }
   }
-}
-
-fn read_timestamps(value: &Value, original: Option<(u64, u64)>) -> Option<(u64, u64)> {
-  let timestamps = value.as_object()?;
-  let read = |name, fallback| match timestamps.get(name) {
-    Some(value) => value
-      .as_f64()
-      .filter(|time| *time >= 0.0)
-      .map(|time| time as u64),
-    None => fallback,
-  };
-  let atime = read("atime", original.map(|(atime, _)| atime))?;
-  let mtime = read("mtime", original.map(|(_, mtime)| mtime))?;
-  Some((atime, mtime))
-}
-
-fn take_file_attributes(
-  extras: &mut Map<String, Value>,
-  removals: AssetFileAttributeRemovals,
-) -> Option<Box<AssetFileAttributes>> {
-  let legacy_permissions = matches!(
-    extras.remove(LEGACY_COPY_PERMISSIONS),
-    Some(Value::Bool(true))
-  );
-  let mode = extras
-    .get("mode")
-    .and_then(Value::as_f64)
-    .filter(|mode| mode.fract() == 0.0 && (0.0..=f64::from(u16::MAX)).contains(mode))
-    .map(|mode| mode as u16);
-  let timestamps = extras
-    .get("timestamps")
-    .and_then(|timestamps| read_timestamps(timestamps, None));
-  if mode.is_none() && timestamps.is_none() && !removals.mode && !removals.timestamps {
-    return None;
-  }
-
-  if mode.is_some() {
-    extras.remove("mode");
-  }
-  if timestamps.is_some() {
-    extras.remove("timestamps");
-  }
-  Some(Box::new(AssetFileAttributes {
-    mode,
-    permissions_required: !legacy_permissions,
-    timestamps,
-    removals,
-  }))
 }
 
 impl AssetInfo {
@@ -283,27 +190,6 @@ impl AssetInfo {
 
   pub fn get_related(&self) -> Option<AssetInfoRelated> {
     self.known.related.clone()
-  }
-
-  pub(crate) fn removes_mode(&self) -> bool {
-    self
-      .file_attributes
-      .as_ref()
-      .is_some_and(|attributes| attributes.removals.mode)
-  }
-
-  pub(crate) fn prepare_file_attribute_patch(&mut self, original_timestamps: Option<(u64, u64)>) {
-    AssetFileAttributes::discard_undefined(&mut self.file_attributes);
-    if let Some(original_timestamps) = original_timestamps
-      && let Some(timestamps) = self.extras.get("timestamps")
-      && let Some(timestamps) = read_timestamps(timestamps, Some(original_timestamps))
-    {
-      self.extras.remove("timestamps");
-      self
-        .file_attributes
-        .get_or_insert_with(Default::default)
-        .timestamps = Some(timestamps);
-    }
   }
 }
 
@@ -339,7 +225,6 @@ impl From<rspack_core::AssetInfo> for AssetInfo {
       css_unused_idents,
       is_over_size_limit,
       asset_type,
-      file_attributes,
       extras,
       ..
     } = value;
@@ -362,7 +247,6 @@ impl From<rspack_core::AssetInfo> for AssetInfo {
         asset_type: Some(asset_type.to_string()),
       },
       extras,
-      file_attributes,
     }
   }
 }

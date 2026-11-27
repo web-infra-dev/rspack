@@ -153,15 +153,15 @@ export interface OutputFileSystem {
     arg0: string,
     arg1: (arg0?: null | NodeJS.ErrnoException, arg1?: string | Buffer) => void,
   ) => void;
-  chmod?: (
+  chmod: (
     arg0: string,
     arg1: number,
     arg2: (arg0?: NodeJS.ErrnoException | null) => void,
   ) => void;
   utimes?: (
     path: string,
-    atime: number,
-    mtime: number,
+    atime: Date,
+    mtime: Date,
     callback: (error?: NodeJS.ErrnoException | null) => void,
   ) => void;
   join?: (arg0: string, arg1: string) => string;

@@ -1,5 +1,5 @@
 use napi::{
-  Env, JsValue, Property,
+  JsValue,
   bindgen_prelude::{Array, FromNapiValue, JsObjectValue, Object, Unknown},
 };
 
@@ -23,25 +23,6 @@ pub fn object_assign(target: &mut Object, source: &Object) -> napi::Result<()> {
   }
 
   Ok(())
-}
-
-pub fn object_spread<'env>(env: &'env Env, source: &Object) -> napi::Result<Object<'env>> {
-  let names = source.get_all_property_names(
-    napi::KeyCollectionMode::OwnOnly,
-    napi::KeyFilter::Enumerable,
-    napi::KeyConversion::NumbersToStrings,
-  )?;
-  let names = Array::from_unknown(names.to_unknown())?;
-  let mut properties = Vec::with_capacity(names.len() as usize);
-  for index in 0..names.len() {
-    if let Some(name) = names.get::<Unknown>(index)? {
-      let value = source.get_property::<Unknown, Unknown>(name)?;
-      properties.push(Property::new().with_name(env, name)?.with_value(&value));
-    }
-  }
-  let mut object = Object::new(env)?;
-  object.define_properties(&properties)?;
-  Ok(object)
 }
 
 pub fn unknown_to_json_value(value: Unknown) -> napi::Result<Option<serde_json::Value>> {

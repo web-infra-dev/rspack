@@ -443,14 +443,21 @@ export default {
 - **类型：** `boolean`
 - **默认值：** `false`
 
-保留输入文件系统报告的源文件 Unix 读、写和执行权限。输出文件系统无法设置权限时，构建会报错。此选项在 Windows 上无效。
+保留源文件的 Unix 读、写和执行权限。输出文件系统无法设置权限时，构建会报错。
 
 ### preserveTimestamps
 
 - **类型：** `boolean`
 - **默认值：** `false`
 
-保留输入文件系统报告的源文件访问时间（`atime`）和修改时间（`mtime`）。文件内容相同时，Rspack 可以跳过内容写入，仅更新时间戳。自定义输出文件系统需要支持 `utimes`。
+保留源文件的访问时间（`atime`）和修改时间（`mtime`）。自定义输出文件系统需要支持 `utimes`。
+
+### copyPermissions
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+是否将源文件的权限复制到目标文件。
 
 ```js title="rspack.config.mjs"
 export default {
@@ -459,8 +466,7 @@ export default {
       patterns: [
         {
           from: 'src/executable.sh',
-          preservePermissions: true,
-          preserveTimestamps: true,
+          copyPermissions: true, // 保留可执行权限
         },
       ],
     }),
@@ -468,9 +474,7 @@ export default {
 };
 ```
 
-### copyPermissions
-
-此选项已弃用，请改用 [`preservePermissions`](#preservepermissions)。输出文件系统缺少 `chmod` 时会跳过权限更新。调用 `chmod` 失败时会记录警告，构建继续。两项同时设置时，以 `preservePermissions` 为准。
+这对于复制可执行文件、脚本或任何权限重要的文件特别有用。当设置为 `true` 时，插件将尝试在目标文件上设置与源文件相同的权限。
 
 ### info
 

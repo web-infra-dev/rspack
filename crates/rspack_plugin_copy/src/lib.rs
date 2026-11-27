@@ -10,16 +10,12 @@ use std::{
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use fast_glob::glob_match;
-use futures::{
-  StreamExt,
-  future::{BoxFuture, join},
-  stream::{FuturesOrdered, FuturesUnordered},
-};
+use futures::{StreamExt, future::BoxFuture, stream::FuturesOrdered};
 use regex::Regex;
 use rspack_core::{
   AssetFileAttributes, AssetInfo, AssetInfoRelated, CacheOptions, Compilation, CompilationAsset,
   CompilationLogger, CompilationProcessAssets, Filename, GlobMatchOptions, Logger, PathData,
-  Plugin, Snapshot, escape_glob_pattern, extract_glob_base_dir, find_files_by_glob,
+  Plugin, escape_glob_pattern, extract_glob_base_dir, find_files_by_glob,
   rspack_sources::{BoxSource, RawBufferSource, SourceExt},
   unescape_glob_path,
 };
@@ -27,7 +23,7 @@ use rspack_error::{Diagnostic, Error, Result, ToStringResultToRspackResultExt};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
 use rspack_hook::{plugin, plugin_hook};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
-use rspack_util::{fx_hash::FxDashSet, time::current_time};
+use rspack_util::fx_hash::FxDashSet;
 use sugar_path::SugarPath;
 
 mod pattern_cache;
@@ -107,7 +103,7 @@ pub struct CopyPattern {
   pub force: bool,
   pub priority: i32,
   pub glob_options: CopyGlobOptions,
-  pub copy_permissions: bool,
+  pub copy_permissions: Option<bool>,
   pub preserve_permissions: bool,
   pub preserve_timestamps: bool,
   #[debug(skip)]
@@ -139,7 +135,7 @@ pub struct RunPatternResult {
 #[derive(Debug)]
 pub struct CopyRspackPlugin {
   pub patterns: Vec<CopyPattern>,
-  pattern_cache: Mutex<Vec<Option<Arc<CachedPatternResult>>>>,
+  pattern_cache: Mutex<Vec<Option<CachedPatternResult>>>,
 }
 
 struct PendingPattern<'a> {
@@ -150,12 +146,6 @@ struct PendingPattern<'a> {
   context_dependencies: FxDashSet<PathBuf>,
   missing_dependencies: FxDashSet<PathBuf>,
   diagnostics: Arc<Mutex<Vec<Diagnostic>>>,
-}
-
-impl CopyPattern {
-  fn preserves_file_attributes(&self) -> bool {
-    self.preserve_permissions || self.preserve_timestamps
-  }
 }
 
 static TEMPLATE_RE: LazyLock<Regex> =
@@ -195,42 +185,12 @@ impl CopyRspackPlugin {
   fn is_cacheable(pattern: &CopyPattern) -> bool {
     pattern.transform_fn.is_none()
       && !matches!(pattern.to, Some(ToOption::Fn(_)))
-      && !pattern.copy_permissions
+      && !pattern.copy_permissions.unwrap_or(false)
+      // Attribute changes may arrive without a modified or removed path from the compiler.
+      && !pattern.preserve_permissions
+      && !pattern.preserve_timestamps
       && !matches!(pattern.to_type, Some(ToType::Template))
       && !matches!(pattern.to, Some(ToOption::String(ref to)) if TEMPLATE_RE.is_match(to))
-  }
-
-  async fn snapshot_pattern(
-    compilation: &Compilation,
-    pending: &PendingPattern<'_>,
-    start_time: u64,
-  ) -> Option<Snapshot> {
-    let files = pending
-      .file_dependencies
-      .iter()
-      .map(|path| path.as_path().into())
-      .collect();
-    let contexts = pending
-      .context_dependencies
-      .iter()
-      .map(|path| path.as_path().into())
-      .collect();
-    let missing = pending
-      .missing_dependencies
-      .iter()
-      .map(|path| path.as_path().into())
-      .collect();
-    let file_system_info = &compilation.file_system_info;
-    file_system_info
-      .create_snapshot(
-        Some(start_time),
-        &files,
-        &contexts,
-        &missing,
-        file_system_info.module_strategy(),
-      )
-      .await
-      .ok()
   }
 
   fn get_content_hash(
@@ -242,39 +202,6 @@ impl CopyRspackPlugin {
     let mut hasher = RspackHasher::with_salt(function, salt);
     source.buffer().hash(&mut hasher);
     hasher.digest(digest)
-  }
-
-  async fn read_file_attributes(
-    compilation: &Compilation,
-    absolute_filename: &Utf8Path,
-    pattern: &CopyPattern,
-  ) -> Option<Box<AssetFileAttributes>> {
-    let copy_mode = pattern.copy_permissions || pattern.preserve_permissions;
-    if !copy_mode && !pattern.preserve_timestamps {
-      return None;
-    }
-    let metadata = compilation
-      .input_filesystem
-      .metadata(absolute_filename)
-      .await
-      .ok()?;
-    if !metadata.is_file {
-      return None;
-    }
-    let mode = if copy_mode { metadata.mode } else { None };
-    let timestamps = if pattern.preserve_timestamps {
-      metadata.atime_ms.map(|atime| (atime, metadata.mtime_ms))
-    } else {
-      None
-    };
-    (mode.is_some() || timestamps.is_some()).then(|| {
-      Box::new(AssetFileAttributes {
-        mode,
-        permissions_required: pattern.preserve_permissions,
-        timestamps,
-        removals: Default::default(),
-      })
-    })
   }
 
   #[allow(clippy::too_many_arguments)]
@@ -410,8 +337,23 @@ impl CopyRspackPlugin {
       }
     };
 
-    let file_attributes =
-      Self::read_file_attributes(compilation, &absolute_filename, pattern).await;
+    let file_attributes = if (pattern.preserve_permissions || pattern.preserve_timestamps)
+      && let Ok(metadata) = compilation
+        .input_filesystem
+        .metadata(&absolute_filename)
+        .await
+      && metadata.is_file
+    {
+      let mode = metadata.mode.filter(|_| pattern.preserve_permissions);
+      let timestamps = metadata
+        .atime_ms
+        .filter(|_| pattern.preserve_timestamps)
+        .map(|atime| (atime, metadata.mtime_ms));
+      (mode.is_some() || timestamps.is_some())
+        .then(|| Box::new(AssetFileAttributes { mode, timestamps }))
+    } else {
+      None
+    };
 
     let source = if let Some(transformer) = &pattern.transform_fn {
       let mut source = RawBufferSource::from(source_vec.clone()).boxed();
@@ -763,19 +705,26 @@ impl CopyRspackPlugin {
     &self,
     compilation: &mut Compilation,
     results_by_pattern: Vec<Option<Vec<RunPatternResult>>>,
-  ) {
-    for (_, result) in
+  ) -> Vec<(Utf8PathBuf, Utf8PathBuf)> {
+    let mut permission_copies = Vec::new();
+    for (index, result) in
       order_pattern_results(results_by_pattern, |index| self.patterns[index].priority)
     {
+      let pattern = &self.patterns[index];
+      let copy_permissions =
+        pattern.copy_permissions.unwrap_or(false) && !pattern.preserve_permissions;
+      let permission_copy = copy_permissions.then(|| {
+        (
+          result.absolute_filename.clone(),
+          compilation.options.output.path.join(&result.filename),
+        )
+      });
+
       if let Some(exist_asset) = compilation.assets_mut().get_mut(&result.filename) {
         if !result.force {
           continue;
         }
         exist_asset.set_source(Some(Arc::new(result.source)));
-        if exist_asset.info.file_attributes.is_some() {
-          // A forced replacement can remove properties from the previous asset's JS info.
-          exist_asset.info = exist_asset.info.clone();
-        }
         exist_asset.info.file_attributes = result.file_attributes;
         if let Some(info) = result.info {
           set_info(&mut exist_asset.info, info);
@@ -799,7 +748,13 @@ impl CopyRspackPlugin {
           CompilationAsset::new(Some(Arc::new(result.source)), asset_info),
         );
       }
+
+      if let Some(permission_copy) = permission_copy {
+        permission_copies.push(permission_copy);
+      }
     }
+
+    permission_copies
   }
 }
 
@@ -815,60 +770,28 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
   let pattern_cache_enabled = !matches!(&compilation.options.cache, CacheOptions::Disabled);
 
   let mut results_by_pattern = vec![None; self.patterns.len()];
-  let candidates = {
-    let mut pattern_cache = self
-      .pattern_cache
-      .lock()
-      .expect("failed to obtain lock of `pattern_cache`");
-    pattern_cache.resize_with(self.patterns.len(), || None);
-    self
-      .patterns
-      .iter()
-      .zip(pattern_cache.iter())
-      .map(|(pattern, cached)| {
-        let cacheable = pattern_cache_enabled && CopyRspackPlugin::is_cacheable(pattern);
-        let cached = cached.as_ref().filter(|cached| {
-          cacheable
-            && !cached.is_invalidated(
-              compilation
-                .modified_files
-                .iter()
-                .chain(compilation.removed_files.iter())
-                .map(|changed| changed.as_ref()),
-            )
-        });
-        (cacheable, cached.cloned())
-      })
-      .collect::<Vec<_>>()
-  };
-
-  let file_system_info = &compilation.file_system_info;
-  let candidates = candidates
-    .into_iter()
-    .map(|(cacheable, cached)| async move {
-      let cached = if let Some(cached) = cached
-        && cached.is_snapshot_valid(file_system_info).await
-      {
-        Some(cached)
-      } else {
-        None
-      };
-      (cacheable, cached)
-    })
-    .collect::<FuturesOrdered<_>>()
-    .collect::<Vec<_>>()
-    .await;
-
   let mut pending_patterns = Vec::new();
   {
     let mut pattern_cache = self
       .pattern_cache
       .lock()
       .expect("failed to obtain lock of `pattern_cache`");
+    pattern_cache.resize_with(self.patterns.len(), || None);
 
-    for (index, (pattern, (cacheable, cached))) in self.patterns.iter().zip(candidates).enumerate()
-    {
-      if let Some(cached) = cached {
+    for (index, pattern) in self.patterns.iter().enumerate() {
+      let cacheable = pattern_cache_enabled && CopyRspackPlugin::is_cacheable(pattern);
+      let cached = &mut pattern_cache[index];
+
+      if cacheable
+        && let Some(cached) = cached.as_ref()
+        && !cached.is_invalidated(
+          compilation
+            .modified_files
+            .iter()
+            .chain(compilation.removed_files.iter())
+            .map(|changed| changed.as_ref()),
+        )
+      {
         cache_counter.hit();
         file_dependencies.extend(cached.file_dependencies.iter().cloned());
         context_dependencies.extend(cached.context_dependencies.iter().cloned());
@@ -877,7 +800,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       }
 
       cache_counter.miss();
-      pattern_cache[index] = None;
+      *cached = None;
       pending_patterns.push(PendingPattern {
         index,
         pattern,
@@ -890,43 +813,12 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
     }
   }
   logger.cache_end(cache_counter);
-  let ((), pending_results) = {
-    let compilation = &*compilation;
-    // Only cache hits have populated results so far. Read fresh attributes for them.
-    let refresh_attributes = FuturesUnordered::new();
-    for (pattern, results) in self.patterns.iter().zip(&mut results_by_pattern) {
-      if pattern.preserves_file_attributes() {
-        for result in results.iter_mut().flatten() {
-          refresh_attributes.push(async move {
-            result.file_attributes = CopyRspackPlugin::read_file_attributes(
-              compilation,
-              &result.absolute_filename,
-              pattern,
-            )
-            .await;
-          });
-        }
-      }
-    }
-    let start_time = current_time();
-    let run_patterns = pending_patterns
-      .iter()
-      .map(|pending| async {
-        let results = CopyRspackPlugin::run_pattern(compilation, pending, &logger).await?;
-        let snapshot = if pending.cacheable
-          && pending.pattern.preserves_file_attributes()
-          && results.is_some()
-        {
-          CopyRspackPlugin::snapshot_pattern(compilation, pending, start_time).await
-        } else {
-          None
-        };
-        Ok::<_, Error>((results, snapshot))
-      })
-      .collect::<FuturesOrdered<_>>()
-      .collect::<Vec<_>>();
-    join(refresh_attributes.collect::<()>(), run_patterns).await
-  };
+  let pending_results = pending_patterns
+    .iter()
+    .map(|pending| CopyRspackPlugin::run_pattern(compilation, pending, &logger))
+    .collect::<FuturesOrdered<_>>()
+    .collect::<Vec<_>>()
+    .await;
 
   let mut first_error = None;
   if !pending_patterns.is_empty() {
@@ -936,7 +828,7 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .expect("failed to obtain lock of `pattern_cache`");
     let mut cache_updates = Vec::new();
     for (pending, results) in pending_patterns.into_iter().zip(pending_results) {
-      let (results, snapshot) = match results {
+      let results = match results {
         Ok(results) => results,
         Err(error) => {
           if first_error.is_none() {
@@ -963,17 +855,15 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
 
       if pending.cacheable
         && !has_diagnostics
-        && (!pending.pattern.preserves_file_attributes() || snapshot.is_some())
         && let Some(results) = results.as_ref()
       {
         cache_updates.push((
           pending.index,
-          Arc::new(CachedPatternResult {
+          CachedPatternResult {
             results: results.clone(),
             file_dependencies: pattern_file_dependencies,
             context_dependencies: pattern_context_dependencies,
-            snapshot,
-          }),
+          },
         ));
       }
 
@@ -1007,8 +897,46 @@ async fn process_assets(&self, compilation: &mut Compilation) -> Result<()> {
       .map(|diagnostic| diagnostic.with_title("CopyRspackPlugin")),
   );
 
-  self.emit_pattern_results(compilation, results_by_pattern);
+  let permission_copies = self.emit_pattern_results(compilation, results_by_pattern);
   logger.time_end(start);
+
+  // Handle permission copying after all assets are emitted
+  for (source_path, dest_path) in permission_copies.iter() {
+    if let Ok(Some(permissions)) = compilation.input_filesystem.permissions(source_path).await {
+      // Make sure the output directory exists
+      if let Some(parent) = dest_path.parent() {
+        compilation
+          .output_filesystem
+          .create_dir_all(parent)
+          .await
+          .unwrap_or_else(|e| {
+            logger.warn(format!("Failed to create directory {parent:?}: {e}"));
+          });
+      }
+
+      // Make sure the file exists before trying to set permissions
+      if !dest_path.exists() {
+        logger.warn(format!(
+          "Destination file {dest_path:?} does not exist, cannot copy permissions"
+        ));
+        continue;
+      }
+
+      if let Err(e) = compilation
+        .output_filesystem
+        .set_permissions(dest_path, permissions)
+        .await
+      {
+        logger.warn(format!(
+          "Failed to copy permissions from {source_path:?} to {dest_path:?}: {e}"
+        ));
+      } else {
+        logger.log(format!(
+          "Successfully copied permissions from {source_path:?} to {dest_path:?}"
+        ));
+      }
+    }
+  }
 
   Ok(())
 }

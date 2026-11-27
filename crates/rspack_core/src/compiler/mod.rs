@@ -482,15 +482,7 @@ impl Compiler {
                 !old_version.is_empty() && old_version.as_str() == asset.info.version
               });
 
-          if version_unchanged
-            && asset
-              .info
-              .file_attributes
-              .as_ref()
-              .is_none_or(|attributes| {
-                attributes.mode_for_output().is_none() && attributes.timestamps.is_none()
-              })
-          {
+          if version_unchanged && asset.info.file_attributes.is_none() {
             return;
           }
 
@@ -596,31 +588,25 @@ impl Compiler {
       if let Some(attributes) = &asset.info.file_attributes
         && (need_write
           || stat.as_ref().is_none_or(|stat| {
-            attributes
-              .mode_for_output()
-              .is_some_and(|mode| stat.mode != Some(mode))
+            attributes.mode.is_some_and(|mode| stat.mode != Some(mode))
               || attributes
                 .timestamps
                 .is_some_and(|(_, mtime)| stat.mtime_ms != mtime)
           }))
       {
-        if let Some(mode) = attributes.mode_for_output() {
-          if attributes.permissions_required && !self.output_filesystem.supports_set_permissions() {
+        if let Some(mode) = attributes.mode {
+          if !self.output_filesystem.supports_set_permissions() {
             return Err(rspack_error::error!(
               "Failed to set permissions for {file_path}: output file system cannot set file permissions"
             ));
           }
-          if let Err(error) = self
+          self
             .output_filesystem
             .set_permissions(&file_path, FilePermissions::from_mode(u32::from(mode)))
             .await
-          {
-            let message = format!("Failed to set permissions for {file_path}: {error}");
-            if attributes.permissions_required {
-              return Err(rspack_error::error!("{message}"));
-            }
-            self.compilation.get_logger("rspack.Compiler").warn(message);
-          }
+            .map_err(|error| {
+              rspack_error::error!("Failed to set permissions for {file_path}: {error}")
+            })?;
         }
         if let Some((atime, mtime)) = attributes.timestamps {
           self

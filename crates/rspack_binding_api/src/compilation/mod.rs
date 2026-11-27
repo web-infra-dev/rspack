@@ -15,19 +15,18 @@ use entries::JsEntries;
 use modules::Modules;
 use napi_derive::napi;
 use rspack_core::{
-  AssetFileAttributes, BindingCell, Compilation, CompilationId, DependencyRef, EntryOptions,
-  ExportsInfoArtifact, ModuleIdentifier, OptimizationBailoutItem, Reflector,
-  rspack_sources::BoxSource,
+  BindingCell, Compilation, CompilationId, DependencyRef, EntryOptions, ExportsInfoArtifact,
+  ModuleIdentifier, OptimizationBailoutItem, Reflector, rspack_sources::BoxSource,
 };
 use rspack_error::{Diagnostic, Severity, ToStringResultToRspackResultExt};
-use rspack_napi::{napi::bindgen_prelude::*, object_spread};
+use rspack_napi::napi::bindgen_prelude::*;
 use rspack_plugin_runtime::RuntimeModuleFromJs;
 use rspack_tasks::{within_compiler_context, within_compiler_context_sync};
 use rustc_hash::FxHashMap;
 
 use crate::{
   COMPILER_REFERENCES,
-  asset::{AssetInfo, JsAsset, LEGACY_COPY_PERMISSIONS},
+  asset::{AssetInfo, AssetInfoRelated, JsAsset},
   chunk::{Chunk, ChunkWrapper},
   chunk_graph::ChunkGraph,
   chunk_group::ChunkGroupWrapper,
@@ -128,7 +127,7 @@ impl JsCompilation {
     env: &Env,
     filename: String,
     new_source_or_function: Either<JsSourceFromJs, Function<'_, JsSourceToJs, JsSourceFromJs>>,
-    asset_info_update_or_function: Option<Either<Object, Function<'_, AssetInfo, Option<Object>>>>,
+    asset_info_update_or_function: Option<Either<Object, Function<'_, Reflector, Option<Object>>>>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
 
@@ -147,50 +146,36 @@ impl JsCompilation {
         })();
         let new_source = new_source.to_rspack_result()?;
 
-        let (object, is_patch) = match asset_info_update_or_function {
-          Some(Either::A(object)) => (Some(object), true),
-          Some(Either::B(update)) => {
-            // The callback receives a snapshot and supplies replacement file attributes.
-            let result = update
-              .call(original_info.as_ref().clone().into())
-              .to_rspack_result()?;
-            original_info.file_attributes = None;
-            original_info.extras.remove("mode");
-            original_info.extras.remove("timestamps");
-            (result, false)
-          }
-          None => (None, false),
-        };
-        if let Some(object) = object {
-          let mut new_info = AssetInfo::from_jsobject(env, &object).to_rspack_result()?;
-          if is_patch {
-            // The object form merges defined values, including individual timestamps.
-            AssetFileAttributes::discard_undefined(&mut original_info.file_attributes);
-            let original_timestamps = original_info
-              .file_attributes
-              .as_ref()
-              .and_then(|attributes| attributes.timestamps);
-            new_info.prepare_file_attribute_patch(original_timestamps);
-          } else {
-            // Retain JavaScript properties, including values the Rust extras cannot represent.
-            let mut snapshot = object_spread(env, &object).to_rspack_result()?;
-            snapshot
-              .delete_named_property(LEGACY_COPY_PERMISSIONS)
-              .to_rspack_result()?;
-            for (key, value) in std::mem::take(&mut original_info.extras) {
-              if !snapshot.has_own_property(&key).to_rspack_result()? {
-                original_info.extras.insert(key, value);
+        let new_info: Option<(rspack_core::AssetInfo, Option<AssetInfoRelated>)> =
+          match asset_info_update_or_function {
+            Some(asset_info_update_or_function) => match asset_info_update_or_function {
+              Either::A(object) => {
+                let js_asset_info: AssetInfo = unsafe {
+                  FromNapiValue::from_napi_value(env.raw(), object.raw()).to_rspack_result()?
+                };
+                let new_related_to = js_asset_info.get_related();
+                Some((js_asset_info.into(), new_related_to))
               }
-            }
-            original_info
-              .reflector()
-              .set_jsobject(env, snapshot)
-              .to_rspack_result()?;
-          }
-          let new_related_to = new_info.get_related();
-          original_info.merge_another_asset(new_info.into());
+              Either::B(f) => {
+                let original_info_object = original_info.reflector();
+                let result = f.call(original_info_object).to_rspack_result()?;
+                match result {
+                  Some(object) => {
+                    let js_asset_info =
+                      AssetInfo::from_jsobject(env, &object).to_rspack_result()?;
+                    let new_related_to = js_asset_info.get_related();
+                    Some((js_asset_info.into(), new_related_to))
+                  }
+                  None => None,
+                }
+              }
+            },
+            None => None,
+          };
+        if let Some(new_info) = new_info {
+          original_info.merge_another_asset(new_info.0);
           // if the new related is null, should remove it in the original info
-          if let Some(new_related_to) = new_related_to
+          if let Some(new_related_to) = new_info.1
             && new_related_to
               .source_map
               .is_some_and(|s| matches!(s, Either::B(_)))
@@ -425,23 +410,9 @@ impl JsCompilation {
     object: Option<Object>,
   ) -> Result<()> {
     let compilation = self.as_mut()?;
-    let source = source.try_into()?;
 
-    let asset_info = if let Some(mut object) = object {
-      let has_asset = compilation
-        .assets()
-        .get(&filename)
-        .is_some_and(|asset| asset.get_source().is_some());
-      if has_asset {
-        object = object_spread(env, &object)?;
-      }
+    let asset_info = if let Some(object) = object {
       let js_asset_info = AssetInfo::from_jsobject(env, &object)?;
-      if js_asset_info.removes_mode() && object.has_own_property(LEGACY_COPY_PERMISSIONS)? {
-        if !has_asset {
-          object = object_spread(env, &object)?;
-        }
-        object.delete_named_property(LEGACY_COPY_PERMISSIONS)?;
-      }
       let asset_info: rspack_core::AssetInfo = js_asset_info.into();
       let asset_info = BindingCell::from(asset_info);
       asset_info.reflector().set_jsobject(env, object)?;
@@ -454,7 +425,7 @@ impl JsCompilation {
     compilation.emit_asset(
       filename,
       rspack_core::CompilationAsset {
-        source: Some(source),
+        source: Some(source.try_into()?),
         info: asset_info,
       },
     );
