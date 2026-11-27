@@ -55,6 +55,8 @@ pub enum Devtool {
   EvalNosourcesCheapModuleSourceMap,
   /// Use eval-nosources-source-map to generate source map.
   EvalNosourcesSourceMap,
+  /// Add import-binding scopes to a source map.
+  WithScopes(Box<Devtool>),
 }
 
 // Implement FromStr trait to parse strings into Devtool enum
@@ -62,6 +64,14 @@ impl std::str::FromStr for Devtool {
   type Err = String;
 
   fn from_str(s: &str) -> Result<Self, Self::Err> {
+    if let Some(base) = s
+      .strip_suffix("-scopes")
+      .filter(|base| base.ends_with("source-map"))
+    {
+      return base
+        .parse()
+        .map(|devtool| Self::WithScopes(Box::new(devtool)));
+    }
     match s {
       "false" => Ok(Devtool::False),
       "eval" => Ok(Devtool::Eval),
@@ -128,6 +138,7 @@ impl std::fmt::Display for Devtool {
       Devtool::EvalNosourcesCheapSourceMap => "eval-nosources-cheap-source-map",
       Devtool::EvalNosourcesCheapModuleSourceMap => "eval-nosources-cheap-module-source-map",
       Devtool::EvalNosourcesSourceMap => "eval-nosources-source-map",
+      Devtool::WithScopes(devtool) => return write!(f, "{devtool}-scopes"),
     };
     write!(f, "{s}")
   }
@@ -143,6 +154,7 @@ bitflags! {
         const CHEAP     = 1 << 4;
         const MODULE    = 1 << 5;
         const NOSOURCES = 1 << 6;
+        const SCOPES    = 1 << 7;
     }
 }
 
@@ -179,6 +191,7 @@ impl DevtoolFlags {
 impl From<Devtool> for DevtoolFlags {
   fn from(devtool: Devtool) -> Self {
     match devtool {
+      Devtool::WithScopes(devtool) => Self::from(*devtool) | Self::SCOPES,
       Devtool::False => DevtoolFlags::empty(),
       Devtool::Eval => DevtoolFlags::EVAL,
       _ => {

@@ -124,6 +124,7 @@ pub struct SourceMapDevToolPluginOptions {
   #[napi(ts_type = "string | RegExp | (string | RegExp)[]")]
   pub exclude: Option<RawAssetConditions>,
   pub debug_ids: Option<bool>,
+  pub scopes: Option<bool>,
 }
 
 impl From<SourceMapDevToolPluginOptions> for rspack_plugin_devtool::SourceMapDevToolPluginOptions {
@@ -162,6 +163,7 @@ impl From<SourceMapDevToolPluginOptions> for rspack_plugin_devtool::SourceMapDev
       include: opts.include.map(into_asset_conditions),
       exclude: opts.exclude.map(into_asset_conditions),
       debug_ids: opts.debug_ids.unwrap_or(false),
+      scopes: opts.scopes.unwrap_or(false),
     }
   }
 }

@@ -21,6 +21,8 @@ pub struct CacheableSourceMap {
   source_root: Option<String>,
   debug_id: Option<String>,
   ignore_list: Option<Vec<u32>>,
+  scopes: Option<Vec<Option<String>>>,
+  ranges: Option<Vec<String>>,
 }
 
 impl From<&SourceMap> for CacheableSourceMap {
@@ -39,6 +41,15 @@ impl From<&SourceMap> for CacheableSourceMap {
       source_root: map.source_root.as_deref().map(str::to_owned),
       debug_id: map.debug_id.as_deref().map(str::to_owned),
       ignore_list: map.ignore_list().map(<[u32]>::to_vec),
+      scopes: map.scopes().map(|scopes| {
+        scopes
+          .iter()
+          .map(|scope| scope.as_deref().map(str::to_owned))
+          .collect()
+      }),
+      ranges: map
+        .ranges()
+        .map(|ranges| ranges.iter().map(ToString::to_string).collect()),
     }
   }
 }
@@ -62,6 +73,12 @@ impl From<CacheableSourceMap> for SourceMap {
       ignore_list: map
         .ignore_list
         .map(|items| ThinArc::from_header_and_iter((), items.into_iter())),
+      scopes: map
+        .scopes
+        .and_then(|items| shared_slice(items.into_iter().map(|scope| scope.map(Into::into)))),
+      ranges: map
+        .ranges
+        .and_then(|items| shared_slice(items.into_iter().map(Into::into))),
     }
   }
 }

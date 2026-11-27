@@ -39,6 +39,7 @@ use crate::{
   ModuleFilenameTemplateFn, SourceReference, default_source_map_fallback_module_filename_template,
   default_source_map_module_filename_template, generate_debug_id::generate_debug_id,
   module_filename_helpers::ModuleFilenameHelpers, resolve_source_reference,
+  source_map_scopes::add_import_binding_scopes,
 };
 
 /// Check if a string starts with `data:`, `http:`, or `https:`
@@ -178,6 +179,7 @@ pub struct SourceMapDevToolPluginOptions {
   pub include: Option<AssetConditions>,
   pub exclude: Option<AssetConditions>,
   pub debug_ids: bool,
+  pub scopes: bool,
 }
 
 impl SourceMapDevToolPluginOptions {
@@ -297,6 +299,7 @@ pub struct SourceMapDevToolPlugin {
   include: Option<AssetConditions>,
   exclude: Option<AssetConditions>,
   debug_ids: bool,
+  scopes: bool,
 }
 
 impl SourceMapDevToolPlugin {
@@ -318,6 +321,7 @@ impl SourceMapDevToolPlugin {
       include,
       exclude,
       debug_ids,
+      scopes,
     } = options;
 
     let source_mapping_url_comment = match append {
@@ -351,6 +355,7 @@ impl SourceMapDevToolPlugin {
       include,
       exclude,
       debug_ids,
+      scopes,
     )
   }
 
@@ -993,6 +998,32 @@ impl SourceMapDevToolPlugin {
       .then(|| generate_debug_id(&asset_filename, &source.buffer()));
     let asset_filename_ref = asset_filename.as_ref();
 
+    let mut asset = compilation
+      .assets()
+      .get(asset_filename_ref)
+      .unwrap_or_else(|| {
+        panic!(
+          "expected to find filename '{asset_filename_ref}' in compilation.assets, but it was not present"
+        )
+      })
+      .clone();
+
+    // The binding expressions refer to the names emitted by code generation.
+    // An asset minimizer can rename or remove those variables.
+    if plugin.scopes
+      && asset.info.minimized != Some(true)
+      && !has_css_extension(asset_filename_ref)
+      && let Some(chunk) = file_to_chunk.get(asset_filename_ref)
+    {
+      add_import_binding_scopes(
+        compilation,
+        chunk.runtime(),
+        &mut source_map,
+        source.as_ref(),
+        &source_references,
+      );
+    }
+
     plugin.update_source_map(
       &mut source_map,
       reference_to_source_name_mapping,
@@ -1001,17 +1032,6 @@ impl SourceMapDevToolPlugin {
       &source_references,
       debug_id.as_deref(),
     );
-
-    let mut asset = compilation
-      .assets()
-      .get(asset_filename.as_ref())
-      .unwrap_or_else(|| {
-        panic!(
-          "expected to find filename '{}' in compilation.assets, but it was not present",
-          asset_filename.as_ref()
-        )
-      })
-      .clone();
 
     let source = if plugin.should_detach_source(&asset.info) {
       RawStringSource::from(source.source().into_string_lossy().into_owned()).boxed()
@@ -1173,6 +1193,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
+  compilation.source_map_scopes |= self.scopes;
   if !compilation.options.experiments.new_cache.devtool {
     compilation.use_source_map_dev_tool_plugin_cache = true;
   }

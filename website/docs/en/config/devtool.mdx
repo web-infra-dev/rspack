@@ -135,7 +135,11 @@ Used only together with `cheap`, as in `cheap-module-source-map`. It processes s
 
 The `debugids` modifier adds a `debugId` to the source map following the [TC39 Debug ID proposal](https://github.com/tc39/ecma426/blob/main/proposals/debug-id.md). For example, with `source-map-debugids`, Rspack also adds a matching `//# debugId` comment to the corresponding output asset so error monitoring tools can associate the build artifact with its source map.
 
-Rspack validates modifier order. Values must match `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]`. The `inline`, `hidden`, and `eval` modifiers are mutually exclusive, `module` can only follow `cheap`, and `debugids` must appear at the end.
+### `scopes`
+
+Use `source-map-scopes` or `eval-source-map-scopes` to let compatible debuggers inspect rewritten ESM imports by their original local names. Rspack emits the `scopes` and `ranges` fields from the [ECMA-426 scopes proposal](https://github.com/tc39/ecma426/blob/main/proposals/scopes.md) when it can associate a binding with its generated expression. With minification and module concatenation disabled, the metadata describes module-level import bindings. For production builds, set `optimization.minimize` and `optimization.concatenateModules` to `false` to retain these bindings.
+
+The modifier order is `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids][-scopes]`. Choose at most one of `inline`, `hidden`, and `eval`. If you use both `debugids` and `scopes`, put `scopes` last.
 
 ## Related options
 

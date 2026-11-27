@@ -237,6 +237,7 @@ export class RspackOptionsApply {
           noSources: noSources,
           namespace: options.output.devtoolNamespace,
           debugIds: debugIds,
+          scopes: options.devtool.endsWith('-scopes'),
         }).apply(compiler);
       } else if (options.devtool.includes('eval')) {
         new EvalDevToolModulePlugin({

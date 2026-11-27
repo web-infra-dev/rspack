@@ -290,6 +290,7 @@ pub struct Compilation {
 
   pub minimize_persistent_cache: Option<MinimizePersistentCache>,
   pub use_source_map_dev_tool_plugin_cache: bool,
+  pub source_map_scopes: bool,
   pub source_map_dev_tool_plugin_cache: Option<SourceMapDevToolPluginCache>,
 
   pub circular_modules: StealCell<CircularModulesInfo>,
@@ -437,6 +438,7 @@ impl Compilation {
       ),
       minimize_persistent_cache: None,
       use_source_map_dev_tool_plugin_cache: false,
+      source_map_scopes: false,
       source_map_dev_tool_plugin_cache: None,
       build_time_executed_modules: Default::default(),
       incremental,

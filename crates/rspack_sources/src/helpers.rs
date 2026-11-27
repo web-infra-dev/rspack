@@ -72,6 +72,8 @@ pub fn get_map<'a>(chunks: &dyn Chunks<'a>, options: &MapOptions) -> Option<Sour
     source_root: None,
     debug_id: None,
     ignore_list: None,
+    scopes: None,
+    ranges: None,
   })
 }
 
@@ -1438,6 +1440,8 @@ pub fn stream_and_get_source_and_map<'source, 'chunk>(
       source_root: None,
       debug_id: None,
       ignore_list: None,
+      scopes: None,
+      ranges: None,
     })
   };
   (generated_info, map)

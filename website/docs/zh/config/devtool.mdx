@@ -135,7 +135,11 @@ export default {
 
 `debugids` 基于 [TC39 Debug ID 提案](https://github.com/tc39/ecma426/blob/main/proposals/debug-id.md)，为 source map 添加 `debugId`。例如，使用 `source-map-debugids` 时，Rspack 还会在对应的输出资源中添加匹配的 `//# debugId` 注释，便于错误监控工具关联构建产物与 source map。
 
-Rspack 会校验修饰符的顺序，格式必须为 `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids]`。其中 `inline`、`hidden` 和 `eval` 互斥，`module` 只能跟在 `cheap` 之后，`debugids` 位于末尾。
+### `scopes`
+
+使用 `source-map-scopes` 或 `eval-source-map-scopes`，可以在兼容的调试器中按原始局部名称查看重写后的 ESM 导入。Rspack 能将导入绑定关联到生成表达式时，会按 [ECMA-426 scopes 提案](https://github.com/tc39/ecma426/blob/main/proposals/scopes.md) 输出 `scopes` 和 `ranges` 字段。这些元数据覆盖未压缩、未拼接模块中的模块级导入绑定。在生产模式下，可以将 `optimization.minimize` 和 `optimization.concatenateModules` 设为 `false` 来保留这些绑定。
+
+修饰符顺序为 `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids][-scopes]`。`inline`、`hidden` 和 `eval` 最多选一个。同时使用 `debugids` 和 `scopes` 时，将 `scopes` 放在最后。
 
 ## 相关配置
 

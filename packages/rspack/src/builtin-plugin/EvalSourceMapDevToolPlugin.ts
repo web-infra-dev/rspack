@@ -9,6 +9,7 @@ export type EvalSourceMapDevToolPluginOptions = Pick<
   SourceMapDevToolPluginOptions,
   | 'columns'
   | 'debugIds'
+  | 'scopes'
   | 'exclude'
   | 'ignoreList'
   | 'include'

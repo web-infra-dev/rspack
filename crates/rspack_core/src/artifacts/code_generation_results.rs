@@ -8,7 +8,10 @@ use rspack_collections::IdentifierMap;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHashDigest, RspackHasher};
 use rspack_intern::{Atom, AtomSet};
 use rspack_sources::BoxSource;
-use rspack_util::ext::{AsAny, IntoAny};
+use rspack_util::{
+  ext::{AsAny, IntoAny},
+  fx_hash::FxIndexMap,
+};
 use rustc_hash::FxHashMap as HashMap;
 
 use crate::{
@@ -120,6 +123,13 @@ pub struct CodeGenerationDataTopLevelDeclarations {
   inner: AtomSet,
 }
 
+#[cacheable]
+#[derive(Debug, Default)]
+pub struct CodeGenerationDataImportBindings {
+  #[cacheable(with=AsMap<AsPreset, AsCacheable>)]
+  pub bindings: FxIndexMap<Atom, String>,
+}
+
 impl CodeGenerationDataTopLevelDeclarations {
   pub fn new(inner: AtomSet) -> Self {
     Self { inner }
@@ -189,6 +199,16 @@ impl CodeGenerationDataItem for CodeGenerationDataPreservedAssetImport {
 impl CodeGenerationDataItem for CodeGenerationDataTopLevelDeclarations {}
 
 #[cacheable_dyn]
+impl CodeGenerationDataItem for CodeGenerationDataImportBindings {
+  fn update_hash(&self, hasher: &mut RspackHasher) {
+    for (name, expression) in &self.bindings {
+      name.hash(hasher);
+      expression.hash(hasher);
+    }
+  }
+}
+
+#[cacheable_dyn]
 impl CodeGenerationDataItem for CodeGenerationDataChunkInitFragments {
   fn update_hash(&self, hasher: &mut RspackHasher) {
     RspackHash::hash(self, hasher);
@@ -205,6 +225,17 @@ pub struct CodeGenerationData {
 }
 
 impl CodeGenerationData {
+  pub fn record_import_binding(&mut self, name: Atom, expression: String) {
+    if !self.contains::<CodeGenerationDataImportBindings>() {
+      self.insert(CodeGenerationDataImportBindings::default());
+    }
+    self
+      .get_mut::<CodeGenerationDataImportBindings>()
+      .expect("import binding data was initialized")
+      .bindings
+      .insert(name, expression);
+  }
+
   pub fn insert<T: CodeGenerationDataItem + 'static>(&mut self, item: T) -> Option<T> {
     if let Some(index) = self
       .inner

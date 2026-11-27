@@ -483,7 +483,13 @@ impl ESMImportSpecifierDependencyTemplate {
         dep.phase,
         code_generatable_context.runtime,
       );
-      esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
+      esm_import_dependency_apply(
+        dep,
+        dep.source_order,
+        dep.phase,
+        code_generatable_context,
+        None,
+      );
       let TemplateContext {
         compilation,
         module,
@@ -671,6 +677,31 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
     }
 
     let export_expr = self.get_code_for_ids(ids, dep, connection, code_generatable_context);
+
+    if compilation.source_map_scopes
+      && code_generatable_context.concatenation_scope.is_none()
+      && dep.phase == ImportPhase::Evaluation
+      && dep.direct_import
+      && connection.is_some()
+      // A synthetic namespace expression can assign to a cache. Don't run
+      // that initialization when the debugger inspects a binding.
+      && !(ids.is_empty() && export_expr.starts_with("/*#__PURE__*/"))
+    {
+      // Codegen can add a leading semicolon or a comma expression at a call
+      // site to drop the receiver. The debugger only needs the binding value.
+      let expression = export_expr.strip_prefix(';').unwrap_or(&export_expr);
+      let expression = if dep.call {
+        expression
+          .strip_prefix("(0,")
+          .and_then(|access| access.strip_suffix(')'))
+          .unwrap_or(expression)
+      } else {
+        expression
+      };
+      code_generatable_context
+        .data
+        .record_import_binding(dep.name.clone(), expression.to_owned());
+    }
 
     if dep.shorthand {
       source.insert(dep.range.end, format!(": {export_expr}"), None);

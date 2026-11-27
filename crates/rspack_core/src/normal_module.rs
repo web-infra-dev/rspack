@@ -774,6 +774,9 @@ impl Module for NormalModule {
   ) -> Result<RspackHashDigest> {
     let mut hasher = RspackHasher::from(&compilation.options.output);
     self.build_info.read().hash.hash(&mut hasher);
+    if compilation.source_map_scopes && self.module_type.is_js_like() {
+      "source map scopes".hash(&mut hasher);
+    }
     // For built failed NormalModule, hash will be calculated by build_info.hash, which contains error message
     if self.source.is_some() && self.parser_and_generator.has_runtime_hash() {
       let runtime_hash = self
