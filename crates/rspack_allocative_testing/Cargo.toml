@@ -16,6 +16,8 @@ default    = []
 rspack-allocative = { workspace = true, optional = true }
 
 [dev-dependencies]
+bytes                    = { workspace = true }
+bytes-str                = { workspace = true }
 cow-utils                = { workspace = true }
 hashlink                 = { workspace = true }
 indexmap                 = { workspace = true }
