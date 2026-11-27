@@ -144,13 +144,20 @@ export default {
           );
           assert.deepEqual(publicResult.extraIssuerPath, [{}]);
 
-          compilation.hooks.statsFactory.tap('ForceGenericStats', () => {});
+          let interceptedCalls = 0;
+          compilation.hooks.statsFactory.intercept({
+            call() {
+              interceptedCalls++;
+            },
+          });
           for (let i = 0; i < variants.length; i++) {
             assert.equal(
               JSON.stringify(results[i]),
               JSON.stringify(stats.toJson(variants[i])),
             );
           }
+
+          assert.equal(interceptedCalls, variants.length);
 
           let calls = 0;
           compilation.hooks.statsFactory.tap(
