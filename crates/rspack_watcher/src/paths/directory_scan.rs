@@ -1,220 +1,279 @@
 use std::{
+  io,
   path::PathBuf,
-  sync::{Arc, Mutex},
+  sync::{
+    Arc, Mutex,
+    atomic::{AtomicU64, Ordering},
+  },
+  time::SystemTime,
 };
 
-use futures::{StreamExt, stream};
-use rspack_paths::InternedPath;
-use tokio::{
-  runtime::Handle,
-  sync::{Mutex as AsyncMutex, oneshot},
-};
+use rspack_paths::{InternedPath, InternedPathSet};
+use tokio::sync::{Mutex as AsyncMutex, oneshot};
 
-use super::{
-  PathManager,
-  scan::{ScanChange, ScanRequest},
-};
+use super::{PathManager, scan::ScanRequest};
+use crate::{EventBatch, watcher_manager::DirectoryWatcher};
 
 #[derive(Default)]
-pub(super) struct ScannedDirectory {
+pub(crate) struct ScannedDirectory {
+  pub(super) real: Option<PathBuf>,
   pub(super) children: Arc<[InternedPath]>,
-  pub(super) changes: Vec<ScanChange>,
+  pub(crate) changes: EventBatch,
 }
 
-async fn read_on_worker<T: Send + 'static>(
-  workers: &Handle,
-  read: impl FnOnce() -> T + Send + 'static,
-) -> T {
-  workers
-    .spawn_blocking(read)
-    .await
-    .expect("directory scan worker panicked")
+#[derive(Clone)]
+pub(crate) struct ScanInput {
+  pub(super) ancestry: Vec<PathBuf>,
+  pub(super) request: ScanRequest,
 }
 
-type ScanResult = (Option<PathBuf>, ScannedDirectory);
-
-struct QueuedScan {
-  request: ScanRequest,
-  ancestry: Vec<PathBuf>,
-  reply: oneshot::Sender<ScanResult>,
+struct Request {
+  input: ScanInput,
+  done: oneshot::Sender<ScannedDirectory>,
 }
 
+#[derive(Default)]
 pub(crate) struct DirectoryScan {
-  workers: Handle,
-  #[cfg(feature = "testing")]
-  metadata_jobs: crate::testing::MetadataJobs,
-  path: InternedPath,
-  reading: AsyncMutex<()>,
-  waiting: Mutex<Vec<QueuedScan>>,
+  revision: AtomicU64,
+  running: AsyncMutex<()>,
+  rescan: Mutex<Vec<Request>>,
+}
+
+impl DirectoryWatcher {
+  pub(crate) fn scan<'a>(
+    &mut self,
+    dir: InternedPath,
+    paths: &'a PathManager,
+    input: ScanInput,
+  ) -> impl Future<Output = ScannedDirectory> + Send + use<'a> {
+    let scan = Arc::clone(self.scan.get_or_insert_with(Default::default));
+    async move {
+      loop {
+        let (done, mut result) = oneshot::channel();
+        scan.pending().push(Request {
+          input: input.clone(),
+          done,
+        });
+        tokio::select! {
+          biased;
+          reply = &mut result => if let Ok(reply) = reply { return reply; },
+          _running = scan.running.lock() => {
+            tokio::task::yield_now().await;
+            scan.run(&dir, paths).await;
+            if let Ok(reply) = result.await { return reply; }
+          }
+        }
+      }
+    }
+  }
+}
+
+impl ScanInput {
+  fn context(&self, real: Option<&PathBuf>) -> Option<&ScanRequest> {
+    real
+      .is_none_or(|dir| !self.ancestry.contains(dir))
+      .then_some(&self.request)
+  }
 }
 
 impl DirectoryScan {
-  pub(crate) const MAX_METADATA_READS: usize = 16;
-
-  pub(crate) fn new(
-    path: InternedPath,
-    workers: Handle,
-    #[cfg(feature = "testing")] metadata_jobs: crate::testing::MetadataJobs,
-  ) -> Self {
-    Self {
-      workers,
-      #[cfg(feature = "testing")]
-      metadata_jobs,
-      path,
-      reading: AsyncMutex::default(),
-      waiting: Mutex::default(),
-    }
+  pub(crate) fn invalidate(&self) {
+    self.revision.fetch_add(1, Ordering::Relaxed);
   }
 
-  // Overlapping requests share the next enumeration and keep their own results.
-  pub(super) async fn enumerate(
-    &self,
-    paths: &PathManager,
-    ancestry: &[PathBuf],
-    request: &ScanRequest,
-  ) -> ScanResult {
+  fn owns(&self, dw: &DirectoryWatcher) -> bool {
+    dw.scan.as_deref().is_some_and(|s| std::ptr::eq(s, self))
+  }
+
+  fn pending(&self) -> std::sync::MutexGuard<'_, Vec<Request>> {
+    self.rescan.lock().expect("directory scan queue poisoned")
+  }
+
+  async fn run(self: &Arc<Self>, dir: &InternedPath, paths: &PathManager) {
+    let mut readers = std::mem::take(&mut *self.pending());
     loop {
-      let (tx, mut done) = oneshot::channel();
-      self
-        .waiting
-        .lock()
-        .expect("directory scan queue poisoned")
-        .push(QueuedScan {
-          request: request.clone(),
-          ancestry: ancestry.to_vec(),
-          reply: tx,
-        });
-      tokio::select! {
-        biased;
-        result = &mut done => {
-          if let Ok(children) = result {
-            return children;
-          }
-          // The task running our pass was cancelled. Take part in the next pass.
-        }
-        _reading = self.reading.lock() => {
-          let waiting = std::mem::take(
-            &mut *self.waiting.lock().expect("directory scan queue poisoned"),
-          );
-          self.run_pass(paths, waiting).await;
-          if let Ok(children) = done.await {
-            return children;
-          }
-        }
+      readers.retain(|r| !r.done.is_closed());
+      if readers.is_empty() {
+        return;
       }
-    }
-  }
+      let version = self.revision.load(Ordering::Relaxed);
+      let live = Arc::new(Mutex::new(InternedPathSet::default()));
+      let known = paths.watchers.directories.get_mut(dir).and_then(|mut dw| {
+        if !self.owns(&dw) {
+          return None;
+        }
+        dw.live_during_scan = Arc::downgrade(&live);
+        (dw.subscriptions.is_active()).then(|| dw.members.keys().cloned().collect())
+      });
+      let listing = if let Some(known) = known {
+        DirectoryBatch::read(dir, paths, known, &readers, Arc::clone(self), version).await
+      } else {
+        None
+      };
+      let mut again = self.pending();
+      if !again.is_empty() {
+        readers.append(&mut again);
+        continue;
+      }
 
-  async fn run_pass(&self, paths: &PathManager, waiting: Vec<QueuedScan>) {
-    let real_dir = if paths.follow_symlinks {
-      let dir = self.path.clone();
-      match read_on_worker(&self.workers, move || std::fs::canonicalize(dir)).await {
-        Ok(real) => Some(real),
-        Err(_) => {
-          for queued in waiting {
-            let _ = queued.reply.send(ScanResult::default());
-          }
-          return;
-        }
+      let contexts: Vec<_> = readers
+        .iter()
+        .enumerate()
+        .filter(|(_, reader)| !reader.done.is_closed())
+        .filter_map(|(i, reader)| Some((i, reader.input.context(listing.as_ref()?.real.as_ref())?)))
+        .collect();
+      let mut replies: Vec<_> = (0..readers.len())
+        .map(|_| ScannedDirectory::default())
+        .collect();
+      let mut revision = paths.lock_index();
+      if self.revision.load(Ordering::Relaxed) != version {
+        continue;
       }
-    } else {
-      None
-    };
-    let (requests, replies): (Vec<_>, Vec<_>) = waiting
-      .into_iter()
-      .filter_map(|queued| {
-        if queued.reply.is_closed() {
-          return None;
-        }
-        if real_dir
-          .as_ref()
-          .is_some_and(|real| queued.ancestry.contains(real))
+      if paths.scan_io.is_open()
+        && paths
+          .watchers
+          .directories
+          .get(dir)
+          .is_some_and(|dw| self.owns(&dw))
+      {
+        let changed = std::mem::take(&mut *live.lock().expect("scan observations poisoned"));
+        if let Some(batch) = listing
+          && !contexts.is_empty()
         {
-          let _ = queued.reply.send(ScanResult::default());
-          return None;
+          paths.commit_directory(dir, batch, &changed, &contexts, &mut replies);
         }
-        Some((queued.request, queued.reply))
-      })
-      .unzip();
-    if requests.is_empty() {
+        *revision = revision.wrapping_add(1);
+      }
+      drop(revision);
+      drop(again);
+      for (reader, reply) in readers.into_iter().zip(replies) {
+        let _ = reader.done.send(reply);
+      }
       return;
     }
-    let mut changes = vec![Vec::new(); requests.len()];
-    let children: Arc<[InternedPath]> = self
-      .read_directory(paths, real_dir.as_ref(), &requests, &mut changes)
-      .await
-      .into();
-    for (reply, changes) in replies.into_iter().zip(changes) {
-      let pass = ScannedDirectory {
-        children: Arc::clone(&children),
-        changes,
-      };
-      let _ = reply.send((real_dir.clone(), pass));
-    }
   }
+}
 
-  async fn read_directory(
-    &self,
+pub(super) enum Observation {
+  File(SystemTime),
+  Directory {
+    mtime: Option<SystemTime>,
+    birth: Option<SystemTime>,
+    symlink: bool,
+  },
+  Missing,
+}
+
+pub(super) struct DirectoryBatch {
+  pub(super) real: Option<PathBuf>,
+  pub(super) entries: Vec<(InternedPath, Observation)>,
+  pub(super) exists: bool,
+}
+
+fn absent(error: &io::Error) -> bool {
+  matches!(
+    error.kind(),
+    io::ErrorKind::NotFound | io::ErrorKind::NotADirectory
+  )
+}
+
+impl DirectoryBatch {
+  async fn read(
+    dir: &InternedPath,
     paths: &PathManager,
-    real_dir: Option<&PathBuf>,
-    requests: &[ScanRequest],
-    changes: &mut [Vec<ScanChange>],
-  ) -> Vec<InternedPath> {
-    let dir = &self.path;
-    let covered = || paths.watchers.is_watched_directory(dir);
-    if !covered() {
-      return Vec::new();
-    }
-    let directory = dir.clone();
-    let listing = read_on_worker(&self.workers, move || {
-      std::fs::read_dir(directory).map(|entries| {
-        entries
-          .flatten()
-          .map(|e| InternedPath::from(e.path()))
-          .collect::<Vec<_>>()
+    mut known: InternedPathSet,
+    readers: &[Request],
+    scan: Arc<DirectoryScan>,
+    version: u64,
+  ) -> Option<Self> {
+    let name = dir.clone();
+    let follow = paths.follow_symlinks;
+    let listing = paths
+      .scan_io
+      .read(move || {
+        let real = if follow {
+          Some(std::fs::canonicalize(&name)?)
+        } else {
+          None
+        };
+        let names = std::fs::read_dir(name)?
+          .map(|e| e.map(|e| InternedPath::from(e.path())))
+          .collect::<io::Result<Vec<_>>>();
+        Ok((real, names))
       })
-    })
-    .await;
-    let Ok(names) = listing else {
-      return Vec::new();
+      .await?;
+    let (real, names, exists) = match listing {
+      Ok((real, Ok(names))) => (real, names, true),
+      Ok((_, Err(_))) => return None,
+      Err(e) if absent(&e) => (None, Vec::new(), false),
+      Err(_) => return None,
     };
-    const METADATA_BATCH: usize = 128;
-    let eligible = stream::iter(names)
-      .take_while(|_| std::future::ready(covered()))
-      .filter_map(
-        |path| async move { (!paths.is_ignored_path(path.as_path()).await).then_some(path) },
-      )
-      .ready_chunks(METADATA_BATCH);
-    tokio::pin!(eligible);
-    let mut children = Vec::new();
-    while let Some(batch) = eligible.next().await {
-      let real = real_dir.cloned();
-      // At most one batch is in flight. Publish completed metadata even if a later stat is slow.
-      let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-      #[cfg(feature = "testing")]
-      let jobs = Arc::clone(&self.metadata_jobs);
-      let work = self.workers.spawn_blocking(move || {
-        #[cfg(feature = "testing")]
-        jobs
-          .lock()
-          .expect("lock metadata job trace")
-          .push((batch.len(), Handle::current().id()));
-        for path in batch {
-          let metadata = PathManager::scan_metadata(real.as_ref(), &path);
-          if tx.send((path, metadata)).is_err() {
-            break;
-          }
-        }
-      });
-      while let Some((path, metadata)) = rx.recv().await {
-        if !covered() {
-          rx.close();
-          break;
-        }
-        paths.finish_scanned_entry(path, metadata, real_dir, requests, changes, &mut children);
-      }
-      work.await.expect("directory scan worker panicked");
+    if !readers
+      .iter()
+      .any(|r| r.input.context(real.as_ref()).is_some())
+    {
+      return None;
     }
-    children
+    let mut eligible = Vec::with_capacity(names.len());
+    for path in names {
+      known.remove(&path);
+      if !paths.watchers.is_watched_directory(dir) {
+        return None;
+      }
+      if !paths.is_ignored_path(path.as_path()).await {
+        eligible.push(path);
+      }
+    }
+    let mut entries: Vec<_> = known
+      .into_iter()
+      .map(|p| (p, Observation::Missing))
+      .collect();
+    if !eligible.is_empty() {
+      let actual = real.clone();
+      #[cfg(feature = "testing")]
+      let trace = Arc::clone(&paths.watchers.metadata_jobs);
+      let observations = paths
+        .scan_io
+        .read(move || {
+          #[cfg(feature = "testing")]
+          trace
+            .lock()
+            .expect("lock metadata job trace")
+            .push((eligible.len(), tokio::runtime::Handle::current().id()));
+          let mut observed = Vec::with_capacity(eligible.len());
+          for path in eligible {
+            if scan.revision.load(Ordering::Relaxed) != version {
+              break;
+            }
+            let observed_entry = match PathManager::scan_metadata(actual.as_ref(), &path) {
+              Ok((m, symlink)) => {
+                let mtime = m.modified().or_else(|_| m.created()).ok();
+                if m.is_dir() {
+                  Some(Observation::Directory {
+                    mtime,
+                    birth: m.created().ok().or(mtime),
+                    symlink,
+                  })
+                } else {
+                  mtime.map(Observation::File)
+                }
+              }
+              Err(e) if absent(&e) => Some(Observation::Missing),
+              Err(_) => None,
+            };
+            if let Some(entry) = observed_entry {
+              observed.push((path, entry));
+            }
+          }
+          observed
+        })
+        .await?;
+      entries.extend(observations);
+    }
+    Some(Self {
+      real,
+      entries,
+      exists,
+    })
   }
 }

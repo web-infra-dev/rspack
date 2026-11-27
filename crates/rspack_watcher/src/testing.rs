@@ -11,8 +11,9 @@ use rspack_util::fx_hash::FxHashSet;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender, unbounded_channel};
 
 use crate::{
-  EventBatch, FsEventKind, FsWatcher, ResolvedEvents, TimeInfoEntries, analyzer::Analyzer,
-  disk_watcher::handle_event, paths::PathManager, scanner::Scanner, trigger::Trigger,
+  EventBatch, FsEventKind, FsWatcher, FsWatcherIgnored, ResolvedEvents, TimeInfoEntries,
+  analyzer::Analyzer, disk_watcher::handle_event, paths::PathManager, scanner::Scanner,
+  trigger::Trigger,
 };
 
 /// Recorded under the aggregate-set lock to preserve acceptance and snapshot order.
@@ -60,7 +61,13 @@ pub struct DirectoryAnalyzer {
 
 impl Default for DirectoryAnalyzer {
   fn default() -> Self {
-    let paths = Arc::new(PathManager::default().with_follow_symlinks(true));
+    Self::with_ignored(Default::default())
+  }
+}
+
+impl DirectoryAnalyzer {
+  pub fn with_ignored(ignored: FsWatcherIgnored) -> Self {
+    let paths = Arc::new(PathManager::new(ignored).with_follow_symlinks(true));
     let (tx, events) = unbounded_channel();
     let trigger = Arc::new(Trigger::new(Arc::clone(&paths), tx));
     let scan_tx = trigger.backfill_sender();
@@ -71,9 +78,7 @@ impl Default for DirectoryAnalyzer {
       events,
     }
   }
-}
 
-impl DirectoryAnalyzer {
   pub fn take_metadata_jobs(&self) -> Vec<(usize, tokio::runtime::Id)> {
     std::mem::take(
       &mut *self
@@ -85,10 +90,26 @@ impl DirectoryAnalyzer {
     )
   }
 
-  pub fn scan_contexts(&self) -> tokio::task::JoinHandle<Vec<InternedPath>> {
+  pub fn rescan_contexts(&self) -> impl Future<Output = Vec<InternedPath>> + Send + use<> {
     let paths = Arc::clone(&self.paths);
     let scan = paths.added_context_scan(SystemTime::UNIX_EPOCH);
-    tokio::spawn(async move { scan.run(&paths).await })
+    async move {
+      let mut changes = Vec::new();
+      scan
+        .run(&paths, |events| {
+          changes.extend(events.into_iter().map(|e| e.path))
+        })
+        .await;
+      changes
+    }
+  }
+
+  pub fn scan_contexts(&self) -> tokio::task::JoinHandle<Vec<InternedPath>> {
+    tokio::spawn(self.rescan_contexts())
+  }
+
+  pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
+    self.paths.collect_time_info_entries()
   }
 
   pub async fn update(
@@ -127,7 +148,10 @@ impl DirectoryAnalyzer {
   }
 
   pub fn on_scanned_change(&self, path: &InternedPath) {
-    self.trigger.on_scanned_change(path);
+    self.trigger.on_scanned_events(vec![crate::FsEvent {
+      path: path.clone(),
+      kind: FsEventKind::Change,
+    }]);
   }
 
   pub fn scan(&self, start_time: SystemTime) {

@@ -147,13 +147,17 @@ impl FileTimes {
       .0
       .entry(DirectoryWatcher::owner(path))
       .or_default()
-      .map(|watcher| watcher.files.entry(path.clone()).or_default())
+      .map(|watcher| {
+        watcher.note_member(path);
+        watcher.files.entry(path.clone()).or_default()
+      })
   }
 
   pub(super) fn clear(&self, path: &InternedPath, clear: impl FnOnce(&mut FileRecord)) {
     self
       .0
       .remove_if_mut(&DirectoryWatcher::owner(path), |_, watcher| {
+        watcher.note_member(path);
         watcher.clear_file(path, clear);
         watcher.is_unused()
       });
@@ -327,7 +331,14 @@ impl PathManager {
   /// Absent on disk reads as `null` in both. Only a context known to be
   /// absent is stat'ed, to see whether it came back.
   pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
-    self.collect_context_time_info(self.collect_registered_time_info())
+    // The registered-file fallback can stat the disk. Keep it outside the commit lock.
+    loop {
+      let revision = *self.lock_index();
+      let snapshot = self.collect_context_time_info(self.collect_registered_time_info());
+      if *self.lock_index() == revision {
+        return snapshot;
+      }
+    }
   }
 
   pub(crate) fn collect_registered_time_info(&self) -> RegisteredTimeInfo {

@@ -377,7 +377,7 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
     .name("rspack-fs-watcher".to_string())
     .spawn(move || {
       let runtime = tokio::runtime::Builder::new_current_thread()
-        .max_blocking_threads(crate::paths::DirectoryScan::MAX_METADATA_READS)
+        .max_blocking_threads(crate::paths::MAX_SCAN_READS)
         .enable_all()
         .build()
         .expect("create watcher runtime");
@@ -416,6 +416,7 @@ impl FsWatcherInner {
   }
 
   async fn close(&mut self) -> Result<()> {
+    self.path_manager.close_scans();
     self.disk_watcher.close();
     self.scanner.close();
     self.executor.close().await;
@@ -460,16 +461,16 @@ impl FsWatcherInner {
       self.analyzer.invalidate_all();
       return Err(error);
     }
-    let changed_in_contexts = self
+    let trigger = self.trigger.lock().expect("should lock trigger").clone();
+    self
       .path_manager
       .added_context_scan(start_time)
-      .run(&self.path_manager)
+      .run(&self.path_manager, |events| {
+        if let Some(trigger) = &trigger {
+          trigger.on_scanned_events(events);
+        }
+      })
       .await;
-    if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
-      for path in &changed_in_contexts {
-        trigger.on_scanned_change(path);
-      }
-    }
 
     // Scan AFTER the disk watcher is registered, not before. notify's `watch()`
     // registers the underlying inotify/FSEvents watch synchronously, so once it

@@ -1,13 +1,16 @@
 mod directory_scan;
 mod entries;
 mod scan;
+mod scan_commit;
+mod scan_io;
+pub(crate) use scan_io::MAX_SCAN_READS;
 mod time_info;
 mod update;
 
 use std::{fmt::Debug, ops::Deref, path::Path, sync::Arc};
 
 use dashmap::setref::multiple::RefMulti;
-pub(crate) use directory_scan::DirectoryScan;
+pub(crate) use directory_scan::{DirectoryScan, ScanInput, ScannedDirectory};
 use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
 pub(crate) use time_info::{FileRecord, disk_mtime};
@@ -157,6 +160,7 @@ pub(crate) struct PathManager {
   directories: PathTracker,
   missing: PathTracker,
   ignored: IgnoredMatcher,
+  scan_io: scan_io::ScanIo,
   /// Observations of registered files, missing dependencies and context
   /// members. Only explicit dependencies also need an event baseline.
   /// See: https://gist.github.com/stormslowly/ed758500de6f23211fd63b39eba5ed07
@@ -175,7 +179,7 @@ pub(crate) struct PathManager {
   /// Serializes changes to `recorded_children`'s links: a walk taking a
   /// directory out on one thread must not interleave with a walk linking it
   /// in on another, or a linked subtree is left cut off from its parent.
-  index_lock: std::sync::Mutex<()>,
+  index_lock: std::sync::Mutex<u64>,
   /// Registered contexts known to be absent from disk: absent when registered,
   /// or removed since. The only directories `collect_time_info_entries`
   /// stats, to see one that came back without an event of its own.
@@ -200,6 +204,7 @@ impl PathManager {
       directories: PathTracker::default(),
       missing: PathTracker::default(),
       ignored: IgnoredMatcher::new(ignored),
+      scan_io: Default::default(),
       file_times: FileTimes(Arc::clone(&watchers.directories)),
       watchers,
       registered_ancestors: InternedPathDashMap::default(),
@@ -215,6 +220,16 @@ impl PathManager {
     self
   }
 
+  pub(crate) fn close_scans(&self) {
+    let _index = self.lock_index();
+    self.scan_io.close();
+    for watcher in self.watchers.directories.iter() {
+      if let Some(scan) = &watcher.scan {
+        scan.invalidate();
+      }
+    }
+  }
+
   /// Reset the per-`watch()` diff. File records live with their subscriptions
   /// so a delayed event can still report a write made between watch cycles.
   pub fn reset(&self) {
@@ -227,6 +242,10 @@ impl PathManager {
   /// survives later removals until the path reappears or is unregistered.
   pub fn remove_file_time(&self, path: &InternedPath) {
     let _index = self.lock_index();
+    self.remove_file_record(path);
+  }
+
+  fn remove_file_record(&self, path: &InternedPath) {
     self.file_times.clear(path, FileRecord::clear_present);
     if self.watchers.remove_member(path).directory {
       self.watchers.clear_event_time(path);
@@ -238,10 +257,17 @@ impl PathManager {
   /// `onDirectoryRemoved` marks them all missing), walking only its subtree.
   pub fn remove_file_times_under(&self, dir: &InternedPath) {
     let _index = self.lock_index();
+    self.remove_subtree_records(dir, false);
+  }
+
+  fn remove_subtree_records(&self, dir: &InternedPath, keep_root: bool) {
     let mut pending = vec![dir.clone()];
     while let Some(path) = pending.pop() {
       if let Some((_, children)) = self.recorded_children.remove(&path) {
         pending.extend(children);
+      }
+      if keep_root && &path == dir {
+        continue;
       }
       self.file_times.clear(&path, FileRecord::clear_present);
       self.watchers.remove_member(&path);
@@ -263,6 +289,11 @@ impl PathManager {
   fn record<R>(&self, path: &InternedPath, write: impl FnOnce() -> R) -> R {
     let _index = self.lock_index();
     let written = write();
+    self.link_record(path);
+    written
+  }
+
+  fn link_record(&self, path: &InternedPath) {
     let mut child = path.clone();
     while let Some(parent) = child.parent().map(InternedPath::from) {
       let indexed = !self
@@ -275,7 +306,6 @@ impl PathManager {
       }
       child = parent;
     }
-    written
   }
 
   /// `path` may no longer hold a record of its own: once it holds none and
@@ -315,7 +345,7 @@ impl PathManager {
     (recorded, self.registered_ancestors.len())
   }
 
-  fn lock_index(&self) -> std::sync::MutexGuard<'_, ()> {
+  fn lock_index(&self) -> std::sync::MutexGuard<'_, u64> {
     self.index_lock.lock().expect("record index lock poisoned")
   }
 
@@ -392,7 +422,7 @@ impl PathManager {
       impl Iterator<Item = InternedPath>,
     ),
   ) -> Result<()> {
-    self.watchers.bind_scan_workers();
+    self.scan_io.start();
     let mut registered = Vec::new();
     let mut unregistered = Vec::new();
     for (paths, tracker) in [
