@@ -69,6 +69,7 @@ impl<'a> PathUpdater<'a> {
 
       if change_registration(
         self.manager,
+        &added,
         || watch_tracker.add(added.clone()),
         |manager, state| manager.subscribe_context(&added, state),
       ) {
@@ -84,6 +85,7 @@ impl<'a> PathUpdater<'a> {
       };
       if change_registration(
         self.manager,
+        &removed,
         || watch_tracker.remove(removed.clone()),
         |manager, state| manager.unsubscribe_context(&removed, state),
       ) {
@@ -97,6 +99,7 @@ impl<'a> PathUpdater<'a> {
 // A targeted scan can check its subscription and update the record in one observation lock.
 fn change_registration(
   manager: Option<(&WatcherManager, bool)>,
+  path: &InternedPath,
   change: impl FnOnce() -> bool,
   update_context: impl FnOnce(&WatcherManager, &mut Observations),
 ) -> bool {
@@ -105,8 +108,12 @@ fn change_registration(
   };
   let mut state = manager.lock_observations();
   let changed = change();
-  if changed && context {
-    update_context(manager, &mut state);
+  if changed {
+    if context {
+      update_context(manager, &mut state);
+    } else {
+      state.observe_live(path, crate::observation::Mutation::Metadata);
+    }
   }
   changed
 }

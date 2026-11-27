@@ -33,6 +33,11 @@ export default function () {
 
   logger.clear();
   logger.info('loader context APIs are available');
+  const secondLogger = this.getLogger('parallel-loader');
+  logger.time('work');
+  secondLogger.time('work');
+  secondLogger.timeEnd('work');
+  logger.timeEnd('work');
 
   this.resolve(
     this.context,

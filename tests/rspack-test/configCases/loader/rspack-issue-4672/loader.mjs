@@ -4,9 +4,8 @@ export default function () {
 	const callback = this.async();
 
 	this.resolve(import.meta.dirname, "./not-exist", (e1, r1) => {
-		// Note that e1 is not instanceof Error
-		assert(e1.code === "GenericFailure");
-		assert(typeof e1.message === 'string')
+		assert(e1 instanceof Error);
+		assert(typeof e1.message === 'string');
 		assert(typeof r1 === "undefined");
 
 		this.resolve(import.meta.dirname, "@/src/index", (e2, r2) => {

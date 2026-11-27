@@ -111,16 +111,21 @@ async fn chunk_ids(
     })
     .collect::<Result<Vec<_>>>()?;
 
+  // Order by hash so that chunks sharing a hash prefix keep the same short id across rebuilds.
+  // Ordering by the chunk graph instead lets runtime changes reorder them and swap ids, which breaks
+  // id-stable consumers such as HMR.
   let mut chunk_compare_cache = NaturalChunkCompareCache::default();
-  chunks_with_hashes.sort_unstable_by(|(a, _, _), (b, _, _)| {
-    compare_chunks_natural(
-      chunk_graph,
-      &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-      &compilation.module_ids_artifact,
-      a,
-      b,
-      &mut chunk_compare_cache,
-    )
+  chunks_with_hashes.sort_unstable_by(|(a, hash_a, _), (b, hash_b, _)| {
+    hash_a.cmp(hash_b).then_with(|| {
+      compare_chunks_natural(
+        chunk_graph,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        &compilation.module_ids_artifact,
+        a,
+        b,
+        &mut chunk_compare_cache,
+      )
+    })
   });
 
   let mut chunk_key_to_id =

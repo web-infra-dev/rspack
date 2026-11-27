@@ -160,7 +160,6 @@ impl PathManager {
           .watchers
           .set_file_time(path, Some(mtime), FileObservation::Backfill { changed })
       });
-      state.observe_live(path, Mutation::Metadata);
     }
     let kind = if absent {
       FsEventKind::Remove

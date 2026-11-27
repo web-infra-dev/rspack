@@ -147,20 +147,9 @@ impl PathManager {
     if !self.can_scan_children(&request.scan, &dir) {
       return None;
     }
-    if self.follow_symlinks {
-      match std::fs::canonicalize(&dir) {
-        Ok(real) if ancestry.contains(&real) => return None,
-        Ok(real) => ancestry.push(real),
-        Err(error) => {
-          if is_absent(&error) {
-            self.scan_missing(&dir, true, std::slice::from_ref(&request));
-          }
-          return None;
-        }
-      }
-    }
     let queue = self.watchers.directory_scan(&dir)?;
-    let children = queue.enumerate(self, ancestry.last(), &request).await;
+    let (real, children) = queue.enumerate(self, &ancestry, &request).await;
+    ancestry.extend(real);
     request.recovered = false;
     Some((children, ancestry, request))
   }

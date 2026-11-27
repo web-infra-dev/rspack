@@ -35,6 +35,7 @@ import {
   type LoaderContext,
   type ResolveCallback,
 } from '../config/adapterRuleUse';
+import type { Logger } from '../logging/Logger';
 import { NormalModule } from '../NormalModule';
 import type { ResolveContext } from '../Resolver';
 import { NonErrorEmittedError, type RspackError } from '../RspackError';
@@ -877,6 +878,7 @@ export async function runLoaders(
   const getWorkerLoaderHandlers = function (): {
     handleIncomingRequest: HandleIncomingRequest;
   } {
+    let loggers: Logger[] | undefined;
     return {
       handleIncomingRequest(requestType, ...args) {
         switch (requestType) {
@@ -934,8 +936,10 @@ export async function runLoaders(
             });
           }
           case RequestType.GetLogger: {
-            const [type, name, arg] = args;
-            (loaderContext.getLogger(name) as any)[type](...arg);
+            const [id, name, method, logArgs] = args;
+            loggers ??= [];
+            const logger = (loggers[id] ??= loaderContext.getLogger(name));
+            (logger as any)[method](...logArgs);
             break;
           }
           case RequestType.EmitError: {
