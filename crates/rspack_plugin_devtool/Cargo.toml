@@ -25,6 +25,10 @@ rspack_plugin_javascript = { workspace = true }
 rspack_util              = { workspace = true }
 rustc-hash               = { workspace = true }
 sugar_path               = { workspace = true }
+swc_next_allocator       = { workspace = true }
+swc_next_ecma_ast        = { workspace = true }
+swc_next_ecma_parser     = { workspace = true }
+swc_next_ecma_semantic   = { workspace = true }
 tracing                  = { workspace = true }
 url                      = { workspace = true }
 

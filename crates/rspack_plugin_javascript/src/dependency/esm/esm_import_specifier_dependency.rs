@@ -488,17 +488,18 @@ impl ESMImportSpecifierDependencyTemplate {
         dep.source_order,
         dep.phase,
         code_generatable_context,
-        None,
+        (dep.ns_access || dep.ids.is_empty()).then_some(&dep.name),
       );
       let TemplateContext {
         compilation,
         module,
         runtime,
+        concatenation_scope,
         init_fragments,
         runtime_template,
-        ..
+        data,
       } = code_generatable_context;
-      runtime_template.export_from_import(
+      let export_expr = runtime_template.export_from_import(
         compilation,
         init_fragments,
         *module,
@@ -512,7 +513,50 @@ impl ESMImportSpecifierDependencyTemplate {
         !dep.direct_import,
         Some(dep.shorthand || dep.asi_safe),
         dep.phase,
-      )
+      );
+      if compilation.source_map_scopes
+        && concatenation_scope.is_none()
+        && dep.phase == ImportPhase::Evaluation
+        && target_module.is_some()
+        && !dep.ns_access
+        && !dep.evaluated_in_operator
+        // For a named import, the first authored ID is the imported export.
+        // Strip the member path only if redirection preserved that suffix.
+        && let Some(members) = dep.ids.get(1..)
+        && let Some(binding_ids) = ids.strip_suffix(members)
+        && !binding_ids.is_empty()
+      {
+        let expression = if members.is_empty() {
+          let value = export_expr.strip_prefix(';').unwrap_or(&export_expr);
+          if dep.call {
+            value
+              .strip_prefix("(0,")
+              .and_then(|access| access.strip_suffix(')'))
+              .unwrap_or(value)
+              .to_owned()
+          } else {
+            value.to_owned()
+          }
+        } else {
+          runtime_template.export_from_import(
+            compilation,
+            &mut Vec::new(),
+            *module,
+            *runtime,
+            true,
+            &dep.request,
+            &import_var,
+            binding_ids,
+            &dep.id,
+            false,
+            false,
+            Some(true),
+            dep.phase,
+          )
+        };
+        data.record_import_binding(dep.name.clone(), expression);
+      }
+      export_expr
     }
   }
 
@@ -677,31 +721,6 @@ impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {
     }
 
     let export_expr = self.get_code_for_ids(ids, dep, connection, code_generatable_context);
-
-    if compilation.source_map_scopes
-      && code_generatable_context.concatenation_scope.is_none()
-      && dep.phase == ImportPhase::Evaluation
-      && dep.direct_import
-      && connection.is_some()
-      // A synthetic namespace expression can assign to a cache. Don't run
-      // that initialization when the debugger inspects a binding.
-      && !(ids.is_empty() && export_expr.starts_with("/*#__PURE__*/"))
-    {
-      // Codegen can add a leading semicolon or a comma expression at a call
-      // site to drop the receiver. The debugger only needs the binding value.
-      let expression = export_expr.strip_prefix(';').unwrap_or(&export_expr);
-      let expression = if dep.call {
-        expression
-          .strip_prefix("(0,")
-          .and_then(|access| access.strip_suffix(')'))
-          .unwrap_or(expression)
-      } else {
-        expression
-      };
-      code_generatable_context
-        .data
-        .record_import_binding(dep.name.clone(), expression.to_owned());
-    }
 
     if dep.shorthand {
       source.insert(dep.range.end, format!(": {export_expr}"), None);

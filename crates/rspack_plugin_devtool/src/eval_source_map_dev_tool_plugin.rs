@@ -79,7 +79,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  compilation.source_map_scopes |= self.scopes;
+  compilation.source_map_scopes |= self.scopes && self.columns;
   let hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   let mut hooks = hooks.write().await;
   hooks
@@ -143,7 +143,7 @@ async fn render_module_content(
     render_source.source = cached_source.value().clone();
     return Ok(());
   } else if let Some(mut map) = origin_source.clone().map(&MapOptions::new(self.columns)) {
-    if self.scopes {
+    if self.scopes && self.columns {
       let references = map
         .sources()
         .iter()
@@ -155,6 +155,7 @@ async fn render_module_content(
         &mut map,
         origin_source.as_ref(),
         &references,
+        [module.identifier()],
       );
     }
     let source = {

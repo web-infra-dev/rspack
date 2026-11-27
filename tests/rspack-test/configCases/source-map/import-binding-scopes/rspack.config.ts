@@ -15,16 +15,28 @@ const configs = [
     ],
   },
   { devtool: 'source-map' },
+  { devtool: 'source-map-scopes' },
+  { devtool: 'cheap-module-source-map-scopes' },
 ] as const;
 
 export default defineConfig(
   configs.map(({ devtool, ...config }, index) => ({
     devtool,
     target: 'node',
-    mode: 'development',
+    mode: index === 5 ? 'production' : 'development',
+    module: {
+      rules: [
+        {
+          test: /\.ts$/,
+          loader: 'builtin:swc-loader',
+          options: { jsc: { parser: { syntax: 'typescript' } } },
+        },
+      ],
+    },
     optimization: {
       concatenateModules: false,
       minimize: false,
+      mangleExports: index === 5 ? 'deterministic' : false,
     },
     plugins: [
       ...('plugins' in config ? config.plugins : []),

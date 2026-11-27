@@ -1011,6 +1011,7 @@ impl SourceMapDevToolPlugin {
     // The binding expressions refer to the names emitted by code generation.
     // An asset minimizer can rename or remove those variables.
     if plugin.scopes
+      && plugin.columns
       && asset.info.minimized != Some(true)
       && !has_css_extension(asset_filename_ref)
       && let Some(chunk) = file_to_chunk.get(asset_filename_ref)
@@ -1021,6 +1022,12 @@ impl SourceMapDevToolPlugin {
         &mut source_map,
         source.as_ref(),
         &source_references,
+        compilation
+          .build_chunk_graph_artifact
+          .chunk_graph
+          .get_chunk_modules_identifier(&chunk.ukey())
+          .iter()
+          .copied(),
       );
     }
 
@@ -1193,7 +1200,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
-  compilation.source_map_scopes |= self.scopes;
+  compilation.source_map_scopes |= self.scopes && self.columns;
   if !compilation.options.experiments.new_cache.devtool {
     compilation.use_source_map_dev_tool_plugin_cache = true;
   }

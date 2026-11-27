@@ -1,8 +1,9 @@
-import fs from "fs";
-import addDefault, { value as aliased } from "./lib";
+import addDefault, { settings as config, value as aliased } from "./lib";
 import * as namespace from "./lib";
 import { fromHelper } from "./helper";
+import { fromTs } from "./typed.ts";
 
+const fs = require("fs");
 const base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 function decodeVlq(digits) {
@@ -31,14 +32,35 @@ function signed(value) {
 
 function decodeBindings(map) {
 	const bindings = new Map();
+	const generatedRanges = [];
 	for (const ranges of map.ranges) {
 		let source = 0;
+		let line = 0;
+		let column = 0;
+		let start;
 		for (const item of ranges.split(",")) {
 			if (item[0] === "E") {
 				const [flags, ...fields] = decodeVlq(item.slice(1));
 				expect(flags & 2).toBe(2);
-				source += signed(fields[flags & 1 ? 2 : 1]);
+				if (flags & 1) {
+					line += fields.shift();
+					column = fields.shift();
+				} else {
+					column += fields.shift();
+				}
+				start = [line, column];
+				source += signed(fields[0]);
 				expect(fields.at(-1)).toBe(0);
+			}
+			if (item[0] === "F") {
+				const [delta, nextColumn] = decodeVlq(item.slice(1));
+				if (nextColumn === undefined) {
+					column += delta;
+				} else {
+					line += delta;
+					column = nextColumn;
+				}
+				generatedRanges.push({ start, end: [line, column] });
 			}
 			if (item[0] === "G") {
 				const items = map.scopes[source].split(",");
@@ -59,13 +81,22 @@ function decodeBindings(map) {
 			}
 		}
 	}
-	return bindings;
+	return { bindings, generatedRanges };
+}
+
+function shadow() {
+	const aliased = "shadowed";
+	debugger;
+	return aliased;
 }
 
 it("maps original ESM import names to their generated bindings", () => {
 	expect(addDefault(aliased)).toBe(42);
 	expect(namespace.value).toBe(21);
 	expect(fromHelper).toBe(21);
+	expect(fromTs).toBe(21);
+	expect(config.port).toBe(4300);
+	expect(shadow()).toBe("shadowed");
 
 	const bundle = fs.readFileSync(__filename, "utf8");
 	const maps = CONFIG_INDEX === 1 || CONFIG_INDEX === 2
@@ -82,18 +113,37 @@ it("maps original ESM import names to their generated bindings", () => {
 			continue;
 		}
 		expect(map.scopes).toHaveLength(map.sources.length);
-		for (const [source, values] of decodeBindings(map)) bindings.set(source, values);
+		const decoded = decodeBindings(map);
+		for (const [source, values] of decoded.bindings) bindings.set(source, values);
+		if (CONFIG_INDEX === 0) {
+			const lines = bundle.split("\n");
+			const shadowLine = lines.findIndex(line => line.includes('const aliased = "shadowed";')) + 1;
+			expect(lines[shadowLine]).toMatch(/^\s*debugger;/);
+			const pausedColumn = lines[shadowLine].indexOf("debugger");
+			expect(decoded.generatedRanges.some(({ start, end }) =>
+				(start[0] < shadowLine || start[0] === shadowLine && start[1] <= pausedColumn)
+				&& (end[0] > shadowLine || end[0] === shadowLine && end[1] > pausedColumn)
+			)).toBe(false);
+		}
 	}
-	if (CONFIG_INDEX === 4) {
+	if (CONFIG_INDEX === 4 || CONFIG_INDEX === 6) {
 		expect(bindings.size).toBe(0);
 		return;
 	}
 	const entry = [...bindings].find(([source]) => source.split("?")[0].endsWith("/index.js"))?.[1];
 	const helper = [...bindings].find(([source]) => source.split("?")[0].endsWith("/helper.js"))?.[1];
+	const typed = [...bindings].find(([source]) => source.split("?")[0].endsWith("/typed.ts"))?.[1];
 	expect(entry).toBeDefined();
+	expect(typed?.typedValue).toBeDefined();
+	if (CONFIG_INDEX === 5) {
+		expect(entry.namespace).toBeUndefined();
+		expect(entry.aliased).toMatch(/\/\* \.value \*\/\./);
+		return;
+	}
 	expect(entry.namespace).toMatch(/^[\w$]+$/);
 	expect(entry.aliased).toBe(`${entry.namespace}.value`);
 	expect(entry.addDefault).toBe(`${entry.namespace}["default"]`);
+	expect(entry.config).toBe(`${entry.namespace}.settings`);
 	expect(helper?.fromLib).toMatch(/\.value$/);
 	const code = CONFIG_INDEX === 2 ? bundle.replaceAll('\\"', '"') : bundle;
 	for (const expression of Object.values(entry)) {

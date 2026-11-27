@@ -14,7 +14,7 @@ use rspack_core::{
   InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleIdentifier, ProvidedExports, ReferencedExport, ResourceIdentifier, RuntimeCondition,
   RuntimeSpec, SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource,
-  TypeReexportPresenceMode, filter_runtime,
+  TypeReexportPresenceMode, UsedNameItem, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_hash::{RspackHash, RspackHasher};
@@ -212,6 +212,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     && matches!(runtime_condition, RuntimeCondition::Boolean(true))
     && let Some(name) = namespace_binding
     && let Some(target_module) = target_module
+    && module_graph.get_resolved_module(module_dependency.id()) == Some(&target_module.identifier())
     && matches!(
       target_module.get_exports_type(
         module_graph,
@@ -221,6 +222,15 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
       ),
       ExportsType::Namespace
     )
+    && compilation
+      .exports_info_artifact
+      .get_exports_info_data(&target_module.identifier())
+      .exports()
+      .iter()
+      .all(|(name, info)| {
+        matches!(info.provided(), Some(ExportProvided::NotProvided))
+          || matches!(info.get_used_name(Some(name), *runtime), Some(UsedNameItem::Str(used)) if used == *name)
+      })
   {
     data.record_import_binding(name.clone(), import_var.clone());
   }
