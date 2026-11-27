@@ -1,9 +1,12 @@
-use std::time::SystemTime;
+use std::{
+  sync::{Arc, Weak},
+  time::SystemTime,
+};
 
-use rspack_paths::{InternedPath, InternedPathMap};
+use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap};
 use rspack_util::time::system_time_to_millis;
 
-use super::PathManager;
+use super::{PathManager, PathTracker};
 use crate::{
   FsEvent, FsEventKind,
   observation::{ActiveWalk, Mutation},
@@ -41,6 +44,20 @@ impl Registration {
       .ok()
       .and_then(|m| m.modified().or_else(|_| m.created()).ok());
     (mtime, absent)
+  }
+}
+
+impl PathTracker {
+  // Hold the set entry while acquiring the handle, so re-registering this path
+  // cannot give an earlier directory change to the replacement subscription.
+  pub(super) fn scan_subscriber(&self, path: &InternedPath) -> Option<Weak<InternedPath>> {
+    let registered = self.all.get(path)?;
+    let handle = self
+      .scan_subscribers
+      .get_or_init(InternedPathDashMap::default)
+      .entry(registered.clone())
+      .or_insert_with(|| Arc::new(registered.clone()));
+    Some(Arc::downgrade(&handle))
   }
 }
 

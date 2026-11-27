@@ -13,8 +13,15 @@ use notify::{
 };
 use rspack_paths::InternedPath;
 use rspack_watcher::{FsEventKind, FsWatcherIgnored, TimeInfoEntry, testing::DirectoryAnalyzer};
-use scan_support::{added, deliveries_until, empty, entry, notify, pause_at, removed, update};
+use scan_support::{added, deliveries_until, empty, entry, pause_at, removed, update};
 use tokio::{sync::oneshot, task::JoinHandle, time::timeout};
+
+async fn notify(analyzer: &mut DirectoryAnalyzer, path: &Path, kind: EventKind) {
+  analyzer.on_native_event(Event::new(kind).add_path(path.to_owned()));
+  timeout(Duration::from_secs(5), analyzer.next_events())
+    .await
+    .expect("deliver the event");
+}
 
 async fn paused_scan(
   root: &Path,

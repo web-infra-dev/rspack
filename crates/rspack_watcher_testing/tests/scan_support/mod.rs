@@ -1,7 +1,6 @@
 mod pause;
 use std::{path::Path, time::Duration};
 
-use notify::{Event, EventKind};
 pub(super) use pause::pause_at;
 use rspack_paths::InternedPath;
 use rspack_watcher::{FsEventKind, TimeInfoEntries, TimeInfoEntry, testing::DirectoryAnalyzer};
@@ -31,13 +30,6 @@ pub(super) async fn update(
     .update(files, directories, missing)
     .await
     .expect("update watch dependencies");
-}
-
-pub(super) async fn notify(analyzer: &mut DirectoryAnalyzer, path: &Path, kind: EventKind) {
-  analyzer.on_native_event(Event::new(kind).add_path(path.to_owned()));
-  timeout(Duration::from_secs(5), analyzer.next_events())
-    .await
-    .expect("deliver the event");
 }
 
 pub(super) fn entry<'a>(entries: &'a TimeInfoEntries, path: &Path) -> Option<&'a TimeInfoEntry> {
