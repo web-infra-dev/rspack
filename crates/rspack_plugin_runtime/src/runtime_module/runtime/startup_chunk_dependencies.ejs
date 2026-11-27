@@ -1,4 +1,12 @@
 <%- var("next") %> = <%- STARTUP %>
-<%- define(STARTUP) %> = <%- basicFunction("") %> {
-  <%- _body %>
-}
+<%- define(STARTUP) %> = <%- basicFunction("") %> {<% if (_async_chunk_loading) { if (length(_chunk_ids) == 1) { %>
+  return <%- ENSURE_CHUNK %>(<%- json_stringify(_chunk_ids[0]) %>).then(next);
+<% } else if (length(_chunk_ids) == 2) { %>
+  return Promise.all([<%- ENSURE_CHUNK %>(<%- json_stringify(_chunk_ids[0]) %>),
+<%- ENSURE_CHUNK %>(<%- json_stringify(_chunk_ids[1]) %>)]).then(next);
+<% } else { %>
+  return Promise.all(<%- json_stringify(_chunk_ids) %>.map(<%- ENSURE_CHUNK %>, <%- REQUIRE %>)).then(next);
+<% } } else { %>
+  <% for _chunk_id in _chunk_ids { %><%- ENSURE_CHUNK %>(<%- json_stringify(_chunk_id) %>);
+<% } %>return next();
+<% } %>}

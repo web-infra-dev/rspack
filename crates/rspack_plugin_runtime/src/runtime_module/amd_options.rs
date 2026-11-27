@@ -31,16 +31,20 @@ impl RuntimeModule for AmdOptionsRuntimeModule {
     }
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id().to_string(),
+      include_str!("runtime/amd_options.ejs").to_string(),
+    )]
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    Ok(format!(
-      "{} = {}",
-      context
-        .runtime_template
-        .render_runtime_global_definition(&RuntimeGlobals::AMD_OPTIONS),
-      self.options,
-    ))
+    context.runtime_template.render_preserving_line_endings(
+      self.id(),
+      Some(serde_json::json!({ "_options": &self.options })),
+    )
   }
 }

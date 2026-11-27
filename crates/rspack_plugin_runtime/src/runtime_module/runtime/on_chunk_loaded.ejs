@@ -1,7 +1,7 @@
 <%- var("deferred") %> = [];
 <%- define(ON_CHUNKS_LOADED) %> = <%- basicFunction("result, chunkIds, fn, priority") %> {
 	if (chunkIds) {
-		<%- _priority_assignment %>;
+		priority <% if (supports("logicalAssignment")) { %>||=<% } else { %>= priority ||<% } %> 0;
 		for (var i = deferred.length; i > 0 && deferred[i - 1][2] > priority; i--)
 			deferred[i] = deferred[i - 1];
 		deferred[i] = [chunkIds, fn, priority];

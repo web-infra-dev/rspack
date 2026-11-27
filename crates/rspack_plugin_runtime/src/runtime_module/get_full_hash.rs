@@ -40,15 +40,12 @@ impl RuntimeModule for GetFullHashRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let compilation = context.compilation;
-    let source = context.runtime_template.render(
+    context.runtime_template.render(
       self.id(),
       Some(serde_json::json!({
-        "_hash": format!("\"{}\"", compilation.get_hash().unwrap_or("XXXX"))
+        "_hash": context.compilation.get_hash().unwrap_or("XXXX"),
       })),
-    )?;
-
-    Ok(source.trim_end().to_string())
+    )
   }
 
   fn full_hash(&self) -> bool {

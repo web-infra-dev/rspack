@@ -1,9 +1,13 @@
 <%- define(DEFINE_PROPERTY_GETTERS) %> = <%- basicFunction("exports, getters, values") %> {
 	var define = <%- basicFunction("defs, kind") %> {
 		for(var key in defs) {
-			if(<%- HAS_OWN_PROPERTY %>(defs, key) && !<%- HAS_OWN_PROPERTY %>(exports, key)) {
-				<%- _define_property_code %>
-			}
+			if(<%- HAS_OWN_PROPERTY %>(defs, key) && !<%- HAS_OWN_PROPERTY %>(exports, key)) {<% if (supports("computedProperty")) { %>
+				Object.defineProperty(exports, key, { enumerable: true, [kind]: defs[key] });
+<% } else { %>
+				var descriptor = { enumerable: true };
+				descriptor[kind] = defs[key];
+				Object.defineProperty(exports, key, descriptor);
+<% } %>			}
 		}
 	};
 	define(getters, "get");

@@ -29,27 +29,26 @@ impl RuntimeModule for ChunkNameRuntimeModule {
     }
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id().to_string(),
+      include_str!("runtime/chunk_name.ejs").to_string(),
+    )]
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let compilation = context.compilation;
-    if let Some(chunk_ukey) = self.chunk() {
-      let chunk = compilation
-        .build_chunk_graph_artifact
-        .chunk_by_ukey
-        .expect_get(&chunk_ukey);
-      Ok(format!(
-        "{} = {};",
-        context
-          .runtime_template
-          .render_runtime_global_definition(&RuntimeGlobals::CHUNK_NAME),
-        chunk
-          .name()
-          .map_or_else(|| "null".to_string(), rspack_util::json_stringify_str)
-      ))
-    } else {
-      unreachable!("should attach chunk for css_loading")
-    }
+    let chunk_ukey = self.chunk().expect("should attach chunk for chunk_name");
+    let chunk = context
+      .compilation
+      .build_chunk_graph_artifact
+      .chunk_by_ukey
+      .expect_get(&chunk_ukey);
+    context.runtime_template.render(
+      self.id(),
+      Some(serde_json::json!({ "_chunk_name": chunk.name() })),
+    )
   }
 }

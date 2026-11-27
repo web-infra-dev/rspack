@@ -7,7 +7,7 @@
 // mode & 16: return value when it's Promise-like
 // mode & 8|1: behave like require
 <%- define(CREATE_FAKE_NAMESPACE_OBJECT) %> = function(value, mode) {
-	if(mode & 1) value = <%- __this %>(value);
+	if(mode & 1) value = <% if (runtimeMode() == "rspack") { %>(typeof this === "function" ? this : this.r)<% } else { %>this<% } %>(value);
 	if(mode & 8) return value;
 	if(typeof value === 'object' && value) {
 		if((mode & 4) && value.__esModule) return value;
@@ -16,7 +16,7 @@
 	var ns = Object.create(null);
   <%- MAKE_NAMESPACE_OBJECT %>(ns);
 	var def = {};
-	<%- _leaf_prototypes_assignment %>;
+	leafPrototypes <% if (supports("logicalAssignment")) { %>||=<% } else { %>= leafPrototypes ||<% } %> [null, getProto({}), getProto([]), getProto(getProto)];
 	for(var current = mode & 2 && value; (typeof current == 'object' || typeof current == 'function') && !~leafPrototypes.indexOf(current); current = getProto(current)) {
 		Object.getOwnPropertyNames(current).forEach(<%- basicFunction("key") %> { def[key] = <%- returningFunction("value[key]", "") %> });
 	}

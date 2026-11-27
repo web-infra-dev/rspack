@@ -43,17 +43,12 @@ impl RuntimeModule for ChunkPrefetchPreloadFunctionRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let runtime_template = context.runtime_template;
-    let source = runtime_template.render(
+    context.runtime_template.render(
       self.id(),
       Some(serde_json::json!({
-        "_runtime_handlers":  runtime_template.render_runtime_globals(&self.runtime_handlers),
-        "_runtime_handlers_define":  runtime_template.render_runtime_global_definition(&self.runtime_handlers),
-        "_runtime_function_define": runtime_template.render_runtime_global_definition(&self.runtime_function),
+        "_is_prefetch": self.runtime_function == RuntimeGlobals::PREFETCH_CHUNK,
       })),
-    )?;
-
-    Ok(source)
+    )
   }
   fn runtime_requirements(
     &self,

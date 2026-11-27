@@ -1,5 +1,3 @@
-use std::borrow::Cow;
-
 use rspack_core::{
   Compilation, RuntimeGlobals, RuntimeModule, RuntimeModuleGenerateContext, RuntimeTemplate,
   impl_runtime_module,
@@ -31,12 +29,19 @@ impl RuntimeModule for BaseUriRuntimeModule {
     }
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id().to_string(),
+      include_str!("runtime/base_uri.ejs").to_string(),
+    )]
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
-    let base_uri = self
+    let base_uri_literal = self
       .chunk()
       .and_then(|ukey| {
         compilation
@@ -47,17 +52,11 @@ impl RuntimeModule for BaseUriRuntimeModule {
       .and_then(|chunk| {
         chunk.get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       })
-      .and_then(|options| options.base_uri.as_ref())
-      .map_or_else(
-        || Cow::Borrowed("undefined"),
-        |base_uri| Cow::Owned(rspack_util::json_stringify_str(base_uri)),
-      );
-    Ok(format!(
-      "{} = {};\n",
-      context
-        .runtime_template
-        .render_runtime_global_definition(&RuntimeGlobals::BASE_URI),
-      base_uri.as_ref()
-    ))
+      .and_then(|options| options.base_uri.as_deref())
+      .map(rspack_util::json_stringify_str);
+    context.runtime_template.render(
+      self.id(),
+      Some(serde_json::json!({ "_base_uri_literal": base_uri_literal })),
+    )
   }
 }

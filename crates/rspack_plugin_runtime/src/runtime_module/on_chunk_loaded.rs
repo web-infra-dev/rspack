@@ -45,13 +45,6 @@ impl RuntimeModule for OnChunkLoadedRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let source = context.runtime_template.render(
-      self.id(),
-      Some(serde_json::json!({
-        "_priority_assignment": context.runtime_template.assign_or("priority", "0"),
-      })),
-    )?;
-
-    Ok(source)
+    context.runtime_template.render(self.id(), None)
   }
 }

@@ -40,19 +40,6 @@ impl RuntimeModule for ReexportRuntimeModule {
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let environment = context.compilation.options.output.environment;
-    let supports_const = environment.supports_const();
-    let getter = if environment.supports_arrow_function() && supports_const {
-      "() => source[key]"
-    } else {
-      "function(key) { return source[key]; }.bind(0, key)"
-    };
-    context.runtime_template.render(
-      self.id(),
-      Some(serde_json::json!({
-        "_key_decl": if supports_const { "const" } else { "var" },
-        "_getter": getter,
-      })),
-    )
+    context.runtime_template.render(self.id(), None)
   }
 }

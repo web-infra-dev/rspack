@@ -1,5 +1,6 @@
-<%- _runtime_handlers_define %> = {};
-<%- _runtime_function_define %> = <%- basicFunction("chunkId") %> {
+<% if (_is_prefetch) { _runtime_handlers = PREFETCH_CHUNK_HANDLERS; %><%- define(PREFETCH_CHUNK_HANDLERS) %> = {};
+<%- define(PREFETCH_CHUNK) %><% } else { _runtime_handlers = PRELOAD_CHUNK_HANDLERS; %><%- define(PRELOAD_CHUNK_HANDLERS) %> = {};
+<%- define(PRELOAD_CHUNK) %><% } %> = <%- basicFunction("chunkId") %> {
   Object.keys(<%- _runtime_handlers %>).map(<%- basicFunction("key") %> {
     <%- _runtime_handlers %>[key](chunkId);
   });

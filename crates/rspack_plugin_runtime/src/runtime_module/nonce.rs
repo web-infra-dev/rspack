@@ -30,15 +30,17 @@ impl RuntimeModule for NonceRuntimeModule {
     }
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id().to_string(),
+      include_str!("runtime/nonce.ejs").to_string(),
+    )]
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    Ok(format!(
-      "{} = undefined;",
-      context
-        .runtime_template
-        .render_runtime_global_definition(&RuntimeGlobals::SCRIPT_NONCE)
-    ))
+    context.runtime_template.render(self.id(), None)
   }
 }

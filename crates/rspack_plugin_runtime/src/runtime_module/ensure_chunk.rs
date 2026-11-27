@@ -17,20 +17,6 @@ impl EnsureChunkRuntimeModule {
   }
 }
 
-enum TemplateId {
-  Raw,
-  WithInline,
-}
-
-impl EnsureChunkRuntimeModule {
-  fn template_id(&self, id: TemplateId) -> String {
-    match id {
-      TemplateId::Raw => self.id().to_string(),
-      TemplateId::WithInline => format!("{}_inline", self.id()),
-    }
-  }
-}
-
 #[async_trait::async_trait]
 impl RuntimeModule for EnsureChunkRuntimeModule {
   fn runtime_module_variables() -> &'static [&'static str] {
@@ -38,16 +24,10 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
   }
 
   fn template(&self) -> Vec<(String, String)> {
-    vec![
-      (
-        self.template_id(TemplateId::Raw),
-        include_str!("runtime/ensure_chunk.ejs").to_string(),
-      ),
-      (
-        self.template_id(TemplateId::WithInline),
-        include_str!("runtime/ensure_chunk_with_inline.ejs").to_string(),
-      ),
-    ]
+    vec![(
+      self.id().to_string(),
+      include_str!("runtime/ensure_chunk.ejs").to_string(),
+    )]
   }
 
   async fn generate(
@@ -55,30 +35,17 @@ impl RuntimeModule for EnsureChunkRuntimeModule {
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
     let compilation = context.compilation;
-    let runtime_template = context.runtime_template;
     let chunk_ukey = self.chunk().expect("should have chunk");
     let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk_ukey);
-    let source = if runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS) {
-      let with_hmr = runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS);
-      let fetch_priority = if runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY) {
-        ", fetchPriority"
-      } else {
-        ""
-      };
-
-      runtime_template.render(
-        &self.template_id(TemplateId::Raw),
-        Some(serde_json::json!({
-          "_fetch_priority": fetch_priority,
-          "_with_hmr": with_hmr,
-          "_hmr": compilation.hot,
-        })),
-      )?
-    } else {
-      runtime_template.render(&self.template_id(TemplateId::WithInline), None)?
-    };
-
-    Ok(source)
+    context.runtime_template.render(
+      self.id(),
+      Some(serde_json::json!({
+        "_with_handlers": runtime_requirements.contains(RuntimeGlobals::ENSURE_CHUNK_HANDLERS),
+        "_with_fetch_priority": runtime_requirements.contains(RuntimeGlobals::HAS_FETCH_PRIORITY),
+        "_with_hmr": runtime_requirements.contains(RuntimeGlobals::HMR_DOWNLOAD_UPDATE_HANDLERS),
+        "_hot": compilation.hot,
+      })),
+    )
   }
   fn runtime_requirements(
     &self,

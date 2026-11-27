@@ -18,7 +18,7 @@ use serde_json::{Value, json};
 
 use crate::{
   AsyncDependenciesBlockIdentifier, ChunkGraph, Compilation, CompilerOptions, DependenciesBlock,
-  DependencyId, DependencyType, ExportsArgument, ExportsInfoArtifact, ExportsType,
+  DependencyId, DependencyType, Environment, ExportsArgument, ExportsInfoArtifact, ExportsType,
   FakeNamespaceObjectMode, ImportPhase, InitFragment, InitFragmentExt, InitFragmentKey,
   InitFragmentStage, Module, ModuleArgument, ModuleGraph, ModuleGraphCacheArtifact, ModuleId,
   ModuleIdentifier, NormalInitFragment, PathInfo, RuntimeCondition, RuntimeGlobals, RuntimeSpec,
@@ -86,6 +86,10 @@ impl RuntimeGlobalsRenderMode {
   /// Returns whether runtime globals use webpack-compatible identifiers.
   pub fn is_legacy(self) -> bool {
     matches!(self, Self::Webpack)
+  }
+
+  fn uses_lexical_bindings(self) -> bool {
+    matches!(self, Self::RspackLexical | Self::RspackExport)
   }
 
   fn render_runtime_variable(self, runtime_variable: &RuntimeVariable) -> &'static str {
@@ -235,9 +239,35 @@ impl RuntimeTemplate {
     compiler_options: Arc<CompilerOptions>,
     render_mode: RuntimeTemplateRenderMode,
   ) -> Self {
-    let runtime_globals = get_runtime_globals_render_map(render_mode.runtime_module_render_mode());
+    let runtime_globals_render_mode = render_mode.runtime_module_render_mode();
+    let runtime_globals = get_runtime_globals_render_map(runtime_globals_render_mode);
     let mut dojang = Dojang::new();
     register_runtime_module_declaration_functions(&mut dojang);
+
+    let environment = compiler_options.output.environment;
+    dojang.functions.insert(
+      "supports".into(),
+      FunctionContainer::F1(Box::new(move |feature| {
+        dojang_supports(feature, &environment)
+      })),
+    );
+
+    let runtime_mode = compiler_options.experiments.runtime_mode.to_string();
+    dojang.functions.insert(
+      "runtimeMode".into(),
+      FunctionContainer::F0(Box::new(move || {
+        Operand::Value(Value::String(runtime_mode.clone()))
+      })),
+    );
+
+    dojang.functions.insert(
+      "usesLexicalRuntimeGlobals".into(),
+      FunctionContainer::F0(Box::new(move || {
+        Operand::Value(Value::Bool(
+          runtime_globals_render_mode.uses_lexical_bindings(),
+        ))
+      })),
+    );
 
     let runtime_globals_cloned = runtime_globals.clone();
     let compiler_options_cloned = compiler_options.clone();
@@ -299,7 +329,6 @@ impl RuntimeTemplate {
     );
 
     let runtime_globals_cloned = runtime_globals.clone();
-    let runtime_globals_render_mode = render_mode.runtime_module_render_mode();
     dojang.functions.insert(
       "define".into(),
       FunctionContainer::F1(Box::new(move |runtime_global: Operand| {
@@ -519,6 +548,22 @@ fn join_to_cow<'a>(
   }
 }
 
+fn dojang_supports(feature: Operand, environment: &Environment) -> Operand {
+  let Operand::Value(Value::String(feature)) = feature else {
+    panic!("supports() expects an output environment feature name");
+  };
+  let supported = match feature.as_str() {
+    "arrowFunction" => environment.supports_arrow_function(),
+    "computedProperty" => environment.supports_computed_property(),
+    "const" => environment.supports_const(),
+    "globalThis" => environment.global_this,
+    "logicalAssignment" => environment.supports_logical_assignment(),
+    "symbol" => environment.supports_symbol(),
+    _ => panic!("unknown output environment feature: {feature}"),
+  };
+  Operand::Value(Value::Bool(supported))
+}
+
 fn dojang_basic_function(
   args: Operand,
   runtime_globals: &RuntimeGlobalsRenderMap,
@@ -672,17 +717,13 @@ fn dojang_define(
   render_mode: RuntimeGlobalsRenderMode,
 ) -> Operand {
   // `define(...)` marks a runtime global assignment; the EJS extractor records it in `define`.
-  match render_mode {
-    RuntimeGlobalsRenderMode::RspackLexical | RuntimeGlobalsRenderMode::RspackExport => {
-      Operand::Value(Value::from(format!(
-        "var {}",
-        to_cow(&runtime_global, runtime_globals)
-      )))
-    }
-    RuntimeGlobalsRenderMode::Webpack | RuntimeGlobalsRenderMode::RspackContext => Operand::Value(
-      Value::from(to_cow(&runtime_global, runtime_globals).into_owned()),
-    ),
-  }
+  let name = to_cow(&runtime_global, runtime_globals);
+  let definition = if render_mode.uses_lexical_bindings() {
+    format!("var {name}")
+  } else {
+    name.into_owned()
+  };
+  Operand::Value(Value::String(definition))
 }
 
 fn dojang_weak(runtime_global: Operand, runtime_globals: &RuntimeGlobalsRenderMap) -> Operand {
@@ -1944,13 +1985,10 @@ impl RuntimeCodeTemplate {
 
   pub fn render_runtime_global_definition(&self, runtime_globals: &RuntimeGlobals) -> String {
     let runtime_global = self.runtime_globals.render(runtime_globals);
-    match self.render_mode {
-      RuntimeGlobalsRenderMode::RspackLexical | RuntimeGlobalsRenderMode::RspackExport => {
-        format!("var {runtime_global}")
-      }
-      RuntimeGlobalsRenderMode::Webpack | RuntimeGlobalsRenderMode::RspackContext => {
-        runtime_global.to_string()
-      }
+    if self.render_mode.uses_lexical_bindings() {
+      format!("var {runtime_global}")
+    } else {
+      runtime_global.to_string()
     }
   }
 
@@ -2091,21 +2129,20 @@ impl RuntimeCodeTemplate {
       )
     }
   }
-  /// Renders a self-defaulting assignment with the shortest supported syntax.
-  pub fn assign_or(&self, target: &str, value: &str) -> String {
-    if self
-      .compiler_options
-      .output
-      .environment
-      .supports_logical_assignment()
-    {
-      format!("{target} ||= {value}")
-    } else {
-      format!("{target} = {target} || {value}")
-    }
-  }
 
   pub fn render(&self, key: &str, params: Option<serde_json::Value>) -> Result<String, Error> {
+    // Keep template output consistent across platforms.
+    self
+      .render_preserving_line_endings(key, params)
+      .map(|render| render.cow_replace("\r\n", "\n").into_owned())
+  }
+
+  /// Renders raw interpolations with their original line endings.
+  pub fn render_preserving_line_endings(
+    &self,
+    key: &str,
+    params: Option<serde_json::Value>,
+  ) -> Result<String, Error> {
     let mut render_params = Value::Object(Default::default());
 
     render_params
@@ -2145,8 +2182,6 @@ impl RuntimeCodeTemplate {
           file_content,
           &mut Mutex::new(FxHashMap::default()),
         )
-        // Replace Windows-style line endings (\r\n) with Unix-style (\n) to ensure consistent runtime templates across platforms
-        .map(|render| render.cow_replace("\r\n", "\n").to_string())
         .to_rspack_result_with_message(|e| {
           format!("Runtime module: failed to render template {key} from: {e}")
         })

@@ -42,19 +42,18 @@ impl RuntimeModule for ExportRequireRuntimeModule {
     }
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id().to_string(),
+      include_str!("runtime/export_require.ejs").to_string(),
+    )]
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let export_name = context
-      .runtime_template
-      .render_runtime_globals(&RuntimeGlobals::REQUIRE_SCOPE);
-    let export_temp_name = format!("{export_name}temp");
-    Ok(format!(
-      r#"var {export_temp_name} = {export_name};
-export {{ {export_temp_name} as {export_name} }};
-"#,
-    ))
+    context.runtime_template.render(self.id(), None)
   }
 
   fn should_isolate(&self, _runtime_mode: RuntimeMode) -> bool {

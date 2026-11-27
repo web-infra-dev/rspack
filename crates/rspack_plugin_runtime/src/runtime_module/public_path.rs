@@ -32,18 +32,22 @@ impl RuntimeModule for PublicPathRuntimeModule {
     }
   }
 
+  fn template(&self) -> Vec<(String, String)> {
+    vec![(
+      self.id().to_string(),
+      include_str!("runtime/public_path.ejs").to_string(),
+    )]
+  }
+
   async fn generate(
     &self,
     context: &RuntimeModuleGenerateContext<'_>,
   ) -> rspack_error::Result<String> {
-    let compilation = context.compilation;
-    Ok(format!(
-      "{} = \"{}\";",
-      context
-        .runtime_template
-        .render_runtime_global_definition(&RuntimeGlobals::PUBLIC_PATH),
-      PublicPath::render_filename(compilation, &self.public_path).await,
-    ))
+    let public_path = PublicPath::render_filename(context.compilation, &self.public_path).await;
+    context.runtime_template.render_preserving_line_endings(
+      self.id(),
+      Some(serde_json::json!({ "_public_path": public_path })),
+    )
   }
 
   // be cacheable only when the template does not contain a hash placeholder
