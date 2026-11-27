@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from '@rspack/cli';
 import { container } from '@rspack/core';
 
@@ -17,18 +18,27 @@ export default defineConfig({
   },
   plugins: [
     new ModuleFederationPlugin({
+      implementation: fileURLToPath(
+        import.meta.resolve('@module-federation/runtime-tools-layers'),
+      ),
       name: 'container',
       filename: 'container.[chunkhash:8].js',
       library: { type: 'commonjs-module' },
       exposes: {
-        'expose-a': './module.js',
+        'expose-a': {
+          import: './module.js',
+          layer: 'server',
+        },
       },
       remoteType: 'script',
       remotes: {
         remote: 'remote@http://localhost:8000/remoteEntry.js',
       },
       shared: {
-        react: {},
+        react: {
+          layer: 'server',
+          shareScope: ['server', 'default'],
+        },
       },
       manifest: {
         disableAssetsAnalyze: true,
