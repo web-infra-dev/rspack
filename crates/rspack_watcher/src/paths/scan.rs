@@ -3,8 +3,11 @@ use std::{path::PathBuf, time::SystemTime};
 use rspack_paths::InternedPath;
 use rspack_util::time::system_time_to_millis;
 
-use super::{ContextObservation, PathManager};
-use crate::time::mtime_safe_time;
+use super::PathManager;
+use crate::{
+  time::{mtime_accuracy, mtime_safe_time},
+  watcher_manager::MemberKind,
+};
 
 impl PathManager {
   /// watchpack's initial scan of a `DirectoryWatcher`, for this cycle's newly
@@ -60,23 +63,19 @@ impl PathManager {
         if self.is_ignored_path(path.as_ref()).await {
           continue;
         }
-        let Ok((metadata, symlink)) = Self::scan_metadata(ancestry.last(), &path) else {
+        let Ok(metadata) = Self::scan_metadata(ancestry.last(), &path) else {
           continue;
         };
-        let mtime = metadata.modified().or_else(|_| metadata.created());
-        if !metadata.is_dir() && mtime.is_err() {
-          continue;
-        }
-        self.record_member(
-          &path,
-          &metadata,
-          symlink,
-          ContextObservation::Scan { initial: !observed },
-        );
-        if self.forget_if_orphaned(&path) {
-          break;
-        }
         if metadata.is_dir() {
+          self.record(&path, || {
+            self.watchers.add_member(&path, MemberKind::Directory)
+          });
+          if self.forget_if_orphaned(&path) {
+            break;
+          }
+          if let Ok(mtime) = metadata.modified() {
+            mtime_accuracy(mtime);
+          }
           // watchpack's initial `setDirectory` checks the birthtime.
           if changed_since.is_some_and(|since| {
             metadata
@@ -87,8 +86,18 @@ impl PathManager {
             changed.push(path.clone());
           }
           pending.push((path, ancestry.clone(), false));
-        } else if let Ok(mtime) = mtime {
+        } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
+          self.record(&path, || {
+            self.watchers.add_member(&path, MemberKind::File);
+            self
+              .file_times
+              .record(&path)
+              .set_time(mtime, !observed, true)
+          });
           let registered = self.files.all.contains(&path) || self.missing.all.contains(&path);
+          if self.forget_if_orphaned(&path) {
+            break;
+          }
           if !registered && changed_since.is_some_and(|since| mtime_safe_time(mtime) >= since) {
             changed.push(path);
           }
@@ -111,7 +120,7 @@ impl PathManager {
     if self.is_below_context(path) {
       return false;
     }
-    self.watchers.set_missing(path, true);
+    self.watchers.remove_member(path);
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
       self.file_times.clear(path, |record| record.time = None);
     }
@@ -130,27 +139,26 @@ impl PathManager {
   fn scan_metadata(
     real_dir: Option<&PathBuf>,
     path: &InternedPath,
-  ) -> std::io::Result<(std::fs::Metadata, bool)> {
+  ) -> std::io::Result<std::fs::Metadata> {
     let own = std::fs::symlink_metadata(path)?;
-    let symlink = own.is_symlink();
     let Some(real_dir) = real_dir.filter(|_| own.file_type().is_symlink()) else {
-      return Ok((own, symlink));
+      return Ok(own);
     };
     let Ok(target) = std::fs::canonicalize(path) else {
-      return Ok((own, symlink));
+      return Ok(own);
     };
     let into_own_directory = target.parent() == Some(real_dir.as_path());
     let above_itself = path
       .file_name()
       .is_some_and(|name| real_dir.join(name).starts_with(&target));
     if into_own_directory || above_itself {
-      return Ok((own, symlink));
+      return Ok(own);
     }
     // Like watchpack, only a link to a directory takes the target's metadata;
     // a link to a file keeps its own mtime.
     match std::fs::metadata(&target) {
-      Ok(metadata) if metadata.is_dir() => Ok((metadata, symlink)),
-      _ => Ok((own, symlink)),
+      Ok(metadata) if metadata.is_dir() => Ok(metadata),
+      _ => Ok(own),
     }
   }
 }

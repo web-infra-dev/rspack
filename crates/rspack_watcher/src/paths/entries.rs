@@ -1,54 +1,15 @@
 use std::path::Path;
 
 use rspack_paths::InternedPath;
+use rspack_util::time::current_time;
 
 use super::PathManager;
-use crate::{directory_watcher::FileObservation, time::mtime_accuracy};
-
-pub(crate) enum ContextObservation {
-  Scan { initial: bool },
-  Event,
-  Reported,
-}
+use crate::{
+  time::{mtime_accuracy, mtime_to_millis},
+  watcher_manager::MemberKind,
+};
 
 impl PathManager {
-  pub(super) fn record_member(
-    &self,
-    path: &InternedPath,
-    metadata: &std::fs::Metadata,
-    symlink: bool,
-    origin: ContextObservation,
-  ) -> bool {
-    let directory = metadata.is_dir();
-    self.record(path, || {
-      // A scan can follow a directory symlink that its live event also records as a file.
-      let replaced = !symlink
-        && self
-          .watchers
-          .has_member(path, |old| if directory { old.file } else { old.directory });
-      if replaced {
-        let keep_file = matches!(origin, ContextObservation::Reported)
-          && (self.files.all.contains(path) || self.missing.all.contains(path));
-        if directory {
-          self.remove_file_time(path, keep_file);
-        } else {
-          self.remove_file_times_under(path, keep_file);
-        }
-      }
-      let mtime = metadata.modified().or_else(|_| metadata.created()).ok();
-      if directory {
-        if let Some(mtime) = mtime {
-          mtime_accuracy(mtime);
-        }
-        self.watchers.set_directory(path)
-      } else {
-        self
-          .watchers
-          .set_file_time(path, mtime, FileObservation::Member(origin))
-      }
-    })
-  }
-
   /// An event named `path` below a registered context: index it the way the
   /// scan would have (watchpack's `DirectoryWatcher.setFileTime` /
   /// `setDirectory` on a watch event). A file's record becomes the live
@@ -90,80 +51,35 @@ impl PathManager {
       mtime_accuracy(mtime);
     }
     if registered_directory {
-      if !metadata.is_file() {
-        return true;
-      }
-      {
-        let _index = self.lock_index();
-        if !self.absent_directories.contains(path) {
-          let keep_file =
-            judged && (self.files.all.contains(path) || self.missing.all.contains(path));
-          self.remove_file_times_under(path, keep_file);
-        }
-      }
-      if !self.is_below_context(path) {
-        return true;
-      }
+      return true;
     }
-    let changed = self.record_member(
-      path,
-      &metadata,
-      metadata.is_symlink(),
-      if judged {
-        ContextObservation::Reported
-      } else {
-        ContextObservation::Event
-      },
-    );
-    if metadata.is_dir() && changed {
-      self.scan_below(vec![path.clone()], false, None).await;
-    }
-    metadata.is_dir() || changed
-  }
-
-  pub(crate) fn set_missing(&self, path: &InternedPath, report_absence: bool) {
-    {
-      let _index = self.lock_index();
-      let subtree = self.may_contain_records(path);
-      self.remove_file_time(path, false);
-      if subtree {
-        self.remove_file_times_under(path, false);
+    if metadata.is_dir() {
+      // Like watchpack's `setDirectory`, only a directory not known before is
+      // scanned: an event on a known one, e.g. a `chmod`, changes nothing below.
+      if self.record(path, || {
+        self.watchers.add_member(path, MemberKind::Directory)
+      }) {
+        self.scan_below(vec![path.clone()], false, None).await;
       }
+      return true;
     }
-    if report_absence {
-      self.set_reported_file_removal(path);
+    self.record(path, || self.watchers.add_member(path, MemberKind::File));
+    let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
+      return true;
+    };
+    if judged {
+      return true;
     }
-  }
-
-  /// Drop a removed path's time info and present baseline. A reported absence
-  /// survives later removals until the path reappears or is unregistered.
-  fn remove_file_time(&self, path: &InternedPath, keep_file: bool) {
-    if self.watchers.set_missing(path, keep_file).directory {
-      self.watchers.clear_event_time(path);
+    let mtime_ms = mtime_to_millis(mtime);
+    let accuracy = mtime_accuracy(mtime);
+    let untouched = self
+      .file_times
+      .get(path)
+      .is_some_and(|old| old.mtime == mtime && mtime_ms + accuracy < current_time());
+    if untouched {
+      return false;
     }
-    self.unlink_unrecorded(path);
-  }
-
-  /// Drop the records of every path inside the directory `dir` (watchpack's
-  /// `onDirectoryRemoved` marks them all missing), walking only its subtree.
-  fn remove_file_times_under(&self, dir: &InternedPath, keep_root_file: bool) {
-    let mut pending = vec![dir.clone()];
-    while let Some(path) = pending.pop() {
-      if let Some((_, children)) = self.recorded_children.remove(&path) {
-        pending.extend(children);
-      }
-      self
-        .watchers
-        .set_missing(&path, keep_root_file && &path == dir);
-      if !self.watchers.is_explicit_context(&path) {
-        self.watchers.clear_event_time(&path);
-      }
-    }
-    self.unlink_unrecorded(dir);
-    for context in self.directories.all.iter() {
-      if context.starts_with(dir.as_ref() as &Path) {
-        self.absent_directories.insert(context.clone());
-      }
-    }
+    self.set_file_time(path, mtime, false, false);
+    true
   }
 }

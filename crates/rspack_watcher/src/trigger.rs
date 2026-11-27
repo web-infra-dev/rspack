@@ -269,9 +269,14 @@ impl EventProcessor {
     // removals, so its descendants' records go with it. Only a path that can
     // hold records is swept, so deleting many unrelated files stays cheap.
     if removed || kind == FsEventKind::Remove {
-      self
-        .path_manager
-        .set_missing(path, kind == FsEventKind::Remove && is_watched_path);
+      let may_contain_records = self.path_manager.may_contain_records(path);
+      self.path_manager.remove_file_time(path);
+      if may_contain_records {
+        self.path_manager.remove_file_times_under(path);
+      }
+      if kind == FsEventKind::Remove && is_watched_path {
+        self.path_manager.set_reported_file_removal(path);
+      }
     }
 
     // Filter stale FSEvents: on macOS, FSEvents can deliver events for files
@@ -309,7 +314,11 @@ impl EventProcessor {
       {
         *associated_kind = FsEventKind::Remove;
         self.analyzer.invalidate_path(associated);
-        self.path_manager.set_missing(associated, false);
+        let may_contain_records = self.path_manager.may_contain_records(associated);
+        self.path_manager.remove_file_time(associated);
+        if may_contain_records {
+          self.path_manager.remove_file_times_under(associated);
+        }
       }
     }
 

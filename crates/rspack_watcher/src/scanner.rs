@@ -68,7 +68,7 @@ impl Scanner {
         // seeded.
         for path in &changed {
           if let Some(mtime) = disk_mtime(path) {
-            files_path_manager.set_backfill_time(path, mtime, true);
+            files_path_manager.set_reported_file_time(path, mtime);
           }
         }
         _ = send_events(removed, FsEventKind::Remove, &files_tx);
@@ -117,10 +117,11 @@ impl Scanner {
           let Some(mtime) = disk_mtime(&path) else {
             continue;
           };
-          let changed = changed_since(&path, start_time);
-          path_manager.set_backfill_time(&path, mtime, changed);
-          if changed {
+          if changed_since(&path, start_time) {
+            path_manager.set_reported_file_time(&path, mtime);
             created.push(path);
+          } else {
+            path_manager.set_file_time(&path, mtime, true, true);
           }
         }
         _ = send_events(created, FsEventKind::Create, &tx);

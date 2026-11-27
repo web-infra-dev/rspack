@@ -2,10 +2,10 @@ mod entries;
 mod scan;
 mod time_info;
 mod update;
+
 use std::{fmt::Debug, ops::Deref, path::Path, sync::Arc};
 
 use dashmap::setref::multiple::RefMulti;
-pub(crate) use entries::ContextObservation;
 use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
 pub(crate) use time_info::{FileRecord, disk_mtime};
@@ -15,7 +15,7 @@ use self::{
   update::PathUpdater,
 };
 use super::{FsWatcherIgnored, ignored::IgnoredMatcher};
-use crate::watcher_manager::WatcherManager;
+use crate::watcher_manager::{MemberKind, WatcherManager};
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
@@ -221,6 +221,40 @@ impl PathManager {
     self.missing.reset();
   }
 
+  /// Drop a removed path's time info and present baseline. A reported absence
+  /// survives later removals until the path reappears or is unregistered.
+  pub fn remove_file_time(&self, path: &InternedPath) {
+    let _index = self.lock_index();
+    self.file_times.clear(path, FileRecord::clear_present);
+    if self.watchers.remove_member(path).directory {
+      self.watchers.clear_event_time(path);
+    }
+    self.unlink_unrecorded(path);
+  }
+
+  /// Drop the records of every path inside the directory `dir` (watchpack's
+  /// `onDirectoryRemoved` marks them all missing), walking only its subtree.
+  pub fn remove_file_times_under(&self, dir: &InternedPath) {
+    let _index = self.lock_index();
+    let mut pending = vec![dir.clone()];
+    while let Some(path) = pending.pop() {
+      if let Some((_, children)) = self.recorded_children.remove(&path) {
+        pending.extend(children);
+      }
+      self.file_times.clear(&path, FileRecord::clear_present);
+      self.watchers.remove_member(&path);
+      if !self.watchers.is_explicit_context(&path) {
+        self.watchers.clear_event_time(&path);
+      }
+    }
+    self.unlink_unrecorded(dir);
+    for context in self.directories.all.iter() {
+      if context.starts_with(dir.as_ref() as &Path) {
+        self.absent_directories.insert(context.clone());
+      }
+    }
+  }
+
   /// Writes a record for `path` with `write` and indexes it, and its ancestors
   /// not indexed yet, under the index lock: a sweep of an ancestor sees the
   /// record either both written and indexed, or not at all.
@@ -285,7 +319,7 @@ impl PathManager {
 
   fn holds_record(&self, path: &InternedPath) -> bool {
     self.file_times.get(path).is_some()
-      || self.watchers.has_member(path, |_| true)
+      || self.watchers.member(path).is_some()
       || self.watchers.event_time(path).is_some()
   }
 
@@ -411,7 +445,7 @@ impl PathManager {
       // forgotten, so it is scanned as a new directory when it comes back.
       let absent = self.absent_directories.remove(dir).is_some();
       if !absent && self.is_below_context(dir) {
-        self.record(dir, || self.watchers.set_directory(dir));
+        self.record(dir, || self.watchers.add_member(dir, MemberKind::Directory));
       } else {
         self.watchers.clear_event_time(dir);
       }
@@ -423,16 +457,11 @@ impl PathManager {
 
   fn prune_file_record(&self, path: &InternedPath, keep_reported: bool) {
     let below_context = self.is_below_context(path);
-    let keep_time = below_context
-      && (keep_reported
-        || !self
-          .watchers
-          .has_member(path, |member| member.directory && !member.file));
     self.file_times.clear(path, |record| {
       if !keep_reported {
         record.reported = ReportedBaseline::Unknown;
       }
-      if !keep_time {
+      if !below_context {
         record.time = None;
       }
     });
@@ -462,7 +491,7 @@ impl PathManager {
         self.watchers.unsubscribe_parent(path);
         continue;
       }
-      let member = self.watchers.set_missing(path, true);
+      let member = self.watchers.remove_member(path);
       if member.file && !self.files.all.contains(path) && !self.missing.all.contains(path) {
         self.file_times.clear(path, |record| record.time = None);
         self.unlink_unrecorded(path);

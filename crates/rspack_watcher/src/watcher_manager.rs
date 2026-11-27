@@ -1,8 +1,20 @@
-use std::{sync::Arc, time::SystemTime};
+use std::sync::Arc;
 
-use rspack_paths::{InternedPath, InternedPathDashMap};
+use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap};
 
-use crate::directory_watcher::{ContextMember, DirectoryWatcher, FileObservation};
+use crate::paths::FileRecord;
+
+pub(super) enum MemberKind {
+  File,
+  Directory,
+}
+
+// An initial scan can follow a directory symlink that a live event records as a file.
+#[derive(Clone, Copy, Default)]
+pub(super) struct ContextMember {
+  pub(super) file: bool,
+  pub(super) directory: bool,
+}
 
 #[derive(Clone, Default)]
 pub(super) struct DirectorySubscriptions {
@@ -18,6 +30,38 @@ impl DirectorySubscriptions {
 
 pub(super) trait ContextLookup {
   fn subscriptions(&self, path: &InternedPath) -> DirectorySubscriptions;
+}
+
+#[derive(Default)]
+pub(super) struct DirectoryWatcher {
+  pub(super) members: InternedPathMap<ContextMember>,
+  pub(super) files: InternedPathMap<FileRecord>,
+  pub(super) last_watch_event: Option<u64>,
+  pub(super) subscriptions: DirectorySubscriptions,
+}
+
+impl DirectoryWatcher {
+  pub(super) fn owner(path: &InternedPath) -> InternedPath {
+    path
+      .parent()
+      .map_or_else(|| path.clone(), InternedPath::from)
+  }
+
+  pub(super) fn is_unused(&self) -> bool {
+    self.members.is_empty()
+      && self.files.is_empty()
+      && self.last_watch_event.is_none()
+      && !self.subscriptions.is_active()
+  }
+
+  pub(super) fn clear_file(&mut self, path: &InternedPath, clear: impl FnOnce(&mut FileRecord)) {
+    if let Some(record) = self.files.get_mut(path) {
+      clear(record);
+      if record.is_empty() {
+        self.files.remove(path);
+      }
+    }
+  }
 }
 
 #[derive(Default)]
@@ -63,56 +107,38 @@ impl WatcherManager {
       .is_some_and(|watcher| watcher.subscriptions.is_active())
   }
 
-  pub(super) fn set_directory(&self, path: &InternedPath) -> bool {
-    let parent = DirectoryWatcher::owner(path);
-    let added = self
-      .directories
-      .entry(parent.clone())
-      .or_default()
-      .set_directory(path);
-    self
-      .directories
-      .entry(path.clone())
-      .or_default()
-      .subscriptions
-      .parent = Some(parent);
-    added
+  pub(super) fn add_member(&self, path: &InternedPath, kind: MemberKind) -> bool {
+    let parent = InternedPath::from(path.parent().expect("a context member has a parent"));
+    let mut watcher = self.directories.entry(parent).or_default();
+    let member = watcher.members.entry(path.clone()).or_default();
+    match kind {
+      MemberKind::File => !std::mem::replace(&mut member.file, true),
+      MemberKind::Directory => {
+        let added = !std::mem::replace(&mut member.directory, true);
+        let parent = watcher.key().clone();
+        drop(watcher);
+        let mut child = self.directories.entry(path.clone()).or_default();
+        child.subscriptions.parent = Some(parent);
+        added
+      }
+    }
   }
 
-  pub(super) fn set_file_time(
-    &self,
-    path: &InternedPath,
-    mtime: Option<SystemTime>,
-    origin: FileObservation,
-  ) -> bool {
-    self
-      .directories
-      .entry(DirectoryWatcher::owner(path))
-      .or_default()
-      .set_file_time(path, mtime, origin)
+  pub(super) fn member(&self, path: &InternedPath) -> Option<ContextMember> {
+    let parent = InternedPath::from(path.parent()?);
+    self.directories.get(&parent)?.members.get(path).copied()
   }
 
-  pub(super) fn has_member(
-    &self,
-    path: &InternedPath,
-    matches: impl FnOnce(&ContextMember) -> bool,
-  ) -> bool {
-    path.parent().is_some_and(|parent| {
+  pub(super) fn remove_member(&self, path: &InternedPath) -> ContextMember {
+    let mut removed = ContextMember::default();
+    if let Some(parent) = path.parent() {
       self
         .directories
-        .get(&InternedPath::from(parent))
-        .is_some_and(|watcher| watcher.members.get(path).is_some_and(matches))
-    })
-  }
-
-  pub(super) fn set_missing(&self, path: &InternedPath, keep_file: bool) -> ContextMember {
-    let mut removed = ContextMember::default();
-    self
-      .directories
-      .remove_if_mut(&DirectoryWatcher::owner(path), |_, watcher| {
-        removed = watcher.set_missing(path, keep_file);
-        watcher.is_unused()
-      });
+        .remove_if_mut(&InternedPath::from(parent), |_, watcher| {
+          removed = watcher.members.remove(path).unwrap_or_default();
+          watcher.is_unused()
+        });
+    }
     if removed.directory {
       self.unsubscribe_parent(path);
     }
