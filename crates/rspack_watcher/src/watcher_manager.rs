@@ -1,8 +1,11 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, MutexGuard};
 
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap};
 
-use crate::paths::{DirectoryScan, FileRecord};
+use crate::{
+  observation::{Mutation, Observations},
+  paths::{DirectoryScan, FileRecord},
+};
 
 pub(super) enum MemberKind {
   File,
@@ -70,6 +73,7 @@ impl DirectoryWatcher {
 #[derive(Default)]
 pub(super) struct WatcherManager {
   pub(super) directories: Arc<InternedPathDashMap<DirectoryWatcher>>,
+  pub(super) observations: Arc<Mutex<Observations>>,
 }
 
 impl WatcherManager {
@@ -103,6 +107,19 @@ impl WatcherManager {
 
   pub(super) fn event_time(&self, path: &InternedPath) -> Option<u64> {
     self.directories.get(path)?.last_watch_event
+  }
+
+  pub(super) fn lock_observations(&self) -> MutexGuard<'_, Observations> {
+    self
+      .observations
+      .lock()
+      .expect("watch observations poisoned")
+  }
+
+  pub(super) fn begin_metadata_update(&self, path: &InternedPath) -> MutexGuard<'_, Observations> {
+    let mut state = self.lock_observations();
+    state.observe_live(path, Mutation::Metadata);
+    state
   }
 
   pub(super) fn subscribe_context(&self, path: &InternedPath) {

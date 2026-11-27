@@ -5,6 +5,7 @@ use rspack_util::time::current_time;
 
 use super::PathManager;
 use crate::{
+  observation::Mutation,
   time::{mtime_accuracy, mtime_to_millis},
   watcher_manager::MemberKind,
 };
@@ -53,33 +54,39 @@ impl PathManager {
     if registered_directory {
       return true;
     }
-    if metadata.is_dir() {
-      // Like watchpack's `setDirectory`, only a directory not known before is
-      // scanned: an event on a known one, e.g. a `chmod`, changes nothing below.
-      if self.record(path, || {
-        self.watchers.add_member(path, MemberKind::Directory)
-      }) {
-        self.scan_below(vec![path.clone()], false, None).await;
+    let changed = self.observe_live(path, || {
+      if !self.is_below_context(path) {
+        return (false, Mutation::Entry);
       }
-      return true;
+      if metadata.is_dir() {
+        let added = self.record(path, || {
+          self.watchers.add_member(path, MemberKind::Directory)
+        });
+        // Recording membership alone cannot supersede another walk's metadata read.
+        return (added, Mutation::Metadata);
+      }
+      self.record(path, || self.watchers.add_member(path, MemberKind::File));
+      let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
+        return (true, Mutation::Entry);
+      };
+      if judged {
+        return (true, Mutation::Metadata);
+      }
+      let aged = mtime_to_millis(mtime).saturating_add(mtime_accuracy(mtime)) < current_time();
+      if aged
+        && self
+          .file_times
+          .get(path)
+          .is_some_and(|old| old.mtime == mtime)
+      {
+        return (false, Mutation::Metadata);
+      }
+      self.set_file_time(path, mtime, false, false);
+      (true, Mutation::Entry)
+    });
+    if metadata.is_dir() && changed {
+      self.scan_below(vec![path.clone()], false, None).await;
     }
-    self.record(path, || self.watchers.add_member(path, MemberKind::File));
-    let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
-      return true;
-    };
-    if judged {
-      return true;
-    }
-    let mtime_ms = mtime_to_millis(mtime);
-    let accuracy = mtime_accuracy(mtime);
-    let untouched = self
-      .file_times
-      .get(path)
-      .is_some_and(|old| old.mtime == mtime && mtime_ms + accuracy < current_time());
-    if untouched {
-      return false;
-    }
-    self.set_file_time(path, mtime, false, false);
-    true
+    metadata.is_dir() || changed
   }
 }

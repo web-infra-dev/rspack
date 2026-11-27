@@ -172,6 +172,7 @@ impl PathManager {
   /// Use `has_mtime_changed` (which atomically reads-and-updates the
   /// baseline) to advance the recorded mtime in response to real events.
   pub fn set_file_time_if_absent(&self, path: InternedPath, mtime: SystemTime) {
+    let _observation = self.watchers.begin_metadata_update(&path);
     self.record(&path, || {
       let mut record = self.file_times.record(&path);
       if !matches!(record.reported, ReportedBaseline::Present(_)) {
@@ -260,6 +261,7 @@ impl PathManager {
     let mtime_ms = mtime_to_millis(current_mtime);
     let present = ReportedBaseline::Present(current_mtime);
     let aged = mtime_ms.saturating_add(mtime_accuracy(current_mtime)) < current_time();
+    let _observation = self.watchers.begin_metadata_update(path);
     // A stale event needs no index lock. Recheck under the write lock in
     // case the scanner reported this mtime in the meantime.
     if aged && self.file_times.reported(path) == present {

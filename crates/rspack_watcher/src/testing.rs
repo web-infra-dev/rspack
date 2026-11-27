@@ -86,6 +86,10 @@ impl DirectoryAnalyzer {
     self.paths.collect_time_info_entries()
   }
 
+  pub fn hold_scanned_file(&self, root: InternedPath, path: InternedPath) -> impl FnOnce() + use<> {
+    self.paths.hold_scanned_file(root, path)
+  }
+
   pub async fn update(
     &self,
     files: (Vec<InternedPath>, Vec<InternedPath>),
@@ -130,14 +134,22 @@ impl DirectoryAnalyzer {
   }
 
   pub async fn next_events(&mut self) -> Vec<(InternedPath, FsEventKind)> {
-    self
+    self.next_events_with_raw().await.1
+  }
+
+  pub async fn next_events_with_raw(
+    &mut self,
+  ) -> (Option<InternedPath>, Vec<(InternedPath, FsEventKind)>) {
+    let events = self
       .events
       .recv()
       .await
-      .expect("event processor should remain active")
+      .expect("event processor should remain active");
+    let dependencies = events
       .dependencies
       .into_iter()
       .map(|event| (event.path, event.kind))
-      .collect()
+      .collect();
+    (events.raw.map(|event| event.path), dependencies)
   }
 }
