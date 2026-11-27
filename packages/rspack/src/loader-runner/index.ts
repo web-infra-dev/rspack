@@ -587,10 +587,14 @@ export async function runLoaders(
 
     return resolveWithOptions;
   };
+  let lastLoggerName: string | undefined;
+  let lastLoggerOrigin = resource || '';
   loaderContext.getLogger = function getLogger(name) {
-    return compiler._lastCompilation!.getLogger(
-      [name, resource].filter(Boolean).join('|'),
-    );
+    if (name !== lastLoggerName) {
+      lastLoggerOrigin = [name, resource].filter(Boolean).join('|');
+      lastLoggerName = name;
+    }
+    return compiler._lastCompilation!.getLogger(lastLoggerOrigin);
   };
   loaderContext.rootContext = compiler.context;
   // The public API intentionally accepts only Error instances. Keep these runtime checks for
