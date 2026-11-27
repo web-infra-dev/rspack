@@ -9,7 +9,6 @@ use tokio::{
   sync::{
     Mutex,
     mpsc::{self, UnboundedReceiver, UnboundedSender},
-    oneshot,
   },
   time::{Duration, Instant},
 };
@@ -158,7 +157,7 @@ impl Executor {
     &mut self,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
-    context_ready: oneshot::Receiver<()>,
+    context_ready: Vec<crate::InitialIndex>,
   ) {
     if !self.start_waiting {
       let files_data = Arc::clone(&self.files_data);
@@ -256,7 +255,7 @@ impl Executor {
     &mut self,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
-    context_ready: oneshot::Receiver<()>,
+    context_ready: Vec<crate::InitialIndex>,
   ) {
     self.execute_aggregate_handle = Some(create_execute_aggregate_task(
       self.exec_tx.clone(),
@@ -321,12 +320,14 @@ fn create_execute_aggregate_task(
   aggregate_timeout: u64,
   running: Arc<AtomicBool>,
   aggregate_time: Arc<AggregateTime>,
-  context_ready: oneshot::Receiver<()>,
+  context_ready: Vec<crate::InitialIndex>,
 ) -> tokio::task::JoinHandle<()> {
   let future = async move {
     // A rebuild reads the new contexts' timestamps as soon as the first aggregate is delivered.
-    if context_ready.await.is_err() {
-      return;
+    for root in context_ready {
+      if root.await.is_err() {
+        return;
+      }
     }
 
     loop {

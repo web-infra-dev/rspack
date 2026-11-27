@@ -1,7 +1,6 @@
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, Mutex, Weak};
 
-use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap};
-use tokio::runtime::Handle;
+use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap, InternedPathSet};
 
 use crate::paths::{DirectoryScan, FileRecord};
 
@@ -35,7 +34,8 @@ pub(super) trait ContextLookup {
 
 #[derive(Default)]
 pub(super) struct DirectoryWatcher {
-  scan: Option<Arc<DirectoryScan>>,
+  pub(crate) scan: Option<Arc<DirectoryScan>>,
+  pub(crate) live_during_scan: Weak<Mutex<InternedPathSet>>,
   registered_children: usize,
   pub(super) members: InternedPathMap<ContextMember>,
   pub(super) files: InternedPathMap<FileRecord>,
@@ -70,42 +70,23 @@ impl DirectoryWatcher {
 
 #[derive(Default)]
 pub(super) struct WatcherManager {
-  scan_workers: OnceLock<Handle>,
   #[cfg(feature = "testing")]
   pub(super) metadata_jobs: crate::testing::MetadataJobs,
   pub(super) directories: Arc<InternedPathDashMap<DirectoryWatcher>>,
 }
 
 impl WatcherManager {
-  pub(super) fn bind_scan_workers(&self) {
-    self.scan_workers.get_or_init(Handle::current);
-  }
-
-  pub(super) fn directory_scan(&self, dir: &InternedPath) -> Option<Arc<DirectoryScan>> {
-    let mut watcher = self.directories.get_mut(dir)?;
-    Some(Arc::clone(watcher.scan.get_or_insert_with(|| {
-      Arc::new(DirectoryScan::new(
-        dir.clone(),
-        self
-          .scan_workers
-          .get()
-          .expect("register paths before scanning")
-          .clone(),
-        #[cfg(feature = "testing")]
-        Arc::clone(&self.metadata_jobs),
-      ))
-    })))
-  }
-
   pub(super) fn register_child(&self, path: &InternedPath) {
     let owner = DirectoryWatcher::owner(path);
     let mut watcher = self.directories.entry(owner).or_default();
+    watcher.note_member(path);
     watcher.registered_children += 1;
   }
 
   pub(super) fn unregister_child(&self, path: &InternedPath) {
     let owner = DirectoryWatcher::owner(path);
     self.directories.remove_if_mut(&owner, |_, watcher| {
+      watcher.note_member(path);
       watcher.registered_children -= 1;
       watcher.is_unused()
     });
@@ -124,11 +105,13 @@ impl WatcherManager {
 
   pub(super) fn subscribe_context(&self, path: &InternedPath) {
     let mut watcher = self.directories.entry(path.clone()).or_default();
+    watcher.invalidate_scan();
     watcher.subscriptions.explicit = true;
   }
 
   pub(super) fn unsubscribe_context(&self, path: &InternedPath) {
     self.directories.remove_if_mut(path, |_, watcher| {
+      watcher.invalidate_scan();
       watcher.subscriptions.explicit = false;
       watcher.is_unused()
     });
@@ -151,11 +134,14 @@ impl WatcherManager {
   pub(super) fn add_member(&self, path: &InternedPath, kind: MemberKind) -> bool {
     let parent = InternedPath::from(path.parent().expect("a context member has a parent"));
     let mut watcher = self.directories.entry(parent).or_default();
-    let member = watcher.members.entry(path.clone()).or_default();
+    watcher.note_member(path);
     match kind {
-      MemberKind::File => !std::mem::replace(&mut member.file, true),
+      MemberKind::File => !std::mem::replace(
+        &mut watcher.members.entry(path.clone()).or_default().file,
+        true,
+      ),
       MemberKind::Directory => {
-        let added = !std::mem::replace(&mut member.directory, true);
+        let added = watcher.set_directory(path);
         let parent = watcher.key().clone();
         drop(watcher);
         let mut child = self.directories.entry(path.clone()).or_default();
@@ -176,6 +162,7 @@ impl WatcherManager {
       self
         .directories
         .remove_if_mut(&InternedPath::from(parent), |_, watcher| {
+          watcher.note_member(path);
           removed = watcher.members.remove(path).unwrap_or_default();
           watcher.is_unused()
         });
@@ -188,6 +175,7 @@ impl WatcherManager {
 
   pub(super) fn unsubscribe_parent(&self, path: &InternedPath) {
     self.directories.remove_if_mut(path, |_, watcher| {
+      watcher.invalidate_scan();
       watcher.subscriptions.parent = None;
       watcher.is_unused()
     });

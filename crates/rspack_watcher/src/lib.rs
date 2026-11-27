@@ -25,10 +25,14 @@ use std::{
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
 use executor::{Aggregated, Executor};
+use futures::{
+  FutureExt,
+  future::{Shared, join_all},
+};
 pub use ignored::{FsWatcherIgnored, FsWatcherIgnoredItem, IgnoredFn};
 use paths::PathManager;
 use rspack_error::Result;
-use rspack_paths::InternedPath;
+use rspack_paths::{InternedPath, InternedPathMap, InternedPathSet};
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use scanner::Scanner;
 use tokio::sync::{mpsc, oneshot};
@@ -162,7 +166,10 @@ pub struct FsWatcher {
   executor_trace: testing::ExecutorTrace,
 }
 
+type InitialIndex = Shared<oneshot::Receiver<()>>;
+
 struct FsWatcherInner {
+  indexing: InternedPathMap<InitialIndex>,
   scans: tokio::task::JoinSet<()>,
   path_manager: Arc<PathManager>,
   disk_watcher: DiskWatcher,
@@ -195,6 +202,7 @@ impl FsWatcher {
     let trigger = Arc::new(Mutex::new(Some(trigger)));
 
     let inner = FsWatcherInner {
+      indexing: Default::default(),
       scans: Default::default(),
       path_manager: Arc::clone(&path_manager),
       disk_watcher,
@@ -384,7 +392,7 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
     .name("rspack-fs-watcher".to_string())
     .spawn(move || {
       let runtime = tokio::runtime::Builder::new_current_thread()
-        .max_blocking_threads(crate::paths::DirectoryScan::MAX_METADATA_READS)
+        .max_blocking_threads(crate::paths::MAX_SCAN_READS)
         .enable_all()
         .build()
         .expect("create watcher runtime");
@@ -408,9 +416,8 @@ impl FsWatcherInner {
   ) -> Option<impl Future<Output = ()> + Send + use<>> {
     self.path_manager.reset();
 
-    let (indexed, ready) = oneshot::channel();
     let scans = match self
-      .prepare_watch(files, directories, missing, start_time, indexed)
+      .prepare_watch(files, directories, missing, start_time)
       .await
     {
       Ok(scans) => scans,
@@ -421,7 +428,11 @@ impl FsWatcherInner {
     };
     self
       .executor
-      .wait_for_execute(event_aggregate_handler, event_handler, ready)
+      .wait_for_execute(
+        event_aggregate_handler,
+        event_handler,
+        self.indexing.values().cloned().collect(),
+      )
       .await;
 
     while let Some(previous) = self.scans.try_join_next() {
@@ -431,6 +442,7 @@ impl FsWatcherInner {
   }
 
   async fn close(&mut self) -> Result<()> {
+    self.path_manager.close_scans();
     self.disk_watcher.close();
     self.scans.shutdown().await;
     self.scanner.close();
@@ -446,7 +458,6 @@ impl FsWatcherInner {
     directories: (Vec<InternedPath>, Vec<InternedPath>),
     missing: (Vec<InternedPath>, Vec<InternedPath>),
     start_time: SystemTime,
-    indexed: oneshot::Sender<()>,
   ) -> Result<impl Future<Output = ()> + Send + use<>> {
     self
       .path_manager
@@ -488,22 +499,44 @@ impl FsWatcherInner {
     // before the watch is active is on disk by scan time (caught by
     // `mtime > start_time`), and a change after it is active is delivered live.
     let targets = self.scanner.prepare(start_time);
-    let contexts = self.path_manager.added_context_scan(start_time);
-    let paths = Arc::clone(&self.path_manager);
+    let roots: Vec<_> = self
+      .path_manager
+      .added_context_scan(start_time)
+      .into_roots()
+      .collect();
+    let separate: Arc<InternedPathSet> = Arc::new(roots.iter().map(|(r, _)| r.clone()).collect());
+    self.indexing.retain(|root, ready| {
+      root.ancestors().any(|p| {
+        self
+          .path_manager
+          .watchers
+          .is_explicit_context(&InternedPath::from(p))
+      }) && ready.clone().now_or_never().is_none()
+    });
     let trigger = self
       .trigger
       .lock()
       .expect("should lock trigger")
       .clone()
       .expect("watcher is open");
+    let mut scans = Vec::with_capacity(roots.len());
+    for (root, scan) in roots {
+      let (done, ready) = oneshot::channel();
+      self.indexing.insert(root, ready.shared());
+      let paths = Arc::clone(&self.path_manager);
+      let trigger = Arc::clone(&trigger);
+      let separate = Arc::clone(&separate);
+      scans.push(async move {
+        scan
+          .run_roots(&paths, &separate, |events| {
+            trigger.on_scanned_events(events)
+          })
+          .await;
+        let _ = done.send(());
+      });
+    }
     Ok(async move {
-      let enumerate = async {
-        for change in contexts.run(&paths).await {
-          trigger.on_scanned_change(&change);
-        }
-        let _ = indexed.send(());
-      };
-      tokio::join!(targets, enumerate);
+      tokio::join!(targets, join_all(scans));
     })
   }
 

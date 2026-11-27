@@ -1,7 +1,7 @@
-use std::time::SystemTime;
+use std::{sync::Arc, time::SystemTime};
 
 use rspack_paths::{InternedPath, InternedPathMap};
-use rspack_util::time::system_time_to_millis;
+use rspack_util::{fx_hash::FxHashMap, time::system_time_to_millis};
 
 use super::PathManager;
 use crate::{
@@ -17,13 +17,14 @@ pub(crate) enum RegistrationKind {
   Missing,
 }
 
+#[derive(Clone, PartialEq, Eq, Hash)]
 pub(crate) struct Registration {
-  path: InternedPath,
+  pub(super) path: InternedPath,
   kind: RegistrationKind,
 }
 
 impl Registration {
-  fn read(&self) -> (Option<SystemTime>, bool) {
+  pub(super) fn read(&self) -> (Option<SystemTime>, bool) {
     let metadata = self.path.metadata();
     let absent_error = |e: &std::io::Error| {
       matches!(
@@ -60,7 +61,36 @@ impl PathManager {
     dirs
   }
 
-  pub(crate) fn scan_registered(&self, entry: Registration, start: SystemTime) -> Option<FsEvent> {
+  pub(super) async fn read_registrations(
+    &self,
+    groups: Vec<(usize, Arc<[Registration]>, SystemTime)>,
+  ) -> Vec<(usize, Registration, SystemTime, (Option<SystemTime>, bool))> {
+    if groups.is_empty() {
+      return Vec::new();
+    }
+    self
+      .scan_io
+      .read(move || {
+        let mut seen = FxHashMap::default();
+        let mut observed = Vec::new();
+        for (i, entries, start) in &groups {
+          for entry in entries.iter() {
+            let metadata = *seen.entry(entry).or_insert_with(|| entry.read());
+            observed.push((*i, entry.clone(), *start, metadata));
+          }
+        }
+        observed
+      })
+      .await
+      .unwrap_or_default()
+  }
+
+  pub(crate) fn commit_registered(
+    &self,
+    entry: Registration,
+    start: SystemTime,
+    (mtime, absent): (Option<SystemTime>, bool),
+  ) -> Option<FsEvent> {
     let path = &entry.path;
     let tracker = match entry.kind {
       RegistrationKind::File => &self.files,
@@ -70,7 +100,6 @@ impl PathManager {
     if !tracker.all.contains(path) {
       return None;
     }
-    let (mtime, absent) = entry.read();
     let changed = mtime.is_some_and(|time| {
       mtime_accuracy(time);
       mtime_safe_time(time) >= system_time_to_millis(start)
@@ -80,18 +109,20 @@ impl PathManager {
       && (entry.kind != RegistrationKind::File || !self.is_known_absent(path));
     if absent && (report_absence || self.file_times.get(path).is_some()) {
       let subtree = self.may_contain_records(path);
-      self.remove_file_time(path);
+      self.remove_file_record(path);
       if subtree {
-        self.remove_file_times_under(path);
+        self.remove_subtree_records(path, false);
       }
     } else if let Some(time) = mtime
       && entry.kind != RegistrationKind::Directory
     {
+      let mut record = self.file_times.record(path);
       if changed {
-        self.set_reported_file_time(path, time);
-      } else {
-        self.set_file_time(path, time, true, true);
+        record.reported = super::time_info::ReportedBaseline::Present(time);
       }
+      record.set_time(time, true, true);
+      drop(record);
+      self.link_record(path);
     }
     let kind = if report_absence {
       FsEventKind::Remove

@@ -89,10 +89,22 @@ impl DirectoryAnalyzer {
       events,
     }
   }
-  pub fn scan_contexts(&self) -> tokio::task::JoinHandle<Vec<InternedPath>> {
+  pub fn rescan_contexts(&self) -> impl Future<Output = Vec<InternedPath>> + Send + use<> {
     let paths = Arc::clone(&self.paths);
     let scan = paths.added_context_scan(SystemTime::UNIX_EPOCH);
-    tokio::spawn(async move { scan.run(&paths).await })
+    async move {
+      let mut changes = Vec::new();
+      scan
+        .run(&paths, |events| {
+          changes.extend(events.into_iter().map(|e| e.path))
+        })
+        .await;
+      changes
+    }
+  }
+
+  pub fn scan_contexts(&self) -> tokio::task::JoinHandle<Vec<InternedPath>> {
+    tokio::spawn(self.rescan_contexts())
   }
 
   pub fn collect_time_info_entries(&self) -> (TimeInfoEntries, TimeInfoEntries) {
@@ -135,7 +147,10 @@ impl DirectoryAnalyzer {
   }
 
   pub fn on_scanned_change(&self, path: &InternedPath) {
-    self.trigger.on_scanned_change(path);
+    self.trigger.on_scanned_events(vec![crate::FsEvent {
+      path: path.clone(),
+      kind: FsEventKind::Change,
+    }]);
   }
 
   pub fn scan(&self, start_time: SystemTime) {

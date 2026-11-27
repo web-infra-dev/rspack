@@ -25,20 +25,26 @@ impl Scanner {
       && !dirs.is_empty()
     {
       for (dir, entries) in dirs {
-        let Some(queue) = self.path_manager.watchers.directory_scan(&dir) else {
-          continue;
-        };
         let paths = Arc::clone(&self.path_manager);
         let tx = tx.clone();
-        tasks.push(queue.targeted(move || {
-          let events: EventBatch = entries
-            .into_iter()
-            .filter_map(|entry| paths.scan_registered(entry, start))
-            .collect();
-          if !events.is_empty() {
-            let _ = tx.send(events);
+        tasks.push(async move {
+          let Some(mut dw) = paths.watchers.directories.get_mut(&dir) else {
+            return;
+          };
+          let scan = dw.scan(
+            dir,
+            &paths,
+            crate::paths::ScanInput::Registered {
+              entries: entries.into(),
+              start,
+            },
+          );
+          drop(dw);
+          let result = scan.await;
+          if !result.changes.is_empty() {
+            let _ = tx.send(result.changes);
           }
-        }));
+        });
       }
     }
     async move {
