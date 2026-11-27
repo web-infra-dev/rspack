@@ -3,15 +3,22 @@ use std::sync::Arc;
 use futures::future::join_all;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use rspack_core::{
+  ChunkGroup, ChunkGroupByUkey, ChunkGroupUkey, ChunkLoading, ChunkLoadingType, ChunkUkey,
+  Compilation, ManifestAssetType,
+};
 use rspack_error::{Result, ToStringResultToRspackResultExt};
 use rspack_hook::plugin_hook;
 use rspack_paths::Utf8Path;
 use rspack_plugin_html::{
-  AlterAssetTagGroupsData, BeforeAssetTagGenerationData, HtmlPluginAlterAssetTagGroups,
-  HtmlPluginBeforeAssetTagGeneration,
+  AlterAssetTagGroupsData, BeforeAssetTagGenerationData, HtmlModuleScript,
+  HtmlPluginAlterAssetTagGroups, HtmlPluginBeforeAssetTagGeneration,
+  HtmlPluginCollectImportMapIntegrity,
   tag::{HtmlPluginAttribute, HtmlPluginTag},
 };
-use rustc_hash::FxHashMap as HashMap;
+use rspack_plugin_runtime::is_enabled_for_chunk;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
+use serde_json::{Map, Value};
 use tokio::sync::RwLock;
 use url::Url;
 
@@ -305,4 +312,225 @@ pub async fn alter_asset_tag_groups(
   )
   .await?;
   Ok(data)
+}
+
+fn collect_import_map_chunks(
+  entry: &ChunkGroup,
+  chunk_groups: &ChunkGroupByUkey,
+  include_async: bool,
+) -> FxHashSet<ChunkUkey> {
+  let mut pending_groups = vec![entry.ukey];
+  // dependOn entries are ancestors of the page's entrypoint.
+  pending_groups.extend(
+    entry
+      .ancestors(chunk_groups)
+      .into_iter()
+      .filter(|parent| chunk_groups.expect_get(parent).is_initial()),
+  );
+
+  let mut visited_groups = FxHashSet::default();
+  let mut chunks = FxHashSet::default();
+  while let Some(group) = pending_groups.pop() {
+    if !visited_groups.insert(group) {
+      continue;
+    }
+    let group = chunk_groups.expect_get(&group);
+    chunks.extend(group.chunks.iter().copied());
+    if include_async {
+      // An initial child can be another page that depends on the same entry.
+      pending_groups.extend(
+        group
+          .children_iterable()
+          .filter(|child| !chunk_groups.expect_get(child).is_initial())
+          .copied(),
+      );
+    }
+  }
+  chunks
+}
+
+// Share the synchronous work between the instrumented and uninstrumented hook futures.
+#[inline(never)]
+fn add_import_map_integrity(
+  compilation: &Compilation,
+  entrypoints: &[ChunkGroupUkey],
+  public_path: &str,
+  scripts: &[HtmlModuleScript<'_>],
+  has_inline_module: bool,
+  integrities: &HashMap<String, String>,
+  integrity: &mut Map<String, Value>,
+) {
+  // The configured function name only affects dynamic imports.
+  let include_async = compilation.options.output.import_function_name == "import";
+  let graph = &compilation.build_chunk_graph_artifact;
+  let import_loading = ChunkLoading::Enable(ChunkLoadingType::Import);
+  for entrypoint in entrypoints {
+    let entry = graph.chunk_group_by_ukey.expect_get(entrypoint);
+    let runtime_chunk = entry.get_runtime_chunk(&graph.chunk_group_by_ukey);
+    if !is_enabled_for_chunk(&runtime_chunk, &import_loading, compilation) {
+      continue;
+    }
+
+    let mut chunks = collect_import_map_chunks(entry, &graph.chunk_group_by_ukey, include_async);
+    chunks.insert(runtime_chunk);
+    let files = chunks
+      .iter()
+      .flat_map(|chunk| graph.chunk_by_ukey.expect_get(chunk).files())
+      .filter(|file| {
+        compilation
+          .assets()
+          .get(*file)
+          .is_some_and(|asset| asset.get_info().asset_type == ManifestAssetType::JavaScript)
+      })
+      .collect::<Vec<_>>();
+    if files.is_empty() {
+      continue;
+    }
+    let mut matched_script = false;
+    let mut prefixes = Vec::new();
+    for script in scripts {
+      let Some(prefix) = module_script_public_path(script, public_path, &files) else {
+        continue;
+      };
+      matched_script = true;
+      // An inline module can request the entry separately from its script tag.
+      if (files.len() > 1 || has_inline_module || !script.has_integrity)
+        && !prefixes.contains(&prefix)
+      {
+        prefixes.push(prefix);
+      }
+    }
+    if !matched_script {
+      prefixes.push(public_path);
+    }
+    for prefix in prefixes {
+      insert_import_map_urls(prefix, &files, integrities, integrity);
+    }
+  }
+  // Keep generated HTML stable across chunk graph iteration orders.
+  integrity.sort_keys();
+}
+
+fn module_script_public_path<'a>(
+  script: &HtmlModuleScript<'a>,
+  public_path: &'a str,
+  files: &[&String],
+) -> Option<&'a str> {
+  let asset = script
+    .asset
+    .unwrap_or(script.src)
+    .strip_prefix(public_path)?;
+  let asset = asset.split('#').next()?;
+  let (pathname, query) = asset
+    .split_once('?')
+    .map_or((asset, None), |(path, query)| (path, Some(query)));
+  let filename = urlencoding::decode(pathname).ok()?;
+  if !files.iter().any(|file| {
+    let (path, file_query) = file
+      .split_once('?')
+      .map_or((file.as_str(), None), |(path, query)| (path, Some(query)));
+    path == filename && (script.asset.is_some() || query == file_query)
+  }) {
+    return None;
+  }
+
+  // Generated tags retain their original asset URL through the HTML hooks.
+  // Relative imports follow a change to the deployment prefix of the entry.
+  let src_path = script.src.split(['?', '#']).next()?;
+  let depth = pathname.bytes().filter(|&byte| byte == b'/').count();
+  Some(match src_path.rmatch_indices('/').nth(depth) {
+    Some((index, _)) => &src_path[..=index],
+    None if depth == 0 => "",
+    None => public_path,
+  })
+}
+
+fn insert_import_map_urls(
+  public_path: &str,
+  files: &[&String],
+  integrities: &HashMap<String, String>,
+  integrity: &mut Map<String, Value>,
+) {
+  for &file in files {
+    if let Some(hash) = integrities.get(file) {
+      let mut url = format!("{public_path}{file}");
+      if !url.starts_with('/')
+        && !url.starts_with("./")
+        && !url.starts_with("../")
+        && Url::parse(&url).is_err()
+      {
+        url.insert_str(0, "./");
+      }
+
+      // Module tags encode their asset paths. A relative static import can inherit
+      // the encoded part of its parent's directory and use a raw path for the rest.
+      let pathname = file.split_once('?').map_or(file.as_str(), |(path, _)| path);
+      let prefix = &url[..url.len() - file.len()];
+      let mut encoded_dir = String::new();
+      let mut start = 0;
+      for (end, _) in pathname.match_indices('/') {
+        let segment = &file[start..end];
+        let encoded = urlencoding::encode(segment);
+        let changed = encoded != segment;
+        if changed && encoded_dir.is_empty() {
+          encoded_dir.push_str(prefix);
+          encoded_dir.push_str(&file[..start]);
+        }
+        if !encoded_dir.is_empty() || changed {
+          encoded_dir.push_str(&encoded);
+          encoded_dir.push('/');
+        }
+        start = end + 1;
+        if changed && url_path_matches_asset(&pathname[start..]) {
+          let mut alias = encoded_dir.clone();
+          alias.push_str(&file[start..]);
+          if !integrity.contains_key(&alias) {
+            integrity.insert(alias, Value::String(hash.clone()));
+          }
+        }
+      }
+      let filename = &pathname[start..];
+      if !url_path_matches_asset(filename) {
+        if encoded_dir.is_empty() {
+          encoded_dir.push_str(prefix);
+          encoded_dir.push_str(&file[..start]);
+        }
+        encoded_dir.push_str(&urlencoding::encode(filename));
+        encoded_dir.push_str(&file[pathname.len()..]);
+        integrity.insert(encoded_dir, Value::String(hash.clone()));
+      }
+      if url_path_matches_asset(pathname) {
+        integrity.insert(url, Value::String(hash.clone()));
+      }
+    }
+  }
+}
+
+fn url_path_matches_asset(path: &str) -> bool {
+  // A literal escape sequence in an asset name must be encoded in its URL.
+  !path.contains('%') || urlencoding::decode(path).is_ok_and(|decoded| decoded == path)
+}
+
+#[plugin_hook(HtmlPluginCollectImportMapIntegrity for SubresourceIntegrityPlugin)]
+pub async fn collect_import_map_integrity<'a>(
+  &self,
+  compilation: &Compilation,
+  entrypoints: &[ChunkGroupUkey],
+  public_path: &str,
+  scripts: &[HtmlModuleScript<'a>],
+  has_inline_module: bool,
+  integrity: &mut Map<String, Value>,
+) -> Result<()> {
+  let integrities = SubresourceIntegrityPlugin::get_compilation_integrities(compilation.id());
+  let integrities = integrities.read().await;
+  add_import_map_integrity(
+    compilation,
+    entrypoints,
+    public_path,
+    scripts,
+    has_inline_module,
+    &integrities,
+    integrity,
+  );
+  Ok(())
 }

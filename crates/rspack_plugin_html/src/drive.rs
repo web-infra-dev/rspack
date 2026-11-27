@@ -1,7 +1,8 @@
-use rspack_core::CompilationId;
+use rspack_core::{ChunkGroupUkey, Compilation, CompilationId};
 use rspack_hook::define_hook;
 #[cfg(allocative)]
 use rspack_util::rspack_allocative;
+use serde_json::{Map, Value};
 
 use crate::{
   asset::{HtmlPluginAssetTags, HtmlPluginAssets},
@@ -67,6 +68,14 @@ define_hook!(HtmlPluginAfterTemplateExecution: SeriesWaterfall(data: AfterTempla
 define_hook!(HtmlPluginBeforeEmit: SeriesWaterfall(data: BeforeEmitData) -> BeforeEmitData);
 define_hook!(HtmlPluginAfterEmit: SeriesWaterfall(data: AfterEmitData) -> AfterEmitData);
 
+pub struct HtmlModuleScript<'a> {
+  pub src: &'a str,
+  pub asset: Option<&'a str>,
+  pub has_integrity: bool,
+}
+
+define_hook!(HtmlPluginCollectImportMapIntegrity: Series(compilation: &Compilation, entrypoints: &[ChunkGroupUkey], public_path: &str, scripts: &[HtmlModuleScript<'_>], has_inline_module: bool, integrity: &mut Map<String, Value>));
+
 #[derive(Debug, Default)]
 #[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
 pub struct HtmlPluginHooks {
@@ -82,4 +91,6 @@ pub struct HtmlPluginHooks {
   pub before_emit: HtmlPluginBeforeEmitHook,
   #[cfg_attr(allocative, allocative(skip))]
   pub after_emit: HtmlPluginAfterEmitHook,
+  #[cfg_attr(allocative, allocative(skip))]
+  pub collect_import_map_integrity: HtmlPluginCollectImportMapIntegrityHook,
 }

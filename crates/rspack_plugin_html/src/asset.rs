@@ -9,7 +9,7 @@ use cow_utils::CowUtils;
 use itertools::Itertools;
 use rayon::prelude::*;
 use rspack_core::{
-  AssetInfo, Compilation, CompilationAsset, Filename, PathData,
+  AssetInfo, ChunkGroupUkey, Compilation, CompilationAsset, Filename, PathData,
   rspack_sources::{RawBufferSource, RawStringSource, SourceExt},
 };
 use rspack_error::{AnyhowResultToRspackResultExt, Result};
@@ -37,13 +37,13 @@ pub struct HtmlPluginAssets {
 }
 
 impl HtmlPluginAssets {
-  pub async fn create_assets<'a>(
+  pub(crate) async fn create_assets(
     config: &HtmlRspackPluginOptions,
-    compilation: &'a Compilation,
+    compilation: &Compilation,
     public_path: &str,
     output_path: &Utf8PathBuf,
     html_file_name: &Filename,
-  ) -> Result<(HtmlPluginAssets, FxHashMap<String, &'a CompilationAsset>)> {
+  ) -> Result<(HtmlPluginAssets, Vec<ChunkGroupUkey>)> {
     let mut assets: HtmlPluginAssets = HtmlPluginAssets::default();
     let mut asset_map = FxHashMap::default();
     assets.public_path = public_path.to_string();
@@ -79,9 +79,12 @@ impl HtmlPluginAssets {
           .collect()
       };
 
-    let included_assets = sorted_entry_names
+    let entrypoints = sorted_entry_names
       .iter()
       .map(|entry_name| compilation.entrypoint_by_name(entry_name))
+      .collect::<Vec<_>>();
+    let included_assets = entrypoints
+      .iter()
       .flat_map(|entry| entry.get_files(&compilation.build_chunk_graph_artifact.chunk_by_ukey))
       .filter_map(|asset_name| {
         let asset = compilation
@@ -169,7 +172,7 @@ impl HtmlPluginAssets {
       None
     };
 
-    Ok((assets, asset_map))
+    Ok((assets, entrypoints.iter().map(|entry| entry.ukey).collect()))
   }
 }
 

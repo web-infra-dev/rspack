@@ -6,6 +6,7 @@ pub mod tag;
 pub mod template;
 
 mod drive;
+mod import_map;
 mod plugin;
 
 pub use drive::*;

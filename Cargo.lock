@@ -4949,7 +4949,11 @@ dependencies = [
  "swc_core",
  "swc_html",
  "swc_html_minifier",
+ "swc_next_allocator",
+ "swc_next_ecma_ast",
+ "swc_next_ecma_parser",
  "tracing",
+ "url",
  "urlencoding",
 ]
 
@@ -5461,6 +5465,7 @@ dependencies = [
  "rspack_plugin_runtime",
  "rspack_util",
  "rustc-hash",
+ "serde_json",
  "sha2",
  "tokio",
  "tracing",
