@@ -3,6 +3,7 @@ use std::{sync::Arc, time::SystemTime};
 use tokio::sync::mpsc::UnboundedSender;
 
 use super::{EventBatch, PathManager};
+use crate::observation::ActiveWalk;
 
 pub struct Scanner {
   path_manager: Arc<PathManager>,
@@ -24,16 +25,18 @@ impl Scanner {
     if let Some(tx) = &self.tx
       && !dirs.is_empty()
     {
+      let walk = ActiveWalk::start(&self.path_manager.watchers.observations);
       for (dir, entries) in dirs {
         let Some(queue) = self.path_manager.watchers.directory_scan(&dir) else {
           continue;
         };
         let paths = Arc::clone(&self.path_manager);
         let tx = tx.clone();
+        let walk = Arc::clone(&walk);
         tasks.push(queue.targeted(move || {
           let events: EventBatch = entries
             .into_iter()
-            .filter_map(|entry| paths.scan_registered(entry, start))
+            .filter_map(|entry| paths.scan_registered(entry, start, &walk))
             .collect();
           if !events.is_empty() {
             let _ = tx.send(events);

@@ -6,6 +6,7 @@ use rspack_util::time::system_time_to_millis;
 use super::PathManager;
 use crate::{
   FsEvent, FsEventKind,
+  observation::{ActiveWalk, Mutation},
   time::{mtime_accuracy, mtime_safe_time},
   watcher_manager::DirectoryWatcher,
 };
@@ -60,17 +61,31 @@ impl PathManager {
     dirs
   }
 
-  pub(crate) fn scan_registered(&self, entry: Registration, start: SystemTime) -> Option<FsEvent> {
+  pub(crate) fn scan_registered(
+    &self,
+    entry: Registration,
+    start: SystemTime,
+    walk: &ActiveWalk,
+  ) -> Option<FsEvent> {
     let path = &entry.path;
     let tracker = match entry.kind {
       RegistrationKind::File => &self.files,
       RegistrationKind::Directory => &self.directories,
       RegistrationKind::Missing => &self.missing,
     };
-    if !tracker.all.contains(path) {
-      return None;
-    }
-    let (mtime, absent) = entry.read();
+    let ((mtime, absent), mut state) = loop {
+      let observation = entry.read();
+      let mut state = self.watchers.lock_observations();
+      if !state.accepts(walk, path)
+        || !state.same_registration(walk, path, entry.kind)
+        || !tracker.all.contains(path)
+      {
+        return None;
+      }
+      if !state.take_metadata_recheck(walk, path) {
+        break (observation, state);
+      }
+    };
     let changed = mtime.is_some_and(|time| {
       mtime_accuracy(time);
       mtime_safe_time(time) >= system_time_to_millis(start)
@@ -84,6 +99,7 @@ impl PathManager {
       if subtree {
         self.remove_file_times_under(path);
       }
+      state.observe_live(path, Mutation::Subtree);
     } else if let Some(time) = mtime
       && entry.kind != RegistrationKind::Directory
     {

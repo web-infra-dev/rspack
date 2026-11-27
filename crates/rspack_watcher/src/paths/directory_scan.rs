@@ -182,7 +182,7 @@ impl DirectoryScan {
     changes: &mut [Vec<ScanChange>],
   ) -> Vec<InternedPath> {
     let dir = &self.path;
-    let covered = || paths.watchers.is_watched_directory(dir);
+    let covered = || requests.iter().any(|r| paths.can_scan_children(r, dir));
     if !covered() {
       return Vec::new();
     }

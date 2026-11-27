@@ -9,6 +9,7 @@ use std::{fmt::Debug, ops::Deref, path::Path, sync::Arc};
 
 use dashmap::setref::multiple::RefMulti;
 pub(crate) use directory_scan::DirectoryScan;
+pub(crate) use registration::RegistrationKind;
 use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
 pub(crate) use time_info::FileRecord;
@@ -18,7 +19,10 @@ use self::{
   update::PathUpdater,
 };
 use super::{FsWatcherIgnored, ignored::IgnoredMatcher};
-use crate::watcher_manager::{MemberKind, WatcherManager};
+use crate::{
+  observation::Mutation,
+  watcher_manager::{MemberKind, WatcherManager},
+};
 
 /// An iterator that chains together references to all files, directories, and missing paths
 /// stored in the [`PathTracker`]. This allows iteration over all registered paths as a single sequence.
@@ -216,12 +220,37 @@ impl PathManager {
     self
   }
 
+  pub(super) fn observe_live<R>(
+    &self,
+    path: &InternedPath,
+    write: impl FnOnce() -> (R, Mutation),
+  ) -> R {
+    let mut state = self.watchers.lock_observations();
+    let (result, mutation) = write();
+    state.observe_live(path, mutation);
+    result
+  }
+
   /// Reset the per-`watch()` diff. File records live with their subscriptions
   /// so a delayed event can still report a write made between watch cycles.
   pub fn reset(&self) {
     self.files.reset();
     self.directories.reset();
     self.missing.reset();
+  }
+
+  pub(crate) fn set_missing(&self, path: &InternedPath, report_absence: bool) {
+    self.observe_live(path, || {
+      let subtree = self.may_contain_records(path);
+      self.remove_file_time(path);
+      if subtree {
+        self.remove_file_times_under(path);
+      }
+      if report_absence {
+        self.set_reported_file_removal(path);
+      }
+      ((), Mutation::Subtree)
+    });
   }
 
   /// Drop a removed path's time info and present baseline. A reported absence
@@ -396,15 +425,27 @@ impl PathManager {
     self.watchers.bind_scan_workers();
     let mut registered = Vec::new();
     let mut unregistered = Vec::new();
-    for (paths, tracker) in [
-      (PathUpdater::from(files), &self.files),
+    for (paths, tracker, kind) in [
       (
-        PathUpdater::from(directories).with_contexts(&self.watchers),
-        &self.directories,
+        PathUpdater::from(files),
+        &self.files,
+        RegistrationKind::File,
       ),
-      (PathUpdater::from(missing), &self.missing),
+      (
+        PathUpdater::from(directories),
+        &self.directories,
+        RegistrationKind::Directory,
+      ),
+      (
+        PathUpdater::from(missing),
+        &self.missing,
+        RegistrationKind::Missing,
+      ),
     ] {
-      let (added, removed) = paths.update(tracker, &self.ignored).await?;
+      let (added, removed) = paths
+        .with_manager(&self.watchers, kind)
+        .update(tracker, &self.ignored)
+        .await?;
       registered.extend(added);
       unregistered.extend(removed);
     }
