@@ -4,14 +4,14 @@ use rspack_core::{
   DependencyType, ModuleDependency, ResourceIdentifier,
 };
 
-use crate::{ExposeOptions, ShareScope, SharedIdentity};
+use crate::{EnhancedExposeOptions, ShareScope, SharedIdentity};
 
 #[cacheable]
 #[derive(Debug)]
 pub struct ContainerEntryDependency {
   id: DependencyId,
   pub name: String,
-  pub exposes: Vec<(String, ExposeOptions)>,
+  pub exposes: Vec<(String, EnhancedExposeOptions)>,
   pub share_scope: ShareScope,
   pub request: Option<String>,
   pub version: Option<String>,
@@ -25,7 +25,7 @@ pub struct ContainerEntryDependency {
 impl ContainerEntryDependency {
   pub fn new(
     name: String,
-    exposes: Vec<(String, ExposeOptions)>,
+    exposes: Vec<(String, EnhancedExposeOptions)>,
     share_scope: ShareScope,
     enhanced: bool,
   ) -> Self {
