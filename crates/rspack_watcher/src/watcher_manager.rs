@@ -36,6 +36,7 @@ pub(super) trait ContextLookup {
 #[derive(Default)]
 pub(super) struct DirectoryWatcher {
   scan: Option<Arc<DirectoryScan>>,
+  registered_children: usize,
   pub(super) members: InternedPathMap<ContextMember>,
   pub(super) files: InternedPathMap<FileRecord>,
   pub(super) last_watch_event: Option<u64>,
@@ -50,7 +51,8 @@ impl DirectoryWatcher {
   }
 
   pub(super) fn is_unused(&self) -> bool {
-    self.members.is_empty()
+    self.registered_children == 0
+      && self.members.is_empty()
       && self.files.is_empty()
       && self.last_watch_event.is_none()
       && !self.subscriptions.is_active()
@@ -93,6 +95,20 @@ impl WatcherManager {
         Arc::clone(&self.metadata_jobs),
       ))
     })))
+  }
+
+  pub(super) fn register_child(&self, path: &InternedPath) {
+    let owner = DirectoryWatcher::owner(path);
+    let mut watcher = self.directories.entry(owner).or_default();
+    watcher.registered_children += 1;
+  }
+
+  pub(super) fn unregister_child(&self, path: &InternedPath) {
+    let owner = DirectoryWatcher::owner(path);
+    self.directories.remove_if_mut(&owner, |_, watcher| {
+      watcher.registered_children -= 1;
+      watcher.is_unused()
+    });
   }
 
   pub(super) fn clear_event_time(&self, path: &InternedPath) {

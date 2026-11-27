@@ -1,5 +1,6 @@
 mod directory_scan;
 mod entries;
+mod registration;
 mod scan;
 mod time_info;
 mod update;
@@ -10,7 +11,7 @@ use dashmap::setref::multiple::RefMulti;
 pub(crate) use directory_scan::DirectoryScan;
 use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
-pub(crate) use time_info::{FileRecord, disk_mtime};
+pub(crate) use time_info::FileRecord;
 
 use self::{
   time_info::{FileTimes, ReportedBaseline},
@@ -408,9 +409,11 @@ impl PathManager {
       unregistered.extend(removed);
     }
     for path in &registered {
+      self.watchers.register_child(path);
       self.retain_registered_ancestors(path);
     }
     for path in &unregistered {
+      self.watchers.unregister_child(path);
       self.release_registered_ancestors(path);
     }
 

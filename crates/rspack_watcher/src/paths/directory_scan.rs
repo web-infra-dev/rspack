@@ -44,7 +44,7 @@ pub(crate) struct DirectoryScan {
   #[cfg(feature = "testing")]
   metadata_jobs: crate::testing::MetadataJobs,
   path: InternedPath,
-  reading: AsyncMutex<()>,
+  reading: Arc<AsyncMutex<()>>,
   waiting: Mutex<Vec<QueuedScan>>,
 }
 
@@ -61,8 +61,29 @@ impl DirectoryScan {
       #[cfg(feature = "testing")]
       metadata_jobs,
       path,
-      reading: AsyncMutex::default(),
+      reading: Arc::default(),
       waiting: Mutex::default(),
+    }
+  }
+
+  pub(crate) fn targeted<F: FnOnce() + Send + 'static>(
+    &self,
+    read: F,
+  ) -> impl Future<Output = ()> + Send + use<F> {
+    let reading = Arc::clone(&self.reading);
+    let workers = self.workers.clone();
+    // Reserve an idle directory before the same watch starts its recursive scan.
+    let ready = Arc::clone(&reading).try_lock_owned().ok();
+    async move {
+      let permit = match ready {
+        Some(permit) => permit,
+        None => reading.lock_owned().await,
+      };
+      read_on_worker(&workers, move || {
+        let _permit = permit;
+        read();
+      })
+      .await;
     }
   }
 

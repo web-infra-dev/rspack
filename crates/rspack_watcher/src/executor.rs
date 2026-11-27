@@ -9,6 +9,7 @@ use tokio::{
   sync::{
     Mutex,
     mpsc::{self, UnboundedReceiver, UnboundedSender},
+    oneshot,
   },
   time::{Duration, Instant},
 };
@@ -157,6 +158,7 @@ impl Executor {
     &mut self,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
+    context_ready: oneshot::Receiver<()>,
   ) {
     if !self.start_waiting {
       let files_data = Arc::clone(&self.files_data);
@@ -233,7 +235,7 @@ impl Executor {
     // abort the previous handlers if they exist
     self.abort().await;
 
-    self.run_execute_handler(event_aggregate_handler, event_handler);
+    self.run_execute_handler(event_aggregate_handler, event_handler, context_ready);
 
     // Flush events accumulated during the pause period.
     // Without this, events that arrived while paused would sit in files_data
@@ -254,6 +256,7 @@ impl Executor {
     &mut self,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
+    context_ready: oneshot::Receiver<()>,
   ) {
     self.execute_aggregate_handle = Some(create_execute_aggregate_task(
       self.exec_tx.clone(),
@@ -262,6 +265,7 @@ impl Executor {
       self.aggregate_timeout as u64,
       Arc::clone(&self.aggregate_running),
       Arc::clone(&self.aggregate_time),
+      context_ready,
     ));
 
     self.execute_handle = Some(create_execute_task(
@@ -317,8 +321,14 @@ fn create_execute_aggregate_task(
   aggregate_timeout: u64,
   running: Arc<AtomicBool>,
   aggregate_time: Arc<AggregateTime>,
+  context_ready: oneshot::Receiver<()>,
 ) -> tokio::task::JoinHandle<()> {
   let future = async move {
+    // A rebuild reads the new contexts' timestamps as soon as the first aggregate is delivered.
+    if context_ready.await.is_err() {
+      return;
+    }
+
     loop {
       let aggregate_rx = {
         // release the lock on exec_aggregate_rx
