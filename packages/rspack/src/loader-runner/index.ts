@@ -101,7 +101,10 @@ export class LoaderObject {
   loaderItem: JsLoaderItem;
 
   constructor(loaderItem: JsLoaderItem, compiler: Compiler) {
-    const splittedRequest = parseResourceWithoutFragment(loaderItem.loader);
+    const splittedRequest = parseResourceWithoutFragment(
+      loaderItem.loader,
+      compiler._lastCompilation,
+    );
     this.path = splittedRequest.path;
     this.fragment = '';
     this.options = splittedRequest.query
