@@ -13,9 +13,9 @@ use super::{PathManager, RegistrationKind, directory_scan::ScannedDirectory};
 use crate::{
   observation::{ActiveWalk, Observations},
   time::{mtime_accuracy, mtime_safe_time},
-  watcher_manager::MemberKind,
+  watcher_manager::{MemberKind, PendingContextChange},
 };
-pub(super) type ScanChange = InternedPath;
+pub(super) type ScanChange = Arc<PendingContextChange>;
 #[derive(Clone)]
 pub(super) struct ScanRequest {
   root: InternedPath,
@@ -206,13 +206,43 @@ impl PathManager {
     };
     if let Some(time) = changed_at {
       let safe = mtime_safe_time(time);
-      for (i, _) in readers.filter(|(_, r)| r.changed_since.is_some_and(|since| safe >= since)) {
-        changes[i].push(path.clone());
+      for (i, request) in
+        readers.filter(|(_, r)| r.changed_since.is_some_and(|since| safe >= since))
+      {
+        let mut subscribers = Vec::new();
+        for ancestor in path.ancestors().skip(usize::from(!directory)) {
+          let dep = InternedPath::from(ancestor);
+          if state.same_registration(&request.walk, &dep, RegistrationKind::Directory)
+            && let Some(subscription) = self.watchers.context_subscriber(&dep)
+          {
+            subscribers.push(subscription);
+          }
+          if let Some(subscription) = self.missing.scan_subscriber(&dep) {
+            subscribers.push(subscription);
+          }
+        }
+        if let Some(change) =
+          PendingContextChange::register(&self.watchers.pending_changes, &path, subscribers)
+        {
+          changes[i].push(change);
+        }
       }
     }
     if directory {
       children.push(path);
     }
+  }
+
+  pub(crate) fn missing_scan_subscriber(
+    &self,
+    path: &InternedPath,
+  ) -> Option<std::sync::Weak<InternedPath>> {
+    self
+      .missing
+      .scan_subscribers
+      .get()?
+      .get(path)
+      .map(|current| Arc::downgrade(&current))
   }
 
   #[cfg(feature = "testing")]

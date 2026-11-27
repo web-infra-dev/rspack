@@ -498,7 +498,7 @@ impl FsWatcherInner {
     Ok(async move {
       let enumerate = async {
         for change in contexts.run(&paths).await {
-          trigger.on_scanned_change(&change);
+          trigger.on_context_change(change);
         }
       };
       tokio::join!(targets, enumerate);
