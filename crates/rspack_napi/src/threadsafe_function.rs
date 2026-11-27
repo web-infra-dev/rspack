@@ -181,8 +181,8 @@ impl<T: 'static + JsValuesTupleIntoVec, R> ThreadsafeFunction<T, R> {
                 .map_err(|e| pretty_type_error(o, e))
             }
           };
-          tx.send(r)
-            .unwrap_or_else(|_| panic!("failed to send tsfn value"));
+          // The Rust operation may have been cancelled while this call waited on JavaScript.
+          let _ = tx.send(r);
           Ok(())
         }
       });

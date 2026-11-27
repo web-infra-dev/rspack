@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap};
 
-use crate::paths::FileRecord;
+use crate::paths::{DirectoryScan, FileRecord};
 
 pub(super) enum MemberKind {
   File,
@@ -34,6 +34,8 @@ pub(super) trait ContextLookup {
 
 #[derive(Default)]
 pub(super) struct DirectoryWatcher {
+  scan: Option<Arc<DirectoryScan>>,
+  registered_children: usize,
   pub(super) members: InternedPathMap<ContextMember>,
   pub(super) files: InternedPathMap<FileRecord>,
   pub(super) last_watch_event: Option<u64>,
@@ -48,7 +50,8 @@ impl DirectoryWatcher {
   }
 
   pub(super) fn is_unused(&self) -> bool {
-    self.members.is_empty()
+    self.registered_children == 0
+      && self.members.is_empty()
       && self.files.is_empty()
       && self.last_watch_event.is_none()
       && !self.subscriptions.is_active()
@@ -70,6 +73,27 @@ pub(super) struct WatcherManager {
 }
 
 impl WatcherManager {
+  pub(super) fn directory_scan(&self, dir: &InternedPath) -> Option<Arc<DirectoryScan>> {
+    let mut watcher = self.directories.get_mut(dir)?;
+    Some(Arc::clone(watcher.scan.get_or_insert_with(|| {
+      Arc::new(DirectoryScan::new(dir.clone()))
+    })))
+  }
+
+  pub(super) fn register_child(&self, path: &InternedPath) {
+    let owner = DirectoryWatcher::owner(path);
+    let mut watcher = self.directories.entry(owner).or_default();
+    watcher.registered_children += 1;
+  }
+
+  pub(super) fn unregister_child(&self, path: &InternedPath) {
+    let owner = DirectoryWatcher::owner(path);
+    self.directories.remove_if_mut(&owner, |_, watcher| {
+      watcher.registered_children -= 1;
+      watcher.is_unused()
+    });
+  }
+
   pub(super) fn clear_event_time(&self, path: &InternedPath) {
     self.directories.remove_if_mut(path, |_, watcher| {
       watcher.last_watch_event = None;
