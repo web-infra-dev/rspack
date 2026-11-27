@@ -1,8 +1,9 @@
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap};
+use tokio::runtime::Handle;
 
-use crate::paths::FileRecord;
+use crate::paths::{DirectoryScan, FileRecord};
 
 pub(super) enum MemberKind {
   File,
@@ -34,6 +35,7 @@ pub(super) trait ContextLookup {
 
 #[derive(Default)]
 pub(super) struct DirectoryWatcher {
+  scan: Option<Arc<DirectoryScan>>,
   pub(super) members: InternedPathMap<ContextMember>,
   pub(super) files: InternedPathMap<FileRecord>,
   pub(super) last_watch_event: Option<u64>,
@@ -66,10 +68,33 @@ impl DirectoryWatcher {
 
 #[derive(Default)]
 pub(super) struct WatcherManager {
+  scan_workers: OnceLock<Handle>,
+  #[cfg(feature = "testing")]
+  pub(super) metadata_jobs: crate::testing::MetadataJobs,
   pub(super) directories: Arc<InternedPathDashMap<DirectoryWatcher>>,
 }
 
 impl WatcherManager {
+  pub(super) fn bind_scan_workers(&self) {
+    self.scan_workers.get_or_init(Handle::current);
+  }
+
+  pub(super) fn directory_scan(&self, dir: &InternedPath) -> Option<Arc<DirectoryScan>> {
+    let mut watcher = self.directories.get_mut(dir)?;
+    Some(Arc::clone(watcher.scan.get_or_insert_with(|| {
+      Arc::new(DirectoryScan::new(
+        dir.clone(),
+        self
+          .scan_workers
+          .get()
+          .expect("register paths before scanning")
+          .clone(),
+        #[cfg(feature = "testing")]
+        Arc::clone(&self.metadata_jobs),
+      ))
+    })))
+  }
+
   pub(super) fn clear_event_time(&self, path: &InternedPath) {
     self.directories.remove_if_mut(path, |_, watcher| {
       watcher.last_watch_event = None;

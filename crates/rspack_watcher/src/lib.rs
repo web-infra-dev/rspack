@@ -377,6 +377,7 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
     .name("rspack-fs-watcher".to_string())
     .spawn(move || {
       let runtime = tokio::runtime::Builder::new_current_thread()
+        .max_blocking_threads(crate::paths::DirectoryScan::MAX_METADATA_READS)
         .enable_all()
         .build()
         .expect("create watcher runtime");
@@ -459,7 +460,11 @@ impl FsWatcherInner {
       self.analyzer.invalidate_all();
       return Err(error);
     }
-    let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
+    let changed_in_contexts = self
+      .path_manager
+      .added_context_scan(start_time)
+      .run(&self.path_manager)
+      .await;
     if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
       for path in &changed_in_contexts {
         trigger.on_scanned_change(path);

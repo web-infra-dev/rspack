@@ -1,3 +1,4 @@
+mod directory_scan;
 mod entries;
 mod scan;
 mod time_info;
@@ -6,6 +7,7 @@ mod update;
 use std::{fmt::Debug, ops::Deref, path::Path, sync::Arc};
 
 use dashmap::setref::multiple::RefMulti;
+pub(crate) use directory_scan::DirectoryScan;
 use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
 pub(crate) use time_info::{FileRecord, disk_mtime};
@@ -390,6 +392,7 @@ impl PathManager {
       impl Iterator<Item = InternedPath>,
     ),
   ) -> Result<()> {
+    self.watchers.bind_scan_workers();
     let mut registered = Vec::new();
     let mut unregistered = Vec::new();
     for (paths, tracker) in [
