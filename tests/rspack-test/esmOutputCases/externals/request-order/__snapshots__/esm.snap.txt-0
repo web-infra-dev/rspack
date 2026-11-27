@@ -1,0 +1,20 @@
+```mjs title=rspack-plain/named.mjs
+export { set as setA, value as a } from "../fixtures/a.mjs";
+import "../fixtures/b.mjs";
+
+
+
+// order-a?2ca9
+
+// order-b?ef20
+
+// order-c?5324
+
+// ./named.js
+
+
+
+
+export { value as c } from "../fixtures/c.mjs";
+
+```
