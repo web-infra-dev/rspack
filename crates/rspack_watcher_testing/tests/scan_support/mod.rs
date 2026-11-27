@@ -1,15 +1,11 @@
-use std::{
-  path::Path,
-  sync::{Arc, Mutex},
-  time::Duration,
-};
+mod pause;
+use std::{path::Path, time::Duration};
 
 use notify::{Event, EventKind};
+pub(super) use pause::pause_at;
 use rspack_paths::InternedPath;
-use rspack_watcher::{
-  FsEventKind, FsWatcherIgnored, TimeInfoEntries, TimeInfoEntry, testing::DirectoryAnalyzer,
-};
-use tokio::{sync::oneshot, time::timeout};
+use rspack_watcher::{FsEventKind, TimeInfoEntries, TimeInfoEntry, testing::DirectoryAnalyzer};
+use tokio::time::timeout;
 
 pub(super) type Delta = (Vec<InternedPath>, Vec<InternedPath>);
 
@@ -42,30 +38,6 @@ pub(super) async fn notify(analyzer: &mut DirectoryAnalyzer, path: &Path, kind: 
   timeout(Duration::from_secs(5), analyzer.next_events())
     .await
     .expect("deliver the event");
-}
-
-pub(super) fn pause_at(
-  child: &Path,
-) -> (FsWatcherIgnored, oneshot::Receiver<()>, oneshot::Sender<()>) {
-  let (entered, waiting) = oneshot::channel();
-  let (release, resume) = oneshot::channel();
-  let gate = Mutex::new(Some((entered, resume)));
-  let child = child.to_path_buf();
-  let ignored = FsWatcherIgnored::Function(Arc::new(move |path| {
-    let gate = if Path::new(&path) == child {
-      gate.lock().expect("lock scan gate").take()
-    } else {
-      None
-    };
-    Box::pin(async move {
-      if let Some((entered, resume)) = gate {
-        entered.send(()).expect("signal the paused scan");
-        resume.await.expect("resume the scan");
-      }
-      false
-    })
-  }));
-  (ignored, waiting, release)
 }
 
 pub(super) fn entry<'a>(entries: &'a TimeInfoEntries, path: &Path) -> Option<&'a TimeInfoEntry> {

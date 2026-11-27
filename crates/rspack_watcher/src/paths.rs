@@ -1,4 +1,6 @@
+mod directory_scan;
 mod entries;
+mod registration;
 mod scan;
 mod time_info;
 mod update;
@@ -6,9 +8,11 @@ mod update;
 use std::{fmt::Debug, ops::Deref, path::Path, sync::Arc};
 
 use dashmap::setref::multiple::RefMulti;
+pub(crate) use directory_scan::DirectoryScan;
+pub(crate) use registration::RegistrationKind;
 use rspack_error::Result;
 use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathDashSet, InternedPathSet};
-pub(crate) use time_info::{FileRecord, disk_mtime};
+pub(crate) use time_info::FileRecord;
 
 use self::{
   time_info::{FileTimes, ReportedBaseline},
@@ -223,7 +227,7 @@ impl PathManager {
   ) -> R {
     let mut state = self.watchers.lock_observations();
     let (result, mutation) = write();
-    state.invalidate(path, mutation, None);
+    state.observe_live(path, mutation);
     result
   }
 
@@ -420,22 +424,36 @@ impl PathManager {
   ) -> Result<()> {
     let mut registered = Vec::new();
     let mut unregistered = Vec::new();
-    for (paths, tracker) in [
-      (PathUpdater::from(files), &self.files),
+    for (paths, tracker, kind) in [
       (
-        PathUpdater::from(directories).with_contexts(&self.watchers),
-        &self.directories,
+        PathUpdater::from(files),
+        &self.files,
+        RegistrationKind::File,
       ),
-      (PathUpdater::from(missing), &self.missing),
+      (
+        PathUpdater::from(directories),
+        &self.directories,
+        RegistrationKind::Directory,
+      ),
+      (
+        PathUpdater::from(missing),
+        &self.missing,
+        RegistrationKind::Missing,
+      ),
     ] {
-      let (added, removed) = paths.update(tracker, &self.ignored).await?;
+      let (added, removed) = paths
+        .with_manager(&self.watchers, kind)
+        .update(tracker, &self.ignored)
+        .await?;
       registered.extend(added);
       unregistered.extend(removed);
     }
     for path in &registered {
+      self.watchers.register_child(path);
       self.retain_registered_ancestors(path);
     }
     for path in &unregistered {
+      self.watchers.unregister_child(path);
       self.release_registered_ancestors(path);
     }
 

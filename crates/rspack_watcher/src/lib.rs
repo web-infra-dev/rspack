@@ -164,6 +164,7 @@ pub struct FsWatcher {
 }
 
 struct FsWatcherInner {
+  scans: tokio::task::JoinSet<()>,
   path_manager: Arc<PathManager>,
   disk_watcher: DiskWatcher,
   executor: Executor,
@@ -195,6 +196,7 @@ impl FsWatcher {
     let trigger = Arc::new(Mutex::new(Some(trigger)));
 
     let inner = FsWatcherInner {
+      scans: Default::default(),
       path_manager: Arc::clone(&path_manager),
       disk_watcher,
       executor,
@@ -351,7 +353,7 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
           event_handler,
           done,
         } => {
-          inner
+          if let Some(scan) = inner
             .watch(
               files,
               directories,
@@ -360,8 +362,13 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
               event_aggregate_handler,
               event_handler,
             )
-            .await;
-          let _ = done.send(());
+            .await
+          {
+            inner.scans.spawn(async move {
+              scan.await;
+              let _ = done.send(());
+            });
+          }
         }
         WatcherOp::Close { done } if closed => {
           let _ = done.send(Ok(()));
@@ -378,6 +385,7 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
     .name("rspack-fs-watcher".to_string())
     .spawn(move || {
       let runtime = tokio::runtime::Builder::new_current_thread()
+        .max_blocking_threads(crate::paths::DirectoryScan::MAX_METADATA_READS)
         .enable_all()
         .build()
         .expect("create watcher runtime");
@@ -398,25 +406,33 @@ impl FsWatcherInner {
     start_time: SystemTime,
     event_aggregate_handler: Box<dyn EventAggregateHandler + Send>,
     event_handler: Box<dyn EventHandler + Send>,
-  ) {
+  ) -> Option<impl Future<Output = ()> + Send + use<>> {
     self.path_manager.reset();
 
-    if let Err(e) = self
-      .wait_for_event(files, directories, missing, start_time)
+    let scans = match self
+      .prepare_watch(files, directories, missing, start_time)
       .await
     {
-      event_aggregate_handler.on_error(e);
-      return;
+      Ok(scans) => scans,
+      Err(error) => {
+        event_aggregate_handler.on_error(error);
+        return None;
+      }
     };
-
     self
       .executor
       .wait_for_execute(event_aggregate_handler, event_handler)
       .await;
+
+    while let Some(previous) = self.scans.try_join_next() {
+      previous.expect("watch scan panicked");
+    }
+    Some(scans)
   }
 
   async fn close(&mut self) -> Result<()> {
     self.disk_watcher.close();
+    self.scans.shutdown().await;
     self.scanner.close();
     self.executor.close().await;
     self.trigger.lock().expect("should lock trigger").take();
@@ -424,13 +440,13 @@ impl FsWatcherInner {
     Ok(())
   }
 
-  async fn wait_for_event(
+  async fn prepare_watch(
     &mut self,
     files: (Vec<InternedPath>, Vec<InternedPath>),
     directories: (Vec<InternedPath>, Vec<InternedPath>),
     missing: (Vec<InternedPath>, Vec<InternedPath>),
     start_time: SystemTime,
-  ) -> Result<()> {
+  ) -> Result<impl Future<Output = ()> + Send + use<>> {
     self
       .path_manager
       .update(
@@ -460,13 +476,6 @@ impl FsWatcherInner {
       self.analyzer.invalidate_all();
       return Err(error);
     }
-    let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
-    if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
-      for path in &changed_in_contexts {
-        trigger.on_scanned_change(path);
-      }
-    }
-
     // Scan AFTER the disk watcher is registered, not before. notify's `watch()`
     // registers the underlying inotify/FSEvents watch synchronously, so once it
     // returns every later change is delivered as a live event. Scanning here
@@ -477,9 +486,23 @@ impl FsWatcherInner {
     // deliver the event — so no rebuild was triggered. With this order, a change
     // before the watch is active is on disk by scan time (caught by
     // `mtime > start_time`), and a change after it is active is delivered live.
-    self.scanner.scan(start_time);
-
-    Ok(())
+    let targets = self.scanner.prepare(start_time);
+    let contexts = self.path_manager.added_context_scan(start_time);
+    let paths = Arc::clone(&self.path_manager);
+    let trigger = self
+      .trigger
+      .lock()
+      .expect("should lock trigger")
+      .clone()
+      .expect("watcher is open");
+    Ok(async move {
+      let enumerate = async {
+        for change in contexts.run(&paths).await {
+          trigger.on_scanned_change(&change);
+        }
+      };
+      tokio::join!(targets, enumerate);
+    })
   }
 
   fn record_initial_file_mtimes(&self) {

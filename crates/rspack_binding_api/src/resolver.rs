@@ -9,6 +9,17 @@ use crate::{error::ErrorCode, utils::callbackify};
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
+struct ResolveResponse {
+  #[serde(skip_serializing_if = "Option::is_none")]
+  error: Option<String>,
+  #[serde(skip_serializing_if = "Option::is_none")]
+  request: Option<ResolveRequest>,
+  file_dependencies: Vec<String>,
+  missing_dependencies: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ResolveRequest {
   pub path: String,
   pub query: String,
@@ -76,33 +87,43 @@ impl JsResolver {
         let (resolve_result, mut resolve_dependencies) = resolver
           .resolve_with_context(Path::new(&path), &request)
           .await;
-        match resolve_result {
-          Ok(rspack_core::ResolveResult::Resource(resource)) => {
-            let mut resolve_request = ResolveRequest::from(resource);
-            resolve_request.file_dependencies = resolve_dependencies
-              .file_dependencies
-              .drain()
-              .map(|path| path.to_string_lossy().into_owned())
-              .collect();
-            resolve_request.missing_dependencies = resolve_dependencies
-              .missing_dependencies
-              .drain()
-              .map(|path| path.to_string_lossy().into_owned())
-              .collect();
-            Ok(match simd_json::to_string(&resolve_request) {
-              Ok(json) => Either::<String, ()>::A(json),
-              Err(_) => Either::B(()),
-            })
-          }
-          Ok(rspack_core::ResolveResult::Ignored) => Ok(Either::B(())),
-          Err(err) => Err(
-            napi::Error::new(
-              ErrorCode::Napi(napi::Status::GenericFailure),
-              format!("{err:?}"),
-            )
-            .into(),
-          ),
-        }
+        let file_dependencies: Vec<String> = resolve_dependencies
+          .file_dependencies
+          .drain()
+          .map(|path| path.to_string_lossy().into_owned())
+          .collect();
+        let missing_dependencies: Vec<String> = resolve_dependencies
+          .missing_dependencies
+          .drain()
+          .map(|path| path.to_string_lossy().into_owned())
+          .collect();
+        let response = match resolve_result {
+          Ok(rspack_core::ResolveResult::Resource(resource)) => ResolveResponse {
+            error: None,
+            request: Some(ResolveRequest::from(resource)),
+            file_dependencies,
+            missing_dependencies,
+          },
+          Ok(rspack_core::ResolveResult::Ignored) => ResolveResponse {
+            error: None,
+            request: None,
+            file_dependencies,
+            missing_dependencies,
+          },
+          Err(err) => ResolveResponse {
+            error: Some(format!("{err:?}")),
+            request: None,
+            file_dependencies,
+            missing_dependencies,
+          },
+        };
+        simd_json::to_string(&response).map_err(|err| {
+          napi::Error::new(
+            ErrorCode::Napi(napi::Status::GenericFailure),
+            err.to_string(),
+          )
+          .into()
+        })
       },
       None::<fn(&napi::Env, &mut _)>,
     )

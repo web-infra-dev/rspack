@@ -185,7 +185,6 @@ impl PathManager {
   /// The scanner reported `path` as changed: the build will know this mtime,
   /// so it becomes the deduplication baseline as well as the time info.
   pub fn set_reported_file_time(&self, path: &InternedPath, mtime: SystemTime) {
-    let _observation = self.watchers.begin_metadata_update(path);
     self.record(path, || {
       let mut record = self.file_times.record(path);
       record.reported = ReportedBaseline::Present(mtime);
@@ -222,7 +221,6 @@ impl PathManager {
     initial: bool,
     ignore_when_equal: bool,
   ) -> bool {
-    let _observation = self.watchers.begin_metadata_update(path);
     self.record(path, || {
       self
         .file_times

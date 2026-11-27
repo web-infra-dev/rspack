@@ -81,9 +81,7 @@ impl PathManager {
       {
         return (false, Mutation::Metadata);
       }
-      self.record(path, || {
-        self.file_times.record(path).set_time(mtime, false, false)
-      });
+      self.set_file_time(path, mtime, false, false);
       (true, Mutation::Entry)
     });
     if metadata.is_dir() && changed {
