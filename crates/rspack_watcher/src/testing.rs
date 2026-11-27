@@ -49,6 +49,8 @@ pub fn begin_time_info_snapshot(
   move || watcher.path_manager.collect_context_time_info(registered)
 }
 
+pub(crate) type MetadataJobs = Arc<Mutex<Vec<(usize, tokio::runtime::Id)>>>;
+
 pub struct DirectoryAnalyzer {
   paths: Arc<PathManager>,
   trigger: Arc<Trigger>,
@@ -63,6 +65,17 @@ impl Default for DirectoryAnalyzer {
 }
 
 impl DirectoryAnalyzer {
+  pub fn take_metadata_jobs(&self) -> Vec<(usize, tokio::runtime::Id)> {
+    std::mem::take(
+      &mut *self
+        .paths
+        .watchers
+        .metadata_jobs
+        .lock()
+        .expect("lock metadata job trace"),
+    )
+  }
+
   pub fn with_ignored(ignored: FsWatcherIgnored) -> Self {
     let paths = Arc::new(PathManager::new(ignored).with_follow_symlinks(true));
     let (tx, events) = unbounded_channel();

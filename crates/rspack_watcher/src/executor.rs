@@ -6,7 +6,7 @@ use std::{
 use rspack_paths::InternedPath;
 use rspack_util::fx_hash::FxHashSet as HashSet;
 use tokio::{
-  sync::mpsc,
+  sync::{mpsc, oneshot},
   task::JoinHandle,
   time::{Instant, sleep_until},
 };
@@ -258,6 +258,7 @@ impl Executor {
     &mut self,
     aggregate: Box<dyn EventAggregateHandler + Send>,
     raw: Box<dyn EventHandler + Send>,
+    context_ready: oneshot::Receiver<()>,
   ) {
     self.stop_handler().await;
     let (tx, rx) = mpsc::unbounded_channel();
@@ -267,6 +268,7 @@ impl Executor {
       rx,
       aggregate,
       raw,
+      context_ready,
     )));
   }
 }
@@ -276,10 +278,22 @@ async fn run(
   mut rx: mpsc::UnboundedReceiver<Message>,
   aggregate: Box<dyn EventAggregateHandler + Send>,
   raw: Box<dyn EventHandler + Send>,
+  mut context_ready: oneshot::Receiver<()>,
 ) {
+  let mut indexed = false;
   loop {
     let deadline = delivery.lock().deadline;
-    let events = if let Some(deadline) = deadline {
+    let events = if !indexed {
+      tokio::select! {
+        biased;
+        ready = &mut context_ready => {
+          if ready.is_err() { return; }
+          indexed = true;
+          continue;
+        }
+        events = rx.recv() => events,
+      }
+    } else if let Some(deadline) = deadline {
       tokio::select! {
         biased;
         events = rx.recv() => events,

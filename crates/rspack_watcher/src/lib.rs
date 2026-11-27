@@ -394,9 +394,10 @@ impl FsWatcherInner {
       return;
     };
 
+    let (indexed, ready) = oneshot::channel();
     self
       .executor
-      .watch(event_aggregate_handler, event_handler)
+      .watch(event_aggregate_handler, event_handler, ready)
       .await;
     let _ = transition.send(cycle);
 
@@ -411,7 +412,11 @@ impl FsWatcherInner {
       previous.expect("watch scan panicked");
     }
     self.scans.spawn(async move {
-      tokio::join!(targets, contexts.run(&paths));
+      let enumerate = async {
+        contexts.run(&paths).await;
+        let _ = indexed.send(());
+      };
+      tokio::join!(targets, enumerate);
       let _ = done.send(());
     });
   }

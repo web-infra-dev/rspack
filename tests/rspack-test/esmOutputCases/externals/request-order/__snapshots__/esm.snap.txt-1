@@ -1,0 +1,3 @@
+```mjs title=rspack-min/named.mjs
+export{set as setA,value as a}from"../fixtures/a.mjs";import"../fixtures/b.mjs";export{value as c}from"../fixtures/c.mjs";
+```

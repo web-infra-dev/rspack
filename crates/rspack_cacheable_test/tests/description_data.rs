@@ -92,6 +92,10 @@ async fn description_fields_are_reused_and_survive_cache_serialization() {
     rspack_cacheable::from_bytes(&bytes, &()).expect("restore description");
   assert_eq!(restored.json(), &manifest);
   assert_eq!(description.json(), &manifest);
+  let other_bytes = rspack_cacheable::to_bytes(&other, &()).expect("serialize other description");
+  let other_restored: DescriptionData =
+    rspack_cacheable::from_bytes(&other_bytes, &()).expect("restore other description");
+  assert!(std::ptr::eq(restored.json(), other_restored.json()));
   // Previously returned references stay valid after the complete mirror is initialized.
   assert_eq!(first.as_ref(), &manifest["sideEffects"]);
   assert_eq!(

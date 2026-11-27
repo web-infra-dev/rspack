@@ -323,7 +323,7 @@ type ExtractorsByOption<T, O> = {
     data: T,
     context: StatsFactoryContext,
     options: any,
-    factory: StatsFactory,
+    factory: Pick<StatsFactory, 'create'>,
   ) => void;
 };
 
