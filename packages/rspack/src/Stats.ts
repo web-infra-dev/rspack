@@ -9,7 +9,7 @@
  */
 import type binding from '@rspack/binding';
 
-import type { Compilation } from './Compilation';
+import { type Compilation, originalCreateStatsFactory } from './Compilation';
 import type { StatsOptions, StatsValue } from './config';
 import {
   canCreateDefaultStatsJson,
@@ -126,11 +126,18 @@ export class Stats {
       getInner: this.#getInnerByCompilation.bind(this),
     };
 
-    if (!forToString && canCreateDefaultStatsJson(rootCompilation)) {
+    const createStatsFactory = rootCompilation.createStatsFactory;
+    if (
+      !forToString &&
+      createStatsFactory === originalCreateStatsFactory &&
+      canCreateDefaultStatsJson(rootCompilation)
+    ) {
       return createDefaultStatsJson(rootCompilation, options, context);
     }
 
-    const statsFactory = rootCompilation.createStatsFactory(options);
+    const statsFactory = Reflect.apply(createStatsFactory, rootCompilation, [
+      options,
+    ]);
     return statsFactory.create(
       'compilation',
       rootCompilation,

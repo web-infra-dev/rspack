@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
-import type { Compiler, RspackOptions, StatsOptions } from '@rspack/core';
+import {
+  Compilation,
+  type Compiler,
+  type RspackOptions,
+  type StatsOptions,
+} from '@rspack/core';
 
 export default {
   context: import.meta.dirname,
@@ -35,19 +40,7 @@ export default {
               options.hash = true;
             },
           );
-          const createStatsFactory = compilation.createStatsFactory;
-          compilation.createStatsFactory = () => {
-            assert.fail(
-              'A statsNormalize tap should still allow the fast path',
-            );
-          };
-          const results = (() => {
-            try {
-              return variants.map((options) => stats.toJson(options));
-            } finally {
-              compilation.createStatsFactory = createStatsFactory;
-            }
-          })();
+          const results = variants.map((options) => stats.toJson(options));
           assert.equal(results[0].hash, stats.hash);
           const shared = results[0]
             .chunks!.flatMap((chunk) => chunk.modules!)
@@ -61,6 +54,38 @@ export default {
             shared[0].issuerPath![0],
             shared[1].issuerPath![0],
           );
+
+          const createStatsFactory = compilation.createStatsFactory;
+          for (const target of [compilation, Compilation.prototype]) {
+            const descriptor = Object.getOwnPropertyDescriptor(
+              target,
+              'createStatsFactory',
+            );
+            let calls = 0;
+            target.createStatsFactory = function (this: Compilation, options) {
+              assert.strictEqual(this, compilation);
+              calls++;
+              const factory = createStatsFactory.call(this, options);
+              factory.hooks.extract
+                .for('compilation')
+                .tap('BuildId', (json) => {
+                  json.buildId = 'ci-42';
+                });
+              return factory;
+            };
+            try {
+              const json = stats.toJson({ all: false });
+              assert.equal(calls, 1);
+              assert('buildId' in json);
+              assert.equal(json.buildId, 'ci-42');
+            } finally {
+              if (descriptor) {
+                Object.defineProperty(target, 'createStatsFactory', descriptor);
+              } else {
+                Reflect.deleteProperty(target, 'createStatsFactory');
+              }
+            }
+          }
 
           const factory = compilation.createStatsFactory(
             compilation.createStatsOptions(options, {}),
