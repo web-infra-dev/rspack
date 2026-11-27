@@ -111,6 +111,22 @@ export default {
 		expect(absoluteDeferredMaps[1].index).toBeGreaterThan(absoluteDeferred.indexOf("<base"));
 		expect(resolveIntegrity(JSON.parse(absoluteDeferredMaps[1][1]), lateBase)).toEqual(integrityFor(lateBase));
 
+		for (const filename of ["root-relative-base-without-injection.html", "same-name-preload-before-base.html"]) {
+			const html = read(filename);
+			const emittedMaps = maps(html);
+			expect(emittedMaps).toHaveLength(2);
+			expect(JSON.parse(emittedMaps[0][1])).toEqual({});
+			expect(emittedMaps[1].index).toBeGreaterThan(html.indexOf("<base"));
+			const baseURL = "http://page.example.test/assets/";
+			expect(resolveIntegrity(JSON.parse(emittedMaps[1][1]), baseURL)).toEqual(integrityFor(baseURL));
+		}
+
+		const external = read("unrelated-static-import.html");
+		const externalMaps = maps(external);
+		expect(externalMaps).toHaveLength(1);
+		expect(externalMaps[0].index).toBeGreaterThan(external.indexOf("widget.mjs"));
+		expect(resolveIntegrity(JSON.parse(externalMaps[0][1]), pageURL)).toEqual(integrityFor(pageURL));
+
 		const queryModule = read("different-query-module.html");
 		const queryModuleMaps = maps(queryModule);
 		expect(queryModuleMaps).toHaveLength(1);
@@ -124,6 +140,14 @@ export default {
 		expect(rewritten).toContain('src="/served/main%2Bentry.mjs"');
 		expect(rewrittenMaps[0].index).toBeLessThan(rewritten.indexOf('src="/served/'));
 		expect(resolveIntegrity(JSON.parse(rewrittenMaps[0][1]), pageURL)).toEqual(
+			integrityFor("http://page.example.test/served/")
+		);
+
+		const renamed = read("renamed-module-src.html");
+		const renamedMaps = maps(renamed);
+		expect(renamedMaps).toHaveLength(1);
+		expect(renamedMaps[0].index).toBeLessThan(renamed.indexOf('src="/served/bootstrap.mjs"'));
+		expect(resolveIntegrity(JSON.parse(renamedMaps[0][1]), pageURL)).toEqual(
 			integrityFor("http://page.example.test/served/")
 		);
 

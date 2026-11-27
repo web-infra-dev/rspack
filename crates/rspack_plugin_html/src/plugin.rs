@@ -179,7 +179,7 @@ async fn generate_html(
 
   let hooks = hooks.borrow();
   if !hooks.collect_import_map_integrity.is_empty() {
-    let scripts = collect_module_scripts(
+    let (scripts, has_inline_module) = collect_module_scripts(
       &current_ast,
       &after_template_execution_data.head_tags,
       &after_template_execution_data.body_tags,
@@ -192,6 +192,7 @@ async fn generate_html(
         &entrypoints,
         &public_path,
         &scripts,
+        has_inline_module,
         &mut integrity,
       )
       .await?;

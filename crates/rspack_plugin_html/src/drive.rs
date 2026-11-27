@@ -74,7 +74,7 @@ pub struct HtmlModuleScript<'a> {
   pub has_integrity: bool,
 }
 
-define_hook!(HtmlPluginCollectImportMapIntegrity: Series(compilation: &Compilation, entrypoints: &[ChunkGroupUkey], public_path: &str, scripts: &[HtmlModuleScript<'_>], integrity: &mut Map<String, Value>));
+define_hook!(HtmlPluginCollectImportMapIntegrity: Series(compilation: &Compilation, entrypoints: &[ChunkGroupUkey], public_path: &str, scripts: &[HtmlModuleScript<'_>], has_inline_module: bool, integrity: &mut Map<String, Value>));
 
 #[derive(Debug, Default)]
 #[cfg_attr(allocative, derive(rspack_allocative::Allocative))]

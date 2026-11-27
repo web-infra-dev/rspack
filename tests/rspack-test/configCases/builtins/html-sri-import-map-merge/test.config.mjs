@@ -43,9 +43,16 @@ export default {
 		const manualMap = manualHtml.match(/<script\b[^>]*type=["']?importmap["']?[^>]*>([\s\S]*?)<\/script>/);
 		expect(manualMap).not.toBeNull();
 		const other = readFileSync(path.join(outputPath, "entries/other.mjs"));
-		expect(JSON.parse(manualMap[1]).integrity).toEqual({
+		const otherIntegrity = {
 			"https://cdn.example.test/assets/entries/other.mjs":
 				"sha384-" + createHash("sha384").update(other).digest("base64")
-		});
+		};
+		expect(JSON.parse(manualMap[1]).integrity).toEqual(otherIntegrity);
+
+		const versioned = readFileSync(path.join(outputPath, "versioned-other.html"), "utf-8");
+		expect(versioned).toContain('src="https://cdn.example.test/assets/entries/other.mjs?');
+		const versionedMap = versioned.match(/<script\b[^>]*type=["']?importmap["']?[^>]*>([\s\S]*?)<\/script>/);
+		expect(versionedMap).not.toBeNull();
+		expect(JSON.parse(versionedMap[1]).integrity).toEqual(otherIntegrity);
 	}
 };

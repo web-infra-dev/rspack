@@ -356,6 +356,7 @@ fn add_import_map_integrity(
   entrypoints: &[ChunkGroupUkey],
   public_path: &str,
   scripts: &[HtmlModuleScript<'_>],
+  has_inline_module: bool,
   integrities: &HashMap<String, String>,
   integrity: &mut Map<String, Value>,
 ) {
@@ -392,8 +393,10 @@ fn add_import_map_integrity(
         continue;
       };
       matched_script = true;
-      // A standalone entry only needs a rule when the HTML lacks a protected script.
-      if (files.len() > 1 || !script.has_integrity) && !prefixes.contains(&prefix) {
+      // An inline module can request the entry separately from its script tag.
+      if (files.len() > 1 || has_inline_module || !script.has_integrity)
+        && !prefixes.contains(&prefix)
+      {
         prefixes.push(prefix);
       }
     }
@@ -434,12 +437,12 @@ fn module_script_public_path<'a>(
   // Generated tags retain their original asset URL through the HTML hooks.
   // Relative imports follow a change to the deployment prefix of the entry.
   let src_path = script.src.split(['?', '#']).next()?;
-  Some(
-    src_path
-      .strip_suffix(pathname)
-      .filter(|prefix| prefix.is_empty() || prefix.ends_with('/'))
-      .unwrap_or(public_path),
-  )
+  let depth = pathname.bytes().filter(|&byte| byte == b'/').count();
+  Some(match src_path.rmatch_indices('/').nth(depth) {
+    Some((index, _)) => &src_path[..=index],
+    None if depth == 0 => "",
+    None => public_path,
+  })
 }
 
 fn insert_import_map_urls(
@@ -515,6 +518,7 @@ pub async fn collect_import_map_integrity<'a>(
   entrypoints: &[ChunkGroupUkey],
   public_path: &str,
   scripts: &[HtmlModuleScript<'a>],
+  has_inline_module: bool,
   integrity: &mut Map<String, Value>,
 ) -> Result<()> {
   let integrities = SubresourceIntegrityPlugin::get_compilation_integrities(compilation.id());
@@ -524,6 +528,7 @@ pub async fn collect_import_map_integrity<'a>(
     entrypoints,
     public_path,
     scripts,
+    has_inline_module,
     &integrities,
     integrity,
   );

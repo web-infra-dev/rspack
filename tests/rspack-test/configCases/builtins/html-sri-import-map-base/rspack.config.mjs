@@ -104,6 +104,33 @@ export default {
         '</head><body></body></html>',
     }),
     new HtmlRspackPlugin({
+      filename: 'root-relative-base-without-injection.html',
+      inject: false,
+      scriptLoading: 'module',
+      templateContent: `<!DOCTYPE html><html><head>
+        <script type="importmap">{}</script>
+        <script type="module">import("https://page.example.test/assets/main+entry.mjs");</script>
+        <base href="/assets/">
+      </head><body></body></html>`,
+    }),
+    new HtmlRspackPlugin({
+      filename: 'same-name-preload-before-base.html',
+      scriptLoading: 'module',
+      templateContent: `<!DOCTYPE html><html><head>
+        <link rel="modulepreload" href="./bundle.mjs">
+        <script type="importmap">{}</script>
+        <base href="/assets/">
+      </head><body></body></html>`,
+    }),
+    new HtmlRspackPlugin({
+      filename: 'unrelated-static-import.html',
+      scriptLoading: 'module',
+      templateContent: `<!DOCTYPE html><html><head>
+        <script type="module">import "https://static.example.test/widget.mjs";</script>
+        <script type="importmap">{}</script>
+      </head><body></body></html>`,
+    }),
+    new HtmlRspackPlugin({
       filename: 'different-query-module.html',
       scriptLoading: 'module',
       hash: true,
@@ -118,16 +145,28 @@ export default {
       publicPath: '/',
       scriptLoading: 'module',
     }),
+    new HtmlRspackPlugin({
+      filename: 'renamed-module-src.html',
+      publicPath: '/',
+      scriptLoading: 'module',
+    }),
     {
       apply(compiler) {
         compiler.hooks.compilation.tap('RewriteModuleSrc', (compilation) => {
           HtmlRspackPlugin.getCompilationHooks(
             compilation,
           ).afterTemplateExecution.tap('RewriteModuleSrc', (data) => {
-            if (data.outputName === 'rewritten-module-src.html') {
+            if (
+              ['rewritten-module-src.html', 'renamed-module-src.html'].includes(
+                data.outputName,
+              )
+            ) {
               for (const tag of [...data.headTags, ...data.bodyTags]) {
                 if (tag.attributes.type === 'module') {
-                  tag.attributes.src = '/served' + tag.attributes.src;
+                  tag.attributes.src =
+                    data.outputName === 'renamed-module-src.html'
+                      ? '/served/bootstrap.mjs'
+                      : '/served' + tag.attributes.src;
                 }
               }
             }

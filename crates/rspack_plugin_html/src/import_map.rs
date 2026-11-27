@@ -125,7 +125,7 @@ pub(crate) fn collect_module_scripts<'a>(
   document: &'a CompiledDocument,
   head_tags: &'a [HtmlPluginTag],
   body_tags: &'a [HtmlPluginTag],
-) -> Vec<HtmlModuleScript<'a>> {
+) -> (Vec<HtmlModuleScript<'a>>, bool) {
   let children = match document {
     CompiledDocument::Document(document) | CompiledDocument::DocumentWithoutDoctype(document) => {
       &document.children
@@ -133,11 +133,13 @@ pub(crate) fn collect_module_scripts<'a>(
     CompiledDocument::DocumentFragment(fragment) => &fragment.children,
   };
   let mut scripts = Vec::new();
+  let mut has_inline_module = false;
   for element in active_elements(children) {
     if !is_script(element, "module") {
       continue;
     }
     let Some(src) = attribute(element, "src") else {
+      has_inline_module |= element.attributes.iter().all(|attr| attr.name != "src");
       continue;
     };
     let mut asset = None;
@@ -161,7 +163,7 @@ pub(crate) fn collect_module_scripts<'a>(
       has_integrity: attribute(element, "integrity").is_some_and(|value| !value.trim().is_empty()),
     });
   }
-  scripts
+  (scripts, has_inline_module)
 }
 
 struct ModuleUrl<'a> {
@@ -283,6 +285,7 @@ enum InlineModuleImports {
 fn inline_module_imports(
   element: &Element,
   mut deferred_absolute: Option<&mut Vec<Url>>,
+  matches_bundle: impl Fn(&str) -> bool,
 ) -> InlineModuleImports {
   let mut source = String::new();
   for child in &element.children {
@@ -316,33 +319,42 @@ fn inline_module_imports(
   let is_async = element.attributes.iter().any(|attr| attr.name == "async");
   let mut imports = InlineModuleImports::None;
   for index in 0..ast.node_count() {
-    match ast.kind_data(NodeId::from_raw_unchecked(index as u32)) {
-      NodeKindData::ImportDeclaration(_) | NodeKindData::ExportAllDeclaration(_) => {
-        return InlineModuleImports::Immediate;
-      }
-      NodeKindData::ExportNamedDeclaration(export) if export.source(ast).is_some() => {
-        return InlineModuleImports::Immediate;
-      }
+    let source = match ast.kind_data(NodeId::from_raw_unchecked(index as u32)) {
+      NodeKindData::ImportDeclaration(import) => Some(import.source(ast)),
+      NodeKindData::ExportAllDeclaration(export) => Some(export.source(ast)),
+      NodeKindData::ExportNamedDeclaration(export) => export.source(ast),
       NodeKindData::ImportExpression(import) => {
-        if is_async {
-          return InlineModuleImports::Immediate;
-        }
-        let absolute = match ast.expr_data(import.source(ast)) {
-          ExprData::StringLiteral(literal) => ast
-            .get_wtf8(literal.value(ast))
-            .as_str()
-            .and_then(|specifier| Url::parse(specifier).ok()),
+        let source = match ast.expr_data(import.source(ast)) {
+          ExprData::StringLiteral(literal) => Some(literal),
           _ => None,
         };
-        imports = InlineModuleImports::Deferred {
-          uses_base: absolute.is_none()
-            || matches!(imports, InlineModuleImports::Deferred { uses_base: true }),
-        };
-        if let (Some(url), Some(urls)) = (absolute, deferred_absolute.as_mut()) {
-          urls.push(url);
+        if !is_async {
+          let absolute = source
+            .and_then(|literal| ast.get_wtf8(literal.value(ast)).as_str())
+            .and_then(|specifier| Url::parse(specifier).ok());
+          imports = InlineModuleImports::Deferred {
+            uses_base: absolute.is_none()
+              || matches!(imports, InlineModuleImports::Deferred { uses_base: true }),
+          };
+          if let (Some(url), Some(urls)) = (absolute, deferred_absolute.as_mut()) {
+            urls.push(url);
+          }
+          continue;
         }
+        if source.is_none() {
+          return InlineModuleImports::Immediate;
+        }
+        source
       }
-      _ => {}
+      _ => None,
+    };
+    if let Some(source) = source
+      && ast
+        .get_wtf8(source.value(ast))
+        .as_str()
+        .is_some_and(&matches_bundle)
+    {
+      return InlineModuleImports::Immediate;
     }
   }
   imports
@@ -352,13 +364,12 @@ fn find_placement<'a>(
   children: &'a [Child],
   integrity: &Map<String, Value>,
 ) -> Result<Option<Placement<'a>>> {
-  let mut seen_base = false;
-  let mut base = None;
   let mut first_map = None;
   let mut last_map = None;
   let mut map_nonce = None;
   let mut first_fetch = None;
   let mut first_bundled_fetch = None;
+  let mut first_bundled_fetch_if_rebased = None;
   let mut first_fetch_after_map = None;
   let mut nonce = None;
   let mut bundled_nonce = None;
@@ -370,35 +381,33 @@ fn find_placement<'a>(
   let mut deferred_absolute_before_base = Vec::new();
   let root = Url::parse("https://rspack.invalid/").expect("valid URL");
   let document = root.join("document/").expect("valid URL");
+  let base = active_elements(children)
+    .enumerate()
+    .find_map(|(index, element)| {
+      (element.tag_name == "base")
+        .then(|| element.attributes.iter().find(|attr| attr.name == "href"))
+        .flatten()
+        .map(|href| (index, href.value.as_deref().unwrap_or_default().trim()))
+    })
+    .and_then(|(index, href)| {
+      // A base without a path or authority cannot change the module's URL.
+      if href.is_empty() || href.starts_with(['?', '#']) {
+        return None;
+      }
+      let base = ModuleUrl::parse(href, &root, &document)?;
+      (!matches!(base.url.scheme(), "data" | "javascript")).then_some((index, base))
+    });
+  let rebased_document = base
+    .as_ref()
+    .and_then(|(_, base)| document.join(base.input).ok());
   let urls = integrity
     .keys()
     .filter_map(|url| ModuleUrl::parse(url, &root, &document))
     .collect::<Vec<_>>();
 
   for (index, element) in active_elements(children).enumerate() {
-    if !seen_base
-      && element.tag_name == "base"
-      && let Some(href) = element.attributes.iter().find(|attr| attr.name == "href")
-    {
-      seen_base = true;
-      // A base without a path or authority cannot change the module's URL.
-      if let Some(value) = href.value.as_deref().map(str::trim)
-        && !value.is_empty()
-        && !value.starts_with(['?', '#'])
-        && let Some(url) = ModuleUrl::parse(value, &root, &document)
-        && !matches!(url.url.scheme(), "data" | "javascript")
-      {
-        base = Some((index, url));
-      }
-    }
-
     let element_nonce = attribute(element, "nonce").filter(|value| !value.is_empty());
     if is_script(element, "importmap") {
-      if first_bundled_fetch.is_some() {
-        return Err(error!(
-          "Place import maps before scripts and preloads of bundled modules to enable Subresource Integrity."
-        ));
-      }
       first_map.get_or_insert(index);
       last_map = Some(index);
       first_fetch_after_map = None;
@@ -430,21 +439,36 @@ fn find_placement<'a>(
       .and_then(|attribute| attribute.value.as_deref())
       .map(str::trim)
       .filter(|url| !url.is_empty());
+    let after_base = base
+      .as_ref()
+      .is_some_and(|(base_index, _)| index > *base_index);
+    let matches_url = |url: &ModuleUrl<'_>, cache_busting| {
+      urls
+        .iter()
+        .any(|key| (cache_busting || url.url.query() == key.url.query()) && url.could_match(key))
+    };
     let inline_imports = if module_script && source.is_none() {
       inline_module_imports(
         element,
-        base.is_none().then_some(&mut deferred_absolute_before_base),
+        (!after_base).then_some(&mut deferred_absolute_before_base),
+        |specifier| {
+          ModuleUrl::parse(specifier, &root, &document).is_some_and(|url| {
+            // Bare specifiers can refer to a bundled URL through an authored import map.
+            (!url.has_authority
+              && !url.input.starts_with(['/', '\\'])
+              && !url.input.starts_with("./")
+              && !url.input.starts_with("../"))
+              || matches_url(&url, false)
+          })
+        },
       )
     } else {
       InlineModuleImports::None
     };
     let bundled = if let Some(url) = url {
       ModuleUrl::parse(url, &root, &document).is_some_and(|url| {
-        urls.iter().any(|key| {
-          // Injected module scripts can have a cache-busting query from `hash: true`.
-          ((module_script && element.span.is_dummy()) || url.url.query() == key.url.query())
-            && url.could_match(key)
-        })
+        // Injected module scripts can have a cache-busting query from `hash: true`.
+        matches_url(&url, module_script && element.span.is_dummy())
       })
     } else {
       inline_imports == InlineModuleImports::Immediate
@@ -453,9 +477,25 @@ fn find_placement<'a>(
       first_bundled_fetch.get_or_insert(index);
       bundled_nonce = bundled_nonce.or(element_nonce);
     }
+    // A preload before the base resolves against the original document URL.
+    let bundled_if_rebased = if !module_script && !after_base {
+      url
+        .and_then(|url| document.join(url).ok())
+        .zip(rebased_document.as_ref())
+        .is_some_and(|(url, base)| {
+          urls
+            .iter()
+            .any(|key| base.join(key.input).is_ok_and(|key| key == url))
+        })
+    } else {
+      bundled
+    };
+    if bundled_if_rebased {
+      first_bundled_fetch_if_rebased.get_or_insert(index);
+    }
     let deferred = matches!(inline_imports, InlineModuleImports::Deferred { .. });
     has_deferred_import |= deferred;
-    if base.is_some() {
+    if after_base {
       first_fetch_after_base.get_or_insert(index);
       bundled_fetch_after_base |= bundled || deferred;
     } else {
@@ -471,22 +511,36 @@ fn find_placement<'a>(
   let after_last_map = if has_deferred_import { last_map } else { None };
   // Register the integrity-only map under the browser's effective base. One
   // earlier map cannot describe both outcomes if CSP rejects a later base.
-  if let Some((base_index, base)) = base
-    && first_map
+  let rebase = base.filter(|(base_index, base)| {
+    first_map
       .or(first_fetch)
-      .is_some_and(|index| index < base_index)
-    && urls.iter().any(|key| {
-      base.changes_base_for(key)
-        && (bundled_fetch_after_base
-          || (base.has_authority
-            && deferred_absolute_before_base.iter().any(|specifier| {
-              specifier
-                .join(base.input)
-                .and_then(|base| base.join(key.input))
-                .is_ok_and(|key| key == *specifier)
-            })))
-    })
+      .is_some_and(|index| index < *base_index)
+      && urls.iter().any(|key| {
+        base.changes_base_for(key)
+          && (bundled_fetch_after_base
+            || (!base.path_relative
+              && deferred_absolute_before_base.iter().any(|specifier| {
+                specifier
+                  .join(base.input)
+                  .and_then(|base| base.join(key.input))
+                  .is_ok_and(|key| key == *specifier)
+              })))
+      })
+  });
+  let first_bundled_fetch = if rebase.is_some() {
+    first_bundled_fetch_if_rebased
+  } else {
+    first_bundled_fetch
+  };
+  if first_bundled_fetch
+    .zip(last_map)
+    .is_some_and(|(fetch, map)| fetch < map)
   {
+    return Err(error!(
+      "Place import maps before scripts and preloads of bundled modules to enable Subresource Integrity."
+    ));
+  }
+  if let Some((base_index, _)) = rebase {
     if deferred_import_before_base || first_bundled_fetch.is_some_and(|index| index < base_index) {
       return Err(error!(
         "Place the base element before module scripts and preloads of bundled modules to enable Subresource Integrity."

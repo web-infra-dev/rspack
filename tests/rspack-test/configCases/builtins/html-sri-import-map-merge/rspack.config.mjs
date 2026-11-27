@@ -42,6 +42,15 @@ export default {
         '<script type="module">import("https://cdn.example.test/assets/entries/other.mjs");</script>' +
         '</head><body></body></html>',
     }),
+    new HtmlRspackPlugin({
+      chunks: ['other'],
+      filename: 'versioned-other.html',
+      hash: true,
+      scriptLoading: 'module',
+      templateContent: `<!DOCTYPE html><html><head>
+        <script type="module">import("https://cdn.example.test/assets/entries/other.mjs");</script>
+      </head><body></body></html>`,
+    }),
     new SubresourceIntegrityPlugin(),
   ],
   optimization: {
