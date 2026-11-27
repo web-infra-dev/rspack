@@ -9,6 +9,14 @@ const DEPENDENCY_KEYS = [
   'buildDependencies',
 ] as const;
 
+export const hasDependencyChanges = (
+  added: LoaderDependencies,
+  removed: LoaderDependencies,
+): boolean =>
+  DEPENDENCY_KEYS.some(
+    (key) => added[key].length > 0 || removed[key].length > 0,
+  );
+
 type DependencyKey = (typeof DEPENDENCY_KEYS)[number];
 
 type DependencySets = Record<DependencyKey, Set<string>>;

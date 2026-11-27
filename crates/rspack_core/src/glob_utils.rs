@@ -309,10 +309,11 @@ fn pattern_has_explicit_dot_for(
     .unwrap_or(pattern);
 
   let relative = path.strip_prefix(base_dir).unwrap_or(path);
-  let pattern_segments = pattern_suffix
+  let mut pattern_segments = pattern_suffix
     .split('/')
     .filter(|segment| !segment.is_empty())
     .collect::<Vec<_>>();
+  pattern_segments.dedup_by(|segment, previous| *segment == "**" && *previous == "**");
   let path_segments = relative
     .split('/')
     .filter(|segment| !segment.is_empty())
