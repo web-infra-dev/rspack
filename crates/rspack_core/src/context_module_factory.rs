@@ -3,10 +3,11 @@ use std::{borrow::Cow, sync::Arc};
 use cow_utils::CowUtils;
 use derive_more::Debug;
 use rspack_error::{Result, ToStringResultToRspackResultExt, error};
-use rspack_fs::ReadableFileSystem;
+use rspack_fs::{ReadableFileSystem, WalkMatcher};
 use rspack_hook::define_hook;
 use rspack_loader_runner::parse_resource;
 use rspack_paths::{Utf8Path, Utf8PathBuf, normalize_path_separators};
+use smallvec::SmallVec;
 use swc_core::common::util::take::Take;
 use tracing::instrument;
 
@@ -20,7 +21,7 @@ use crate::{
   ContextModulePattern, DependencyCategory, DependencyId, DependencyRef, DependencyType, ModuleExt,
   ModuleFactory, ModuleFactoryCreateData, ModuleFactoryResult, OverrideStrict, ResolveArgs,
   ResolveContextModuleDependencies, ResolveInnerOptions, ResolveOptionsWithDependencyType,
-  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, resolve, walk_dir,
+  ResolveResult, Resolver, ResolverFactory, SharedPluginDriver, resolve,
 };
 
 mod glob;
@@ -149,8 +150,6 @@ impl ContextModuleFactory {
         });
         let mut context_element_dependencies = vec![];
         visit_dirs(
-          options.resource.as_str(),
-          &options.resource,
           &mut context_element_dependencies,
           &options,
           &resolver.options(),
@@ -503,103 +502,46 @@ impl ContextModuleFactory {
 }
 
 async fn visit_dirs(
-  ctx: &str,
-  dir: &Utf8Path,
   dependencies: &mut Vec<ContextElementDependency>,
   options: &ContextModuleOptions,
   resolve_options: &ResolveInnerOptions<'_>,
   fs: Arc<dyn ReadableFileSystem>,
 ) -> Result<()> {
-  let include = &options.context_options.include;
-  let exclude = &options.context_options.exclude;
-  let matcher = ContextModuleMatcher::new(options);
+  let glob = ContextModuleGlobMatcher::new(options);
+  let matcher = ContextModuleMatcher::new(options, resolve_options, glob.as_ref());
   if matcher.is_empty() {
     return Ok(());
   }
-  let is_import_meta_glob = matcher.is_glob();
-  let skip_dotfiles = !is_import_meta_glob;
-  let glob_exhaustive = options.context_options.glob_exhaustive;
+  let is_glob = matcher.glob.is_some();
 
-  walk_dir(
-    dir,
-    fs,
-    options.context_options.recursive,
-    skip_dotfiles,
-    &mut |path, dirname| {
-      if is_import_meta_glob && !matcher.should_visit_dir(path.as_str()) {
-        return false;
-      }
-      if is_import_meta_glob
-        && !glob_exhaustive
-        && is_non_exhaustive_import_meta_glob_skipped_dir(dirname)
-        && !matcher.should_visit_skipped_dir(path.as_str())
-      {
-        return false;
-      }
-      exclude
-        .as_ref()
-        .is_none_or(|exclude| !exclude.test(path.as_str()))
-    },
-    &mut |path, _filename| {
-      let path_str = path.as_str();
-
-      if let Some(exclude) = exclude
-        && exclude.test(path_str)
-      {
-        return;
-      }
-
-      if let Some(include) = include
-        && !include.test(path_str)
-      {
-        return;
-      }
-
-      // FIXME: nodejs resolver return path of context, sometimes is '/a/b', sometimes is '/a/b/'
-      let relative_path = {
-        let path_str = &path_str[ctx.len()..];
-        let p = normalize_path_separators(path_str);
-        if p.as_ref().starts_with('/') {
-          format!(".{p}")
-        } else {
-          format!("./{p}")
-        }
-      };
-
-      if is_import_meta_glob {
-        // Keep import.meta.glob Vite-compatible: expose only filesystem-matched
-        // paths, not resolver alternative requests like extensionless aliases.
-        // Revisit this branch if import.meta.glob compatibility changes.
-        if let Some(user_request) = matcher.match_request(&relative_path, path_str)
-          && !dependencies.iter().any(|d| d.user_request == user_request)
+  matcher
+    .walk(&options.resource, fs.as_ref(), !is_glob, &mut |_, child| {
+      for matched in child.matches {
+        if !is_glob
+          || !dependencies
+            .iter()
+            .any(|d| d.user_request == matched.request)
         {
-          push_context_element_dependency(dependencies, options, &relative_path, &user_request);
-        }
-      } else {
-        let requests = alternative_requests(
-          resolve_options,
-          vec![AlternativeRequest::new(ctx.to_string(), relative_path)],
-        );
-        for r in &requests {
-          if let Some(user_request) = matcher.match_request(&r.request, path_str) {
-            push_context_element_dependency(dependencies, options, &r.request, &user_request);
-          }
+          push_context_element_dependency(dependencies, options, matched);
         }
       }
-    },
-  )
-  .await
+    })
+    .await?;
+  Ok(())
 }
 
 fn push_context_element_dependency(
   dependencies: &mut Vec<ContextElementDependency>,
   options: &ContextModuleOptions,
-  user_request: &str,
-  exposed_user_request: &str,
+  matched: ContextModuleMatchedRequest,
 ) {
+  let resource_request = matched
+    .resource_request
+    .as_deref()
+    .unwrap_or(&matched.request);
   let request = format!(
     "{}{}{}{}",
-    options.addon, user_request, options.resource_query, options.resource_fragment,
+    options.addon, resource_request, options.resource_query, options.resource_fragment,
   );
   let resource_identifier = ContextElementDependency::create_resource_identifier(
     options.resource.as_str(),
@@ -614,7 +556,7 @@ fn push_context_element_dependency(
       ContextMode::AsyncWeak | ContextMode::Weak
     ),
     request,
-    user_request: exposed_user_request.to_string(),
+    user_request: matched.request,
     category: options.context_options.category,
     context: options.resource.clone().into(),
     layer: options.layer.clone(),
@@ -629,58 +571,112 @@ fn is_non_exhaustive_import_meta_glob_skipped_dir(dirname: &str) -> bool {
   dirname == "node_modules" || dirname.starts_with('.')
 }
 
-struct ContextModuleMatcher<'a> {
-  pattern: &'a ContextModulePattern,
-  glob: Option<ContextModuleGlobMatcher<'a>>,
+#[derive(Clone)]
+struct ContextModuleMatchedRequest {
+  request: String,
+  resource_request: Option<String>,
 }
 
-impl<'a> ContextModuleMatcher<'a> {
-  fn new(options: &'a ContextModuleOptions) -> Self {
-    let context_options = &options.context_options;
+/// The walker clones directory matchers to prepare entries. Only file matches
+/// populate `matches`, so a directory clone just copies configuration references.
+#[derive(Clone)]
+struct ContextModuleMatcher<'a, 'resolver> {
+  options: &'a ContextModuleOptions,
+  resolve_options: &'a ResolveInnerOptions<'resolver>,
+  glob: Option<&'a ContextModuleGlobMatcher<'a>>,
+  matches: SmallVec<[ContextModuleMatchedRequest; 1]>,
+}
+
+impl<'a, 'resolver> ContextModuleMatcher<'a, 'resolver> {
+  fn new(
+    options: &'a ContextModuleOptions,
+    resolve_options: &'a ResolveInnerOptions<'resolver>,
+    glob: Option<&'a ContextModuleGlobMatcher<'a>>,
+  ) -> Self {
     Self {
-      pattern: &context_options.pattern,
-      glob: ContextModuleGlobMatcher::new(options),
+      options,
+      resolve_options,
+      glob,
+      matches: SmallVec::new(),
     }
   }
 
   fn is_empty(&self) -> bool {
-    match self.pattern {
-      ContextModulePattern::Glob(_) => self
-        .glob
-        .as_ref()
-        .is_none_or(ContextModuleGlobMatcher::is_empty),
-      _ => self.pattern.is_empty(),
+    match &self.options.context_options.pattern {
+      ContextModulePattern::Glob(_) => self.glob.is_none_or(ContextModuleGlobMatcher::is_empty),
+      pattern => pattern.is_empty(),
     }
   }
+}
 
-  fn is_glob(&self) -> bool {
-    self.glob.is_some()
-  }
+impl WalkMatcher for ContextModuleMatcher<'_, '_> {
+  const VISIT_ON_METADATA_ERROR: bool = true;
 
-  fn match_request(&self, request: &str, resource_path: &str) -> Option<String> {
-    if let Some(glob) = &self.glob {
-      return glob.match_request(resource_path);
+  fn match_entry(mut self, dir: &Utf8Path, name: &str, is_directory: bool) -> Option<Self> {
+    let context_options = &self.options.context_options;
+    if is_directory && !context_options.recursive {
+      return None;
+    }
+    let path = dir.join(name);
+    let path = path.as_str();
+    if is_directory
+      && let Some(glob) = self.glob
+      && (!glob.should_visit_dir(path)
+        || (!context_options.glob_exhaustive
+          && is_non_exhaustive_import_meta_glob_skipped_dir(name)
+          && !glob.should_visit_skipped_dir(path)))
+    {
+      return None;
+    }
+    if context_options
+      .exclude
+      .as_ref()
+      .is_some_and(|exclude| exclude.test(path))
+    {
+      return None;
+    }
+    if is_directory {
+      return Some(self);
+    }
+    if context_options
+      .include
+      .as_ref()
+      .is_some_and(|include| !include.test(path))
+    {
+      return None;
     }
 
-    if let Some(reg_exp) = self.pattern.reg_exp() {
-      reg_exp.test(request).then(|| request.to_string())
+    // The resolver can return a context with or without a trailing slash.
+    let ctx = self.options.resource.as_str();
+    let relative = normalize_path_separators(&path[ctx.len()..]);
+    let relative_request = if relative.starts_with('/') {
+      format!(".{relative}")
     } else {
-      None
+      format!("./{relative}")
+    };
+    if let Some(glob) = self.glob {
+      // Glob maps expose filesystem paths without the resolver's alternative requests.
+      self.matches.push(ContextModuleMatchedRequest {
+        request: glob.match_request(path)?,
+        resource_request: Some(relative_request),
+      });
+    } else {
+      let reg_exp = context_options.pattern.reg_exp()?;
+      let requests = alternative_requests(
+        self.resolve_options,
+        vec![AlternativeRequest::new(ctx.to_string(), relative_request)],
+      );
+      self.matches.extend(
+        requests
+          .into_iter()
+          .filter(|item| reg_exp.test(&item.request))
+          .map(|item| ContextModuleMatchedRequest {
+            request: item.request,
+            resource_request: None,
+          }),
+      );
     }
-  }
-
-  fn should_visit_skipped_dir(&self, path: &str) -> bool {
-    self
-      .glob
-      .as_ref()
-      .is_some_and(|glob| glob.should_visit_skipped_dir(path))
-  }
-
-  fn should_visit_dir(&self, path: &str) -> bool {
-    self
-      .glob
-      .as_ref()
-      .is_none_or(|glob| glob.should_visit_dir(path))
+    (!self.matches.is_empty()).then_some(self)
   }
 }
 

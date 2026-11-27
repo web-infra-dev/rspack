@@ -1,11 +1,12 @@
+//! Shared glob matching and filesystem traversal.
+
 use core::fmt;
 use std::sync::Arc;
 
-use async_recursion::async_recursion;
 use cow_utils::CowUtils;
 use fast_glob::glob_match;
 use rspack_error::Result;
-use rspack_fs::ReadableFileSystem;
+use rspack_fs::{ReadableFileSystem, WalkMatcher};
 use rspack_paths::{Utf8Path, Utf8PathBuf};
 
 #[derive(Debug)]
@@ -80,7 +81,8 @@ pub fn glob_match_with_explicit_dot(
 }
 
 /// Match normalized path strings against a normalized glob pattern.
-pub(crate) fn glob_match_normalized_with_explicit_dot(
+#[doc(hidden)]
+pub fn glob_match_normalized_with_explicit_dot(
   normalized_pattern: &str,
   normalized_path: &str,
   normalized_base_dir: &str,
@@ -191,46 +193,26 @@ pub fn unescape_glob_path(s: &str) -> String {
   result
 }
 
-/// Walk a directory tree recursively, calling `on_file` for each file found.
-///
-/// - `root`: starting directory
-/// - `recursive`: whether to descend into subdirectories
-/// - `skip_dotfiles`: whether to skip files whose name starts with `.`
-/// - `should_enter_dir`: called with (full_path, dirname) for each directory before descending
-/// - `on_file`: called with (full_path, filename) for each file
-#[async_recursion]
-pub(crate) async fn walk_dir(
-  root: &Utf8Path,
-  fs: Arc<dyn ReadableFileSystem>,
-  recursive: bool,
-  skip_dotfiles: bool,
-  should_enter_dir: &mut (impl FnMut(&Utf8Path, &str) -> bool + Send),
-  on_file: &mut (impl FnMut(Utf8PathBuf, String) + Send),
-) -> Result<()> {
-  if !fs.metadata(root).await.is_ok_and(|m| m.is_directory) {
-    return Ok(());
+#[derive(Clone, Copy)]
+struct LegacyGlobMatcher<'a> {
+  pattern: &'a str,
+  base_dir: &'a str,
+  options: &'a GlobMatchOptions,
+}
+
+impl WalkMatcher for LegacyGlobMatcher<'_> {
+  const VISIT_ON_METADATA_ERROR: bool = true;
+
+  fn match_entry(self, dir: &Utf8Path, name: &str, is_directory: bool) -> Option<Self> {
+    (is_directory
+      || glob_match_with_explicit_dot(
+        self.pattern,
+        dir.join(name).as_str(),
+        self.base_dir,
+        self.options,
+      ))
+    .then_some(self)
   }
-  for filename in fs.read_dir(root).await? {
-    let path = root.join(&filename);
-    if fs.metadata(&path).await.is_ok_and(|m| m.is_directory) {
-      if recursive && should_enter_dir(&path, &filename) {
-        walk_dir(
-          &path,
-          fs.clone(),
-          recursive,
-          skip_dotfiles,
-          should_enter_dir,
-          on_file,
-        )
-        .await?;
-      }
-    } else if skip_dotfiles && filename.starts_with('.') {
-      // skip dotfiles
-    } else {
-      on_file(path, filename);
-    }
-  }
-  Ok(())
 }
 
 /// Find files matching a glob pattern by traversing the filesystem.
@@ -263,25 +245,17 @@ pub async fn find_files_by_glob(
     return Ok(if matched { vec![path] } else { Vec::new() });
   }
 
+  let matcher = LegacyGlobMatcher {
+    pattern: &normalized_pattern,
+    base_dir: base_dir_path.as_str(),
+    options,
+  };
   let mut results = Vec::new();
-  walk_dir(
-    base_dir_path,
-    fs,
-    true,  // always recursive for glob
-    false, // dotfile filtering handled in callback below
-    &mut |_path, _dirname| true,
-    &mut |path, _filename| {
-      if glob_match_with_explicit_dot(
-        &normalized_pattern,
-        path.as_str(),
-        base_dir_path.as_str(),
-        options,
-      ) {
-        results.push(path);
-      }
-    },
-  )
-  .await?;
+  matcher
+    .walk(base_dir_path, fs.as_ref(), false, &mut |path, _| {
+      results.push(path)
+    })
+    .await?;
   Ok(results)
 }
 
@@ -296,7 +270,8 @@ fn path_has_dot_component(path: &str, base_dir: &str) -> bool {
 }
 
 /// Check whether the glob pattern has an explicit `.` for a given dot-file path.
-fn pattern_has_explicit_dot_for(
+#[doc(hidden)]
+pub fn pattern_has_explicit_dot_for(
   pattern: &str,
   base_dir: &str,
   path: &str,
