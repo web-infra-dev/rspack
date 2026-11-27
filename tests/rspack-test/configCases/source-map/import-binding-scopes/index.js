@@ -2,9 +2,13 @@ import addDefault, { settings as config, value as aliased } from "./lib";
 import * as namespace from "./lib";
 import { fromHelper } from "./helper";
 import { fromTs } from "./typed.ts";
+import { fromJsx } from "./jsx-entry.js";
+import { result as fromOriginal } from "./shared-source.js";
+import { result as fromVariant } from "./shared-variant.js";
 
 const fs = require("fs");
 const base64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+const own = aliased + 1;
 
 function decodeVlq(digits) {
 	const values = [];
@@ -95,6 +99,10 @@ it("maps original ESM import names to their generated bindings", () => {
 	expect(namespace.value).toBe(21);
 	expect(fromHelper).toBe(21);
 	expect(fromTs).toBe(21);
+	expect(fromJsx).toBe(21);
+	expect(fromOriginal).toBe(21);
+	expect(fromVariant).toBe(200);
+	expect(own).toBe(22);
 	expect(config.port).toBe(4300);
 	expect(shadow()).toBe("shadowed");
 
@@ -133,8 +141,17 @@ it("maps original ESM import names to their generated bindings", () => {
 	const entry = [...bindings].find(([source]) => source.split("?")[0].endsWith("/index.js"))?.[1];
 	const helper = [...bindings].find(([source]) => source.split("?")[0].endsWith("/helper.js"))?.[1];
 	const typed = [...bindings].find(([source]) => source.split("?")[0].endsWith("/typed.ts"))?.[1];
+	const jsx = [...bindings].find(([source]) => source.split("?")[0].endsWith("/jsx-entry.js"))?.[1];
 	expect(entry).toBeDefined();
 	expect(typed?.typedValue).toBeDefined();
+	expect(jsx?.jsxValue).toBeDefined();
+	if (CONFIG_INDEX !== 2) {
+		const shared = maps.flatMap(map => map.sources).filter(
+			source => source.split("?")[0].endsWith("/shared-source.js")
+		);
+		expect(shared).toHaveLength(1);
+		expect(bindings.has(shared[0])).toBe(false);
+	}
 	if (CONFIG_INDEX === 5) {
 		expect(entry.namespace).toBeUndefined();
 		expect(entry.aliased).toMatch(/\/\* \.value \*\/\./);
@@ -144,9 +161,10 @@ it("maps original ESM import names to their generated bindings", () => {
 	expect(entry.aliased).toBe(`${entry.namespace}.value`);
 	expect(entry.addDefault).toBe(`${entry.namespace}["default"]`);
 	expect(entry.config).toBe(`${entry.namespace}.settings`);
+	expect(entry.own).toBe("own");
 	expect(helper?.fromLib).toMatch(/\.value$/);
 	const code = CONFIG_INDEX === 2 ? bundle.replaceAll('\\"', '"') : bundle;
-	for (const expression of Object.values(entry)) {
+	for (const expression of [entry.namespace, entry.aliased, entry.addDefault, entry.config]) {
 		expect(code).toContain(expression);
 	}
 });

@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { DefinePlugin, SourceMapDevToolPlugin } from '@rspack/core';
 import { defineConfig } from '@rspack/cli';
 
@@ -30,6 +31,22 @@ export default defineConfig(
           test: /\.ts$/,
           loader: 'builtin:swc-loader',
           options: { jsc: { parser: { syntax: 'typescript' } } },
+        },
+        {
+          test: /jsx-entry\.js$/,
+          loader: 'builtin:swc-loader',
+          options: {
+            jsc: {
+              parser: { syntax: 'ecmascript', jsx: true },
+              transform: { react: { pragma: 'h' } },
+            },
+          },
+        },
+        {
+          test: /shared-variant\.js$/,
+          loader: fileURLToPath(
+            new URL('./shared-source-loader.cjs', import.meta.url),
+          ),
         },
       ],
     },

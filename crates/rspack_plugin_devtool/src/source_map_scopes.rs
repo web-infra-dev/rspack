@@ -1,22 +1,30 @@
 use rspack_core::{
-  CodeGenerationDataImportBindings, Compilation, ModuleIdentifier, RuntimeSpec,
-  rspack_sources::{Source, SourceMap, utf16_len},
+  CodeGenerationDataImportBindings, Compilation, ModuleIdentifier, RuntimeSpec, SourceType,
+  rspack_sources::{MapOptions, Mapping, Source, SourceMap, utf16_len},
 };
-use rspack_util::{fx_hash::FxIndexSet, swc::AstSubRangeExt};
+use rspack_util::fx_hash::FxIndexSet;
 use rustc_hash::{FxHashMap, FxHashSet};
 use swc_next_allocator::Allocator;
-use swc_next_ecma_ast::{ImportDeclarationSpecifierData, Lang, SourceType, StmtData};
+use swc_next_ecma_ast::{Ast, AstCtx, Lang, ScopeId, SourceType as AstSourceType};
 use swc_next_ecma_parser::{NoTokenParserConfig, Options, Parser};
-use swc_next_ecma_semantic::{AnalyzeOptions, SyntaxChecks, analyze, scope::ScopeKind};
+use swc_next_ecma_semantic::{
+  AnalyzeOptions, Semantic, SymbolFlags, SyntaxChecks, analyze, scope::ScopeKind,
+};
 
 use crate::SourceReference;
 
 type Position = (u32, u32);
 
-struct SourceScopes<'a> {
-  bindings: Vec<(&'a str, &'a str)>,
+struct SourceScopes {
+  bindings: Vec<(String, Option<String>)>,
   end: Position,
   nested_scopes: Vec<(Position, Position)>,
+}
+
+enum SourceOwner {
+  Unmapped,
+  Module(ModuleIdentifier, u32),
+  Shared,
 }
 
 /// Add module scopes for the ESM imports rewritten during code generation.
@@ -33,19 +41,41 @@ pub(super) fn add_import_binding_scopes<'a>(
   }
 
   let module_graph = compilation.get_module_graph();
-  let mut candidates = FxHashSet::default();
-  let mut resources = FxHashMap::default();
+  let codegen = compilation.code_generation_results.inner();
+  let mut owners: FxHashMap<&str, SourceOwner> = map
+    .sources()
+    .iter()
+    .map(|source| (source.as_str(), SourceOwner::Unmapped))
+    .collect();
+  let mut modules_with_bindings = FxHashMap::default();
+  let options = MapOptions::new(true);
   for identifier in modules {
-    candidates.insert(identifier);
-    if let Some(path) = module_graph
-      .module_by_identifier(&identifier)
-      .and_then(|module| module.as_normal_module())
-      .and_then(|module| module.resource_resolved_data().path())
-    {
-      resources
-        .entry(path.as_str())
-        .and_modify(|owner| *owner = None)
-        .or_insert(Some(identifier));
+    let Some(result) = codegen
+      .get(&identifier)
+      .and_then(|entry| entry.get(runtime))
+    else {
+      continue;
+    };
+    let Some(generated) = result.get(&SourceType::JavaScript) else {
+      continue;
+    };
+    let Some(module_map) = generated.map(&options) else {
+      continue;
+    };
+    // ConcatSource deduplicates these names across all modules. Inspect each
+    // module map before that provenance is lost, including modules that have
+    // no import metadata of their own.
+    for (index, name) in module_map.sources().iter().enumerate() {
+      if let Some(owner) = owners.get_mut(name.as_str()) {
+        *owner = if matches!(owner, SourceOwner::Unmapped) {
+          SourceOwner::Module(identifier, index as u32)
+        } else {
+          SourceOwner::Shared
+        };
+      }
+    }
+    if let Some(bindings) = result.data().get::<CodeGenerationDataImportBindings>() {
+      modules_with_bindings.insert(identifier, (generated, module_map, bindings));
     }
   }
 
@@ -53,35 +83,31 @@ pub(super) fn add_import_binding_scopes<'a>(
     .into_iter()
     .enumerate()
     .map(|(index, reference)| {
-      let module = match reference {
-        SourceReference::Module(module) => {
-          if !candidates.contains(module)
-            || resources.get(module.as_str()).is_some_and(Option::is_none)
-          {
-            return None;
-          }
-          *module
-        }
-        // Loader maps name the original resource rather than the module request.
-        SourceReference::Source(path) => (*resources.get(path.as_ref())?)?,
+      let name = map.get_source(index)?;
+      let &SourceOwner::Module(module, source_index) = owners.get(name)? else {
+        return None;
       };
-      let bindings = compilation
-        .code_generation_results
-        .inner()
-        .get(&module)?
-        .get(runtime)?
-        .data()
-        .get::<CodeGenerationDataImportBindings>()?;
-      let path = match reference {
-        SourceReference::Module(_) => module_graph
-          .module_by_identifier(&module)?
-          .as_normal_module()?
-          .resource_resolved_data()
-          .path()?
-          .as_str(),
-        SourceReference::Source(path) => path.as_ref(),
-      };
-      authored_scopes(path, map.get_source_content(index)?, bindings)
+      let (generated, module_map, bindings) = modules_with_bindings.get(&module)?;
+      let path = module_graph
+        .module_by_identifier(&module)?
+        .as_normal_module()?
+        .resource_resolved_data()
+        .path()?
+        .as_str();
+      match reference {
+        SourceReference::Module(reference) if *reference == module => {}
+        // Loader maps can name the authored resource instead of the module request.
+        SourceReference::Source(reference) if reference.as_ref() == path => {}
+        _ => return None,
+      }
+      authored_scopes(
+        path,
+        map.get_source_content(index)?,
+        bindings,
+        generated.as_ref(),
+        module_map,
+        source_index,
+      )
     })
     .collect::<Vec<_>>();
   if sources.iter().all(Option::is_none) {
@@ -156,11 +182,16 @@ pub(super) fn add_import_binding_scopes<'a>(
     scope.push_str(",D");
     let mut previous_name = 0;
     let mut expressions = String::new();
-    for &(name, expression) in &source.bindings {
+    for (name, expression) in &source.bindings {
       let name = name_index(name);
       encode_delta(&mut scope, name, previous_name);
       previous_name = name;
-      encode_unsigned(&mut expressions, name_index(expression) + 1);
+      encode_unsigned(
+        &mut expressions,
+        expression
+          .as_deref()
+          .map_or(0, |value| name_index(value) + 1),
+      );
     }
     scope.push_str(",C");
     encode_unsigned(&mut scope, u64::from(source.end.0));
@@ -203,29 +234,51 @@ pub(super) fn add_import_binding_scopes<'a>(
   map.set_scopes(scopes, vec![ranges.into()]);
 }
 
-fn authored_scopes<'a>(
+fn parse_source<'a>(
+  allocator: &'a Allocator,
+  content: &'a str,
+  lang: Lang,
+  source_type: AstSourceType,
+) -> Option<AstCtx<'a>> {
+  let parse = |lang| {
+    let result = Parser::init(
+      allocator,
+      content,
+      Options {
+        source_type,
+        lang,
+        ..Default::default()
+      },
+      NoTokenParserConfig,
+    )
+    .parse();
+    result.diagnostics.is_empty().then_some(result.ast)
+  };
+  parse(lang).or_else(|| match lang {
+    // Loaders can enable JSX in files without an x suffix.
+    Lang::Js => parse(Lang::Jsx),
+    Lang::Ts => parse(Lang::Tsx),
+    _ => None,
+  })
+}
+
+fn authored_scopes(
   path: &str,
   content: &str,
-  data: &'a CodeGenerationDataImportBindings,
-) -> Option<SourceScopes<'a>> {
+  data: &CodeGenerationDataImportBindings,
+  generated: &dyn Source,
+  module_map: &SourceMap,
+  source_index: u32,
+) -> Option<SourceScopes> {
   let allocator = Allocator::new();
-  let result = Parser::init(
+  let parsed = parse_source(
     &allocator,
     content,
-    Options {
-      source_type: SourceType::Module,
-      lang: Lang::from_path(path),
-      ..Default::default()
-    },
-    NoTokenParserConfig,
-  )
-  .parse();
-  if !result.diagnostics.is_empty() {
-    return None;
-  }
-
+    Lang::from_path(path),
+    AstSourceType::Module,
+  )?;
   let analyzed = analyze(
-    result.ast,
+    parsed,
     AnalyzeOptions {
       check_syntax: SyntaxChecks::empty(),
     },
@@ -233,29 +286,53 @@ fn authored_scopes<'a>(
   let (ast, semantic) = analyzed.semantic.into_parts();
   // SAFETY: We only read nodes owned by this parsed AST.
   let ast = unsafe { ast.ast() };
-  let mut authored_imports = FxHashSet::default();
-  for statement in ast.nodes(ast.root_program().body(ast)) {
-    if let StmtData::ImportDeclaration(import) = ast.stmt_data(statement) {
-      for specifier in ast.nodes(import.specifiers(ast)) {
-        let local = match ast.import_declaration_specifier_data(specifier) {
-          ImportDeclarationSpecifierData::ImportSpecifier(specifier) => specifier.local(ast),
-          ImportDeclarationSpecifierData::ImportDefaultSpecifier(specifier) => specifier.local(ast),
-          ImportDeclarationSpecifierData::ImportNamespaceSpecifier(specifier) => {
-            specifier.local(ast)
-          }
-        };
-        authored_imports.insert(ast.get_utf8(local.name(ast)));
-      }
-    }
-  }
-  let bindings = data
+  let imports = semantic
+    .iter_symbols()
+    .filter(|entry| {
+      entry.symbol.flags.contains(SymbolFlags::IMPORT)
+        && semantic.scope_of_symbol(entry.id) == ScopeId::MODULE
+    })
+    .filter_map(|entry| ast.get_wtf8(entry.symbol.name).as_str())
+    .collect::<FxHashSet<_>>();
+  let mut bindings = data
     .bindings
     .iter()
-    .filter(|(name, _)| authored_imports.contains(name.as_str()))
-    .map(|(name, expression)| (name.as_str(), expression.as_str()))
+    .filter(|(name, _)| imports.contains(name.as_str()))
+    .map(|(name, value)| (name.as_str().to_owned(), Some(value.clone())))
     .collect::<Vec<_>>();
   if bindings.is_empty() {
     return None;
+  }
+
+  let authored_lines = SourceLines::new(content);
+  let mut locals = FxHashMap::default();
+  // Include authored value declarations so DevTools can show them alongside
+  // imports. A declaration without a matching generated binding is unavailable.
+  for entry in semantic.iter_symbols() {
+    if !is_local_value(entry.symbol.flags) || semantic.scope_of_symbol(entry.id) != ScopeId::MODULE
+    {
+      continue;
+    }
+    let name = ast.get_wtf8(entry.symbol.name).as_str()?;
+    let index = bindings.len();
+    bindings.push((name.to_owned(), None));
+    for declaration in semantic.declarations(entry.id) {
+      if is_local_value(declaration.flags)
+        && let Some(position) = authored_lines.position(ast.span(declaration.node).start as usize)
+      {
+        locals.insert(position, index);
+      }
+    }
+  }
+  if !locals.is_empty() {
+    match_local_values(
+      &mut bindings,
+      &locals,
+      &authored_lines,
+      generated,
+      module_map,
+      source_index,
+    );
   }
 
   let mut spans = semantic
@@ -294,6 +371,157 @@ fn authored_scopes<'a>(
     end: position,
     nested_scopes,
   })
+}
+
+fn is_local_value(flags: SymbolFlags) -> bool {
+  flags.in_value_space()
+    && !flags.intersects(SymbolFlags::ANY_IMPORT | SymbolFlags::AMBIENT | SymbolFlags::CONST_ENUM)
+}
+
+fn match_local_values(
+  bindings: &mut [(String, Option<String>)],
+  locals: &FxHashMap<Position, usize>,
+  authored: &SourceLines<'_>,
+  generated: &dyn Source,
+  map: &SourceMap,
+  source_index: u32,
+) {
+  let generated = generated.source().into_string_lossy();
+  let allocator = Allocator::new();
+  let Some(parsed) = parse_source(&allocator, &generated, Lang::Js, AstSourceType::Unambiguous)
+  else {
+    return;
+  };
+  let (ast, semantic) = analyze(
+    parsed,
+    AnalyzeOptions {
+      check_syntax: SyntaxChecks::empty(),
+    },
+  )
+  .semantic
+  .into_parts();
+  // SAFETY: We only read nodes owned by this parsed AST.
+  let ast = unsafe { ast.ast() };
+  let generated = SourceLines::new(&generated);
+  let mut declarations = generated_declarations(ast, &semantic, &generated);
+  declarations.sort_unstable_by_key(|&(position, _)| position);
+
+  let position = |mapping: &Mapping| (mapping.generated_line - 1, mapping.generated_column);
+  let mut mappings = map.decoded_mappings().peekable();
+  let mut active = None;
+  let mut matched = FxHashMap::default();
+  for ((line, column), name) in declarations {
+    while mappings
+      .peek()
+      .is_some_and(|mapping| position(mapping) <= (line, column))
+    {
+      active = mappings.next();
+    }
+    let Some(mapping) = active.filter(|mapping| position(mapping).0 == line) else {
+      continue;
+    };
+    let Some(original) = mapping
+      .original
+      .filter(|original| original.source_index == source_index)
+    else {
+      continue;
+    };
+    let delta = column - mapping.generated_column;
+    let Some(original_line) = original.original_line.checked_sub(1) else {
+      continue;
+    };
+    let Some(original_column) = original.original_column.checked_add(delta) else {
+      continue;
+    };
+    let Some(index) = locals.get(&(original_line, original_column)) else {
+      continue;
+    };
+    // Unchanged stretches of text can have just one mapping at their start.
+    // Interpolate only within a line and require the prefix and name to match.
+    if delta != 0
+      && (bindings[*index].0 != name
+        || !generated
+          .line(line)
+          .encode_utf16()
+          .skip(mapping.generated_column as usize)
+          .take(delta as usize)
+          .eq(
+            authored
+              .line(original_line)
+              .encode_utf16()
+              .skip(original.original_column as usize)
+              .take(delta as usize),
+          ))
+    {
+      continue;
+    }
+    matched
+      .entry(*index)
+      .and_modify(|value| {
+        if *value != Some(name) {
+          *value = None;
+        }
+      })
+      .or_insert(Some(name));
+  }
+  for (index, name) in matched {
+    bindings[index].1 = name.map(str::to_owned);
+  }
+}
+
+fn generated_declarations<'a>(
+  ast: &'a Ast<'_>,
+  semantic: &Semantic<'_>,
+  source: &SourceLines<'_>,
+) -> Vec<(Position, &'a str)> {
+  let root = ScopeId::program(ast.source_type());
+  let mut declarations = Vec::new();
+  for entry in semantic.iter_symbols() {
+    if !is_local_value(entry.symbol.flags) || semantic.scope_of_symbol(entry.id) != root {
+      continue;
+    }
+    let Some(name) = ast.get_wtf8(entry.symbol.name).as_str() else {
+      continue;
+    };
+    for declaration in semantic.declarations(entry.id) {
+      if let Some(position) = source.position(ast.span(declaration.node).start as usize) {
+        declarations.push((position, name));
+      }
+    }
+  }
+  declarations
+}
+
+struct SourceLines<'a> {
+  text: &'a str,
+  starts: Vec<usize>,
+}
+
+impl<'a> SourceLines<'a> {
+  fn new(text: &'a str) -> Self {
+    let starts = std::iter::once(0)
+      .chain(memchr::memchr_iter(b'\n', text.as_bytes()).map(|offset| offset + 1))
+      .collect();
+    Self { text, starts }
+  }
+
+  fn position(&self, offset: usize) -> Option<Position> {
+    let line = self.starts.partition_point(|&start| start <= offset) - 1;
+    let column = utf16_len(self.text.get(self.starts[line]..offset)?);
+    Some((line as u32, column as u32))
+  }
+
+  fn line(&self, line: u32) -> &str {
+    let line = line as usize;
+    self.starts.get(line).map_or("", |&start| {
+      &self.text[start
+        ..self
+          .starts
+          .get(line + 1)
+          .copied()
+          .unwrap_or(self.text.len())]
+    })
+  }
 }
 
 fn advance_position(position: &mut Position, text: &str) {

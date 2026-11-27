@@ -137,7 +137,7 @@ export default {
 
 ### `scopes`
 
-使用 `source-map-scopes` 或 `eval-source-map-scopes`，可以在兼容的调试器中，于模块顶层断点按原始本地名称查看重写后的 ESM 导入。有列映射和原始源码时，Rspack 会按 [ECMA-426 scopes 提案](https://github.com/tc39/ecma426/blob/main/proposals/scopes.md) 输出 `scopes` 和 `ranges` 字段。函数和其他嵌套作用域由调试器按常规方式解析。在生产模式下，可以将 `optimization.minimize` 和 `optimization.concatenateModules` 设为 `false` 来保留这些绑定。生成的命名空间保留原始导出时，可以查看命名空间绑定。
+使用 `source-map-scopes` 或 `eval-source-map-scopes`，可以在兼容的调试器中，于模块顶层断点按原始本地名称查看重写后的 ESM 导入。有列映射和原始源码时，Rspack 会按 [ECMA-426 scopes 提案](https://github.com/tc39/ecma426/blob/main/proposals/scopes.md) 输出 `scopes` 和 `ranges` 字段。这些作用域也包含源码中的顶层变量，能匹配到生成代码中的声明时可以查看变量值。对于嵌套作用域，或多个生成模块共用同一个 source map 源文件条目的位置，调试器会按常规方式解析。在生产模式下，可以将 `optimization.minimize` 和 `optimization.concatenateModules` 设为 `false` 来保留这些绑定。生成的命名空间保留原始导出时，可以查看命名空间绑定。
 
 修饰符顺序为 `[inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids][-scopes]`。`inline`、`hidden` 和 `eval` 最多选一个。同时使用 `debugids` 和 `scopes` 时，将 `scopes` 放在最后。
 
