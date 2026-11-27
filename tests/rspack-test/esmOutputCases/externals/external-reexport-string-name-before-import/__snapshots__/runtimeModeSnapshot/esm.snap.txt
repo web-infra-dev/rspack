@@ -1,0 +1,19 @@
+```mjs title=main.mjs
+import { "x-y" as external_ext_mjs_x_y } from "./ext.mjs";
+import "./side.mjs";
+
+
+
+// ./ext.mjs
+
+// ./side.mjs
+
+// ./index.js
+
+
+
+expect(globalThis.__order).toEqual(['ext', 'side']);
+
+export { external_ext_mjs_x_y as value };
+
+```

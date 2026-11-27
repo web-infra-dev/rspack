@@ -1,0 +1,25 @@
+```mjs title=main.mjs
+import ext, { café as external_ext_mjs_caf_, named, 你好 as external_ext_mjs__ } from "./ext.mjs";
+import "./side.mjs";
+
+
+
+// ./ext.mjs?b28f
+
+// ./middle.mjs
+
+
+// ./ext.mjs?613f
+
+// ./side.mjs
+
+// ./index.js
+
+
+
+
+expect(globalThis.__order).toEqual(['ext', 'side']);
+
+export { ext as extDefault, ext as reservedDefault, external_ext_mjs__ as nihao, external_ext_mjs_caf_ as cafe, named, named as nested };
+
+```
