@@ -30,6 +30,7 @@ use super::{
   common_js_side_effects_analysis::{
     CommonJsExports, ExportsEffect, exports_effect, is_plain_object_literal,
   },
+  global_side_effects_analysis::pure_global_call_arguments,
   side_effects_analysis::{SideEffectsContext, may_have_side_effects},
 };
 use crate::{
@@ -470,17 +471,21 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
 
   fn module_declaration(&self, parser: &mut JavascriptParser<'p>, statement: Stmt) -> Option<bool> {
     let ast = parser.ast.ast;
+    let module_eval = ModuleEvalPureChecker {
+      analyze_side_effects_free: self.analyze_side_effects_free,
+      module_exports_plain_object: &self.cjs_module_exports_plain_object,
+      comments: parser.ast.comments,
+    };
     match ast.stmt_data(statement) {
       StmtData::ExportDefaultDeclaration(export) => {
         if let ExportDefaultDeclarationKindData::Expr(expression) =
           ast.export_default_declaration_kind_data(export.declaration(ast))
         {
           let mut callees = Vec::new();
-          if !is_pure_expression(
+          if !module_eval.is_module_eval_pure_expression(
             parser,
-            self.analyze_side_effects_free,
             expression,
-            parser.ast.comments,
+            false,
             Some(&mut callees),
           ) {
             set_side_effects_bailout(parser, export.span(ast), "ExportDefaultExpr");
@@ -492,13 +497,19 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for SideEffectsParserPlugin {
       StmtData::ExportNamedDeclaration(export) => {
         if let Some(declaration) = export.declaration(ast) {
           let mut callees = Vec::new();
-          if !is_pure_decl(
-            parser,
-            self.analyze_side_effects_free,
-            declaration,
-            parser.ast.comments,
-            Some(&mut callees),
-          ) {
+          let pure = match ast.decl_data(declaration) {
+            DeclData::VariableDeclaration(variable) => {
+              module_eval.is_module_eval_pure_var_decl(parser, variable, Some(&mut callees))
+            }
+            _ => is_pure_decl(
+              parser,
+              self.analyze_side_effects_free,
+              declaration,
+              parser.ast.comments,
+              Some(&mut callees),
+            ),
+          };
+          if !pure {
             set_side_effects_bailout(parser, declaration.span(ast), "Decl");
           }
           if parser.side_effects_item.is_none() {
@@ -1215,6 +1226,19 @@ impl ModuleEvalPureChecker<'_> {
           callees.as_deref_mut(),
         )
       });
+    }
+    if let Some(arguments) = pure_global_call_arguments(parser, expression) {
+      return ast
+        .nodes(arguments)
+        .all(|argument| match ast.argument_data(argument) {
+          ArgumentData::Expr(argument) => self.is_module_eval_pure_expression(
+            parser,
+            argument,
+            in_variable_initializer,
+            callees.as_deref_mut(),
+          ),
+          ArgumentData::SpreadElement(_) => false,
+        });
     }
     is_pure_expression(
       parser,

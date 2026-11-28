@@ -242,7 +242,6 @@ fn is_pure_callee(expression: Expr, ctx: SideEffectsContext<'_, '_>) -> bool {
       }
 
       match ast.expr_data(object) {
-        ExprData::IdentifierReference(identifier) => ast.get_utf8(identifier.name(ast)) == "Math",
         ExprData::StringLiteral(_) => is_pure_string_method(property),
         ExprData::TemplateLiteral(template) if template.expressions(ast).is_empty() => {
           is_pure_string_method(property)
