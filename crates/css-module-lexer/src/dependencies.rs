@@ -2684,16 +2684,23 @@ impl<'s, W: HandleWarning<'s>> LexDependencies<'s, W> {
       return Some(());
     }
     let end = name_token.range.end;
+    let name = stream.slice(start, end)?;
     if self
       .mode_data
       .as_ref()
       .expect("CSS Modules mode data must exist while parsing keyframes")
       .is_current_local_mode()
     {
-      let name = stream.slice(start, end)?;
       self
         .dependency_context
         .push_dependency(Dependency::LocalKeyframesDecl {
+          name,
+          range: Range::new(start, end),
+        });
+    } else if self.contains_icss_symbol(name) {
+      self
+        .dependency_context
+        .push_dependency(Dependency::ICSSSymbol {
           name,
           range: Range::new(start, end),
         });
