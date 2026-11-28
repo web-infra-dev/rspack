@@ -8,6 +8,15 @@
 @value v-comment-broken-v1:/* comment */;
 
 @value small: (max-width: 599px);
+@value keyframeName: globalPulse;
+
+@keyframes :global(keyframeName) {
+	from { opacity: 0; }
+}
+
+.global-animation {
+	animation: keyframeName 2s linear;
+}
 
 @media small {
 	abbr:hover {

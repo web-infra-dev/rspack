@@ -13,6 +13,13 @@ it("should substitute webpack's @value media queries and selectors", () => {
 	expect(css).not.toContain("colorValue-v3 {");
 });
 
+it("should substitute @value in a global keyframe name and its animation", () => {
+	const css = readFileSync(join(__dirname, `bundle${__STATS_I__}.css`), "utf-8");
+	expect(values.keyframeName).toBe("globalPulse");
+	expect(css).toContain("@keyframes globalPulse {");
+	expect(css).toContain("animation: globalPulse 2s linear;");
+});
+
 it("should substitute references throughout selector and at-rule preludes", () => {
 	const css = readFileSync(join(__dirname, `bundle${__STATS_I__}.css`), "utf-8");
 	expect(references.selector).toBe(".globalThing");

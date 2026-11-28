@@ -1,6 +1,42 @@
 use crate::{scope::*, support::*};
 
 #[test]
+fn value_references_in_global_keyframe_names() {
+  let inputs = [
+    (
+      Mode::Local,
+      "@value animName: pulseAnim; .anim { animation: animName 2s linear; } @keyframes :global(animName) { from { opacity: 0; } }",
+    ),
+    (
+      Mode::Global,
+      "@value animName: pulseAnim; .anim { animation: animName 2s linear; } @-webkit-keyframes animName { from { opacity: 0; } }",
+    ),
+  ];
+
+  for (mode, input) in inputs {
+    let (dependencies, warnings) = collect_dependencies(input, mode);
+    assert!(warnings.is_empty(), "{warnings:?}");
+    let replacement_positions: Vec<_> = dependencies
+      .iter()
+      .filter_map(|dependency| match dependency {
+        Dependency::ICSSSymbol {
+          name: "animName",
+          range,
+        } => Some(range.start as usize),
+        _ => None,
+      })
+      .collect();
+    assert_eq!(
+      replacement_positions,
+      [
+        input.find("animName 2s").unwrap(),
+        input.rfind("animName").unwrap()
+      ],
+    );
+  }
+}
+
+#[test]
 fn icss_export_unexpected() {
   let input = ":export {\n/sl/ash;";
   let (dependencies, warnings) = collect_dependencies(input, Mode::Local);
