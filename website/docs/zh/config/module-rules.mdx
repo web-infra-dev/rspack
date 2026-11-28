@@ -786,6 +786,43 @@ export default {
 
 模板生成的路径只用于规则匹配，不会改变实际读取的文件、loader 处理的资源或输出文件名。因此，上例中的两种导入都读取 `example.js`，不需要实际创建 `example.js.asset` 文件。
 
+### 默认规则 \{#default-rules}
+
+从 Rspack 2.4 开始，[`module.defaultRules`](/config/module#moduledefaultrules) 中针对 `with { type: 'text' }` 和 `with { type: 'bytes' }` 的内置规则会通过 `as` 在匹配路径末尾分别追加 `.text` 和 `.bytes`：
+
+```js
+const defaultRules = [
+  // ...
+  {
+    with: { type: 'text' },
+    type: 'asset/source',
+    as: '[resource-path].text',
+  },
+  {
+    with: { type: 'bytes' },
+    type: 'asset/bytes',
+    as: '[resource-path].bytes',
+  },
+];
+```
+
+在 Rspack 2.4 之前，这两条规则只设置 `type`，后续规则仍使用原始文件路径进行匹配，因此 `module.rules` 中按原始扩展名匹配的规则（例如 `test: /\.js$/` 或 `test: /\.css$/`）仍会命中文本和字节导入。
+
+追加后缀后，后续按原始扩展名匹配的规则不再作用于文本和字节导入。如果仍需对文本或字节导入执行转换，请通过 [`with`](#ruleswith) 匹配导入属性，而不要依赖原始扩展名：
+
+```js title="rspack.config.mjs"
+export default {
+  module: {
+    rules: [
+      {
+        with: { type: 'text' },
+        loader: './my-text-loader.js',
+      },
+    ],
+  },
+};
+```
+
 ## rules[].type
 
 - **类型：** `string`
