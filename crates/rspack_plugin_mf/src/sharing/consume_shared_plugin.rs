@@ -20,6 +20,7 @@ use rustc_hash::FxHashMap;
 use super::{
   consume_shared_module::ConsumeSharedModule,
   consume_shared_runtime_module::ConsumeSharedRuntimeModule, get_description_file,
+  version::normalize_version,
 };
 use crate::ShareScope;
 
@@ -124,7 +125,7 @@ pub fn get_required_version_from_description_file(
       .and_then(|d| d.as_object())
       .and_then(|deps| deps.get(package_name))
       .and_then(|v| v.as_str())
-      .map(|v| ConsumeVersion::Version(v.to_string()))
+      .map(|v| ConsumeVersion::Version(normalize_version(v)))
   };
   get_version_from_dependencies("optionalDependencies")
     .or_else(|| get_version_from_dependencies("dependencies"))
@@ -259,7 +260,10 @@ impl ConsumeSharedPlugin {
             // Package self-referencing
             return None;
           }
-          return get_required_version_from_description_file(&data, package_name);
+          // An empty normalized version still marks a dependency as present during
+          // description-file lookup, but must not enable runtime version checks.
+          return get_required_version_from_description_file(&data, package_name)
+            .filter(|version| !matches!(version, ConsumeVersion::Version(v) if v.is_empty()));
         } else {
           if let Some(file_paths) = checked_description_file_paths
             && !file_paths.is_empty()
