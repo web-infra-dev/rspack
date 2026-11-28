@@ -13,6 +13,8 @@ mod require_main_dependency;
 mod require_resolve_dependency;
 mod require_resolve_header_dependency;
 
+use std::sync::Arc;
+
 pub use common_js_export_require_dependency::{
   CommonJsExportRequireDependency, CommonJsExportRequireDependencyTemplate,
 };
@@ -43,7 +45,43 @@ pub use require_resolve_dependency::{RequireResolveDependency, RequireResolveDep
 pub use require_resolve_header_dependency::{
   RequireResolveHeaderDependency, RequireResolveHeaderDependencyTemplate,
 };
-use rspack_core::Context;
+use rspack_core::{
+  ConnectionState, Context, DependencyCondition, DependencyConditionFn, ExportsInfoArtifact,
+  ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, RuntimeSpec,
+  SideEffectsStateArtifact, UsedByExports,
+};
+
+use crate::connection_active_used_by_exports;
+
+struct UsedByExportsDependencyCondition(Arc<UsedByExports>);
+
+impl DependencyConditionFn for UsedByExportsDependencyCondition {
+  fn get_connection_state(
+    &self,
+    connection: &ModuleGraphConnection,
+    runtime: Option<&RuntimeSpec>,
+    module_graph: &ModuleGraph,
+    _module_graph_cache: &ModuleGraphCacheArtifact,
+    _side_effects_state_artifact: &SideEffectsStateArtifact,
+    exports_info_artifact: &ExportsInfoArtifact,
+  ) -> ConnectionState {
+    ConnectionState::Active(connection_active_used_by_exports(
+      connection,
+      runtime,
+      module_graph,
+      exports_info_artifact,
+      Some(&self.0),
+    ))
+  }
+}
+
+pub(super) fn used_by_exports_condition(
+  used_by_exports: Option<&Arc<UsedByExports>>,
+) -> Option<DependencyCondition> {
+  used_by_exports.map(|used_by_exports| {
+    DependencyCondition::new(UsedByExportsDependencyCondition(used_by_exports.clone()))
+  })
+}
 
 pub(super) fn create_resource_identifier_for_contextual_commonjs_dependency(
   dep_type: &str,

@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use rspack_core::{
   BoxDependency, BuildMetaDefaultObject, BuildMetaExportsType, DependencyRange, RuntimeGlobals,
-  RuntimeRequirementsDependency,
+  RuntimeRequirementsDependency, UsedByExports,
 };
 use rspack_util::{
   SpanExt,
@@ -19,9 +19,10 @@ use super::JavascriptParserPlugin;
 use crate::{
   Atom,
   dependency::{
-    CommonJsExportRequireDependency, CommonJsExportsDependency,
+    CommonJsExportRequireDependency, CommonJsExportsDependency, CommonJsFullRequireDependency,
     CommonJsObjectLiteralExportDependency, CommonJsObjectLiteralExportKind,
-    CommonJsSelfReferenceDependency, ExportsBase, ModuleDecoratorDependency,
+    CommonJsRequireDependency, CommonJsSelfReferenceDependency, ExportsBase,
+    ModuleDecoratorDependency,
   },
   parser_plugin::{
     common_js_imports_parse_plugin::is_require_call_expr,
@@ -324,6 +325,21 @@ fn handle_object_literal_export(
         }
         _ => source_contains(parser, property_span, "super"),
       };
+
+    if kind.is_function_property() {
+      let used_by_exports = Arc::new(UsedByExports::set(std::iter::once(name.clone()).collect()));
+      for idx in dependency_start..dependency_end {
+        let Some(dependency) = parser.get_dependency_mut(idx) else {
+          continue;
+        };
+        if let Some(dependency) = dependency.downcast_mut::<CommonJsRequireDependency>() {
+          dependency.set_used_by_exports(Some(used_by_exports.clone()));
+        } else if let Some(dependency) = dependency.downcast_mut::<CommonJsFullRequireDependency>()
+        {
+          dependency.set_used_by_exports(Some(used_by_exports.clone()));
+        }
+      }
+    }
 
     parser.add_dependency(BoxDependency::new(
       CommonJsObjectLiteralExportDependency::new(

@@ -24,6 +24,10 @@ pub enum CommonJsObjectLiteralExportKind {
 }
 
 impl CommonJsObjectLiteralExportKind {
+  pub const fn is_function_property(self) -> bool {
+    self.drop_head().is_some()
+  }
+
   const fn drop_head(self) -> Option<&'static str> {
     match self {
       Self::KeyValue | Self::Shorthand => None,

@@ -1,15 +1,19 @@
+use std::sync::Arc;
+
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsPreset, AsVec},
 };
 use rspack_core::{
-  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
-  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, property_access,
-  should_reference_call_receiver, to_normal_comment,
+  AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration,
+  DependencyCondition, DependencyId, DependencyLocation, DependencyRange, DependencyTemplate,
+  DependencyTemplateType, DependencyType, ExportsInfoArtifact, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext,
+  TemplateReplaceSource, UsedByExports, UsedName, property_access, should_reference_call_receiver,
+  to_normal_comment,
 };
 
+use super::used_by_exports_condition;
 use crate::Atom;
 
 #[cacheable]
@@ -25,6 +29,7 @@ pub struct CommonJsFullRequireDependency {
   optional: bool,
   asi_safe: bool,
   loc: Option<DependencyLocation>,
+  used_by_exports: Option<Arc<UsedByExports>>,
 }
 
 impl CommonJsFullRequireDependency {
@@ -50,7 +55,12 @@ impl CommonJsFullRequireDependency {
       optional,
       asi_safe,
       loc,
+      used_by_exports: None,
     }
+  }
+
+  pub fn set_used_by_exports(&mut self, used_by_exports: Option<Arc<UsedByExports>>) {
+    self.used_by_exports = used_by_exports;
   }
 
   pub fn names(&self) -> &[Atom] {
@@ -137,6 +147,10 @@ impl ModuleDependency for CommonJsFullRequireDependency {
 
   fn get_optional(&self) -> bool {
     self.optional
+  }
+
+  fn get_condition(&self) -> Option<DependencyCondition> {
+    used_by_exports_condition(self.used_by_exports.as_ref())
   }
 }
 
