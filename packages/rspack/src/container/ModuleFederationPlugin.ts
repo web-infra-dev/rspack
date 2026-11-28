@@ -28,6 +28,8 @@ export interface ModuleFederationPluginOptions extends Omit<
   'enhanced'
 > {
   runtimePlugins?: RuntimePlugins;
+  /** Remove unused federation runtime code from all entries, or matching entry names. Defaults to false. */
+  removeUnusedRuntime?: boolean | RegExp;
   implementation?: string;
   shareStrategy?: 'version-first' | 'loaded-first';
   manifest?: ModuleFederationManifestPluginOptions;
@@ -112,6 +114,7 @@ export class ModuleFederationPlugin {
           : getDefaultEntryRuntime(paths, this._options, compiler);
         new ModuleFederationRuntimePlugin({
           entryRuntime,
+          removeUnusedRuntime: this._options.removeUnusedRuntime,
           experiments: runtimeExperiments,
         }).apply(compiler);
       },
@@ -127,9 +130,9 @@ export class ModuleFederationPlugin {
         const entryRuntime = runtimeVirtualPath
           ? getDefaultEntryRuntimeRequest(runtimeVirtualPath)
           : getDefaultEntryRuntime(paths, this._options, compiler);
-        // Pass only the entry runtime to the Rust-side plugin
         new ModuleFederationRuntimePlugin({
           entryRuntime,
+          removeUnusedRuntime: this._options.removeUnusedRuntime,
           experiments: runtimeExperiments,
         }).apply(compiler);
       },

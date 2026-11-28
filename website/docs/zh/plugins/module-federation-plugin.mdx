@@ -37,6 +37,47 @@ export default {
 
 ## 选项
 
+### removeUnusedRuntime
+
+- 类型：`boolean | RegExp`
+- 默认值：`false`
+
+默认情况下，`ModuleFederationPlugin` 会向所有入口（包括 Web Worker）注入 Module Federation 运行时。开启该选项后，不需要联邦能力的入口将不再包含这部分运行时代码，从而减小产物体积。
+
+**设为 `true` 时**，会自动检查所有入口和 Worker：
+
+- **会移除运行时的场景**：
+  - 仅包含本地模块（包括普通的 `import()` 动态导入）的入口或 Worker。
+  - 配置了 `remotes`，但该入口并未实际引入任何远程模块。
+  - 仅使用 `shared`，但没有 `exposes` 也没有引入 `remotes` 的入口或 Worker。
+  - 仅配置了 `runtimePlugins`，但没有使用 `exposes` 或 `remotes` 的入口或 Worker。
+- **会保留运行时的场景**：
+  - 通过 `exposes` 暴露模块的容器入口。
+  - 同步或异步引入了 `remotes` 远程模块的入口或 Worker。
+  - 通过 `runtimeChunk` 或 `dependOn` 共享运行时的多个入口中，只要任意一个入口需要保留，整个共享运行时都会保留。
+
+每个 Web Worker 会独立于父入口判断：例如父入口引入了远程模块，但子 Worker 仅运行本地逻辑，子 Worker 仍会移除运行时。
+
+**设为 `RegExp` 时**，直接按正则表达式匹配的 **entry 名称**（包含通过构造选项 `name` 或 `webpackChunkName` 注释命名的 Worker，注释优先）移除运行时，不再进行自动依赖检测。适用于自动判断不符合预期、需要手动精确控制排除范围的场景，例如部分入口依赖动态运行时 API（如 `loadRemote`）、`runtimePlugins` 的初始化副作用或无本地 fallback 的 `shared`（`import: false`）：
+
+- 名称匹配的入口和具名 Worker 会直接移除运行时；未匹配的入口和未命名的 Worker 会保留运行时。
+- 多个入口通过 `runtimeChunk` 或 `dependOn` 共享运行时时，只有当共享该运行时的所有入口都匹配正则时，才会移除该共享运行时。
+- 请避免让正则匹配到实际需要暴露 `exposes` 或加载 `remotes` 的入口。
+
+```js
+// 自动移除所有不需要联邦能力的入口和 Worker 中的运行时
+new rspack.container.ModuleFederationPlugin({
+  name: 'app',
+  removeUnusedRuntime: true,
+});
+
+// 手动指定移除名称以 local- 开头的入口和 Worker 中的运行时
+new rspack.container.ModuleFederationPlugin({
+  name: 'app',
+  removeUnusedRuntime: /^local-/,
+});
+```
+
 ### implementation
 
 - 类型：`string`
