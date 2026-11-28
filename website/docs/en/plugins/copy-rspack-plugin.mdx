@@ -438,29 +438,25 @@ export default {
 };
 ```
 
-### copyPermissions
+### preservePermissions
 
 - **Type:** `boolean`
 - **Default:** `false`
 
-Whether to copy the file permissions from the source to the destination.
+Preserve the source file's Unix read, write, and execute permissions. The build fails if the output file system cannot apply the permissions.
 
-```js title="rspack.config.mjs"
-export default {
-  plugins: [
-    new rspack.CopyRspackPlugin({
-      patterns: [
-        {
-          from: 'src/executable.sh',
-          copyPermissions: true, // Preserves the executable permission
-        },
-      ],
-    }),
-  ],
-};
-```
+### preserveTimestamps
 
-This is particularly useful when copying executable files, scripts, or any files where permissions are important. When set to `true`, the plugin will attempt to set the same permissions on the destination file as the source file has.
+- **Type:** `boolean`
+- **Default:** `false`
+
+Preserve the source file's access time (`atime`) and modification time (`mtime`). A custom output file system needs to support `utimes`.
+
+### copyPermissions
+
+Deprecated alias for [`preservePermissions`](#preservepermissions). Use `preservePermissions` instead, as `copyPermissions` will be removed in a future release.
+
+An explicit `preservePermissions` value takes precedence, including `false`. With the deprecated option, permission failures are logged as warnings and the build continues.
 
 ### info
 

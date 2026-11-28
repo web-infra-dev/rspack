@@ -35,7 +35,8 @@ impl FileType {
       is_file: false,
       is_directory: true,
       is_symlink: false,
-      atime_ms: now,
+      mode: None,
+      atime_ms: Some(now),
       mtime_ms: now,
       ctime_ms: now,
       size: 0,
@@ -49,7 +50,8 @@ impl FileType {
         is_file: true,
         is_directory: false,
         is_symlink: false,
-        atime_ms: now,
+        mode: None,
+        atime_ms: Some(now),
         mtime_ms: now,
         ctime_ms: now,
         size: content.len() as u64,
@@ -230,7 +232,7 @@ impl WritableFileSystem for MemoryFileSystem {
           let now = current_time();
           *content = data.to_vec();
           metadata.mtime_ms = now;
-          metadata.atime_ms = now;
+          metadata.atime_ms = Some(now);
           metadata.size = data.len() as u64;
           return Ok(());
         } else {
@@ -270,7 +272,27 @@ impl WritableFileSystem for MemoryFileSystem {
     ReadableFileSystem::metadata(self, file).await
   }
 
+  fn supports_set_permissions(&self) -> bool {
+    false
+  }
+
   async fn set_permissions(&self, _path: &Utf8Path, _perm: FilePermissions) -> Result<()> {
+    Ok(())
+  }
+
+  async fn set_times(&self, path: &Utf8Path, atime_ms: u64, mtime_ms: u64) -> Result<()> {
+    let mut files = self.files.lock().expect("should get lock");
+    let metadata = match files.get_mut(path) {
+      Some(FileType::Dir(metadata) | FileType::File { metadata, .. }) => metadata,
+      None => {
+        return Err(Error::new(
+          std::io::ErrorKind::NotFound,
+          "file does not exist",
+        ));
+      }
+    };
+    metadata.atime_ms = Some(atime_ms);
+    metadata.mtime_ms = mtime_ms;
     Ok(())
   }
 }

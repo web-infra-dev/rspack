@@ -5,7 +5,7 @@ use arc_swap::ArcSwapOption;
 use futures::future::join_all;
 use rspack_cacheable::cacheable;
 use rspack_error::{Error, Result};
-use rspack_fs::{IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
+use rspack_fs::{FilePermissions, IntermediateFileSystem, ReadableFileSystem, WritableFileSystem};
 use rspack_hook::define_hook;
 use rspack_paths::{InternedPath, Utf8Path, Utf8PathBuf};
 use rspack_sources::BoxSource;
@@ -474,11 +474,15 @@ impl Compiler {
             new_emitted_asset_versions.insert(filename.clone(), asset.info.version.clone());
           }
 
-          if emit_assets_incremental
-            && let Some(old_version) = self.emitted_asset_versions.get(filename)
-            && old_version.as_str() == asset.info.version
-            && !old_version.is_empty()
-          {
+          let version_unchanged = emit_assets_incremental
+            && self
+              .emitted_asset_versions
+              .get(filename)
+              .is_some_and(|old_version| {
+                !old_version.is_empty() && old_version.as_str() == asset.info.version
+              });
+
+          if version_unchanged && asset.info.file_attributes.is_none() {
             return;
           }
 
@@ -486,12 +490,14 @@ impl Compiler {
           let s = unsafe { token.used((&self, filename, asset, output_path)) };
 
           let emit_limit = emit_limit.clone();
-          s.spawn(|(this, filename, asset, output_path)| async move {
+          s.spawn(move |(this, filename, asset, output_path)| async move {
             let _permit = emit_limit
               .acquire()
               .await
               .expect("emit limit semaphore should not be closed");
-            this.emit_asset(output_path, filename, asset).await
+            this
+              .emit_asset(output_path, filename, asset, version_unchanged)
+              .await
           });
         })
     })
@@ -515,6 +521,7 @@ impl Compiler {
     output_path: &Utf8Path,
     filename: &str,
     asset: &CompilationAsset,
+    version_unchanged: bool,
   ) -> Result<()> {
     if let Some(source) = asset.get_source() {
       let (target_file, query) = filename.split_once('?').unwrap_or((filename, ""));
@@ -575,7 +582,58 @@ impl Compiler {
 
       if need_write {
         self.output_filesystem.write(&file_path, &content).await?;
+      }
+
+      // Access times can change during the content comparison.
+      if let Some(attributes) = &asset.info.file_attributes
+        && (need_write
+          || stat.as_ref().is_none_or(|stat| {
+            let mode_mask = if attributes.permissions_required {
+              0o777
+            } else {
+              0o7777
+            };
+            attributes
+              .mode
+              .is_some_and(|mode| stat.mode.map(|mode| mode & mode_mask) != Some(mode))
+              || attributes
+                .timestamps
+                .is_some_and(|(_, mtime)| stat.mtime_ms != mtime)
+          }))
+      {
+        if let Some(mode) = attributes.mode {
+          if attributes.permissions_required && !self.output_filesystem.supports_set_permissions() {
+            return Err(rspack_error::error!(
+              "Failed to set permissions for {file_path}: output file system cannot set file permissions"
+            ));
+          }
+          if let Err(error) = self
+            .output_filesystem
+            .set_permissions(&file_path, FilePermissions::from_mode(u32::from(mode)))
+            .await
+          {
+            let message = format!("Failed to set permissions for {file_path}: {error}");
+            if attributes.permissions_required {
+              return Err(rspack_error::error!("{message}"));
+            }
+            self.compilation.get_logger("rspack.Compiler").warn(message);
+          }
+        }
+        if let Some((atime, mtime)) = attributes.timestamps {
+          self
+            .output_filesystem
+            .set_times(&file_path, atime, mtime)
+            .await
+            .map_err(|error| {
+              rspack_error::error!("Failed to set timestamps for {file_path}: {error}")
+            })?;
+        }
+      }
+
+      if need_write {
         self.compilation.emitted_assets.insert(filename.to_string());
+      } else if version_unchanged {
+        return Ok(());
       }
 
       let info = AssetEmittedInfo {

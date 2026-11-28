@@ -176,6 +176,7 @@ impl From<AssetInfo> for rspack_core::AssetInfo {
       css_unused_idents: css_unused_idents.map(|i| i.into_iter().map(Into::into).collect()),
       is_over_size_limit,
       asset_type: asset_type.map_or_default(Into::into),
+      file_attributes: None,
       extras,
     }
   }

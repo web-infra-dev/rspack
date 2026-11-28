@@ -83,6 +83,14 @@ impl WritableFileSystem for NativeFileSystem {
     }
     Ok(())
   }
+
+  #[instrument(skip(self), level = "debug")]
+  async fn set_times(&self, path: &Utf8Path, atime_ms: u64, mtime_ms: u64) -> Result<()> {
+    let to_file_time = |ms: u64| {
+      filetime::FileTime::from_unix_time((ms / 1000) as i64, ((ms % 1000) * 1_000_000) as u32)
+    };
+    filetime::set_file_times(path, to_file_time(atime_ms), to_file_time(mtime_ms)).to_fs_result()
+  }
 }
 
 #[cfg(target_family = "wasm")]
@@ -141,8 +149,9 @@ impl From<FileType> for FileMetadata {
       is_directory: value == FileType::Directory,
       is_file: value == FileType::File,
       is_symlink: false,
-      // yarn pnp don'ts have following info
-      atime_ms: 0,
+      mode: None,
+      // The PnP reader only reports the file type.
+      atime_ms: None,
       mtime_ms: 0,
       ctime_ms: 0,
       size: 0,

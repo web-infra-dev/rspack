@@ -1376,6 +1376,17 @@ pub struct CompilationAsset {
   pub info: BindingCell<AssetInfo>,
 }
 
+/// Source file attributes applied when emitting a copied asset.
+#[cacheable]
+#[derive(Debug, Clone)]
+pub struct AssetFileAttributes {
+  pub mode: Option<u16>,
+  /// Whether a permission error fails the build.
+  pub permissions_required: bool,
+  /// Access and modification times in milliseconds since the Unix epoch.
+  pub timestamps: Option<(u64, u64)>,
+}
+
 impl From<BoxSource> for CompilationAsset {
   fn from(value: BoxSource) -> Self {
     Self::new(Some(value), Default::default())
@@ -1446,6 +1457,7 @@ pub struct AssetInfo {
   pub is_over_size_limit: Option<bool>,
   /// the plugin that created the asset
   pub asset_type: ManifestAssetType,
+  pub file_attributes: Option<Box<AssetFileAttributes>>,
 
   /// Webpack: AssetInfo = KnownAssetInfo & Record<string, any>
   /// This is a hack to store the additional fields in the rust struct.

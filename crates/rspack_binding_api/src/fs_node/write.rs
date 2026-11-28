@@ -126,6 +126,10 @@ impl WritableFileSystem for NodeFileSystem {
     }
   }
 
+  fn supports_set_permissions(&self) -> bool {
+    cfg!(unix) && self.0.chmod.is_some()
+  }
+
   async fn set_permissions(&self, path: &Utf8Path, perm: FilePermissions) -> Result<()> {
     if let Some(mode) = perm.into_mode()
       && let Some(chmod) = &self.0.chmod
@@ -137,6 +141,19 @@ impl WritableFileSystem for NodeFileSystem {
         .to_fs_result();
     }
     Ok(())
+  }
+
+  async fn set_times(&self, path: &Utf8Path, atime_ms: u64, mtime_ms: u64) -> Result<()> {
+    let utimes = self.0.utimes.as_ref().ok_or_else(|| {
+      Error::new(
+        std::io::ErrorKind::Unsupported,
+        "output file system cannot set file timestamps",
+      )
+    })?;
+    utimes
+      .call_with_promise((path.as_str().to_string(), atime_ms as f64, mtime_ms as f64).into())
+      .await
+      .to_fs_result()
   }
 }
 

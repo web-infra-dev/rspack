@@ -39,6 +39,10 @@ impl WritableFileSystem for NoopFileSystem {
     Err(not_found())
   }
 
+  fn supports_set_permissions(&self) -> bool {
+    false
+  }
+
   async fn set_permissions(&self, _path: &Utf8Path, _perm: FilePermissions) -> Result<()> {
     Ok(())
   }

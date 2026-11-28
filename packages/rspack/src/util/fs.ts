@@ -158,6 +158,12 @@ export interface OutputFileSystem {
     arg1: number,
     arg2: (arg0?: NodeJS.ErrnoException | null) => void,
   ) => void;
+  utimes?: (
+    path: string,
+    atime: Date,
+    mtime: Date,
+    callback: (error?: NodeJS.ErrnoException | null) => void,
+  ) => void;
   join?: (arg0: string, arg1: string) => string;
   relative?: (arg0: string, arg1: string) => string;
   dirname?: (arg0: string) => string;

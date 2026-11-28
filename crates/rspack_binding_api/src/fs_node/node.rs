@@ -12,6 +12,7 @@ type Read = ThreadsafeFunction<FnArgs<(i32, u32, u32)>, Promise<Either<Buffer, (
 type ReadUtil = ThreadsafeFunction<FnArgs<(i32, u8, u32)>, Promise<Either<Buffer, ()>>>;
 type ReadToEnd = ThreadsafeFunction<FnArgs<(i32, u32)>, Promise<Either<Buffer, ()>>>;
 type Chmod = ThreadsafeFunction<FnArgs<(String, u32)>, Promise<()>>;
+type Utimes = ThreadsafeFunction<FnArgs<(String, f64, f64)>, Promise<()>>;
 
 #[derive(Debug)]
 #[napi(object, object_to_js = false, js_name = "ThreadsafeNodeFS")]
@@ -54,9 +55,11 @@ pub struct ThreadsafeNodeFS {
   pub read_until: ReadUtil,
   #[napi(ts_type = "(fd: number, position: number) => Promise<Buffer | void>")]
   pub read_to_end: ReadToEnd,
-  // The following functions are not supported by webpack, so they are optional
+  // Not every output file system supports changing file metadata.
   #[napi(ts_type = "(name: string, mode: number) => Promise<void>")]
   pub chmod: Option<Chmod>,
+  #[napi(ts_type = "(name: string, atimeMs: number, mtimeMs: number) => Promise<void>")]
+  pub utimes: Option<Utimes>,
 }
 
 #[napi(object, object_to_js = false)]
@@ -64,9 +67,9 @@ pub struct NodeFsStats {
   pub is_file: bool,
   pub is_directory: bool,
   pub is_symlink: bool,
-  pub atime_ms: u32,
-  pub mtime_ms: u32,
-  pub ctime_ms: u32,
+  pub atime_ms: f64,
+  pub mtime_ms: f64,
+  pub ctime_ms: f64,
   pub birthtime_ms: u32,
   pub size: u32,
   pub mode: u32,
@@ -78,7 +81,8 @@ impl From<NodeFsStats> for FileMetadata {
       is_file: value.is_file,
       is_directory: value.is_directory,
       is_symlink: value.is_symlink,
-      atime_ms: value.atime_ms as u64,
+      mode: cfg!(unix).then_some((value.mode & 0o7777) as u16),
+      atime_ms: Some(value.atime_ms as u64),
       mtime_ms: value.mtime_ms as u64,
       ctime_ms: value.ctime_ms as u64,
       size: value.size as u64,

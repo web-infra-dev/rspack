@@ -2185,12 +2185,22 @@ export interface RawCopyPattern {
    */
   info?: RawInfo
   /**
-   * Determines whether to copy file permissions from the source to the destination.
-   * When set to true, the plugin will preserve executable permissions and other file modes.
-   * This is particularly useful when copying scripts or executable files.
+   * Legacy alias for `preservePermissions`, used when that option is unset.
+   * Permission failures are logged as warnings and the build continues.
+   * @deprecated Use `preservePermissions` instead. This option will be removed in a future release.
    * @default false
    */
   copyPermissions?: boolean
+  /**
+   * Preserve the source file's Unix read, write, and execute permissions.
+   * @default false
+   */
+  preservePermissions?: boolean
+  /**
+   * Preserve the source file's access and modification times.
+   * @default false
+   */
+  preserveTimestamps?: boolean
   /**
    * Allows to modify the file contents.
    * @default undefined
@@ -3522,6 +3532,7 @@ export interface ThreadsafeNodeFS {
   readUntil: (fd: number, code: number, position: number) => Promise<Buffer | void>
   readToEnd: (fd: number, position: number) => Promise<Buffer | void>
   chmod?: (name: string, mode: number) => Promise<void>
+  utimes?: (name: string, atimeMs: number, mtimeMs: number) => Promise<void>
 }
 
 export declare function transform(source: string, options: string): Promise<TransformOutput>

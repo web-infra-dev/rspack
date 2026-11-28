@@ -41,7 +41,8 @@ impl Entry {
       is_file: matches!(self.node, Node::File(_)),
       is_directory: matches!(self.node, Node::Directory),
       is_symlink: matches!(self.node, Node::Symlink(_)),
-      atime_ms: self.mtime,
+      mode: None,
+      atime_ms: Some(self.mtime),
       mtime_ms: self.mtime,
       ctime_ms: self.mtime,
       size: match &self.node {

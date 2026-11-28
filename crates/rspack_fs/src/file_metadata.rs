@@ -9,7 +9,10 @@ pub struct FileMetadata {
   pub is_file: bool,
   pub is_directory: bool,
   pub is_symlink: bool,
-  pub atime_ms: u64,
+  /// Unix permission bits, including special mode bits, when available.
+  pub mode: Option<u16>,
+  /// Access time in milliseconds since the Unix epoch, when available.
+  pub atime_ms: Option<u64>,
   pub mtime_ms: u64,
   pub ctime_ms: u64,
   pub size: u64,
@@ -48,15 +51,20 @@ impl TryFrom<Metadata> for FileMetadata {
       .expect("atime is before unix epoch")
       .as_millis() as u64;
     let ctime_ms = Self::get_ctime_ms(&metadata);
+    #[cfg(unix)]
+    let mode = Some((std::os::unix::fs::MetadataExt::mode(&metadata) & 0o7777) as u16);
+    #[cfg(not(unix))]
+    let mode = None;
 
     Ok(Self {
       is_directory: metadata.is_dir(),
       is_file: metadata.is_file(),
       is_symlink: metadata.is_symlink(),
+      mode,
       size: metadata.len(),
       mtime_ms,
       ctime_ms,
-      atime_ms,
+      atime_ms: Some(atime_ms),
     })
   }
 }

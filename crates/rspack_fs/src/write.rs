@@ -1,8 +1,8 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, io::ErrorKind};
 
 use rspack_paths::Utf8Path;
 
-use super::{FileMetadata, Result};
+use super::{Error, FileMetadata, Result};
 use crate::file_metadata::FilePermissions;
 
 #[async_trait::async_trait]
@@ -40,6 +40,19 @@ pub trait WritableFileSystem: Debug + Send + Sync {
 
   async fn stat(&self, file: &Utf8Path) -> Result<FileMetadata>;
 
+  /// Whether the filesystem can set Unix permission bits.
+  fn supports_set_permissions(&self) -> bool {
+    cfg!(unix)
+  }
+
   /// See [std::fs::set_permissions]
   async fn set_permissions(&self, _path: &Utf8Path, _perm: FilePermissions) -> Result<()>;
+
+  /// Set access and modification times in milliseconds since the Unix epoch.
+  async fn set_times(&self, _path: &Utf8Path, _atime_ms: u64, _mtime_ms: u64) -> Result<()> {
+    Err(Error::new(
+      ErrorKind::Unsupported,
+      "output file system cannot set file timestamps",
+    ))
+  }
 }
