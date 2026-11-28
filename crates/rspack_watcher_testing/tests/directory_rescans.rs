@@ -150,6 +150,137 @@ async fn a_busy_directory_commits_the_coalesced_rescan_while_a_peer_can_finish()
 }
 
 #[tokio::test]
+async fn first_context_notification_sees_its_whole_directory_before_a_slow_peer() {
+  use std::time::SystemTime;
+
+  use rspack_util::fx_hash::FxHashSet;
+  use rspack_watcher::{EventAggregateHandler, EventHandler, FsWatcher};
+  use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
+
+  #[derive(Clone)]
+  struct Handler(UnboundedSender<String>, UnboundedSender<()>);
+  impl EventHandler for Handler {
+    fn on_change(&self, path: String) -> rspack_error::Result<()> {
+      let _ = self.0.send(path);
+      Ok(())
+    }
+  }
+  impl EventAggregateHandler for Handler {
+    fn on_event_handle(&self, _: FxHashSet<String>, _: FxHashSet<String>) {
+      let _ = self.1.send(());
+    }
+  }
+
+  let fixture = tempfile::tempdir().unwrap();
+  let root = fixture.path().canonicalize().unwrap();
+  let a = root.join("a");
+  let b = root.join("b");
+  fs::create_dir(&a).unwrap();
+  fs::create_dir(&b).unwrap();
+  let blocked = a.join("slow");
+  fs::write(&blocked, "").unwrap();
+  for i in 0..32 {
+    fs::write(b.join(format!("{i}.js")), "").unwrap();
+  }
+  let (ignored, mut pauses) = pause_visits(move |p| p == blocked);
+  let watcher = FsWatcher::new(
+    rspack_watcher::FsWatcherOptions {
+      aggregate_timeout: Some(1),
+      ..Default::default()
+    },
+    ignored,
+  );
+  let subscribe = |file: Option<rspack_paths::InternedPath>,
+                   dirs: Vec<rspack_paths::InternedPath>| {
+    let (raw, events) = unbounded_channel();
+    let (aggregate, rebuilds) = unbounded_channel();
+    let handler = Handler(raw, aggregate);
+    let installed = watcher.watch(
+      (file.into_iter(), std::iter::empty()),
+      (dirs.into_iter(), std::iter::empty()),
+      (std::iter::empty(), std::iter::empty()),
+      SystemTime::UNIX_EPOCH,
+      Box::new(handler.clone()),
+      Box::new(handler),
+    );
+    (installed, events, rebuilds)
+  };
+  let (watch, mut events, _) = subscribe(None, vec![(&a).into(), (&b).into()]);
+  let release = next_pause(&mut pauses).await;
+  pauses.close();
+  timeout(DEADLINE, async {
+    while Path::new(&events.recv().await.unwrap()).parent() != Some(b.as_path()) {}
+  })
+  .await
+  .expect("B published its scan before A finished");
+  let (files, _) = watcher.collect_time_info_entries();
+  assert_eq!(
+    files
+      .iter()
+      .filter(|(p, _)| Path::new(p).parent() == Some(b.as_path()))
+      .count(),
+    32
+  );
+  assert!(
+    !files
+      .iter()
+      .any(|(p, _)| Path::new(p).parent() == Some(a.as_path()))
+  );
+  let extra = root.join("extra.js");
+  fs::write(&extra, "").unwrap();
+  let (rewatch, mut second_events, mut rebuilt) = subscribe(Some((&extra).into()), vec![]);
+  timeout(DEADLINE, async {
+    while Path::new(&second_events.recv().await.unwrap()) != extra {}
+  })
+  .await
+  .unwrap();
+  let early = timeout(Duration::from_millis(75), rebuilt.recv()).await;
+  release.send(()).unwrap();
+  tokio::join!(watch, rewatch);
+  assert!(
+    early.is_err(),
+    "the replacement handler rebuilt before the retained root was indexed"
+  );
+  timeout(DEADLINE, rebuilt.recv()).await.unwrap().unwrap();
+  watcher.close().await.unwrap();
+}
+
+#[tokio::test]
+async fn a_live_write_to_one_member_does_not_restart_its_siblings_scan() {
+  use notify::{Event, EventKind, event::CreateKind};
+  let fixture = tempfile::tempdir().unwrap();
+  let dir = fixture.path().canonicalize().unwrap();
+  let a = dir.join("a.js");
+  let b = dir.join("b.js");
+  fs::write(&a, "").unwrap();
+  let visits = Arc::new(AtomicUsize::new(0));
+  let (ignored, mut pauses) = pause_visits({
+    let a = a.clone();
+    let visits = Arc::clone(&visits);
+    move |p| {
+      if p != a {
+        return false;
+      }
+      visits.fetch_add(1, Ordering::Relaxed);
+      true
+    }
+  });
+  let mut analyzer = DirectoryAnalyzer::with_ignored(ignored);
+  watch_dirs(&analyzer, &[&dir]).await;
+  let scan = analyzer.scan_contexts();
+  let release = next_pause(&mut pauses).await;
+  pauses.close();
+  fs::write(&b, "").unwrap();
+  analyzer.on_native_event(Event::new(EventKind::Create(CreateKind::File)).add_path(b.clone()));
+  timeout(DEADLINE, analyzer.next_events()).await.unwrap();
+  release.send(()).unwrap();
+  scan.await.unwrap();
+  let files = snapshot(&analyzer).0;
+  assert!(files.contains(&a) && files.contains(&b));
+  assert_eq!(visits.load(Ordering::Relaxed), 1);
+}
+
+#[tokio::test]
 async fn first_scan_notification_sees_all_members_of_an_initial_or_moved_directory() {
   use notify::{Event, EventKind, event::CreateKind};
 

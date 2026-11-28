@@ -22,9 +22,15 @@ pub(crate) struct ScannedDirectory {
 }
 
 #[derive(Clone)]
-pub(crate) struct ScanInput {
-  pub(super) ancestry: Vec<PathBuf>,
-  pub(super) request: ScanRequest,
+pub(crate) enum ScanInput {
+  Context {
+    ancestry: Vec<PathBuf>,
+    request: ScanRequest,
+  },
+  Registered {
+    entries: Arc<[super::Registration]>,
+    start: SystemTime,
+  },
 }
 
 struct Request {
@@ -73,9 +79,12 @@ impl DirectoryWatcher {
 
 impl ScanInput {
   fn context(&self, real: Option<&PathBuf>) -> Option<&ScanRequest> {
-    real
-      .is_none_or(|dir| !self.ancestry.contains(dir))
-      .then_some(&self.request)
+    match self {
+      Self::Context { ancestry, request } if real.is_none_or(|dir| !ancestry.contains(dir)) => {
+        Some(request)
+      }
+      _ => None,
+    }
   }
 }
 
@@ -106,13 +115,25 @@ impl DirectoryScan {
           return None;
         }
         dw.live_during_scan = Arc::downgrade(&live);
-        (dw.subscriptions.is_active()).then(|| dw.members.keys().cloned().collect())
+        (dw.subscriptions.is_active() && readers.iter().any(|r| r.input.context(None).is_some()))
+          .then(|| dw.members.keys().cloned().collect())
       });
       let listing = if let Some(known) = known {
         DirectoryBatch::read(dir, paths, known, &readers, Arc::clone(self), version).await
       } else {
         None
       };
+      let groups = readers
+        .iter()
+        .enumerate()
+        .filter_map(|(i, reader)| match &reader.input {
+          ScanInput::Registered { entries, start } if !reader.done.is_closed() => {
+            Some((i, Arc::clone(entries), *start))
+          }
+          _ => None,
+        })
+        .collect();
+      let targets = paths.read_registrations(groups).await;
       let mut again = self.pending();
       again.retain(|r| !r.done.is_closed());
       if !again.is_empty() {
@@ -145,6 +166,14 @@ impl DirectoryScan {
           && !contexts.is_empty()
         {
           paths.commit_directory(dir, batch, &changed, &contexts, &mut replies);
+        }
+        for (i, entry, start, observed) in targets {
+          if !readers[i].done.is_closed()
+            && !changed.contains(&entry.path)
+            && let Some(event) = paths.commit_registered(entry, start, observed)
+          {
+            replies[i].changes.push(event);
+          }
         }
         *revision = revision.wrapping_add(1);
       }

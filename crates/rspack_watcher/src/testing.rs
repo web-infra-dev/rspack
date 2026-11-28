@@ -59,11 +59,22 @@ pub struct DirectoryAnalyzer {
 
 impl Default for DirectoryAnalyzer {
   fn default() -> Self {
-    Self::with_ignored(Default::default())
+    Self::with_ignored(FsWatcherIgnored::default())
   }
 }
 
 impl DirectoryAnalyzer {
+  pub fn publish_contexts(&self) -> tokio::task::JoinHandle<()> {
+    let paths = Arc::clone(&self.paths);
+    let trigger = Arc::clone(&self.trigger);
+    tokio::spawn(async move {
+      paths
+        .added_context_scan(SystemTime::UNIX_EPOCH)
+        .run(&paths, |events| trigger.on_scanned_events(events))
+        .await;
+    })
+  }
+
   pub fn with_ignored(ignored: FsWatcherIgnored) -> Self {
     let paths = Arc::new(PathManager::new(ignored).with_follow_symlinks(true));
     let (tx, events) = unbounded_channel();
@@ -76,18 +87,6 @@ impl DirectoryAnalyzer {
       events,
     }
   }
-
-  pub fn publish_contexts(&self) -> tokio::task::JoinHandle<()> {
-    let paths = Arc::clone(&self.paths);
-    let trigger = Arc::clone(&self.trigger);
-    tokio::spawn(async move {
-      paths
-        .added_context_scan(SystemTime::UNIX_EPOCH)
-        .run(&paths, |events| trigger.on_scanned_events(events))
-        .await;
-    })
-  }
-
   pub fn rescan_contexts(&self) -> impl Future<Output = Vec<InternedPath>> + Send + use<> {
     let paths = Arc::clone(&self.paths);
     let scan = paths.added_context_scan(SystemTime::UNIX_EPOCH);

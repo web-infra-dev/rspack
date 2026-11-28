@@ -185,16 +185,6 @@ impl PathManager {
     });
   }
 
-  /// The scanner reported `path` as changed: the build will know this mtime,
-  /// so it becomes the deduplication baseline as well as the time info.
-  pub fn set_reported_file_time(&self, path: &InternedPath, mtime: SystemTime) {
-    self.record(path, || {
-      let mut record = self.file_times.record(path);
-      record.reported = ReportedBaseline::Present(mtime);
-      record.set_time(mtime, true, true);
-    });
-  }
-
   /// Whether a removal was already reported for this path. The scanner must
   /// still report an absence with no prior record.
   pub fn is_known_absent(&self, path: &InternedPath) -> bool {

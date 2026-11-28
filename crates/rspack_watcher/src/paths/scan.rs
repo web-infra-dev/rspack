@@ -19,7 +19,30 @@ pub(crate) struct ContextScan {
 }
 
 impl ContextScan {
-  pub(crate) async fn run(self, paths: &PathManager, mut publish: impl FnMut(EventBatch)) {
+  pub(crate) fn into_roots(self) -> impl Iterator<Item = (InternedPath, Self)> {
+    self.roots.into_iter().map(move |root| {
+      (
+        root.clone(),
+        Self {
+          roots: vec![root],
+          request: self.request,
+        },
+      )
+    })
+  }
+
+  pub(crate) async fn run(self, paths: &PathManager, publish: impl FnMut(EventBatch)) {
+    self
+      .run_roots(paths, &InternedPathSet::default(), publish)
+      .await;
+  }
+
+  pub(crate) async fn run_roots(
+    self,
+    paths: &PathManager,
+    separate: &InternedPathSet,
+    mut publish: impl FnMut(EventBatch),
+  ) {
     let mut visited = InternedPathSet::default();
     let mut pending = FuturesUnordered::new();
     for dir in self.roots {
@@ -32,7 +55,9 @@ impl ContextScan {
         publish(pass.changes);
         request.recovered = false;
         for child in pass.children.iter() {
-          if visited.insert(child.clone()) {
+          if !(separate.contains(child) && paths.watchers.is_explicit_context(child))
+            && visited.insert(child.clone())
+          {
             pending.push(paths.scan_directory(child.clone(), ancestry.clone(), request));
           }
         }
@@ -95,7 +120,7 @@ impl PathManager {
     let scan = self.watchers.directories.get_mut(&dir)?.scan(
       dir.clone(),
       self,
-      ScanInput {
+      ScanInput::Context {
         ancestry: ancestry.clone(),
         request,
       },
