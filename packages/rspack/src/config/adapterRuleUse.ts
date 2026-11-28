@@ -1,4 +1,9 @@
-import type { AssetInfo, RawModuleRuleUse, RawOptions } from '@rspack/binding';
+import type {
+  AssetInfo,
+  RawLoaderMetadata,
+  RawModuleRuleUse,
+  RawOptions,
+} from '@rspack/binding';
 import { getLightningcssLoaderOptions } from '../builtin-loader/lightningcss';
 import { getSwcLoaderOptions } from '../builtin-loader/swc';
 import type { Compilation } from '../Compilation';
@@ -30,6 +35,7 @@ export interface ComposeJsUseOptions {
   mode: RawOptions['mode'];
   experiments: RawOptions['experiments'];
   compiler: Compiler;
+  loaderCache: boolean;
 }
 
 export interface RawSourceMap {
@@ -592,8 +598,23 @@ function createRawModuleRuleUsesImpl(
       isBuiltin = true;
     }
 
-    const optionsCacheKey = use.cache
-      ? serializeLoaderOptionsForCache(fingerprintOptions)
+    const optionsCacheKey =
+      options.loaderCache && use.cache
+        ? serializeLoaderOptionsForCache(fingerprintOptions)
+        : undefined;
+    const cache = optionsCacheKey !== undefined;
+    const normalizedOptionsCacheKey = optionsCacheKey ?? '';
+    const codeFilter = createRawLoaderCodeFilter(
+      use.codeFilter,
+      `${path}[${index}].codeFilter`,
+    );
+    const hasLoaderMetadata = cache || codeFilter !== undefined;
+    const metadata: RawLoaderMetadata | undefined = hasLoaderMetadata
+      ? {
+          cache,
+          optionsCacheKey: normalizedOptionsCacheKey,
+          codeFilter,
+        }
       : undefined;
     return {
       loader: resolveStringifyLoaders(
@@ -604,12 +625,7 @@ function createRawModuleRuleUsesImpl(
         fingerprintOptions,
       ),
       options: o,
-      cache: optionsCacheKey !== undefined,
-      optionsCacheKey: optionsCacheKey ?? '',
-      codeFilter: createRawLoaderCodeFilter(
-        use.codeFilter,
-        `${path}[${index}].codeFilter`,
-      ),
+      metadata,
     };
   });
 }

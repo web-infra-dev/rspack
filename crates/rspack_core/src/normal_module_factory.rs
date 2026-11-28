@@ -6,7 +6,9 @@ use std::{
 use memchr::{memchr, memmem, memrchr};
 use rspack_error::{Result, error};
 use rspack_hook::define_hook;
-use rspack_loader_runner::{Loader, LoaderFilter, LoaderRunnerOptions, Scheme, get_scheme};
+use rspack_loader_runner::{
+  Loader, LoaderMetadata, LoaderMetadataList, LoaderRunnerOptions, Scheme, get_scheme,
+};
 use sugar_path::SugarPath;
 
 use crate::{
@@ -272,9 +274,7 @@ impl NormalModuleFactory {
                 .get(ident)
                 .map(|object| object.to_string())
             }),
-            cache: false,
-            options_cache_key: String::new(),
-            filter: None,
+            metadata: None,
           }
         }));
         scheme = get_scheme(unresolved_resource);
@@ -473,16 +473,28 @@ module.exports = "data:,";
 
       for l in post_loaders {
         all_loaders.push(
-          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l, data)
-            .await?,
+          resolve_each_with_options(
+            plugin_driver,
+            &self.options.context,
+            &loader_resolver,
+            &l,
+            data,
+          )
+          .await?,
         )
       }
 
       let mut resolved_normal_loaders = vec![];
       for l in normal_loaders {
         resolved_normal_loaders.push(
-          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l, data)
-            .await?,
+          resolve_each_with_options(
+            plugin_driver,
+            &self.options.context,
+            &loader_resolver,
+            &l,
+            data,
+          )
+          .await?,
         )
       }
 
@@ -504,8 +516,14 @@ module.exports = "data:,";
 
       for l in pre_loaders {
         all_loaders.push(
-          resolve_each_with_options(plugin_driver, &self.options, &loader_resolver, &l, data)
-            .await?,
+          resolve_each_with_options(
+            plugin_driver,
+            &self.options.context,
+            &loader_resolver,
+            &l,
+            data,
+          )
+          .await?,
         )
       }
 
@@ -523,15 +541,15 @@ module.exports = "data:,";
       resource_data.resource().to_owned()
     };
     let mut has_cached_loader = false;
-    let mut has_filter = false;
+    let mut has_metadata = false;
     for resolved in &resolved_loaders {
       has_cached_loader |= resolved.options.cache;
-      has_filter |= resolved.filter.is_some();
+      has_metadata |= resolved.metadata.is_some();
     }
-    let loader_filters = has_filter.then(|| {
+    let loader_metadata: Option<LoaderMetadataList> = has_metadata.then(|| {
       resolved_loaders
         .iter()
-        .map(|resolved| resolved.filter.clone())
+        .map(|resolved| resolved.metadata.clone())
         .collect::<Vec<_>>()
         .into_boxed_slice()
     });
@@ -649,7 +667,7 @@ module.exports = "data:,";
         Arc::clone(&create_data.resource_resolve_data),
         loaders,
         loader_options,
-        loader_filters,
+        loader_metadata,
         create_data.context.clone().map(|x| x.into()),
         resolved_extract_source_map,
         dependency_phase,
@@ -737,7 +755,7 @@ async fn resolve_each(
 struct ResolvedLoader {
   loader: BoxLoader,
   options: LoaderRunnerOptions,
-  filter: Option<Arc<LoaderFilter>>,
+  metadata: Option<Arc<LoaderMetadata>>,
 }
 
 impl ResolvedLoader {
@@ -745,41 +763,29 @@ impl ResolvedLoader {
     Self {
       loader,
       options: LoaderRunnerOptions::default(),
-      filter: None,
+      metadata: None,
     }
   }
 }
 
 async fn resolve_each_with_options(
   plugin_driver: &SharedPluginDriver,
-  options: &CompilerOptions,
+  context: &Context,
   loader_resolver: &Resolver,
   loader: &ModuleRuleUseLoader,
   data: &mut ModuleFactoryCreateData,
 ) -> Result<ResolvedLoader> {
-  let uncached_loader;
-  let loader = if options.experiments.new_cache.loader {
-    loader
-  } else {
-    uncached_loader = ModuleRuleUseLoader {
-      cache: false,
-      ..loader.clone()
+  let resolved = resolve_each(plugin_driver, context, loader_resolver, loader, data).await?;
+  if !loader.cache() {
+    let metadata = if loader.filter().is_some() {
+      loader.metadata.clone()
+    } else {
+      None
     };
-    &uncached_loader
-  };
-  let resolved = resolve_each(
-    plugin_driver,
-    &options.context,
-    loader_resolver,
-    loader,
-    data,
-  )
-  .await?;
-  if !loader.cache {
     return Ok(ResolvedLoader {
       loader: resolved,
       options: LoaderRunnerOptions::default(),
-      filter: loader.filter.clone(),
+      metadata,
     });
   }
   let loader_name = parse_resource(&loader.loader).map_or_else(
@@ -795,10 +801,9 @@ async fn resolve_each_with_options(
     options: LoaderRunnerOptions {
       cache: true,
       loader_name,
-      options_cache_key: loader.options_cache_key.clone(),
       loader_version,
     },
-    filter: loader.filter.clone(),
+    metadata: loader.metadata.clone(),
   })
 }
 

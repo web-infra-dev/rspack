@@ -17,7 +17,7 @@ use rspack_fs::ReadableFileSystem;
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
 use rspack_hook::define_hook;
 use rspack_loader_runner::{
-  Content, LoaderContext, LoaderFilters, LoaderRunnerOptions, ResourceData, run_loaders,
+  Content, LoaderContext, LoaderMetadataList, LoaderRunnerOptions, ResourceData, run_loaders,
 };
 use rspack_sources::{
   BoxSource, CachedSource, OriginalSource, RawBufferSource, RawStringSource, SourceExt, SourceMap,
@@ -120,7 +120,7 @@ pub struct NormalModule {
   #[debug(skip)]
   loaders: Vec<BoxLoader>,
   loader_options: Option<Vec<LoaderRunnerOptions>>,
-  loader_filters: Option<LoaderFilters>,
+  loader_metadata: Option<LoaderMetadataList>,
 
   /// Matched rule effects used to resolve parser, generator, and resolve options.
   effect_indices: ModuleRuleEffectIndices,
@@ -192,7 +192,7 @@ impl NormalModule {
     resource_data: Arc<ResourceData>,
     loaders: Vec<BoxLoader>,
     loader_options: Option<Vec<LoaderRunnerOptions>>,
-    loader_filters: Option<LoaderFilters>,
+    loader_metadata: Option<LoaderMetadataList>,
     context: Option<Context>,
     extract_source_map: Option<bool>,
     import_phase: ImportPhase,
@@ -222,7 +222,7 @@ impl NormalModule {
       resource_data,
       loaders,
       loader_options,
-      loader_filters,
+      loader_metadata,
       debug_id: DEBUG_ID.fetch_add(1, Ordering::Relaxed),
       extract_source_map,
 
@@ -519,7 +519,7 @@ impl Module for NormalModule {
     let (loader_result, err) = run_loaders(
       self.loaders.clone(),
       self.loader_options.clone(),
-      self.loader_filters.clone(),
+      self.loader_metadata.clone(),
       self.resource_data.clone(),
       Some(plugin.clone()),
       RunnerContext {

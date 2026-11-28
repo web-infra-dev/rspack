@@ -11,7 +11,9 @@ import querystring from 'node:querystring';
 import {
   formatDiagnostic,
   type JsLoaderContext,
+  type JsLoaderContextState,
   type JsLoaderItem,
+  type JsLoaderItemState,
   JsLoaderState,
   JsRspackSeverity,
 } from '@rspack/binding';
@@ -100,6 +102,7 @@ export class LoaderObject {
    * @internal This field is rspack internal. Do not edit.
    */
   loaderItem: JsLoaderItem;
+  #noPitch = false;
 
   constructor(loaderItem: JsLoaderItem, compiler: Compiler) {
     const splittedRequest = parseResourceWithoutFragment(
@@ -184,7 +187,7 @@ export class LoaderObject {
     if (!value) {
       throw new Error('noPitch should be true');
     }
-    this.loaderItem.noPitch = true;
+    this.#noPitch = true;
   }
 
   shouldSkipNormal(
@@ -206,8 +209,14 @@ export class LoaderObject {
     return new this(loaderItem, compiler);
   }
 
-  static __to_binding(loader: LoaderObject): JsLoaderItem {
-    return loader.loaderItem;
+  static __to_binding(loader: LoaderObject): JsLoaderItemState {
+    return {
+      data: loader.loaderItem.data,
+      normalExecuted: loader.loaderItem.normalExecuted,
+      pitchExecuted: loader.loaderItem.pitchExecuted,
+      filterMatched: loader.loaderItem.filterMatched,
+      noPitch: loader.#noPitch,
+    };
   }
 }
 
@@ -252,7 +261,21 @@ function getCurrentLoader(
 export async function runLoaders(
   compiler: Compiler,
   context: JsLoaderContext,
-): Promise<JsLoaderContext> {
+): Promise<JsLoaderContextState> {
+  const state: JsLoaderContextState = {
+    content: context.content,
+    additionalData: context.additionalData,
+    sourceMap: context.sourceMap,
+    cacheable: context.cacheable,
+    dependencies: context.dependencies,
+    addedDependencies: context.addedDependencies,
+    removedDependencies: context.removedDependencies,
+    loaderItems: [],
+    loaderIndex: context.loaderIndex,
+    __internal__parseMeta: {},
+    __internal__error: undefined,
+    __internal__diagnostics: undefined,
+  };
   const loaderState = context.loaderState;
   const loaderChainStart = context.loaderChainStart;
   const loaderChainEnd = context.loaderChainEnd;
@@ -286,11 +309,11 @@ export async function runLoaders(
     : undefined;
   const contextDirectory = resourcePath ? dirname(resourcePath) : null;
 
-  const { addedDependencies, removedDependencies } = context;
+  const { addedDependencies, removedDependencies } = state;
   let dependencies: LoaderDependenciesState | undefined;
   const getDependencyState = () =>
     (dependencies ??= new LoaderDependenciesState(
-      context.dependencies,
+      state.dependencies,
       addedDependencies,
       removedDependencies,
     ));
@@ -336,7 +359,7 @@ export async function runLoaders(
   };
   loaderContext.clearDependencies = function clearDependencies() {
     getDependencyState().clearDependencies();
-    context.cacheable = true;
+    state.cacheable = true;
   };
 
   loaderContext.importModule = function importModule(
@@ -605,7 +628,7 @@ export async function runLoaders(
         loaderContext.loaders[loaderContext.loaderIndex],
       ),
     });
-    (context.__internal__diagnostics ??= []).push({
+    (state.__internal__diagnostics ??= []).push({
       error,
       severity: JsRspackSeverity.Error,
     });
@@ -619,7 +642,7 @@ export async function runLoaders(
         loaderContext.loaders[loaderContext.loaderIndex],
       ),
     });
-    (context.__internal__diagnostics ??= []).push({
+    (state.__internal__diagnostics ??= []).push({
       error: warning,
       severity: JsRspackSeverity.Warn,
     });
@@ -728,17 +751,17 @@ export async function runLoaders(
     return options;
   };
 
-  /// Sync with `context`
+  /// Sync with `state`
   Object.defineProperty(loaderContext, 'loaderIndex', {
     enumerable: true,
-    get: () => context.loaderIndex,
-    set: (loaderIndex) => (context.loaderIndex = loaderIndex),
+    get: () => state.loaderIndex,
+    set: (loaderIndex) => (state.loaderIndex = loaderIndex),
   });
   Object.defineProperty(loaderContext, 'cacheable', {
     enumerable: true,
     get: () => (cacheable?: boolean) => {
       if (cacheable === false) {
-        context.cacheable = cacheable;
+        state.cacheable = cacheable;
       }
     },
   });
@@ -751,7 +774,7 @@ export async function runLoaders(
 
   /// Rspack private
   loaderContext.__internal__setParseMeta = (key: string, value: string) => {
-    context.__internal__parseMeta[key] = value;
+    state.__internal__parseMeta[key] = value;
   };
 
   let compilation: Compilation | undefined = compiler._lastCompilation;
@@ -1151,13 +1174,13 @@ export async function runLoaders(
 
           if (hasArg) {
             const [content, sourceMap, additionalData] = args;
-            context.content = isNil(content)
+            state.content = isNil(content)
               ? null
               : typeof content === 'string'
                 ? content
                 : toBuffer(content);
-            context.sourceMap = serializeObject(sourceMap);
-            context.additionalData = additionalData || undefined;
+            state.sourceMap = serializeObject(sourceMap);
+            state.additionalData = additionalData || undefined;
             break;
           }
         }
@@ -1216,16 +1239,16 @@ export async function runLoaders(
           }
         }
 
-        context.content = isNil(content)
+        state.content = isNil(content)
           ? null
           : typeof content === 'string'
             ? content
             : toBuffer(content);
-        context.sourceMap = sourceMapParsed
+        state.sourceMap = sourceMapParsed
           ? JsSourceMap.__to_binding(sourceMap)
           : rawSourceMap;
         // Rust has no consumer after the chain finishes; avoid creating an unused JS reference.
-        context.additionalData =
+        state.additionalData =
           loaderContext.loaderIndex < 0
             ? undefined
             : additionalData || undefined;
@@ -1235,21 +1258,19 @@ export async function runLoaders(
       default:
         throw new Error(`Unexpected loader runner state: ${loaderState}`);
     }
-
-    // update loader state
-    context.loaderItems = loaderContext.loaders.map((item) =>
-      LoaderObject.__to_binding(item),
-    );
   } catch (e) {
     if (typeof e !== 'object' || e === null) {
       const error = new Error(
         `(Emitted value instead of an instance of Error) ${e}`,
       );
       error.name = 'NonErrorEmittedError';
-      context.__internal__error = error;
+      state.__internal__error = error;
     } else {
-      context.__internal__error = e as RspackError;
+      state.__internal__error = e as RspackError;
     }
+    state.content = null;
+    state.sourceMap = undefined;
+    state.additionalData = undefined;
   }
   if (traceData) {
     JavaScriptTracer.endAsync({
@@ -1266,9 +1287,13 @@ export async function runLoaders(
     commitCustomFieldsToRust(context._module.buildInfo);
   }
 
+  // update loader state
+  state.loaderItems = loaderContext.loaders.map((item) =>
+    LoaderObject.__to_binding(item),
+  );
   if (dependencies) {
-    context.addedDependencies = dependencies.added;
-    context.removedDependencies = dependencies.removed;
+    state.addedDependencies = dependencies.added;
+    state.removedDependencies = dependencies.removed;
   }
-  return context;
+  return state;
 }
