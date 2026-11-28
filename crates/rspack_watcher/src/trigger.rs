@@ -156,6 +156,7 @@ impl Trigger {
       .name("rspack-fs-event-filter".to_string())
       .spawn(move || {
         let runtime = tokio::runtime::Builder::new_current_thread()
+          .max_blocking_threads(crate::SCAN_THREADS_PER_RUNTIME)
           .enable_all()
           .build()
           .expect("create watcher event filter runtime");
@@ -188,10 +189,10 @@ impl Trigger {
   /// A context's initial scan found `path` changed since the start time, while
   /// the watch was not active yet: like watchpack's initial scan, it is
   /// reported as found, never taken for an attribute-only event.
-  pub(crate) fn on_scanned_change(&self, path: &InternedPath) {
-    let _ = self
-      .pending
-      .send((path.clone(), FsEventKind::Change, Origin::Scan));
+  pub(crate) fn on_scanned_events(&self, events: EventBatch) {
+    for event in events {
+      let _ = self.pending.send((event.path, event.kind, Origin::Scan));
+    }
   }
 
   /// A sender for the scanner's backfilled events. They queue with the live

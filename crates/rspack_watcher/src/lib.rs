@@ -131,6 +131,9 @@ pub struct FsWatcherOptions {
   pub aggregate_timeout: Option<u32>,
 }
 
+// Registration and filesystem events each run on a current-thread runtime.
+const SCAN_THREADS_PER_RUNTIME: usize = 8;
+
 const WATCHER_UNAVAILABLE: &str =
   "The watcher has been stopped and cannot accept new watch requests";
 
@@ -377,6 +380,7 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
     .name("rspack-fs-watcher".to_string())
     .spawn(move || {
       let runtime = tokio::runtime::Builder::new_current_thread()
+        .max_blocking_threads(SCAN_THREADS_PER_RUNTIME)
         .enable_all()
         .build()
         .expect("create watcher runtime");
@@ -415,6 +419,7 @@ impl FsWatcherInner {
   }
 
   async fn close(&mut self) -> Result<()> {
+    self.path_manager.close_scans();
     self.disk_watcher.close();
     self.scanner.close();
     self.executor.close().await;
@@ -459,12 +464,16 @@ impl FsWatcherInner {
       self.analyzer.invalidate_all();
       return Err(error);
     }
-    let changed_in_contexts = self.path_manager.scan_contexts(start_time).await;
-    if let Some(trigger) = self.trigger.lock().expect("should lock trigger").clone() {
-      for path in &changed_in_contexts {
-        trigger.on_scanned_change(path);
-      }
-    }
+    let trigger = self.trigger.lock().expect("should lock trigger").clone();
+    self
+      .path_manager
+      .added_context_scan(start_time)
+      .run(&self.path_manager, |events| {
+        if let Some(trigger) = &trigger {
+          trigger.on_scanned_events(events);
+        }
+      })
+      .await;
 
     // Scan AFTER the disk watcher is registered, not before. notify's `watch()`
     // registers the underlying inotify/FSEvents watch synchronously, so once it

@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex, Weak};
 
-use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap};
+use rspack_paths::{InternedPath, InternedPathDashMap, InternedPathMap, InternedPathSet};
 
-use crate::paths::FileRecord;
+use crate::paths::{DirectoryScan, FileRecord};
 
 pub(super) enum MemberKind {
   File,
@@ -34,6 +34,8 @@ pub(super) trait ContextLookup {
 
 #[derive(Default)]
 pub(super) struct DirectoryWatcher {
+  pub(crate) scan: Option<Arc<DirectoryScan>>,
+  pub(crate) live_during_scan: Weak<Mutex<InternedPathSet>>,
   pub(super) members: InternedPathMap<ContextMember>,
   pub(super) files: InternedPathMap<FileRecord>,
   pub(super) last_watch_event: Option<u64>,
@@ -83,11 +85,13 @@ impl WatcherManager {
 
   pub(super) fn subscribe_context(&self, path: &InternedPath) {
     let mut watcher = self.directories.entry(path.clone()).or_default();
+    watcher.invalidate_scan();
     watcher.subscriptions.explicit = true;
   }
 
   pub(super) fn unsubscribe_context(&self, path: &InternedPath) {
     self.directories.remove_if_mut(path, |_, watcher| {
+      watcher.invalidate_scan();
       watcher.subscriptions.explicit = false;
       watcher.is_unused()
     });
@@ -110,11 +114,14 @@ impl WatcherManager {
   pub(super) fn add_member(&self, path: &InternedPath, kind: MemberKind) -> bool {
     let parent = InternedPath::from(path.parent().expect("a context member has a parent"));
     let mut watcher = self.directories.entry(parent).or_default();
-    let member = watcher.members.entry(path.clone()).or_default();
+    watcher.note_member(path);
     match kind {
-      MemberKind::File => !std::mem::replace(&mut member.file, true),
+      MemberKind::File => !std::mem::replace(
+        &mut watcher.members.entry(path.clone()).or_default().file,
+        true,
+      ),
       MemberKind::Directory => {
-        let added = !std::mem::replace(&mut member.directory, true);
+        let added = watcher.set_directory(path);
         let parent = watcher.key().clone();
         drop(watcher);
         let mut child = self.directories.entry(path.clone()).or_default();
@@ -135,6 +142,7 @@ impl WatcherManager {
       self
         .directories
         .remove_if_mut(&InternedPath::from(parent), |_, watcher| {
+          watcher.note_member(path);
           removed = watcher.members.remove(path).unwrap_or_default();
           watcher.is_unused()
         });
@@ -147,6 +155,7 @@ impl WatcherManager {
 
   pub(super) fn unsubscribe_parent(&self, path: &InternedPath) {
     self.directories.remove_if_mut(path, |_, watcher| {
+      watcher.invalidate_scan();
       watcher.subscriptions.parent = None;
       watcher.is_unused()
     });
