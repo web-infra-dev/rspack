@@ -2073,12 +2073,13 @@ type DevToolNoSources = 'nosources-' | '';
 type DevToolCheap = 'cheap-' | 'cheap-module-' | '';
 
 type DevToolDebugIds = '-debugids' | '';
+type DevToolScopes = '-scopes' | '';
 
-// [inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids].
+// [inline-|hidden-|eval-][nosources-][cheap-[module-]]source-map[-debugids][-scopes].
 export type DevTool =
   | false
   | 'eval'
-  | `${DevToolPosition}${DevToolNoSources}${DevToolCheap}source-map${DevToolDebugIds}`;
+  | `${DevToolPosition}${DevToolNoSources}${DevToolCheap}source-map${DevToolDebugIds}${DevToolScopes}`;
 //#endregion
 
 //#region Node

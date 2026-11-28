@@ -6,7 +6,8 @@ use rspack_core::{
 };
 use rspack_util::{SpanExt, swc::AstSubRangeExt};
 use swc_next_ecma_ast::{
-  BinaryExpression, BinaryOperator, CallExpression, Expr, GetSpan, ImportDeclaration, Span,
+  BinaryExpression, BinaryOperator, CallExpression, Expr, GetSpan, ImportDeclaration,
+  ImportDeclarationSpecifierData, Span,
 };
 
 use super::{
@@ -95,7 +96,7 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
     let import_span = import_decl.span(ast);
     let resource_identifier =
       create_resource_identifier_for_esm_dependency(source, phase, attributes.as_ref());
-    let dependency = ESMImportSideEffectDependency::new(
+    let mut dependency = ESMImportSideEffectDependency::new(
       source.into(),
       parser.last_esm_import_order,
       import_span.into(),
@@ -106,6 +107,16 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for ESMImportDependencyParserPlugin 
       parser.to_dependency_location(DependencyRange::from(import_span)),
       false,
     );
+    dependency.namespace_binding = ast
+      .nodes(import_decl.specifiers(ast))
+      .find_map(
+        |specifier| match ast.import_declaration_specifier_data(specifier) {
+          ImportDeclarationSpecifierData::ImportNamespaceSpecifier(namespace) => {
+            Some(Atom::from(ast.get_utf8(namespace.local(ast).name(ast))))
+          }
+          _ => None,
+        },
+      );
     parser.last_import_resource_identifier = Some((import_decl.node_id(), resource_identifier));
 
     parser.add_dependency(BoxDependency::new(dependency));

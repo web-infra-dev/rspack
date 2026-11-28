@@ -1077,6 +1077,7 @@ impl CompilerOptionsBuilder {
         include: None,
         exclude: None,
         debug_ids: false,
+        scopes: devtool_flags.contains(DevtoolFlags::SCOPES),
       };
 
       if eval_wrapped {

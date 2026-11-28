@@ -27,7 +27,7 @@ use rspack_util::{
 use crate::{
   ModuleFilenameTemplate, SourceMapDevToolPluginOptions, default_eval_module_filename_template,
   generate_debug_id::generate_debug_id, module_filename_helpers::ModuleFilenameHelpers,
-  resolve_source_reference,
+  resolve_source_reference, source_map_scopes::add_import_binding_scopes,
 };
 
 const EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME: &str = "rspack.EvalSourceMapDevToolPlugin";
@@ -42,6 +42,7 @@ pub struct EvalSourceMapDevToolPlugin {
   namespace: String,
   source_root: Option<String>,
   debug_ids: bool,
+  scopes: bool,
   ignore_list: Option<AssetConditions>,
 
   test: Option<AssetConditions>,
@@ -62,6 +63,7 @@ impl EvalSourceMapDevToolPlugin {
       namespace,
       options.source_root,
       options.debug_ids,
+      options.scopes,
       options.ignore_list,
       options.test,
       options.include,
@@ -77,6 +79,7 @@ async fn compilation(
   compilation: &mut Compilation,
   _params: &mut CompilationParams,
 ) -> Result<()> {
+  compilation.source_map_scopes |= self.scopes && self.columns;
   let hooks = JsPlugin::get_compilation_hooks_mut(compilation.id());
   let mut hooks = hooks.write().await;
   hooks
@@ -140,6 +143,21 @@ async fn render_module_content(
     render_source.source = cached_source.value().clone();
     return Ok(());
   } else if let Some(mut map) = origin_source.clone().map(&MapOptions::new(self.columns)) {
+    if self.scopes && self.columns {
+      let references = map
+        .sources()
+        .iter()
+        .map(|source| resolve_source_reference(compilation, source))
+        .collect::<Vec<_>>();
+      add_import_binding_scopes(
+        compilation,
+        chunk.runtime(),
+        &mut map,
+        origin_source.as_ref(),
+        &references,
+        [module.identifier()],
+      );
+    }
     let source = {
       let source = origin_source.source().into_string_lossy();
 
@@ -283,6 +301,9 @@ async fn js_chunk_hash(
   hasher: &mut RspackHasher,
 ) -> Result<()> {
   RspackHash::hash(&EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME, hasher);
+  if self.scopes {
+    RspackHash::hash(&"scopes", hasher);
+  }
   Ok(())
 }
 

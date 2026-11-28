@@ -36,6 +36,8 @@ pub struct CacheableSourceMap {
   #[rkyv(with = Map<AsStr>)]
   debug_id: Option<BytesStr>,
   ignore_list: Option<Vec<u32>>,
+  scopes: Option<Vec<Option<String>>>,
+  ranges: Option<Vec<String>>,
 }
 
 // Archive text as strings so cache validation checks UTF-8 before restoring BytesStr.
@@ -78,6 +80,15 @@ impl From<&SourceMap> for CacheableSourceMap {
       source_root: map.source_root.clone(),
       debug_id: map.debug_id.clone(),
       ignore_list: map.ignore_list().map(<[u32]>::to_vec),
+      scopes: map.scopes().map(|scopes| {
+        scopes
+          .iter()
+          .map(|scope| scope.as_deref().map(str::to_owned))
+          .collect()
+      }),
+      ranges: map
+        .ranges()
+        .map(|ranges| ranges.iter().map(ToString::to_string).collect()),
     }
   }
 }
@@ -96,6 +107,12 @@ impl From<CacheableSourceMap> for SourceMap {
       ignore_list: map
         .ignore_list
         .map(|items| ThinArc::from_header_and_iter((), items.into_iter())),
+      scopes: map
+        .scopes
+        .and_then(|items| shared_slice(items.into_iter().map(|scope| scope.map(Into::into)))),
+      ranges: map
+        .ranges
+        .and_then(|items| shared_slice(items.into_iter().map(Into::into))),
     }
   }
 }

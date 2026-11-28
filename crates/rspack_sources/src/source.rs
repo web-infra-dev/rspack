@@ -401,6 +401,16 @@ pub struct SourceMap {
     serialize_with = "serialize_ignore_list"
   )]
   pub(crate) ignore_list: Option<ThinArc<(), u32>>,
+  #[serde(
+    skip_serializing_if = "Option::is_none",
+    serialize_with = "serialize_shared_slice"
+  )]
+  pub(crate) scopes: Option<ThinArc<(), Option<BytesStr>>>,
+  #[serde(
+    skip_serializing_if = "Option::is_none",
+    serialize_with = "serialize_shared_slice"
+  )]
+  pub(crate) ranges: Option<ThinArc<(), BytesStr>>,
 }
 
 impl SourceMap {
@@ -426,6 +436,8 @@ impl SourceMap {
       source_root: None,
       debug_id: None,
       ignore_list: None,
+      scopes: None,
+      ranges: None,
     }
   }
 
@@ -447,7 +459,7 @@ impl SourceMap {
     let object = value
       .as_object()
       .ok_or_else(|| simd_json::Error::generic(ErrorType::ExpectedMap))?;
-    let mut raw_fields = [None; 8];
+    let mut raw_fields = [None; 10];
     let mut duplicate = false;
     for (key, value) in object.iter() {
       let index = match key {
@@ -459,6 +471,8 @@ impl SourceMap {
         "sourceRoot" => 5,
         "debugId" => 6,
         "ignoreList" => 7,
+        "scopes" => 8,
+        "ranges" => 9,
         _ => continue,
       };
       duplicate |= raw_fields[index].replace(value).is_some();
@@ -493,6 +507,19 @@ impl SourceMap {
   pub fn set_ignore_list(&mut self, ignore_list: Option<Cow<'_, [u32]>>) {
     self.ignore_list =
       ignore_list.map(|list| ThinArc::from_header_and_iter((), list.iter().copied()));
+  }
+  /// Get the encoded original scopes, indexed by source.
+  pub fn scopes(&self) -> Option<&[Option<BytesStr>]> {
+    self.scopes.as_ref().map(|items| &items.slice)
+  }
+  /// Get the encoded generated ranges.
+  pub fn ranges(&self) -> Option<&[BytesStr]> {
+    self.ranges.as_ref().map(|items| &items.slice)
+  }
+  /// Set the encoded original scopes and generated ranges.
+  pub fn set_scopes(&mut self, scopes: Vec<Option<BytesStr>>, ranges: Vec<BytesStr>) {
+    self.scopes = shared_slice(scopes.into_iter());
+    self.ranges = shared_slice(ranges.into_iter());
   }
   /// Get the decoded mappings.
   pub fn decoded_mappings(&self) -> impl Iterator<Item = Mapping> + '_ {
@@ -553,6 +580,16 @@ impl SourceMap {
     let copy = |text: &BytesStr| BytesStr::from_str_slice(text);
     shrink_shared_slice(&mut self.sources, shrink_string, copy);
     shrink_shared_slice(&mut self.names, shrink_string, copy);
+    shrink_shared_slice(&mut self.ranges, shrink_string, copy);
+    shrink_shared_slice(
+      &mut self.scopes,
+      |scope| {
+        if let Some(text) = scope {
+          shrink_string(text);
+        }
+      },
+      |scope| scope.as_deref().map(BytesStr::from_str_slice),
+    );
     if !is_all_none(&self.sources_content) {
       shrink_shared_slice(
         &mut self.sources_content,
@@ -709,11 +746,17 @@ impl Hash for SourceMap {
     self.names().hash(state);
     self.source_root.hash(state);
     self.ignore_list().hash(state);
+    if let Some(scopes) = self.scopes() {
+      scopes.hash(state);
+    }
+    if let Some(ranges) = self.ranges() {
+      ranges.hash(state);
+    }
   }
 }
 
 fn deserialize_source_map_tape(
-  fields: [Option<simd_json::tape::Value<'_, '_>>; 8],
+  fields: [Option<simd_json::tape::Value<'_, '_>>; 10],
   storage: &Bytes,
 ) -> Result<SourceMap> {
   let [
@@ -725,6 +768,8 @@ fn deserialize_source_map_tape(
     source_root,
     debug_id,
     ignore_list,
+    scopes,
+    ranges,
   ] = fields;
   let mappings = mappings
     .and_then(|value| value.into_string())
@@ -743,6 +788,13 @@ fn deserialize_source_map_tape(
     debug_id: optional_tape_string(debug_id, storage)?,
     ignore_list: optional_tape_u32s(ignore_list)?
       .map(|items| ThinArc::from_header_and_iter((), items.into_iter())),
+    // Ignore unsupported scope encodings, including the older scopes string.
+    scopes: optional_tape_source_contents(scopes, storage)
+      .ok()
+      .and_then(|items| shared_slice(items.into_iter())),
+    ranges: optional_tape_strings(ranges, storage)
+      .ok()
+      .and_then(|items| shared_slice(items.into_iter())),
   })
 }
 
@@ -837,6 +889,12 @@ fn deserialize_source_map(value: &BorrowedValue<'_>, storage: &Bytes) -> Result<
     debug_id: optional_string_field(object, "debugId")?.map(text),
     ignore_list: optional_u32_array_field(object, "ignoreList")?
       .map(|items| ThinArc::from_header_and_iter((), items.into_iter())),
+    scopes: optional_source_contents_field(object, "scopes", storage)
+      .ok()
+      .and_then(|items| shared_slice(items.into_iter())),
+    ranges: optional_string_array_field(object, "ranges", storage)
+      .ok()
+      .and_then(|items| shared_slice(items.into_iter())),
   })
 }
 

@@ -1789,7 +1789,13 @@ impl DependencyTemplate for ESMExportImportedSpecifierDependencyTemplate {
       mode,
       ExportMode::LazyMake | ExportMode::Unused(_) | ExportMode::EmptyStar(_)
     ) {
-      esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
+      esm_import_dependency_apply(
+        dep,
+        dep.source_order,
+        dep.phase,
+        code_generatable_context,
+        None,
+      );
       dep.add_export_fragments(code_generatable_context, mode);
     }
   }

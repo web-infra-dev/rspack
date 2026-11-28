@@ -6,15 +6,16 @@ use rspack_cacheable::{
 };
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
-  AsContextDependency, ConnectionState, Dependency, DependencyCategory, DependencyCodeGeneration,
-  DependencyCondition, DependencyConditionFn, DependencyDiagnosticsContext, DependencyId,
-  DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportPresenceMode, ExportProvided, ExportsInfoArtifact, ExportsType, ForwardId,
-  ImportAttributes, ImportPhase, JavascriptParserOptions, ModuleDependency, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
-  ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
-  TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
-  property_access, should_reference_call_receiver, to_normal_comment,
+  AsContextDependency, Compilation, ConnectionState, Dependency, DependencyCategory,
+  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
+  DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
+  DependencyTemplate, DependencyTemplateType, DependencyType, ExportPresenceMode, ExportProvided,
+  ExportsInfoArtifact, ExportsType, ForwardId, ImportAttributes, ImportPhase,
+  JavascriptParserOptions, Module, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport, ResourceIdentifier, RuntimeSpec,
+  SideEffectsStateArtifact, TemplateContext, TemplateReplaceSource, UsageState, UsedByExports,
+  UsedName, create_exports_object_referenced, property_access, should_reference_call_receiver,
+  to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHasher};
@@ -483,16 +484,23 @@ impl ESMImportSpecifierDependencyTemplate {
         dep.phase,
         code_generatable_context.runtime,
       );
-      esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
+      esm_import_dependency_apply(
+        dep,
+        dep.source_order,
+        dep.phase,
+        code_generatable_context,
+        (dep.ns_access || dep.ids.is_empty()).then_some(&dep.name),
+      );
       let TemplateContext {
         compilation,
         module,
         runtime,
+        concatenation_scope,
         init_fragments,
         runtime_template,
-        ..
+        data,
       } = code_generatable_context;
-      runtime_template.export_from_import(
+      let export_expr = runtime_template.export_from_import(
         compilation,
         init_fragments,
         *module,
@@ -506,7 +514,51 @@ impl ESMImportSpecifierDependencyTemplate {
         !dep.direct_import,
         Some(dep.shorthand || dep.asi_safe),
         dep.phase,
-      )
+      );
+      if compilation.source_map_scopes
+        && concatenation_scope.is_none()
+        && dep.phase == ImportPhase::Evaluation
+        && let Some(target_module) = target_module
+        && !dep.ns_access
+        && !dep.evaluated_in_operator
+        // For a named import, the first authored ID is the imported export.
+        // Strip the member path only if redirection preserved that suffix.
+        && let Some(members) = dep.ids.get(1..)
+        && let Some(binding_ids) = ids.strip_suffix(members)
+        && !binding_ids.is_empty()
+        && import_preserves_json_shape(compilation, target_module.as_ref(), binding_ids, *runtime)
+      {
+        let expression = if members.is_empty() {
+          let value = export_expr.strip_prefix(';').unwrap_or(&export_expr);
+          if dep.call {
+            value
+              .strip_prefix("(0,")
+              .and_then(|access| access.strip_suffix(')'))
+              .unwrap_or(value)
+              .to_owned()
+          } else {
+            value.to_owned()
+          }
+        } else {
+          runtime_template.export_from_import(
+            compilation,
+            &mut Vec::new(),
+            *module,
+            *runtime,
+            true,
+            &dep.request,
+            &import_var,
+            binding_ids,
+            &dep.id,
+            false,
+            false,
+            Some(true),
+            dep.phase,
+          )
+        };
+        data.record_import_binding(dep.name.clone(), expression);
+      }
+      export_expr
     }
   }
 
@@ -619,6 +671,44 @@ impl ESMImportSpecifierDependencyTemplate {
       }
     }
   }
+}
+
+fn import_preserves_json_shape(
+  compilation: &Compilation,
+  module: &dyn Module,
+  ids: &[Atom],
+  runtime: Option<&RuntimeSpec>,
+) -> bool {
+  if !module
+    .build_info()
+    .json_data
+    .as_ref()
+    .is_some_and(|data| data.is_object() || data.is_array())
+  {
+    return true;
+  }
+  let artifact = &compilation.exports_info_artifact;
+  let exports = artifact.get_exports_info_data(&module.identifier());
+  // JSON generation may prune and rename keys when only individual
+  // properties are used. A debugger binding represents the entire value.
+  if exports.other_exports_info().get_used(runtime) != UsageState::Unused {
+    return true;
+  }
+  // A JSON default import reads the root object itself.
+  let ids = ids.strip_prefix(&[Atom::from("default")]).unwrap_or(ids);
+  !ids.is_empty()
+    && exports
+      .get_read_only_export_info_recursive(artifact, ids)
+      .is_some_and(|info| {
+        info.get_used(runtime) != UsageState::OnlyPropertiesUsed
+          || info.exports_info().is_none_or(|nested| {
+            nested
+              .as_data(artifact)
+              .other_exports_info()
+              .get_used(runtime)
+              != UsageState::Unused
+          })
+      })
 }
 
 impl DependencyTemplate for ESMImportSpecifierDependencyTemplate {

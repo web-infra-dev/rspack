@@ -65,4 +65,11 @@ new rspack.EvalSourceMapDevToolPlugin({
 
 指示是否应该使用列映射（默认为 `true`）。
 
+### scopes
+
+- **类型：** `boolean`
+- **默认值：** `false`
+
+在每个 eval source map 中输出重写后的 ESM 导入的作用域元数据。支持的绑定见 [devtool 的 `scopes` 修饰符](/config/devtool#scopes)。
+
 <Attribution url="https://webpack.docschina.org/plugins/eval-source-map-dev-tool-plugin/" />

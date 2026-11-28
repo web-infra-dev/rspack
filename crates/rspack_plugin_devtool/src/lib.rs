@@ -4,6 +4,7 @@ mod generate_debug_id;
 mod module_filename_helpers;
 mod source_map_dev_tool_module_options_plugin;
 mod source_map_dev_tool_plugin;
+mod source_map_scopes;
 
 use std::sync::{Arc, LazyLock};
 

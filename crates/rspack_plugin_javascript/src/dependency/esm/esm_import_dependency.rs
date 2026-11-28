@@ -1,5 +1,8 @@
 use itertools::Itertools;
-use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
+use rspack_cacheable::{
+  cacheable, cacheable_dyn,
+  with::{AsOption, AsPreset},
+};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
@@ -11,7 +14,7 @@ use rspack_core::{
   InitFragmentStage, LazyUntil, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
   ModuleIdentifier, ProvidedExports, ReferencedExport, ResourceIdentifier, RuntimeCondition,
   RuntimeSpec, SideEffectsStateArtifact, SourceType, TemplateContext, TemplateReplaceSource,
-  TypeReexportPresenceMode, filter_runtime,
+  TypeReexportPresenceMode, UsedNameItem, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_hash::{RspackHash, RspackHasher};
@@ -71,6 +74,8 @@ pub struct ESMImportSideEffectDependency {
   resource_identifier: ResourceIdentifier,
   loc: Option<DependencyLocation>,
   star_export: bool,
+  #[cacheable(with=AsOption<AsPreset>)]
+  pub namespace_binding: Option<Atom>,
 }
 
 impl ESMImportSideEffectDependency {
@@ -97,6 +102,7 @@ impl ESMImportSideEffectDependency {
       resource_identifier,
       loc,
       star_export,
+      namespace_binding: None,
     }
   }
 
@@ -110,6 +116,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   source_order: i32,
   phase: ImportPhase,
   code_generatable_context: &mut TemplateContext,
+  namespace_binding: Option<&Atom>,
 ) {
   let TemplateContext {
     compilation,
@@ -194,8 +201,39 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     init_fragments,
     compilation,
     module,
+    concatenation_scope,
+    data,
     ..
   } = code_generatable_context;
+
+  if compilation.source_map_scopes
+    && concatenation_scope.is_none()
+    && phase == ImportPhase::Evaluation
+    && matches!(runtime_condition, RuntimeCondition::Boolean(true))
+    && let Some(name) = namespace_binding
+    && let Some(target_module) = target_module
+    && module_graph.get_resolved_module(module_dependency.id()) == Some(&target_module.identifier())
+    && matches!(
+      target_module.get_exports_type(
+        module_graph,
+        module_graph_cache,
+        &compilation.exports_info_artifact,
+        module.get_strict_esm_module(),
+      ),
+      ExportsType::Namespace
+    )
+    && compilation
+      .exports_info_artifact
+      .get_exports_info_data(&target_module.identifier())
+      .exports()
+      .iter()
+      .all(|(name, info)| {
+        matches!(info.provided(), Some(ExportProvided::NotProvided))
+          || matches!(info.get_used_name(Some(name), *runtime), Some(UsedNameItem::Str(used)) if used == *name)
+      })
+  {
+    data.record_import_binding(name.clone(), import_var.clone());
+  }
 
   // https://github.com/webpack/webpack/blob/ac7e531436b0d47cd88451f497cdfd0dad41535d/lib/dependencies/HarmonyImportDependency.js#L282-L285
   let module_key = target_module.map_or(module_dependency.request(), |m| m.identifier().as_str());
@@ -748,6 +786,12 @@ impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
     {
       return;
     }
-    esm_import_dependency_apply(dep, dep.source_order, dep.phase, code_generatable_context);
+    esm_import_dependency_apply(
+      dep,
+      dep.source_order,
+      dep.phase,
+      code_generatable_context,
+      dep.namespace_binding.as_ref(),
+    );
   }
 }

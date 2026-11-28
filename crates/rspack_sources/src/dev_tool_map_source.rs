@@ -157,6 +157,20 @@ impl MapData {
           .into_iter()
           .flat_map(|s| [Raw(",\"ignoreList\":"), Raw(s)]),
       )
+      .chain(map.scopes().into_iter().flat_map(|scopes| {
+        once(Raw(",\"scopes\":["))
+          .chain(array(
+            scopes
+              .iter()
+              .map(|scope| scope.as_deref().map_or(Raw("null"), String)),
+          ))
+          .chain(once(Raw("]")))
+      }))
+      .chain(map.ranges().into_iter().flat_map(|ranges| {
+        once(Raw(",\"ranges\":["))
+          .chain(array(ranges.iter().map(|range| String(range))))
+          .chain(once(Raw("]")))
+      }))
       .chain(once(Raw("}")))
   }
 }

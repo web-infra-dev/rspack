@@ -3486,6 +3486,7 @@ export interface SourceMapDevToolPluginOptions {
   include?: string | RegExp | (string | RegExp)[]
   exclude?: string | RegExp | (string | RegExp)[]
   debugIds?: boolean
+  scopes?: boolean
 }
 
 export interface SourcePosition {
