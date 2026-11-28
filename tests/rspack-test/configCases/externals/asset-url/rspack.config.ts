@@ -2,9 +2,6 @@ import { defineConfig } from '@rspack/cli';
 
 export default defineConfig({
   target: 'web',
-  experiments: {
-    css: true,
-  },
   optimization: {
     minimize: false,
   },

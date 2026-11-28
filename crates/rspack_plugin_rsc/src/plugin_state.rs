@@ -5,7 +5,7 @@ use rspack_cacheable::with::{AsPreset, AsVec};
 use rspack_collections::IdentifierSet;
 use rspack_core::CompilerId;
 use rspack_intern::{Atom, IndexAtomSet};
-use rspack_util::fx_hash::{FxDashMap, FxIndexSet};
+use rspack_util::fx_hash::{FxDashMap, FxIndexMap, FxIndexSet};
 use rustc_hash::FxHashMap;
 
 use crate::reference_manifest::{
@@ -13,8 +13,8 @@ use crate::reference_manifest::{
 };
 
 pub type ActionIdNamePair = (Atom, Atom);
-pub type CssImportsByServerEntry = FxHashMap<String, FxIndexSet<String>>;
-pub type ClientModulesByServerEntry = FxHashMap<String, Vec<ClientModuleImport>>;
+pub type CssImportsByServerEntry = FxIndexMap<String, FxIndexSet<String>>;
+pub type ClientModulesByServerEntry = FxIndexMap<String, Vec<ClientModuleImport>>;
 pub type RootCssImports = FxIndexSet<String>;
 
 /// Structured info about a client module to inject into the client compiler.
@@ -39,7 +39,7 @@ pub struct ServerEntryState {
 /// State for one compilation entry.
 #[derive(Debug, Default)]
 pub struct EntryState {
-  pub server_entries: FxHashMap<String, ServerEntryState>,
+  pub server_entries: FxIndexMap<String, ServerEntryState>,
   /// All client modules discovered from the RSC graph for this entry.
   pub injected_client_entries: Vec<ClientModuleImport>,
   /// Client modules that cannot be assigned to exactly one owner and stay as standalone async chunks.
@@ -52,8 +52,6 @@ pub struct EntryState {
   /// Root CSS import paths reached through a parent chain without `use server-entry`.
   /// These are attached directly to the matching client compiler entry.
   pub root_css_imports: RootCssImports,
-  /// Dependency path -> action id/name pairs.
-  pub client_actions: FxHashMap<String, Vec<ActionIdNamePair>>,
   pub server_actions: ServerReferenceManifest,
   pub bootstrap_scripts: FxIndexSet<String>,
   pub changed_server_components: IdentifierSet,

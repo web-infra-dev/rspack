@@ -1,10 +1,11 @@
-use std::path::PathBuf;
+use std::{io::ErrorKind, path::PathBuf};
 
 use anyhow::{Context, anyhow};
 use itertools::Itertools;
 use rspack_core::{Compilation, Mode};
 use rspack_dojang::{Dojang, Operand, dojang::DojangOptions};
 use rspack_error::{AnyhowResultToRspackResultExt, Result, ToStringResultToRspackResultExt, error};
+use rspack_fs::FsResultToIoResultExt;
 use rspack_paths::AssertUtf8;
 use serde_json::Value;
 
@@ -71,7 +72,7 @@ impl HtmlTemplate {
           .map_err(|err| anyhow!(err))
           .context(format!(
             "HtmlRspackPlugin: could not load file `{}` from `{}`",
-            template, &compilation.options.context
+            template, compilation.options.context
           ))
           .map(|content| Self {
             render: TemplateRender::Template(content),
@@ -87,26 +88,29 @@ impl HtmlTemplate {
         path_clean::clean(compilation.options.context.as_path().join("src/index.ejs"))
           .assert_utf8();
 
-      if let Ok(content) = compilation
+      match compilation
         .input_filesystem
         .read_to_string(&default_src_template)
         .await
+        .to_io_result()
       {
-        Ok(Self {
+        Ok(content) => Ok(Self {
           render: TemplateRender::Template(content),
           url: default_src_template.as_str().to_string(),
           filename: "src/index.ejs".to_string(),
           file_dependencies: vec![default_src_template.into_std_path_buf()],
           parameters: None,
-        })
-      } else {
-        Ok(Self {
+        }),
+        Err(err) if err.kind() == ErrorKind::NotFound => Ok(Self {
           render: TemplateRender::Template(default_template().to_owned()),
           url: "default.html".to_string(),
           filename: "default.html".to_string(),
           file_dependencies: vec![],
           parameters: None,
-        })
+        }),
+        Err(err) => Err(error!(
+          "HtmlRspackPlugin: Failed to read template '{default_src_template}': {err}"
+        )),
       }
     }
   }

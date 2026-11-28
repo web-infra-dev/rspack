@@ -1,15 +1,15 @@
 use std::{borrow::Cow, sync::Arc};
 
 use async_trait::async_trait;
-use rspack_cacheable::{cacheable, cacheable_dyn, with::Unsupported};
+use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{Identifiable, Identifier};
 use rspack_core::{
   AsyncDependenciesBlock, BoxDependency, BoxModule, BuildContext, BuildInfo, BuildMeta,
   CodeGenerationResultBuilder, Compilation, Context, DependenciesBlock, DependenciesBlockData,
   ExportsType, FactoryMetaStore, FreezeLock, LibIdentOptions, Module, ModuleCodeGenerationContext,
-  ModuleGraph, ModuleIdentifier, ModuleType, RuntimeGlobals, RuntimeSpec, SourceType,
-  impl_module_meta_info, impl_source_map_config, module_update_hash, rspack_sources::BoxSource,
-  runtime_mode::RuntimeMode,
+  ModuleGraph, ModuleIdentifier, ModuleType, NeedBuildContext, RuntimeGlobals, RuntimeSpec,
+  SourceType, impl_module_meta_info, impl_source_map_config, module_update_hash,
+  rspack_sources::BoxSource, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Result, impl_empty_diagnosable_trait};
 use rspack_hash::{RspackHash, RspackHashDigest, RspackHasher};
@@ -25,7 +25,6 @@ use crate::{ConsumeOptions, ShareScope, utils::module_identifier_namespace};
 #[cacheable]
 #[derive(Debug)]
 pub struct ConsumeSharedModule {
-  #[cacheable(with=Unsupported)]
   dependencies_block: DependenciesBlockData,
   identifier: ModuleIdentifier,
   lib_ident: String,
@@ -44,6 +43,10 @@ impl ConsumeSharedModule {
     &self.options.share_scope
   }
 
+  pub(crate) fn options(&self) -> &ConsumeOptions {
+    &self.options
+  }
+
   pub(crate) fn configured_share_key(&self) -> &str {
     self
       .configured_share_key
@@ -60,8 +63,8 @@ impl ConsumeSharedModule {
     let namespace = module_identifier_namespace(runtime_mode);
     let identifier = format!(
       "consume shared module ({}) {}@{}{}{}{}{}",
-      &scopes_key,
-      &options.share_key,
+      scopes_key,
+      options.share_key,
       options
         .required_version
         .as_ref()
@@ -79,8 +82,7 @@ impl ConsumeSharedModule {
       options
         .import_resolved
         .as_ref()
-        .map(|f| format!(" (fallback: {f})"))
-        .unwrap_or_default(),
+        .map_or_default(|f| format!(" (fallback: {f})")),
       if options.eager {
         " (eager)"
       } else {
@@ -92,13 +94,9 @@ impl ConsumeSharedModule {
       identifier: ModuleIdentifier::from(identifier.as_ref()),
       lib_ident: format!(
         "{namespace}/sharing/consume/{}/{}{}",
-        &scopes_key,
-        &options.share_key,
-        options
-          .import
-          .as_ref()
-          .map(|r| format!("/{r}"))
-          .unwrap_or_default()
+        scopes_key,
+        options.share_key,
+        options.import.as_ref().map_or_default(|r| format!("/{r}"))
       ),
       readable_identifier: identifier,
       context,
@@ -193,6 +191,10 @@ impl Module for ConsumeSharedModule {
       exports_info_artifact,
       strict,
     )
+  }
+
+  async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
+    Ok(self.build_info.frozen().is_none())
   }
 
   async fn build(

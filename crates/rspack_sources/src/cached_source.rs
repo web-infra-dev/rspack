@@ -22,8 +22,8 @@ struct CachedData {
   size: OnceLock<usize>,
   is_ascii: OnceLock<bool>,
   chunks: OnceLock<Box<[&'static str]>>,
-  columns_map: OnceLock<Option<SourceMap<'static>>>,
-  line_only_map: OnceLock<Option<SourceMap<'static>>>,
+  columns_map: OnceLock<Option<SourceMap>>,
+  line_only_map: OnceLock<Option<SourceMap>>,
 }
 
 /// It tries to reused cached results from other methods to avoid calculations,
@@ -112,7 +112,7 @@ impl CachedSource {
     })
   }
 
-  fn map_cache(&self, options: &MapOptions) -> &OnceLock<Option<SourceMap<'static>>> {
+  fn map_cache(&self, options: &MapOptions) -> &OnceLock<Option<SourceMap>> {
     if options.columns {
       &self.cache.columns_map
     } else {
@@ -120,14 +120,18 @@ impl CachedSource {
     }
   }
 
-  fn get_or_init_map(&self, options: &MapOptions) -> &Option<SourceMap<'static>> {
+  fn get_or_init_map(&self, options: &MapOptions) -> &Option<SourceMap> {
     self
       .map_cache(options)
-      .get_or_init(|| self.inner.clone().map_static(options))
+      .get_or_init(|| self.inner.map(options))
   }
 }
 
 impl Source for CachedSource {
+  fn mapped(&self) -> bool {
+    self.inner.mapped()
+  }
+
   fn source(&self) -> SourceValue<'_> {
     // Check if it's a RawBufferSource containing a CachedSource
     if let Some(buffer_source) = self
@@ -176,18 +180,11 @@ impl Source for CachedSource {
     })
   }
 
-  fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>> {
+  fn map(&self, options: &MapOptions) -> Option<SourceMap> {
     self
       .get_or_init_map(options)
       .as_ref()
       .map(SourceMap::as_borrowed)
-  }
-
-  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>> {
-    self
-      .get_or_init_map(options)
-      .as_ref()
-      .map(|map| map.as_borrowed().into_static(self.clone()))
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -231,8 +228,8 @@ impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
     &'chunk self,
     options: &MapOptions,
     on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_, 'source>,
-    on_name: crate::helpers::OnName<'_, 'source>,
+    on_source: crate::helpers::OnSource<'_>,
+    on_name: crate::helpers::OnName<'_>,
   ) -> GeneratedInfo {
     let cell = if options.columns {
       &self.cache_source.cache.columns_map
@@ -242,7 +239,7 @@ impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
     match cell.get() {
       Some(Some(map)) => {
         let source = self.get_or_init_source();
-        stream_chunks_of_source_map(options, source, map.fields(), on_chunk, on_source, on_name)
+        stream_chunks_of_source_map(options, source, map, on_chunk, on_source, on_name)
       }
       Some(None) => stream_chunks_of_raw_rope(self.cache_source.inner.as_ref(), options, on_chunk),
       None => {
@@ -253,9 +250,7 @@ impl<'source> Chunks<'source> for CachedSourceChunks<'source> {
           on_source,
           on_name,
         );
-        cell.get_or_init(|| {
-          map.map(|map| SourceMap::from_fields(map).into_static(self.cache_source.inner.clone()))
-        });
+        cell.get_or_init(|| map);
         generated_info
       }
     }
@@ -328,9 +323,9 @@ mod tests {
         value: "\nconsole.log(1);\n".to_string(),
         name: "index.js".to_string(),
         source_map: SourceMap::new(
-          ";AACA",
+          ";AACA".into(),
           vec!["index.js".into()],
-          vec!["// DELETE IT\nconsole.log(1)".into()],
+          vec![Some("// DELETE IT\nconsole.log(1)".into())],
           vec![],
         ),
       })
@@ -360,7 +355,7 @@ mod tests {
       .and_then(Option::as_ref)
       .unwrap();
     let map = source.map(&map_options).unwrap();
-    assert!(cached_map.fields() == map.fields());
+    assert_eq!(cached_map, &map);
   }
 
   #[test]

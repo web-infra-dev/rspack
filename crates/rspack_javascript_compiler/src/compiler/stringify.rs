@@ -1,5 +1,6 @@
 use std::{borrow::Cow, sync::Arc};
 
+use bytes_str::BytesStr;
 use rspack_error::Result;
 use rspack_sources::{
   MapOptions, Mapping, OriginalLocation, Source, SourceMap, SourceMapSource,
@@ -76,7 +77,7 @@ pub struct PrintOptions<'a> {
   pub source_map: Arc<SwcSourceMap>,
   pub target: EsVersion,
   pub source_map_config: SourceMapConfig,
-  pub input_source_map: Option<SourceMap<'static>>,
+  pub input_source_map: Option<SourceMap>,
   pub minify: bool,
   pub comments: Option<&'a dyn Comments>,
   pub preamble: &'a str,
@@ -166,10 +167,10 @@ impl JavaScriptCompiler {
 fn build_rspack_source_map(
   swc_cm: &SwcSourceMap,
   mappings: &[(BytePos, LineCol)],
-  input_source_map: Option<SourceMap<'static>>,
+  input_source_map: Option<SourceMap>,
   config: &SourceMapConfig,
   generated_code: &str,
-) -> Option<SourceMap<'static>> {
+) -> Option<SourceMap> {
   let mut builder = RspackSourceMapBuilder::default();
 
   let mut cur_file: Option<Lrc<SourceFile>> = None;
@@ -216,13 +217,13 @@ fn build_rspack_source_map(
           Cow::Owned(config.file_name_to_source(&file.name)),
           config
             .inline_sources_content(&file.name)
-            .then(|| Cow::Owned(file.src.to_string())),
+            .then(|| file.src.clone()),
         );
         if input_source_map.is_none() && config.ignore_list(&file.name) {
           builder.add_to_ignore_list(cur_src_id);
         }
 
-        cur_file = Some(file.clone());
+        cur_file = Some(file);
         cur_file.as_ref().expect("source file was just set")
       }
     };
@@ -260,17 +261,16 @@ fn build_rspack_source_map(
   if let Some(input_source_map) = input_source_map {
     let name = intermediate_map
       .get_source(0)
-      .map(ToString::to_string)
-      .unwrap_or_default();
-    Arc::new(SourceMapSource::new(SourceMapSourceOptions {
+      .map_or_default(ToString::to_string);
+    SourceMapSource::new(SourceMapSourceOptions {
       value: generated_code.to_string(),
       name,
       source_map: intermediate_map,
       original_source: None,
       inner_source_map: Some(input_source_map),
       remove_original_source: true,
-    }))
-    .map_static(&MapOptions::new(config.source_map_kind.emit_columns()))
+    })
+    .map(&MapOptions::new(config.source_map_kind.emit_columns()))
   } else {
     Some(intermediate_map)
   }
@@ -279,22 +279,20 @@ fn build_rspack_source_map(
 #[derive(Default)]
 struct RspackSourceMapBuilder<'a> {
   mappings: Vec<Mapping>,
-  sources_content: Vec<Cow<'a, str>>,
+  sources_content: Vec<Option<BytesStr>>,
   source_indices: FxHashMap<Cow<'a, str>, u32>,
   name_indices: FxHashMap<Cow<'a, str>, u32>,
   ignore_list: FxHashSet<u32>,
 }
 
 impl<'a> RspackSourceMapBuilder<'a> {
-  fn add_source(&mut self, source: Cow<'a, str>, source_content: Option<Cow<'a, str>>) -> u32 {
+  fn add_source(&mut self, source: Cow<'a, str>, source_content: Option<BytesStr>) -> u32 {
     if let Some(index) = self.source_indices.get(source.as_ref()) {
       return *index;
     }
 
     let index = self.source_indices.len() as u32;
-    self
-      .sources_content
-      .push(source_content.unwrap_or(Cow::Borrowed("")));
+    self.sources_content.push(source_content);
     self.source_indices.insert(source, index);
     index
   }
@@ -317,16 +315,12 @@ impl<'a> RspackSourceMapBuilder<'a> {
     self.mappings.push(mapping);
   }
 
-  fn into_source_map(self) -> SourceMap<'static> {
+  fn into_source_map(self) -> SourceMap {
     let mut source_map = SourceMap::new(
-      encode_mappings(self.mappings.into_iter()),
-      ordered_cows(self.source_indices),
-      self
-        .sources_content
-        .into_iter()
-        .map(|source_content| Cow::Owned(source_content.into_owned()))
-        .collect(),
-      ordered_cows(self.name_indices),
+      encode_mappings(self.mappings.into_iter()).into(),
+      ordered_texts(self.source_indices),
+      self.sources_content,
+      ordered_texts(self.name_indices),
     );
     if !self.ignore_list.is_empty() {
       let mut ignore_list = self.ignore_list.into_iter().collect::<Vec<_>>();
@@ -337,10 +331,10 @@ impl<'a> RspackSourceMapBuilder<'a> {
   }
 }
 
-fn ordered_cows(entries: FxHashMap<Cow<'_, str>, u32>) -> Vec<Cow<'static, str>> {
-  let mut ordered = vec![Cow::Borrowed(""); entries.len()];
+fn ordered_texts(entries: FxHashMap<Cow<'_, str>, u32>) -> Vec<BytesStr> {
+  let mut ordered = vec![BytesStr::new(); entries.len()];
   for (value, index) in entries {
-    ordered[index as usize] = Cow::Owned(value.into_owned());
+    ordered[index as usize] = value.into_owned().into();
   }
   ordered
 }
@@ -500,254 +494,5 @@ impl Visit for IdentCollector {
 
   fn visit_ident(&mut self, ident: &Ident) {
     self.names.insert(ident.span.lo, ident.sym.clone());
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use std::sync::Arc;
-
-  use rspack_sources::{Mapping, OriginalLocation, SourceMap, encode_mappings};
-  use rspack_util::source_map::SourceMapKind;
-  use swc_core::common::{BytePos, FileName, LineCol, SourceMap as SwcSourceMap};
-
-  use super::{SourceMapConfig, build_rspack_source_map};
-
-  #[test]
-  fn composes_input_source_map_in_cheap_mode() {
-    let swc_cm = Arc::new(SwcSourceMap::default());
-    let source = "\n\n\nconsole.log(user.name);\n";
-    let file = swc_cm.new_source_file(Arc::new(FileName::Custom("input.js".into())), source);
-    let line_four = BytePos(file.start_pos.0 + source.find("console").expect("source line") as u32);
-
-    let input_source_map = SourceMap::from_json(
-      r#"{
-        "version": 3,
-        "file": "input.js",
-        "sources": ["original.vue"],
-        "sourcesContent": ["<template>\n  <p>{{ user.name }}</p>\n</template>\n"],
-        "names": [],
-        "mappings": ";;;UACA"
-      }"#
-        .to_string(),
-    )
-    .expect("valid input source map");
-
-    let source_map = build_rspack_source_map(
-      &swc_cm,
-      &[(line_four, LineCol { line: 0, col: 0 })],
-      Some(input_source_map),
-      &SourceMapConfig {
-        source_map_kind: SourceMapKind::SourceMap.with_cheap(true),
-        names: Default::default(),
-      },
-      "console.log(user.name);\n",
-    )
-    .expect("composed source map");
-
-    let mappings = source_map.decoded_mappings().collect::<Vec<_>>();
-    assert_eq!(source_map.get_source(0), Some("original.vue"));
-    assert_eq!(
-      mappings[0]
-        .original
-        .as_ref()
-        .map(|original| original.original_line),
-      Some(2)
-    );
-  }
-
-  #[test]
-  fn preserves_outer_names_when_input_source_map_has_no_names() {
-    let swc_cm = Arc::new(SwcSourceMap::default());
-    let source = "const user = value;\n";
-    let file = swc_cm.new_source_file(Arc::new(FileName::Custom("input.js".into())), source);
-    let user_column = source.find("user").expect("identifier column") as u32;
-    let user_pos = BytePos(file.start_pos.0 + user_column);
-
-    let input_source_map = SourceMap::new(
-      encode_mappings(
-        [Mapping {
-          generated_line: 1,
-          generated_column: user_column,
-          original: Some(OriginalLocation {
-            source_index: 0,
-            original_line: 1,
-            original_column: user_column,
-            name_index: None,
-          }),
-        }]
-        .into_iter(),
-      ),
-      vec!["original.js".into()],
-      vec![source.into()],
-      vec![],
-    );
-
-    let source_map = build_rspack_source_map(
-      &swc_cm,
-      &[(
-        user_pos,
-        LineCol {
-          line: 0,
-          col: user_column,
-        },
-      )],
-      Some(input_source_map),
-      &SourceMapConfig {
-        source_map_kind: SourceMapKind::SourceMap,
-        names: [(user_pos, "user".into())].into_iter().collect(),
-      },
-      source,
-    )
-    .expect("composed source map");
-
-    let mappings = source_map.decoded_mappings().collect::<Vec<_>>();
-    let name_index = mappings[0]
-      .original
-      .as_ref()
-      .and_then(|original| original.name_index)
-      .expect("outer name should be preserved");
-    assert_eq!(source_map.get_name(name_index as usize), Some("user"));
-  }
-
-  #[test]
-  fn keeps_input_source_map_gaps_unmapped() {
-    let swc_cm = Arc::new(SwcSourceMap::default());
-    let source = "const a = 1; const b = 2;\n";
-    let file = swc_cm.new_source_file(Arc::new(FileName::Custom("input.js".into())), source);
-    let a_pos = BytePos(file.start_pos.0 + source.find("a").expect("a column") as u32);
-    let b_column = source.find("b").expect("b column") as u32;
-    let b_pos = BytePos(file.start_pos.0 + b_column);
-
-    let input_source_map = SourceMap::new(
-      encode_mappings(
-        [
-          Mapping {
-            generated_line: 1,
-            generated_column: 0,
-            original: Some(OriginalLocation {
-              source_index: 0,
-              original_line: 1,
-              original_column: 0,
-              name_index: None,
-            }),
-          },
-          Mapping {
-            generated_line: 1,
-            generated_column: b_column,
-            original: None,
-          },
-        ]
-        .into_iter(),
-      ),
-      vec!["original.js".into()],
-      vec![source.into()],
-      vec![],
-    );
-
-    let source_map = build_rspack_source_map(
-      &swc_cm,
-      &[
-        (a_pos, LineCol { line: 0, col: 0 }),
-        (
-          b_pos,
-          LineCol {
-            line: 0,
-            col: b_column,
-          },
-        ),
-      ],
-      Some(input_source_map),
-      &SourceMapConfig {
-        source_map_kind: SourceMapKind::SourceMap,
-        names: Default::default(),
-      },
-      source,
-    )
-    .expect("composed source map");
-
-    assert_eq!(source_map.sources(), &["original.js"]);
-    let mappings = source_map.decoded_mappings().collect::<Vec<_>>();
-    assert!(mappings[0].original.is_some());
-    assert!(mappings[1].original.is_none());
-  }
-
-  #[test]
-  fn preserves_absolute_input_sources_under_source_root() {
-    let swc_cm = Arc::new(SwcSourceMap::default());
-    let source = "const first = second;\n";
-    let file = swc_cm.new_source_file(Arc::new(FileName::Custom("input.js".into())), source);
-    let first_column = source.find("first").expect("first column") as u32;
-    let second_column = source.find("second").expect("second column") as u32;
-    let first_pos = BytePos(file.start_pos.0 + first_column);
-    let second_pos = BytePos(file.start_pos.0 + second_column);
-
-    let mut input_source_map = SourceMap::new(
-      encode_mappings(
-        [
-          Mapping {
-            generated_line: 1,
-            generated_column: first_column,
-            original: Some(OriginalLocation {
-              source_index: 0,
-              original_line: 1,
-              original_column: 0,
-              name_index: None,
-            }),
-          },
-          Mapping {
-            generated_line: 1,
-            generated_column: second_column,
-            original: Some(OriginalLocation {
-              source_index: 1,
-              original_line: 1,
-              original_column: 0,
-              name_index: None,
-            }),
-          },
-        ]
-        .into_iter(),
-      ),
-      vec!["/src/app.js".into(), "https://example.com/vendor.js".into()],
-      vec![
-        "const first = second;\n".into(),
-        "export const second = 1;\n".into(),
-      ],
-      vec![],
-    );
-    input_source_map.set_source_root(Some("/root".into()));
-
-    let source_map = build_rspack_source_map(
-      &swc_cm,
-      &[
-        (
-          first_pos,
-          LineCol {
-            line: 0,
-            col: first_column,
-          },
-        ),
-        (
-          second_pos,
-          LineCol {
-            line: 0,
-            col: second_column,
-          },
-        ),
-      ],
-      Some(input_source_map),
-      &SourceMapConfig {
-        source_map_kind: SourceMapKind::SourceMap,
-        names: Default::default(),
-      },
-      source,
-    )
-    .expect("composed source map");
-
-    assert_eq!(source_map.get_source(0), Some("/src/app.js"));
-    assert_eq!(
-      source_map.get_source(1),
-      Some("https://example.com/vendor.js")
-    );
   }
 }

@@ -3,9 +3,6 @@ import { defineConfig } from '@rspack/cli';
 export default defineConfig({
   mode: 'development',
   entry: './index.js',
-  experiments: {
-    css: true,
-  },
   module: {
     rules: [
       {

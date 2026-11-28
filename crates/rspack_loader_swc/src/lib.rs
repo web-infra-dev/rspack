@@ -1,4 +1,4 @@
-#![feature(box_patterns)]
+#![feature(deref_patterns)]
 
 mod collect_ts_info;
 mod isolated_dts;
@@ -13,9 +13,10 @@ use isolated_dts::{handle_isolated_dts_diagnostics, set_build_info};
 use options::SwcCompilerOptionsWithAdditional;
 pub use options::SwcLoaderJsOptions;
 pub use plugin::SwcLoaderPlugin;
-use rspack_cacheable::{cacheable, cacheable_dyn};
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsInterned};
 use rspack_core::{COLLECTED_TYPESCRIPT_INFO_PARSE_META_KEY, Mode, Module, RscMeta, RunnerContext};
 use rspack_error::{Diagnostic, Error, Result, SerdeResultToRspackResultExt};
+use rspack_hash::RspackHasher;
 use rspack_javascript_compiler::{JavaScriptCompiler, TransformOutput};
 use rspack_loader_runner::{Identifier, Loader, LoaderContext};
 pub use rspack_workspace::rspack_swc_core_version;
@@ -36,14 +37,15 @@ use crate::{
 #[derive(Debug)]
 pub struct SwcLoader {
   identifier: Identifier,
-  options_with_additional: SwcCompilerOptionsWithAdditional,
+  #[cacheable(with=AsInterned)]
+  options_with_additional: Arc<SwcCompilerOptionsWithAdditional>,
 }
 
 impl SwcLoader {
   pub fn new(raw_options: &str) -> Result<Self, serde_json::Error> {
     Ok(Self {
       identifier: SWC_LOADER_IDENTIFIER.into(),
-      options_with_additional: raw_options.try_into()?,
+      options_with_additional: Arc::new(raw_options.try_into()?),
     })
   }
 
@@ -58,8 +60,7 @@ impl SwcLoader {
   fn loader_impl(&self, loader_context: &mut LoaderContext<RunnerContext>) -> Result<()> {
     let resource_path = loader_context
       .resource_path()
-      .map(|p| p.to_path_buf())
-      .unwrap_or_default();
+      .map_or_default(|p| p.to_path_buf());
     loader_context.context.module.build_info_mut().isolated_dts = None;
     let Some(content) = loader_context.take_content() else {
       return Ok(());
@@ -99,10 +100,13 @@ impl SwcLoader {
       swc_options.source_file_name = Some(resource_path.as_str().to_string());
 
       if swc_options.config.jsc.target.is_some() && swc_options.config.env.is_some() {
-        loader_context.emit_diagnostic(Diagnostic::warn(
-          SWC_LOADER_IDENTIFIER.to_string(),
-          "`env` and `jsc.target` cannot be used together".to_string(),
-        ));
+        loader_context.emit_diagnostic(
+          Diagnostic::warn(
+            SWC_LOADER_IDENTIFIER.to_string(),
+            "`env` and `jsc.target` cannot be set together. Remove one of them.".into(),
+          )
+          .with_title(SWC_LOADER_IDENTIFIER),
+        );
       }
 
       #[cfg(feature = "plugin")]
@@ -235,7 +239,10 @@ impl SwcLoader {
     )?;
 
     for diagnostic in diagnostics {
-      loader_context.emit_diagnostic(Error::warning(diagnostic).into());
+      loader_context.emit_diagnostic(
+        Diagnostic::from(Error::warning(format!("\n{}", diagnostic.trim_end())))
+          .with_title(SWC_LOADER_IDENTIFIER),
+      );
     }
 
     if let Some(isolated_dts) = isolated_dts? {
@@ -275,7 +282,7 @@ impl SwcLoader {
           .sources()
           .iter()
           .map(|source| {
-            let source_path = Path::new(source.as_ref());
+            let source_path = Path::new(source.as_str());
             if source_path.is_relative() {
               source_path
                 .absolutize_with(resource_dir.as_std_path())
@@ -308,6 +315,12 @@ pub const SWC_LOADER_IDENTIFIER: &str = "builtin:swc-loader";
 impl Loader<RunnerContext> for SwcLoader {
   fn identifier(&self) -> Identifier {
     self.identifier
+  }
+
+  fn etag(&self, context: &RunnerContext, hasher: &mut RspackHasher) {
+    rspack_hash::rspack_hash_object!(hasher, {
+      "source_map_kind" => context.source_map_kind.bits(),
+    });
   }
 
   #[tracing::instrument("loader:builtin-swc", skip_all, fields(

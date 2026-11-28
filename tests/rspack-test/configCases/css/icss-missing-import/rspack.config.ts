@@ -12,7 +12,6 @@ export default defineConfig(
           ],
         },
         optimization: { minimize: false },
-        experiments: { css: true },
       }),
     ),
   ),

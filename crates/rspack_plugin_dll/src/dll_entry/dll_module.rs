@@ -121,7 +121,7 @@ impl Module for DllModule {
   }
 
   async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
-    Ok(false)
+    Ok(self.build_meta.frozen().is_none())
   }
 
   fn size(&self, _source_type: Option<&SourceType>) -> f64 {

@@ -128,7 +128,7 @@ export default {
 };
 ```
 
-同时保留默认的 cacheGroups 配置。这样通常可以同时对 initial chunk 和 async chunk 去重，同时 runtime 仍然只会按当前页面实际可达的依赖去加载对应 chunk。
+同时保留默认的 cacheGroups 配置。这样通常可以同时对 initial chunk 和 async chunk 去重，同时 Rspack 运行时仍然只会按当前页面实际可达的依赖去加载对应 chunk。
 
 ### 缓存组 \{#cache-groups}
 

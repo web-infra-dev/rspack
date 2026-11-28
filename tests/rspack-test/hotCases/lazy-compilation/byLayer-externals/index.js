@@ -1,0 +1,9 @@
+it("should reserve base and layer externals before the first lazy activation", async () => {
+  let resolved;
+  const promise = import("./module").then(result => (resolved = result));
+  expect(resolved).toBe(undefined);
+  await NEXT_HMR_DEFERRED();
+  const result = await promise;
+  expect(typeof result.isFile).toBe("function");
+  expect(result.joinedPath).toBe(process.platform === "win32" ? "a\\b" : "a/b");
+});

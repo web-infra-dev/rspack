@@ -2,7 +2,6 @@
 description             = "rspack library plugin"
 documentation.workspace = true
 edition.workspace       = true
-homepage.workspace      = true
 license                 = "MIT"
 name                    = "rspack_plugin_library"
 repository.workspace    = true

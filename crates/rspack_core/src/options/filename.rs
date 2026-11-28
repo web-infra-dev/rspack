@@ -8,7 +8,7 @@ use std::{
 };
 
 use dashmap::DashMap;
-use memchr::memchr2_iter;
+use memchr::{memchr2, memchr2_iter};
 use rspack_cacheable::{
   cacheable,
   with::{AsPreset, Unsupported},
@@ -39,6 +39,8 @@ pub enum PlaceholderKind {
   Base,
   Name,
   Path,
+  #[string_enum(rename = "resource-path")]
+  ResourcePath,
   Ext,
   Query,
   Fragment,
@@ -56,9 +58,15 @@ pub enum PlaceholderKind {
   ChunkHash,
   #[string_enum(rename = "contenthash")]
   ContentHash,
+  // Keep this last so the assertion below covers every placeholder kind.
   #[string_enum(fallback)]
   Unknown,
 }
+
+const _: () = assert!(
+  (PlaceholderKind::Unknown as u32) < u32::BITS,
+  "placeholder kinds must fit in a u32 bitset"
+);
 
 #[derive(Debug, Clone, Copy)]
 enum PlaceholderParameters {
@@ -79,12 +87,6 @@ struct PlaceholderData {
 pub struct StringTemplatePlaceholder {
   kind: PlaceholderKind,
   parameters: PlaceholderParameters,
-}
-
-#[derive(Debug)]
-pub enum FilenameRenderValue<'value> {
-  Value(Cow<'value, str>),
-  Rendered(Cow<'value, str>),
 }
 
 impl StringTemplatePlaceholder {
@@ -227,6 +229,28 @@ impl<'template> CompiledStringTemplate<'template> {
     })
   }
 
+  pub fn parts(&self) -> impl Iterator<Item = (&str, Option<StringTemplatePlaceholder>)> {
+    self.segments.iter().map(|segment| {
+      let (range, placeholder) = match segment {
+        StringTemplateSegment::Plain(range) => (range, None),
+        StringTemplateSegment::Placeholder { id, range } => {
+          let data = &self.placeholder_data[usize::from(*id)];
+          (
+            range,
+            Some(StringTemplatePlaceholder {
+              kind: data.kind,
+              parameters: data.parameters,
+            }),
+          )
+        }
+      };
+      (
+        &self.template[usize::from(range.start)..usize::from(range.end)],
+        placeholder,
+      )
+    })
+  }
+
   fn render_with_writer(
     &self,
     mut renderer: impl FnMut(StringTemplatePlaceholder, &mut String) -> bool,
@@ -238,26 +262,9 @@ impl<'template> CompiledStringTemplate<'template> {
       .min(MAX_ESTIMATED_TEMPLATE_GROWTH);
     let mut output = String::with_capacity(self.template.len().saturating_add(estimated_growth));
 
-    for segment in &self.segments {
-      match segment {
-        StringTemplateSegment::Plain(range) => {
-          output.push_str(&self.template[usize::from(range.start)..usize::from(range.end)]);
-        }
-        StringTemplateSegment::Placeholder { id, range } => {
-          let data = self
-            .placeholder_data
-            .get(usize::from(*id))
-            .expect("filename placeholder segment references missing side-table data");
-          let start = usize::from(range.start);
-          let end = usize::from(range.end);
-          let placeholder = StringTemplatePlaceholder {
-            kind: data.kind,
-            parameters: data.parameters,
-          };
-          if !renderer(placeholder, &mut output) {
-            output.push_str(&self.template[start..end]);
-          }
-        }
+    for (text, placeholder) in self.parts() {
+      if !placeholder.is_some_and(|placeholder| renderer(placeholder, &mut output)) {
+        output.push_str(text);
       }
     }
 
@@ -266,7 +273,7 @@ impl<'template> CompiledStringTemplate<'template> {
 
   pub fn render_with<'value>(
     &self,
-    mut renderer: impl FnMut(StringTemplatePlaceholder) -> Option<FilenameRenderValue<'value>>,
+    mut renderer: impl FnMut(StringTemplatePlaceholder) -> Option<Cow<'value, str>>,
   ) -> String {
     let mut asset_info = None;
     self.render_with_writer(|placeholder, output| {
@@ -278,24 +285,12 @@ impl<'template> CompiledStringTemplate<'template> {
     })
   }
 
-  pub fn render_with_path_data<'value>(
-    &self,
-    options: PathData<'_>,
-    asset_info: Option<&mut AssetInfo>,
-    renderer: impl FnMut(StringTemplatePlaceholder) -> Option<FilenameRenderValue<'value>>,
-  ) -> String {
-    let file_replacements = FileReplacements::new(options);
-    self.render_with_path_data_and_replacements(options, &file_replacements, asset_info, renderer)
-  }
-
-  /// Same as [`Self::render_with_path_data`], but reuses `file_replacements` that the caller
-  /// computed from `options.filename` once.
   pub fn render_with_path_data_and_replacements<'value>(
     &self,
     options: PathData<'_>,
     file_replacements: &FileReplacements,
     mut asset_info: Option<&mut AssetInfo>,
-    mut renderer: impl FnMut(StringTemplatePlaceholder) -> Option<FilenameRenderValue<'value>>,
+    mut renderer: impl FnMut(StringTemplatePlaceholder) -> Option<Cow<'value, str>>,
   ) -> String {
     if let Some(content_hash) = options.content_hash
       && let Some(asset_info) = asset_info.as_deref_mut()
@@ -463,27 +458,6 @@ impl Filename {
     }
   }
 
-  pub async fn as_json_string_literal_template(
-    &self,
-    options: PathData<'_>,
-    asset_info: Option<&AssetInfo>,
-  ) -> rspack_error::Result<Arc<CompiledStringTemplate<'static>>> {
-    match &self.0 {
-      FilenameKind::Template(template) => {
-        let template = rspack_util::json_stringify_str(template.as_str());
-        Ok(get_or_compile(intern_template(&template)))
-      }
-      FilenameKind::Fn(filename_fn) => {
-        let template = filename_fn.call(&options, asset_info).await?;
-        let template = rspack_util::json_stringify_str(&template);
-        assert_template_len(&template);
-        Ok(Arc::new(CompiledStringTemplate::compile_cow(Cow::Owned(
-          template,
-        ))))
-      }
-    }
-  }
-
   pub fn has_hash_placeholder(&self) -> bool {
     match self.0 {
       FilenameKind::Template(template) => {
@@ -523,17 +497,14 @@ impl Filename {
     options: PathData<'_>,
     asset_info: Option<&mut AssetInfo>,
   ) -> rspack_error::Result<String> {
-    self.render_with(options, asset_info, |_| None).await
-  }
-
-  pub async fn render_with<'value>(
-    &self,
-    options: PathData<'_>,
-    asset_info: Option<&mut AssetInfo>,
-    renderer: impl FnMut(StringTemplatePlaceholder) -> Option<FilenameRenderValue<'value>>,
-  ) -> rspack_error::Result<String> {
     let compiled = self.compiled(options, asset_info.as_deref()).await?;
-    Ok(compiled.render_with_path_data(options, asset_info, renderer))
+    let file_replacements = FileReplacements::new(options);
+    Ok(compiled.render_with_path_data_and_replacements(
+      options,
+      &file_replacements,
+      asset_info,
+      |_| None,
+    ))
   }
 }
 
@@ -654,16 +625,15 @@ impl FileReplacements {
       return Self::default();
     };
 
-    if let Ok(caps) = data_uri(filename) {
+    if let Some(caps) = data_uri(filename) {
       let replacer = options
         .content_hash
         // "XXXX" is used for updateHash and must not become a filename here.
         .filter(|hash| !hash.contains('X'))
         .unwrap_or("")
         .to_owned();
-      let ext = mime_guess::get_mime_extensions_str(caps)
-        .map(|exts| format!(".{}", exts[0]))
-        .unwrap_or_default();
+      let ext =
+        mime_guess::get_mime_extensions_str(caps).map_or_default(|exts| format!(".{}", exts[0]));
 
       return Self {
         file: Some(String::new()),
@@ -687,16 +657,14 @@ impl FileReplacements {
 
     let ext = file
       .extension()
-      .map(|extension| format!(".{extension}"))
-      .unwrap_or_default();
+      .map_or_default(|extension| format!(".{extension}"));
     let base = file.file_name().map(ToOwned::to_owned);
     let name = file.file_stem().map(ToOwned::to_owned);
     let path = file
       .parent()
       // "" -> "", "folder" -> "folder/"
       .filter(|path| !path.as_str().is_empty())
-      .map(|path| path.as_str().to_owned() + "/")
-      .unwrap_or_default();
+      .map_or_default(|path| path.as_str().to_owned() + "/");
 
     Self {
       file: Some(file.as_str().to_owned()),
@@ -712,31 +680,26 @@ impl FileReplacements {
 
 fn render_filename_value(
   placeholder: StringTemplatePlaceholder,
-  value: FilenameRenderValue<'_>,
+  value: Cow<'_, str>,
   asset_info: &mut Option<&mut AssetInfo>,
   output: &mut String,
 ) {
-  match value {
-    FilenameRenderValue::Rendered(value) => output.push_str(&value),
-    FilenameRenderValue::Value(value) => {
-      if matches!(
-        placeholder.kind,
-        PlaceholderKind::Hash
-          | PlaceholderKind::FullHash
-          | PlaceholderKind::ChunkHash
-          | PlaceholderKind::ContentHash
-      ) {
-        assert!(try_render_hash(
-          Some(&value),
-          placeholder.kind,
-          placeholder.parameters,
-          asset_info,
-          output,
-        ));
-      } else {
-        output.push_str(&value);
-      }
-    }
+  if matches!(
+    placeholder.kind,
+    PlaceholderKind::Hash
+      | PlaceholderKind::FullHash
+      | PlaceholderKind::ChunkHash
+      | PlaceholderKind::ContentHash
+  ) {
+    assert!(try_render_hash(
+      Some(&value),
+      placeholder.kind,
+      placeholder.parameters,
+      asset_info,
+      output,
+    ));
+  } else {
+    output.push_str(&value);
   }
 }
 
@@ -765,7 +728,10 @@ fn render_placeholder(
     ),
     PlaceholderKind::Runtime => try_render_value(Some(options.runtime.unwrap_or("_")), output),
     PlaceholderKind::Url => try_render_value(options.url, output),
-    PlaceholderKind::UniqueName | PlaceholderKind::Local | PlaceholderKind::Folder => false,
+    PlaceholderKind::ResourcePath
+    | PlaceholderKind::UniqueName
+    | PlaceholderKind::Local
+    | PlaceholderKind::Folder => false,
     PlaceholderKind::Hash => try_render_hash(
       options.hash,
       kind,
@@ -841,15 +807,15 @@ fn try_render_hash(
   true
 }
 
-fn data_uri(mut input: &str) -> winnow::ModalResult<&str> {
-  use winnow::{combinator::preceded, prelude::*, token::take_till};
-
-  preceded("data:", take_till(1.., (';', ','))).parse_next(&mut input)
+fn data_uri(input: &str) -> Option<&str> {
+  let mime = input.strip_prefix("data:")?;
+  let end = memchr2(b';', b',', mime.as_bytes()).unwrap_or(mime.len());
+  (end > 0).then(|| &mime[..end])
 }
 
 #[test]
 fn test_data_uri() {
-  assert_eq!(data_uri("data:good").ok(), Some("good"));
-  assert_eq!(data_uri("data:g;ood").ok(), Some("g"));
-  assert_eq!(data_uri("data:;ood").ok(), None);
+  assert_eq!(data_uri("data:good"), Some("good"));
+  assert_eq!(data_uri("data:g;ood"), Some("g"));
+  assert_eq!(data_uri("data:;ood"), None);
 }

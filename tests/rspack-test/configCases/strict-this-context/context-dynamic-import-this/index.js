@@ -29,6 +29,15 @@ it("should always correctly handle this for exportsType is DefaultWithNamed and 
 	const cjs = await import(`./modules/${cjsName}`);
 	expect(cjs.that().value).toBe(STRICT_THIS_CONTEXT_ON_IMPORTS ? 42 : undefined);
 	var dataName = "data.json";
-	const json = await import(`./modules/${dataName}`);
+	const json = await import(`./json-modules/${dataName}`);
+	expect(json.default.map(d => d * 2)).toEqual([2, 4, 6]);
+})
+
+it("should keep the receiver of a context element that does not provide the called member", async () => {
+	var cjsName = "cjs";
+	const cjs = await import(`./shared/${cjsName}`);
+	expect(cjs.that().value).toBe(42);
+	var dataName = "data.json";
+	const json = await import(`./shared/${dataName}`);
 	expect(json.default.map(d => d * 2)).toEqual([2, 4, 6]);
 })

@@ -5,5 +5,6 @@ export default [
 	[/Entrypoint 'b2' has 'dependOn' and 'runtime' specified/],
 	[
 		/Entrypoints 'b3' and 'a3' use 'dependOn' to depend on each other in a circular way/
-	]
+	],
+	[/Entrypoint 'app' references unknown entry 'vendors' in 'dependOn'\. Configured entries: 'app', 'vendor'\./]
 ];

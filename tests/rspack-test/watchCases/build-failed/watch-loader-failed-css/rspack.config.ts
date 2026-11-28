@@ -29,9 +29,6 @@ export default defineConfig({
     ],
   },
   plugins: [new rspack.CssExtractRspackPlugin()],
-  experiments: {
-    css: false,
-  },
   resolve: {
     extensions: ['...', '.txt'],
   },

@@ -1,6 +1,6 @@
 import { createRequire } from 'node:module';
 import path from 'node:path';
-import { MessageChannel } from 'node:worker_threads';
+import { MessageChannel, type MessagePort } from 'node:worker_threads';
 import type { Tinypool } from 'tinypool' with { 'resolution-mode': 'import' };
 
 const require = createRequire(import.meta.url);
@@ -77,6 +77,7 @@ export interface WorkerRequestSyncMessage {
   requestType: RequestSyncType;
   data: WorkerArgs;
   sharedBuffer: SharedArrayBuffer;
+  responsePort?: MessagePort;
 }
 export type WorkerMessage =
   | WorkerResponseMessage
@@ -333,13 +334,11 @@ export const run = async (
 ) =>
   ensureLoaderWorkerPool(workerOptions).then((pool) => {
     const { port1: mainPort, port2: workerPort } = new MessageChannel();
-    // Synchronous requests share the regular request channel to preserve message
-    // ordering. This channel only carries their responses back to workers.
-    const { port1: mainSyncPort, port2: workerSyncPort } = new MessageChannel();
+    let mainSyncPort: MessagePort | undefined;
     return new Promise<WorkerArgs>((resolve, reject) => {
       const handleError = (error: any) => {
         mainPort.close();
-        mainSyncPort.close();
+        mainSyncPort?.close();
         reject(error);
       };
       const pendingRequests: Map<number, Promise<any>> = new Map();
@@ -347,13 +346,13 @@ export const run = async (
         if (isWorkerDoneMessage(message)) {
           Promise.allSettled(pendingRequests.values()).then(() => {
             mainPort.close();
-            mainSyncPort.close();
+            mainSyncPort?.close();
             resolve(message.data);
           });
         } else if (isWorkerDoneErrorMessage(message)) {
           Promise.allSettled(pendingRequests.values()).then(() => {
             mainPort.close();
-            mainSyncPort.close();
+            mainSyncPort?.close();
             reject(deserializeError(message.error));
           });
         } else if (isWorkerRequestMessage(message)) {
@@ -389,6 +388,9 @@ export const run = async (
       mainPort.on('messageerror', handleError);
 
       async function handleSyncRequest(message: WorkerRequestSyncMessage) {
+        // Sync requests use the regular port to preserve ordering. The first
+        // request also transfers the port used for all sync replies to this task.
+        const responsePort = (mainSyncPort ??= message.responsePort!);
         const { sharedBuffer } = message;
         const sharedBufferView = new Int32Array(sharedBuffer);
 
@@ -422,13 +424,13 @@ export const run = async (
               throw new Error(`Unknown request type: ${message.requestType}`);
           }
 
-          mainSyncPort.postMessage({
+          responsePort.postMessage({
             type: 'response',
             id: message.id,
             data: result,
           } satisfies WorkerResponseMessage);
         } catch (e: unknown) {
-          mainSyncPort.postMessage({
+          responsePort.postMessage({
             type: 'response-error',
             id: message.id,
             error: serializeError(e),
@@ -445,27 +447,31 @@ export const run = async (
         Atomics.notify(sharedBufferView, 0, Number.POSITIVE_INFINITY);
       }
 
-      checkCloneableProps(task, loaderName);
       pool
         .run(
           {
             ...task,
             // Internal worker data. Tinypool does not support passing `transferList` to
             // `new Worker(..)`
-            workerData: {
-              workerPort,
-              workerSyncPort,
-            },
+            workerData: { workerPort },
           },
           {
             ...options,
-            transferList: [
-              ...(options?.transferList || []),
-              workerPort,
-              workerSyncPort,
-            ],
+            transferList: [...(options?.transferList || []), workerPort],
           },
         )
-        .catch(handleError);
+        .catch((error) => {
+          // Only inspect the task when sending it fails. Checking every task
+          // eagerly would clone its content and source map an extra time.
+          if (error?.name === 'DataCloneError') {
+            try {
+              checkCloneableProps(task, loaderName);
+            } catch (cloneError) {
+              handleError(cloneError);
+              return;
+            }
+          }
+          handleError(error);
+        });
     });
   });

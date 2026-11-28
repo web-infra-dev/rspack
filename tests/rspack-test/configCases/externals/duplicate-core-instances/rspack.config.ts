@@ -7,6 +7,8 @@ const getExternalModuleCompilationHooks =
   core.ExternalModule.getCompilationHooks;
 
 let duplicateCoreId = 0;
+let duplicateGetCompilationHooks = getExternalModuleCompilationHooks;
+let duplicateModuleSize = core.Module.prototype.size;
 
 class DuplicateCoreInstancesPlugin {
   apply(compiler: Compiler) {
@@ -27,11 +29,18 @@ class DuplicateCoreInstancesPlugin {
           duplicateCore.Compilation,
           'Compilation should come from different JavaScript core instances',
         );
-        assert.strictEqual(
+        assert.notStrictEqual(
           core.ExternalModule,
           duplicateCore.ExternalModule,
-          'ExternalModule should come from the same native binding',
+          'Module classes belong to their JavaScript core instance',
         );
+        assert.strictEqual(
+          Object.getPrototypeOf(duplicateCore.ExternalModule.prototype),
+          duplicateCore.Module.prototype,
+        );
+        duplicateGetCompilationHooks =
+          duplicateCore.ExternalModule.getCompilationHooks;
+        duplicateModuleSize = duplicateCore.Module.prototype.size;
       },
     );
   }
@@ -42,7 +51,23 @@ class ExternalModuleChunkConditionPlugin {
     compiler.hooks.compilation.tap(
       'ExternalModuleChunkConditionPlugin',
       (compilation) => {
-        getExternalModuleCompilationHooks(compilation).chunkCondition.tap(
+        assert.strictEqual(
+          duplicateGetCompilationHooks(compilation),
+          getExternalModuleCompilationHooks(compilation),
+          'ExternalModule hooks should be shared across core instances',
+        );
+        compilation.hooks.finishModules.tap(
+          'DuplicateModuleMethods',
+          (modules) => {
+            for (const module of modules) {
+              assert.strictEqual(
+                duplicateModuleSize.call(module),
+                module.size(),
+              );
+            }
+          },
+        );
+        duplicateGetCompilationHooks(compilation).chunkCondition.tap(
           'ExternalModuleChunkConditionPlugin',
           (chunk, compilation) =>
             compilation.chunkGraph.getNumberOfEntryModules(chunk) > 0,

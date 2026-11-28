@@ -1,11 +1,18 @@
 import path from "node:path";
 import { describeByWalk, createConfigCase } from "@rspack/test-tools";
+import { getCacheTestOptions } from "./cacheTestOptions.mjs";
 
 // Part 2: Test cases starting with e-o (43 dirs, 31.6%)
 describeByWalk(
 	import.meta.filename,
 	(name, src, dist) => {
-		createConfigCase(name, src, dist);
+		createConfigCase(
+			name,
+			src,
+			dist,
+			undefined,
+			getCacheTestOptions("config", src)
+		);
 	},
 	{
 		source: path.join(import.meta.dirname, "configCases"),

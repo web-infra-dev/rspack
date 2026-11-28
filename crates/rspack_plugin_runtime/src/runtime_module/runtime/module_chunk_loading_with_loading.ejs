@@ -7,7 +7,7 @@ if (installedChunkData !== 0) { // 0 means "already installed".'
     } else {
         if (<%- _js_matcher %>) {
             // setup Promise in chunk cache
-            var promise = <%- _import_function_name %>("<%- _output_dir %>" + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId)).then(moduleInstallChunk, <%- basicFunction("e") %> {
+            var promise = <%- _import_function_name %>("<%- _output_dir %>" + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId)).then(moduleInstallChunk<% if (_with_hmr) { %>).catch(<% } else { %>, <% } %><%- basicFunction("e") %> {
                 if (moduleInstalledChunks[chunkId] !== 0) moduleInstalledChunks[chunkId] = undefined;
                 throw e;
             });

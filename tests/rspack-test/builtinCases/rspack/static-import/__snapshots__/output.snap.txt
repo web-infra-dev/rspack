@@ -4,7 +4,6 @@
 "use strict";
 __webpack_require__.r(__webpack_exports__);
 /* import */ var _b__rspack_import_0 = __webpack_require__("./b.js");
-/* import */ var _b__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(_b__rspack_import_0);
 
 console.log("a");
 

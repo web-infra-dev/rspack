@@ -9,9 +9,7 @@ it('keeps setup mocks when a later test chunk installs its module factories', ()
     'utf-8',
   );
 
-  expect(runtimeSource).toContain(
-    '__webpack_require__.rstest_original_modules || {}',
-  );
+  expect(runtimeSource).toMatch(/(?:__webpack_require__|__rspack_require)\.rstest_original_modules \|\| \{\}/);
   expect(runtimeSource).toContain('for (moduleId in moreModules) {');
 
   execFileSync(

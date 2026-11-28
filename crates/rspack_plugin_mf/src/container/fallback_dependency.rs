@@ -14,7 +14,7 @@ pub struct FallbackDependency {
 
 impl FallbackDependency {
   pub fn new(requests: Vec<String>) -> Self {
-    let resource_identifier = format!("fallback {}", &requests.join(" ")).into();
+    let resource_identifier = format!("fallback {}", requests.join(" ")).into();
     Self {
       id: DependencyId::new(),
       resource_identifier,

@@ -111,6 +111,10 @@ loadLocale('english');
 
 这样，Rspack 就能找到并打包 `./locale` 下的 `.json` 文件。应用运行时，`loadLocale('english')` 会加载 `./locale/english.json`，`loadLocale('german')` 会加载 `./locale/german.json`，前提是这些文件在构建时存在。
 
+如果希望 Rspack 跳过路径完全动态的 `import(path)`，可以写成 `import(/* rspackIgnore: true */ path)`。运行时会直接执行这次导入。
+
+如果这样的 `import(path)` 位于第三方包中，可以在 `module.rules` 中添加一条匹配该包的规则，并将规则的 [`parser.importDynamic`](/config/module-parser#javascriptimportdynamic) 设为 `false`。参见 [Solid 加载水合模块的示例](/guide/integrations/solid#load-hydration-modules)。
+
 ### import() 中的魔法注释 \{#magic-comments}
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
@@ -361,7 +365,7 @@ require.resolve(dependency: string);
 
 ### require.cache
 
-多处引用同一模块，最终只会产生一次模块执行和一次导出。所以，会在运行时（runtime）中会保存一份缓存。删除此缓存，则会产生新的模块执行和新的导出。
+Rspack 运行时会维护一份模块缓存。多次 `require` 同一个模块时，会复用缓存中的导出，不会重复执行模块代码。删除对应的缓存条目后，再次引用该模块会重新执行其代码并生成新的导出。
 
 ```js
 var d1 = require('dependency');

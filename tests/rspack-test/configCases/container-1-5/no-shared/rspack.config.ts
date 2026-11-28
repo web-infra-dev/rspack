@@ -1,5 +1,5 @@
 import { defineConfig } from '@rspack/cli';
-import { container } from '@rspack/core';
+import { container, HotModuleReplacementPlugin } from '@rspack/core';
 
 const { ModuleFederationPlugin } = container;
 
@@ -8,6 +8,8 @@ export default defineConfig({
     './container.js': 'commonjs ./container.js',
   },
   plugins: [
+    // The federation entry and container execute with distinct HMR child contexts.
+    new HotModuleReplacementPlugin(),
     new ModuleFederationPlugin({
       name: 'container',
       filename: 'container.js',

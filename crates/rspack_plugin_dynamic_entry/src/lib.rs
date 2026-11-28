@@ -18,7 +18,7 @@ pub struct EntryDynamicResult {
 }
 
 type EntryDynamic =
-  Box<dyn for<'a> Fn() -> BoxFuture<'static, Result<Vec<EntryDynamicResult>>> + Sync + Send>;
+  Box<dyn Fn() -> BoxFuture<'static, Result<Vec<EntryDynamicResult>>> + Sync + Send>;
 
 pub struct DynamicEntryPluginOptions {
   pub context: Context,

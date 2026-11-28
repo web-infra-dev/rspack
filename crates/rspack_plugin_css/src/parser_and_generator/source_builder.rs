@@ -4,7 +4,9 @@ use rspack_core::{
     BoxSource, ConcatSource, MapOptions, RawStringSource, ReplaceSource, Source, SourceExt,
   },
 };
-use rspack_util::{base64::encode_to_string, identifier::make_paths_relative};
+use rspack_util::{
+  base64::encode_to_string, identifier::make_paths_relative, source_map::SourceMapKind,
+};
 
 const CSS_UTF8_CHARSET: &str = r#"@charset "UTF-8";"#;
 
@@ -108,7 +110,7 @@ impl CssSourceBuilder {
     }
   }
 
-  pub(crate) fn into_css_text(self) -> String {
+  pub(crate) fn into_css_text(self, source_map_kind: SourceMapKind) -> String {
     let include_sources_content = self.include_sources_content;
     let source_map_context = self.source_map_context.clone();
     let source = self.into_source();
@@ -116,7 +118,10 @@ impl CssSourceBuilder {
       .replace(&source.source().into_string_lossy(), "")
       .into_owned();
 
-    if let Some(mut source_map) = source.map(&MapOptions::default()) {
+    // CSS embedded in JavaScript must not expose maps for external or hidden devtool modes.
+    if source_map_kind.contains(SourceMapKind::Inline)
+      && let Some(mut source_map) = source.map(&MapOptions::default())
+    {
       if !source_map_context.as_str().is_empty() {
         source_map.set_sources(
           source_map
@@ -170,186 +175,5 @@ impl CssSourceBuilder {
     let mut source = ReplaceSource::new(source);
     source.replace(0, leading_len, String::new(), None);
     Some(source.boxed())
-  }
-}
-
-#[cfg(test)]
-mod tests {
-  use concat_string::concat_string;
-  use rspack_core::rspack_sources::{RawStringSource, Source, SourceExt};
-
-  use super::*;
-
-  fn css_source(source: &str) -> BoxSource {
-    RawStringSource::from(source.to_string()).boxed()
-  }
-
-  fn source_text(source: BoxSource) -> String {
-    source.source().into_string_lossy().into_owned()
-  }
-
-  fn css_import_conditions(source: &str) -> Vec<CssModuleRenderCondition> {
-    let (deps, warnings) =
-      css_module_lexer::collect_dependencies(source, css_module_lexer::Mode::Css);
-    assert!(warnings.is_empty());
-
-    deps
-      .iter()
-      .filter_map(|dep| match dep {
-        css_module_lexer::Dependency::Import { attributes, .. } => {
-          let attributes = deps.import_attributes(*attributes);
-          Some(CssModuleRenderCondition::new(
-            attributes.media().map(|media| media.trim().into()),
-            attributes.supports().map(|supports| supports.trim().into()),
-            attributes.layer().map(|layer| {
-              let layer = layer.trim();
-              if layer.is_empty() {
-                CssLayer::Anonymous
-              } else {
-                CssLayer::Named(layer.into())
-              }
-            }),
-          ))
-        }
-        _ => None,
-      })
-      .collect()
-  }
-
-  #[test]
-  fn css_source_builder_adds_charset_once() {
-    let mut builder = CssSourceBuilder::new(true, true, Default::default());
-
-    builder.push_css_source(css_source(".a{}"), &[], false);
-
-    assert_eq!(
-      source_text(builder.into_source()),
-      r#"@charset "UTF-8";
-.a{}"#
-    );
-  }
-
-  #[test]
-  fn css_source_builder_can_skip_charset() {
-    let mut builder = CssSourceBuilder::new(false, true, Default::default());
-
-    builder.push_css_source(css_source(".a{}"), &[], false);
-
-    assert_eq!(source_text(builder.into_source()), ".a{}");
-  }
-
-  #[test]
-  fn css_source_builder_wraps_css_import_conditions() {
-    let conditions = css_import_conditions(
-      r#"@import url("./a.css") layer(theme) supports(display: grid) screen;"#,
-    );
-    let mut builder = CssSourceBuilder::new(false, true, Default::default());
-
-    builder.push_css_source(css_source(".a{}"), &conditions, false);
-
-    assert_eq!(
-      source_text(builder.into_source()),
-      r#"@media screen{
-@supports (display: grid) {
-@layer theme {
-.a{}
-}
-}
-}"#
-    );
-  }
-
-  #[test]
-  fn css_source_builder_wraps_multiline_css_import_conditions() {
-    let conditions = css_import_conditions(
-      r#"@import url("./a.css") layer(theme) supports(display: grid) screen;"#,
-    );
-    let mut builder = CssSourceBuilder::new(false, true, Default::default());
-
-    builder.push_css_source(
-      css_source(
-        r#".a {
-  color: red;
-}"#,
-      ),
-      &conditions,
-      false,
-    );
-
-    assert_eq!(
-      source_text(builder.into_source()),
-      r#"@media screen{
-@supports (display: grid) {
-@layer theme {
-.a {
-  color: red;
-}
-}
-}
-}"#
-    );
-  }
-
-  #[test]
-  fn css_source_builder_wraps_multiple_import_conditions_in_rspack_order() {
-    let outer_import =
-      css_import_conditions(r#"@import url("./nested.css") screen and (min-width: 768px);"#);
-    let inner_import =
-      css_import_conditions(r#"@import url("./a.css") layer(theme) supports(display: grid);"#);
-    let conditions = outer_import
-      .into_iter()
-      .chain(inner_import)
-      .collect::<Vec<_>>();
-    let mut builder = CssSourceBuilder::new(false, true, Default::default());
-
-    assert_eq!(conditions.len(), 2);
-    builder.push_css_source(css_source(".a{}"), &conditions, false);
-
-    assert_eq!(
-      source_text(builder.into_source()),
-      r#"@media screen and (min-width: 768px){
-@supports (display: grid) {
-@layer theme {
-.a{}
-}
-}
-}"#
-    );
-  }
-
-  #[test]
-  fn css_source_builder_pushes_lines_explicitly() {
-    let mut builder = CssSourceBuilder::new(false, true, Default::default());
-
-    builder.push_css_source(css_source(".a{}"), &[], false);
-    builder.push_line();
-    builder.push_css_source(css_source(".b{}"), &[], false);
-
-    assert_eq!(
-      source_text(builder.into_source()),
-      r#".a{}
-.b{}"#
-    );
-  }
-
-  #[test]
-  fn css_source_builder_css_text_removes_auto_public_path_placeholder() {
-    let mut builder = CssSourceBuilder::new(true, true, Default::default());
-
-    builder.push_css_source(
-      css_source(&concat_string!(
-        ".a{background:url(",
-        crate::utils::AUTO_PUBLIC_PATH_PLACEHOLDER,
-        ");}"
-      )),
-      &[],
-      false,
-    );
-
-    assert_eq!(
-      builder.into_css_text(),
-      r#"@charset "UTF-8";
-.a{background:url();}"#
-    );
   }
 }

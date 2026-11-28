@@ -131,11 +131,10 @@ for (const binding of bindings) {
 
     optionalDependencies[pkgJson.name] = 'workspace:*';
 
-    // Copy wasm artifact
-    fs.copyFileSync(
-      path.join(binding, 'rspack.wasm32-wasi.wasm'),
-      path.join(output, 'rspack.wasm32-wasi.wasm'),
-    );
+    // Keep the WASI declaration paired with the binary that generated it.
+    for (const file of ['rspack.wasm32-wasi.wasm', 'rspack.wasi.d.cts']) {
+      fs.copyFileSync(path.join(binding, file), path.join(output, file));
+    }
 
     // Copy wasm js runtimes from the node_binding crate
     const NODE_BINDING_CRATE = path.resolve(

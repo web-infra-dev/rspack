@@ -20,6 +20,7 @@ define_hook!(JavascriptModulesChunkHash: Series(compilation: &Compilation, chunk
 define_hook!(JavascriptModulesInlineInRuntimeBailout: SeriesBail(compilation: &Compilation) -> String);
 define_hook!(JavascriptModulesEmbedInRuntimeBailout: SeriesBail(compilation: &Compilation, module: &ModuleRef, chunk: &Chunk) -> String);
 define_hook!(JavascriptModulesStrictRuntimeBailout: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> String);
+define_hook!(JavascriptModulesUseSourceMap: SeriesBail(compilation: &Compilation, chunk_ukey: &ChunkUkey) -> bool);
 
 #[derive(Debug, Default)]
 #[cfg_attr(allocative, derive(rspack_allocative::Allocative))]
@@ -46,6 +47,8 @@ pub struct JavascriptModulesPluginHooks {
   pub embed_in_runtime_bailout: JavascriptModulesEmbedInRuntimeBailoutHook,
   #[cfg_attr(allocative, allocative(skip))]
   pub strict_runtime_bailout: JavascriptModulesStrictRuntimeBailoutHook,
+  #[cfg_attr(allocative, allocative(skip))]
+  pub use_source_map: JavascriptModulesUseSourceMapHook,
 }
 
 #[derive(Debug)]

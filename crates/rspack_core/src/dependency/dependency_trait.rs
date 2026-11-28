@@ -148,18 +148,9 @@ pub trait Dependency:
     _module_graph: &ModuleGraph,
     _module_graph_cache: &ModuleGraphCacheArtifact,
     _exports_info_artifact: &ExportsInfoArtifact,
-  ) -> Option<Vec<Diagnostic>> {
-    None
-  }
-
-  fn get_diagnostics_with_context(
-    &self,
-    module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
-    exports_info_artifact: &ExportsInfoArtifact,
     _context: &DependencyDiagnosticsContext,
   ) -> Option<Vec<Diagnostic>> {
-    self.get_diagnostics(module_graph, module_graph_cache, exports_info_artifact)
+    None
   }
 
   fn get_referenced_exports(
@@ -174,18 +165,21 @@ pub trait Dependency:
 
   fn could_affect_referencing_module(&self) -> AffectType;
 
+  /// Whether this dependency carries a module executor result used to create
+  /// its referenced module. Rebuilding the producer must refresh the result
+  /// and recreate that module.
+  fn is_module_executor_result(&self) -> bool {
+    false
+  }
+
   fn forward_id(&self) -> ForwardId {
     ForwardId::All
   }
 
-  fn lazy(&self) -> Option<LazyUntil> {
+  /// Static classification used when collecting a side-effect-free module's reexports.
+  /// Whether the dependency is currently deferred belongs to the module graph.
+  fn lazy_until(&self) -> Option<LazyUntil> {
     None
-  }
-
-  fn set_lazy(&self) {}
-
-  fn unset_lazy(&self) -> bool {
-    false
   }
 }
 

@@ -79,6 +79,7 @@ mod js_helpers;
 mod location;
 mod logging;
 mod module;
+mod module_bridge;
 mod module_graph;
 mod module_graph_connection;
 mod modules;
@@ -148,7 +149,7 @@ use crate::{
   raw_options::{BuiltinPlugin, RawOptions, WithFalse},
   resolver_factory::JsResolverFactory,
   trace_event::RawTraceEvent,
-  utils::callbackify,
+  utils::{CallbackError, CallbackResult, callbackify},
   virtual_modules::{
     JsVirtualFileStore, TrieVirtualFileStore, VirtualFileStore, VirtualFileSystem,
   },
@@ -162,6 +163,23 @@ pub const EXPECTED_RSPACK_CORE_VERSION: &str = rspack_workspace::rspack_pkg_vers
 
 thread_local! {
   static COMPILER_REFERENCES: RefCell<FxHashMap<CompilerId, WeakReference<JsCompiler>>> = Default::default();
+}
+
+pub(crate) fn upgrade_compiler(
+  env: &Env,
+  compiler_id: CompilerId,
+) -> napi::Result<Reference<JsCompiler>> {
+  let weak = COMPILER_REFERENCES.with(|references| references.borrow().get(&compiler_id).cloned());
+  let owner = weak
+    .map(|reference| reference.upgrade(*env))
+    .transpose()?
+    .flatten()
+    .ok_or_else(|| napi::Error::from_reason(format!(
+      "Unable to access compiler with id = {compiler_id:?}. The Compiler has been garbage collected by JavaScript."
+    )))?;
+  // Pin for the active binding call: N-API allocations may otherwise collect the owner
+  // while a native-backed wrapper, which stores only its id, is still reachable.
+  Ok(owner)
 }
 
 pub(crate) fn with_compilation<R>(
@@ -451,10 +469,9 @@ impl JsCompiler {
         callbackify(
           f,
           async move {
-            let result = compiler.build().await.to_napi_result_with_message(|e| {
-              print_error_diagnostic(e, compiler.options.stats.colors)
-            });
-            result?;
+            compiler.build().await.map_err(|error| {
+              CallbackError::from_diagnostic(error, compiler.options.stats.colors)
+            })?;
             tracing::debug!("build ok");
             Ok(())
           },
@@ -481,16 +498,15 @@ impl JsCompiler {
         callbackify(
           f,
           async move {
-            let result = compiler
+            compiler
               .rebuild(
                 changed_files.into_iter().collect::<FxHashSet<_>>(),
                 removed_files.into_iter().collect::<FxHashSet<_>>(),
               )
               .await
-              .to_napi_result_with_message(|e| {
-                print_error_diagnostic(e, compiler.options.stats.colors)
-              });
-            result?;
+              .map_err(|error| {
+                CallbackError::from_diagnostic(error, compiler.options.stats.colors)
+              })?;
             tracing::debug!("rebuild ok");
             Ok(())
           },
@@ -565,12 +581,12 @@ struct RunGuard {
 }
 
 impl RunGuard {
-  fn finish(self, env: &Env, result: &mut Result<(), ErrorCode>) {
+  fn finish(self, env: &Env, result: &mut CallbackResult<()>) {
     if result.is_ok() {
       *result = self
         ._reference
         .prune_file_system_dependency_strings(env)
-        .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason));
+        .map_err(|error| napi::Error::new(ErrorCode::Napi(error.status), error.reason).into());
     }
     if result.is_err() {
       // Preserve the original error even if clearing the string pool fails.
@@ -735,12 +751,6 @@ fn node_init(mut _exports: Object, env: Env) -> Result<()> {
 
 #[napi(module_exports)]
 fn rspack_module_exports(exports: Object, env: Env) -> Result<()> {
-  // Tokio shutdown is asynchronous and Rayon workers outlive individual Node environments.
-  // Keep the addon loaded so the last Worker cannot unload code those threads still execute.
-  // See https://github.com/napi-rs/napi-rs/pull/3423.
-  #[cfg(not(target_family = "wasm"))]
-  rspack_napi::retain_current_module_for_unload_safety();
-
   #[cfg(target_family = "wasm")]
   {
     panic::install_panic_handler();

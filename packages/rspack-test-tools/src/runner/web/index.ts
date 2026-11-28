@@ -164,13 +164,12 @@ export class WebRunner extends NodeRunner {
           let finalCode: string | Buffer;
 
           if (path.extname(filePath) === '.js') {
-            const currentDirectory = path.dirname(filePath);
-            const file = this.getFile(filePath, currentDirectory);
-            if (!file) {
-              throw new Error(`File not found: ${filePath}`);
-            }
-
-            const [_m, code] = this.getModuleContent(file);
+            // A script request must read current assets, even after an HMR rebuild.
+            const [_m, code] = this.getModuleContent({
+              path: filePath,
+              content: fs.readFileSync(filePath, 'utf-8'),
+              subPath: 'absolute_path',
+            });
             finalCode = code;
           } else {
             finalCode = fs.readFileSync(filePath);

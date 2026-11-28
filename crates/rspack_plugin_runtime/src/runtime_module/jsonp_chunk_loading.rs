@@ -131,8 +131,8 @@ impl JsonpChunkLoadingRuntimeModule {
     let base_uri = chunk
       .get_entry_options(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
       .and_then(|options| options.base_uri.as_ref())
-      .map_or_else(
-        || Cow::Borrowed("document.baseURI || self.location.href"),
+      .map_or(
+        Cow::Borrowed("document.baseURI || self.location.href"),
         |base_uri| Cow::Owned(rspack_util::json_stringify_str(base_uri)),
       );
     format!(
@@ -343,7 +343,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         }
         false => String::new(),
       },
-      &stringify_chunks(&initial_chunks, 0)
+      stringify_chunks(&initial_chunks, 0)
     ));
 
     if with_loading {
@@ -354,6 +354,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
           &self.template_id(TemplateId::Raw),
           Some(serde_json::json!({
             "_js_matcher": &js_matcher,
+            "_with_hmr": with_hmr,
             "_fetch_priority": if with_fetch_priority {
                ", fetchPriority"
             } else {
@@ -471,7 +472,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
       source.push_str(&source_with_on_chunk_load);
     }
 
-    if with_callback || with_loading {
+    if with_callback || with_loading || with_hmr {
       let global_object = &compilation.options.output.global_object;
       let chunk_loading_global = &compilation.options.output.chunk_loading_global;
       let chunk_loading_global_expr = format!(r#"{global_object}["{chunk_loading_global}"]"#);
@@ -490,6 +491,7 @@ impl RuntimeModule for JsonpChunkLoadingRuntimeModule {
         Some(serde_json::json!({
           "_chunk_loading_global_init_expr": &chunk_loading_global_init_expr,
           "_with_on_chunk_load": with_on_chunk_load,
+          "_with_hmr": with_hmr,
         })),
       )?;
 

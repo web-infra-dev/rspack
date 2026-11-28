@@ -21,9 +21,9 @@ export default {
 };
 ```
 
-## Runtime API
+## Rspack runtime API
 
-When you register the `HotModuleReplacementPlugin` plugin, Rspack will inject HMR related runtime APIs, such as `module.hot` and `import.meta.webpackHot`.
+Registering `HotModuleReplacementPlugin` enables HMR APIs in the Rspack runtime, such as `module.hot` and `import.meta.webpackHot`.
 
 See [HMR API](/api/runtime-api/hmr) for more details.
 
@@ -41,7 +41,7 @@ See [Preact - Fast Refresh](/guide/integrations/preact#preact-refresh) for more 
 
 ## Hot update manifest
 
-During HMR, the runtime reads `hot-update.json` to determine which chunks to update and which chunks or modules to remove. The manifest lists their IDs; the JavaScript updates are stored in separate `*.hot-update.(js|mjs)` files.
+During HMR, the Rspack runtime reads `hot-update.json` to determine which chunks to update and which chunks or modules to remove. The manifest lists their IDs; the JavaScript updates are stored in separate `*.hot-update.(js|mjs)` files.
 
 This example updates the JavaScript and built-in CSS for the `main` chunk without removing any chunks or modules:
 
@@ -58,11 +58,11 @@ Each field below is an array of IDs:
 
 | Field       | Meaning and purpose                                                                                 |
 | ----------- | --------------------------------------------------------------------------------------------------- |
-| `c`         | Chunks with JavaScript updates. The runtime loads their update files as needed.                     |
-| `r`         | Chunks to remove from the current runtime.                                                          |
-| `m`         | Modules to remove from the current runtime.                                                         |
-| `css.c`     | Chunks with updated built-in CSS. The runtime reloads their stylesheets.                            |
-| `css.r`     | Chunks whose built-in CSS was removed. The runtime removes their old stylesheets.                   |
+| `c`         | Chunks with JavaScript updates. The Rspack runtime loads their update files as needed.              |
+| `r`         | Chunks to remove from the current Rspack runtime.                                                   |
+| `m`         | Modules to remove from the current Rspack runtime.                                                  |
+| `css.c`     | Chunks with updated built-in CSS. The Rspack runtime reloads their stylesheets.                     |
+| `css.r`     | Chunks whose built-in CSS was removed. The Rspack runtime removes their old stylesheets.            |
 | `miniCss.c` | Same as `css.c`, for CSS extracted by [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin). |
 | `miniCss.r` | Same as `css.r`, for CSS extracted by `CssExtractRspackPlugin`.                                     |
 

@@ -5,9 +5,9 @@ use rspack_core::{
   CompilationAdditionalTreeRuntimeRequirements, CompilationChunkHash, CompilationContentHash,
   CompilationId, CompilationParams, CompilationRenderManifest, CompilerCompilation,
   ConstDependencyTemplate, DependencyType, IgnoreErrorModuleFactory, ManifestAssetType,
-  ModuleGraph, ModuleIdentifier, ModuleType, ParserAndGenerator, PathData, Plugin,
-  RenderManifestEntry, RuntimeGlobals, RuntimeModule, RuntimeRequirementsDependencyTemplate,
-  SelfModuleFactory, SourceType, get_js_chunk_filename_template,
+  ModuleGraph, ModuleIdentifier, ModuleType, PathData, Plugin, RenderManifestEntry, RuntimeGlobals,
+  RuntimeModule, RuntimeRequirementsDependencyTemplate, SelfModuleFactory, SourceType,
+  get_js_chunk_filename_template,
   rspack_sources::{BoxSource, CachedSource, SourceExt},
 };
 use rspack_error::{Diagnostic, Result};
@@ -476,6 +476,11 @@ async fn chunk_hash(
   chunk_ukey: &ChunkUkey,
   hasher: &mut RspackHasher,
 ) -> Result<()> {
+  if let Some(metadata) = compilation.runtime_proxy_metadata_artifact.get(chunk_ukey)
+    && metadata.runtime_module_bridge != Default::default()
+  {
+    (metadata.runtime_module_bridge, metadata.context_fields()).hash(hasher);
+  }
   self.get_chunk_hash(chunk_ukey, compilation, hasher).await?;
   if compilation
     .build_chunk_graph_artifact
@@ -505,6 +510,11 @@ async fn content_hash(
     .entry(SourceType::JavaScript)
     .or_insert_with(|| RspackHasher::from(&compilation.options.output));
 
+  if let Some(metadata) = compilation.runtime_proxy_metadata_artifact.get(chunk_ukey)
+    && metadata.runtime_module_bridge != Default::default()
+  {
+    (metadata.runtime_module_bridge, metadata.context_fields()).hash(hasher);
+  }
   if !chunk.has_runtime(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey) {
     chunk.id().hash(hasher);
   }
@@ -680,21 +690,12 @@ impl Plugin for JsPlugin {
       .render_manifest
       .tap(render_manifest::new(self));
 
-    ctx.register_parser_and_generator_builder(ModuleType::JsAuto, {
-      Box::new(move |options| {
-        Box::new(JavaScriptParserAndGenerator::new(options)) as Box<dyn ParserAndGenerator>
-      })
-    });
-    ctx.register_parser_and_generator_builder(ModuleType::JsEsm, {
-      Box::new(move |options| {
-        Box::new(JavaScriptParserAndGenerator::new(options)) as Box<dyn ParserAndGenerator>
-      })
-    });
-    ctx.register_parser_and_generator_builder(ModuleType::JsDynamic, {
-      Box::new(move |options| {
-        Box::new(JavaScriptParserAndGenerator::new(options)) as Box<dyn ParserAndGenerator>
-      })
-    });
+    for module_type in [ModuleType::JsAuto, ModuleType::JsEsm, ModuleType::JsDynamic] {
+      ctx.register_parser_and_generator_builder(
+        module_type,
+        Box::new(|_, _| Box::<JavaScriptParserAndGenerator>::default()),
+      );
+    }
 
     Ok(())
   }

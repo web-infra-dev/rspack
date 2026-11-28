@@ -19,6 +19,7 @@ use crate::{
   DependencyCodeGenerationRef, DependencyId, DependencyLocation, DependencyRange,
   EvaluatedInlinableValue, FactoryMeta, GeneratorOptions, Module, ModuleCodeTemplate, ModuleGraph,
   ModuleIdentifier, ModuleLayer, ModuleType, NormalModule, ParserOptions, RuntimeSpec, SourceType,
+  ValueCacheVersions,
 };
 
 #[derive(Debug)]
@@ -37,12 +38,23 @@ pub struct ParseContext<'a> {
   pub loaders: &'a [BoxLoader],
   pub resource_data: &'a ResourceData,
   pub compiler_options: &'a CompilerOptions,
+  pub value_cache_versions: &'a ValueCacheVersions,
   pub additional_data: Option<AdditionalData>,
   pub factory_meta: Option<&'a FactoryMeta>,
   pub parse_meta: ParseMeta,
   pub build_info: &'a mut BuildInfo,
   pub build_meta: &'a mut BuildMeta,
   pub runtime_template: &'a ModuleCodeTemplate,
+}
+
+impl<'a> ParseContext<'a> {
+  /// Returns `module_match_resource` if present, otherwise falls back to `resource_data`.
+  /// Use this for matching, module-type detection, and generated naming semantics (aligned with
+  /// webpack's `NormalModule#getResource`), not for JS runtime semantics that require the
+  /// original resource path or query.
+  pub fn effective_resource_data(&self) -> &'a ResourceData {
+    self.module_match_resource.unwrap_or(self.resource_data)
+  }
 }
 
 #[cacheable]

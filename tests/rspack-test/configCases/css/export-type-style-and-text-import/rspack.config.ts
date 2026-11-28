@@ -4,6 +4,7 @@ export default defineConfig({
   target: 'web',
   mode: 'development',
   devtool: false,
+  output: { publicPath: 'auto' },
   module: {
     rules: [
       {
@@ -21,8 +22,5 @@ export default defineConfig({
         },
       },
     ],
-  },
-  experiments: {
-    css: true,
   },
 });

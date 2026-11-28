@@ -98,9 +98,55 @@ type StatsCacheInfo = {
 
 计数表示当前编译中的缓存操作次数。命中不代表一定会复用，例如缓存的模块可能未通过依赖校验。
 
-## Asset 对象结构
+## Asset 对象结构 \{#asset-object}
 
-每个 asset 对象对应一个编译过程中生成的产物文件，它的结构如下：
+启用 [stats.assets](/config/stats#statsassets) 后，`assets` 会包含编译产物的信息。以下类型描述单个产物，其中的可选字段取决于 stats 配置和该产物的元数据。
+
+启用产物分组后，`assets` 中也可能包含分组对象。其中，`children` 列出分组内的子项，`filteredChildren` 表示未展示的子项数量。
+
+Stats 中的产物对象提供文件大小、输出状态和关联的 chunk 信息。如需读取文件内容，可以调用 [compilation.getAsset()](/api/javascript-api/compilation#getasset)，通过返回对象的 `source` 属性访问。
+
+```ts
+type StatsAsset = {
+  // Stats 项目的类型，例如 "asset" 或相关产物的类型
+  type: string;
+  // 相对于输出目录的产物文件名
+  name: string;
+  // 产物的附加信息
+  info: StatsAssetInfo;
+  // 产物的文件大小（单位为字节）
+  size: number;
+  // 本次编译是否输出了该产物
+  emitted: boolean;
+  // 本次编译是否未输出该产物（其值与 `emitted` 相反）
+  cached: boolean;
+  // 启用 `stats.relatedAssets` 时包含的相关产物
+  related?: StatsAsset[];
+  // 启用 `stats.ids` 时包含的关联 chunk ID 列表
+  chunks?: Array<string | number | null | undefined>;
+  // 产物文件关联的 chunk 的名称列表
+  chunkNames?: string[];
+  // 产物文件关联的 chunk 的 idHint 列表
+  chunkIdHints?: string[];
+  // 引用此附属产物的 chunk ID 列表（需启用 `stats.ids`）
+  auxiliaryChunks?: Array<string | number | null | undefined>;
+  // 作为附属产物文件关联的 chunk 的名称列表
+  auxiliaryChunkNames?: string[];
+  // 作为附属产物文件关联的 chunk 的 idHint 列表
+  auxiliaryChunkIdHints?: string[];
+  // 输出中省略的相关产物数量
+  filteredRelated?: number;
+  // 产物体积是否超过 `performance.maxAssetSize`
+  // 仅在启用 `stats.performance` 时包含
+  isOverSizeLimit?: boolean;
+} & Record<string, any>;
+```
+
+### 产物信息 \{#asset-info}
+
+`info` 对象保存产物的元数据，由 Rspack 或插件设置。未设置的可选字段会被省略。
+
+这些字段也可以通过 [compilation.getAsset()](/api/javascript-api/compilation#getasset) 返回对象的 `info` 属性读取。在 Stats JSON 中，哈希值和关联文件名统一以数组表示。
 
 ```ts
 type StatsAssetInfo = {
@@ -116,7 +162,7 @@ type StatsAssetInfo = {
   contenthash: string[];
   // 从源文件创建产物时的原始文件名
   sourceFilename?: string;
-  // 产物是否从其他文件复制而来
+  // 产物是否由文件复制生成，例如通过 CopyRspackPlugin
   copied?: boolean;
   // 产物体积是否超过 `performance.maxAssetSize`
   isOverSizeLimit?: boolean;
@@ -129,40 +175,17 @@ type StatsAssetInfo = {
   // 按关联类型分组的相关产物文件名
   related: Record<string, string[]>;
 } & Record<string, any>;
-
-type StatsAsset = {
-  // Stats 项目的类型，例如 "asset" 或相关产物的类型
-  type: string;
-  // 产物的文件名
-  name: string;
-  // 产物的附加信息
-  info: StatsAssetInfo;
-  // 产物的文件大小（单位为字节）
-  size: number;
-  // 本次编译是否输出了该产物
-  emitted: boolean;
-  // 本次编译是否未输出该产物（其值与 `emitted` 相反）
-  cached: boolean;
-  // 相关联的产物，如 source map
-  related?: StatsAsset[];
-  // 产物文件关联的 chunk 的 ID 列表
-  chunks?: Array<string | number | null | undefined>;
-  // 产物文件关联的 chunk 的名称列表
-  chunkNames?: string[];
-  // 产物文件关联的 chunk 的 idHint 列表
-  chunkIdHints?: string[];
-  // 作为附属产物文件关联的 chunk 的 ID 列表
-  auxiliaryChunks?: Array<string | number | null | undefined>;
-  // 作为附属产物文件关联的 chunk 的名称列表
-  auxiliaryChunkNames?: string[];
-  // 作为附属产物文件关联的 chunk 的 idHint 列表
-  auxiliaryChunkIdHints?: string[];
-  // 输出中省略的相关产物数量
-  filteredRelated?: number;
-  // 产物体积是否超过 performance.maxAssetSize 配置
-  isOverSizeLimit?: boolean;
-} & Record<string, any>;
 ```
+
+#### javascriptModule
+
+`javascriptModule` 为 `true` 时，表示该 JavaScript 产物采用 ES module 格式。Rspack 生成 JavaScript chunk 时，会根据 [output.module](/config/output#outputmodule) 设置此标记。
+
+并非每个 JavaScript 产物都包含此字段。例如，[CopyRspackPlugin](/plugins/copy-rspack-plugin) 可以将已有的 `public/vendor.js` 文件复制到 `dist/vendor.js`。该插件不会根据文件内容或扩展名判断模块格式，因此不会为这个新增的产物设置 `javascriptModule`。即使没有此字段，文件仍可能是 ES module。
+
+#### related
+
+`info.related` 按关联类型列出文件名。例如，`{ sourceMap: ['main.js.map'] }` 表示该产物的 source map 文件为 `main.js.map`。启用 [stats.relatedAssets](/config/stats#statsrelatedassets) 后，产物顶层的 `related` 字段还可以包含关联产物的统计对象。
 
 ## Chunk 对象结构
 
@@ -182,7 +205,7 @@ type StatsChunk = {
   names: string[];
   // chunk 关联的 ID hint 列表
   idHints: string[];
-  // chunk 所使用的 runtime
+  // chunk 所使用的 Rspack 运行时
   runtime: string[];
   // chunk 的大小（单位为字节）
   size: number;

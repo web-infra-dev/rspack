@@ -5,9 +5,9 @@ use rspack_cacheable::{
 use rspack_core::{
   AsContextDependency, Dependency, DependencyCategory, DependencyCodeGeneration, DependencyId,
   DependencyLocation, DependencyRange, DependencyTemplate, DependencyTemplateType, DependencyType,
-  ExportsInfoArtifact, ExportsType, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
-  ReferencedExport, RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName,
-  create_exports_object_referenced, property_access, to_normal_comment,
+  ExportsInfoArtifact, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ReferencedExport,
+  RuntimeGlobals, RuntimeSpec, TemplateContext, TemplateReplaceSource, UsedName, property_access,
+  should_reference_call_receiver, to_normal_comment,
 };
 
 use crate::Atom;
@@ -95,37 +95,29 @@ impl Dependency for CommonJsFullRequireDependency {
     exports_info_artifact: &ExportsInfoArtifact,
     _runtime: Option<&RuntimeSpec>,
   ) -> Vec<ReferencedExport> {
-    let mut namespace_object_as_context = self.namespace_object_as_context;
-
-    let module = module_graph
-      .get_module_by_dependency_id(&self.id)
-      .expect("should have module");
-    let exports_type = module.get_exports_type(
-      module_graph,
-      module_graph_cache,
-      exports_info_artifact,
-      false,
-    );
-
-    // Force enable namespace object as context for json module, it's a common case:
-    // import json from "./array.json"; json.map(d => d * 2);
-    if matches!(
-      exports_type,
-      ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
-    ) && module.build_info().json_data.is_some()
-    {
-      namespace_object_as_context = true;
-    }
-
-    if namespace_object_as_context && self.is_call {
-      if self.names.is_empty() {
-        return create_exports_object_referenced();
+    let mut names = self.names.as_slice();
+    if self.is_call {
+      let module = module_graph
+        .get_module_by_dependency_id(&self.id)
+        .expect("should have module");
+      let exports_type = module.get_exports_type(
+        module_graph,
+        module_graph_cache,
+        exports_info_artifact,
+        false,
+      );
+      if self.namespace_object_as_context
+        || should_reference_call_receiver(
+          names,
+          exports_type,
+          exports_info_artifact,
+          exports_info_artifact.get_exports_info_data(&module.identifier()),
+        )
+      {
+        names = &names[..names.len().saturating_sub(1)];
       }
-      return vec![ReferencedExport::from(
-        &self.names[..self.names.len().saturating_sub(1)],
-      )];
     }
-    vec![ReferencedExport::from(self.names.as_slice())]
+    vec![ReferencedExport::from(names)]
   }
 
   fn could_affect_referencing_module(&self) -> rspack_core::AffectType {

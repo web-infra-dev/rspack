@@ -12,9 +12,11 @@ it("verify es6 (esmodule) minify bundle source map", async () => {
 	const map = JSON.parse(source);
 	let sourceUrl = source => `webpack:///${source}`;
 	let runtimeSource = name => sourceUrl(`webpack/runtime/${name}`);
+	let bootstrapSource = sourceUrl("webpack/bootstrap");
 	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
 		sourceUrl = source => `rspack:///${source}`;
 		runtimeSource = name => sourceUrl(`rspack/runtime/${name}`);
+		bootstrapSource = sourceUrl("rspack/bootstrap");
 	}
 	expect(map.sources.sort()).toEqual([
 		sourceUrl(`../../../../../packages/rspack-test-tools/dist/helper/util/checkSourceMap.cjs`),
@@ -22,6 +24,7 @@ it("verify es6 (esmodule) minify bundle source map", async () => {
 		sourceUrl("./b-dir/b.js"),
 		sourceUrl("./b-dir/c-dir/c.js"),
 		sourceUrl("./index.js"),
+		bootstrapSource,
 		runtimeSource("define_property_getters"),
 		runtimeSource("has_own_property"),
 		runtimeSource("make_namespace_object"),

@@ -1,4 +1,6 @@
-import { System } from "@rspack/test-tools/helper/legacy/fakeSystem";
+import { createSystem } from "@rspack/test-tools/helper/legacy/fakeSystem";
+
+const System = createSystem();
 
 export default {
 	target: 'web',

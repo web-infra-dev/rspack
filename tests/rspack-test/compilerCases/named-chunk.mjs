@@ -5,6 +5,9 @@ class MyPlugin {
 		compiler.hooks.afterCompile.tap("Plugin", compilation => {
 			let c = compilation.namedChunks.get("d");
 			expect(c.name).toBe("d");
+			expect(compilation.namedChunks.has("d")).toBe(true);
+			expect(compilation.namedChunks.has("missing")).toBe(false);
+			expect(compilation.namedChunks.size).toBe(1);
 			mockFn();
 		});
 	}

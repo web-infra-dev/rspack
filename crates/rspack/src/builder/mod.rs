@@ -51,12 +51,12 @@ use rspack_core::{
   JavascriptParserOrder, JavascriptParserUrl, JavascriptParserWorkerOptions, JsonGeneratorOptions,
   JsonParserOptions, LibraryName, LibraryNonUmdObject, LibraryOptions, LibraryType,
   MangleExportsOption, Mode, ModuleNoParseRules, ModuleOptions, ModuleRule, ModuleRuleEffect,
-  ModuleType, NewCacheOptions, NodeDirnameOption, NodeFilenameOption, NodeGlobalOption, NodeOption,
-  Optimization, OutputOptions, ParseOption, ParserOptions, ParserOptionsMap, PathInfo, PathMatcher,
-  PrintlnInfrastructureLogSink, PublicPath, Resolve, ResolverFactory, RuleSetCondition,
-  RuleSetLogicalConditions, SideEffectOption, SnapshotOptions, SnapshotStrategyOptions,
-  StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading, WasmLoadingType, create_cache,
-  incremental::IncrementalOptions, runtime_mode::RuntimeMode,
+  ModuleRuleMatcher, ModuleType, NewCacheOptions, NodeDirnameOption, NodeFilenameOption,
+  NodeGlobalOption, NodeOption, Optimization, OutputOptions, ParseOption, ParserOptions,
+  ParserOptionsMap, PathInfo, PathMatcher, PrintlnInfrastructureLogSink, PublicPath, Resolve,
+  ResolverFactory, RuleSetCondition, RuleSetLogicalConditions, SideEffectOption, SnapshotOptions,
+  SnapshotStrategyOptions, StatsOptions, TrustedTypes, UsedExportsOption, WasmLoading,
+  WasmLoadingType, create_cache, incremental::IncrementalOptions, runtime_mode::RuntimeMode,
 };
 use rspack_error::{Error, Result};
 use rspack_fs::{IntermediateFileSystem, NativeFileSystem, ReadableFileSystem, WritableFileSystem};
@@ -1263,6 +1263,8 @@ impl CompilerOptionsBuilder {
         let entry_options = EntryOptions {
           name: Some(name),
           runtime: desc.runtime.map(EntryRuntime::String),
+          worker: None,
+          worklet: None,
           chunk_loading: desc.chunk_loading,
           wasm_loading: desc.wasm_loading,
           async_chunks: desc.async_chunks,
@@ -1669,77 +1671,94 @@ impl NodeOptionBuilder {
   }
 }
 
+/// A module rule with its effect inline. The module builder assigns effect indices when building the options.
+#[derive(Debug, Default)]
+pub struct ModuleRuleBuilder {
+  /// Override the matched resource's filename.
+  pub r#as: Option<Filename>,
+  /// Conditions that must match before applying the effect and nested rules.
+  pub matcher: ModuleRuleMatcher,
+  /// Settings applied to matching modules.
+  pub effect: ModuleRuleEffect,
+  /// Nested rules to evaluate in order.
+  pub rules: Option<Vec<ModuleRuleBuilder>>,
+  /// Nested alternatives, of which only the first match applies.
+  pub one_of: Option<Vec<ModuleRuleBuilder>>,
+}
+
+impl ModuleRuleBuilder {
+  fn build(self, effects: &mut Vec<ModuleRuleEffect>) -> ModuleRule {
+    ModuleRule {
+      r#as: self.r#as,
+      matcher: self.matcher,
+      effect: self.effect.push(effects),
+      rules: self.rules.map(|rules| Self::build_rules(rules, effects)),
+      one_of: self.one_of.map(|rules| Self::build_rules(rules, effects)),
+    }
+  }
+
+  fn build_rules(rules: Vec<Self>, effects: &mut Vec<ModuleRuleEffect>) -> Vec<ModuleRule> {
+    rules.into_iter().map(|rule| rule.build(effects)).collect()
+  }
+}
+
 /// Builder used to build [`ModuleOptions`].
-///
-/// [`ModuleOptions`]: rspack_core::options::ModuleOptions
 #[derive(Debug, Default)]
 pub struct ModuleOptionsBuilder {
-  /// An array of rules that match the module's requests when it is created.
-  rules: Vec<ModuleRule>,
-  /// Configure all parsers' options in one place with module.parser.
-  parser: Option<ParserOptionsMap>,
-  /// Configure all generators' options in one place with module.generator.
-  generator: Option<GeneratorOptionsMap>,
-  /// Keep module mechanism of the matched modules as-is, such as module.exports, require, import.
-  no_parse: Option<ModuleNoParseRules>,
+  // Imported rules already index this options object's effect table.
+  options: ModuleOptions,
+  rules: Vec<ModuleRuleBuilder>,
 }
 
 impl From<ModuleOptions> for ModuleOptionsBuilder {
-  fn from(value: ModuleOptions) -> Self {
-    ModuleOptionsBuilder {
-      rules: value.rules,
-      parser: value.parser,
-      generator: value.generator,
-      no_parse: value.no_parse,
+  fn from(options: ModuleOptions) -> Self {
+    Self {
+      options,
+      rules: Vec::new(),
     }
   }
 }
 
 impl From<&mut ModuleOptionsBuilder> for ModuleOptionsBuilder {
   fn from(value: &mut ModuleOptionsBuilder) -> Self {
-    ModuleOptionsBuilder {
-      rules: std::mem::take(&mut value.rules),
-      parser: value.parser.take(),
-      generator: value.generator.take(),
-      no_parse: value.no_parse.take(),
-    }
+    std::mem::take(value)
   }
 }
 
 impl ModuleOptionsBuilder {
   /// Add a rule to the module.
-  pub fn rule(&mut self, rule: ModuleRule) -> &mut Self {
+  pub fn rule(&mut self, rule: ModuleRuleBuilder) -> &mut Self {
     self.rules.push(rule);
     self
   }
 
   /// Add multiple rules to the module.
-  pub fn rules(&mut self, mut rules: Vec<ModuleRule>) -> &mut Self {
+  pub fn rules(&mut self, mut rules: Vec<ModuleRuleBuilder>) -> &mut Self {
     self.rules.append(&mut rules);
     self
   }
 
   /// Set the parser options for the module.
   pub fn parser(&mut self, parser: ParserOptionsMap) -> &mut Self {
-    match &mut self.parser {
+    match &mut self.options.parser {
       Some(p) => p.extend(parser.clone()),
-      None => self.parser = Some(parser),
+      None => self.options.parser = Some(parser),
     }
     self
   }
 
   /// Set the generator options for the module.
   pub fn generator(&mut self, generator: GeneratorOptionsMap) -> &mut Self {
-    match &mut self.generator {
+    match &mut self.options.generator {
       Some(g) => g.extend(generator.clone()),
-      None => self.generator = Some(generator),
+      None => self.options.generator = Some(generator),
     }
     self
   }
 
   /// Set the no_parse options for the module.
   pub fn no_parse(&mut self, no_parse: ModuleNoParseRules) -> &mut Self {
-    self.no_parse = Some(no_parse);
+    self.options.no_parse = Some(no_parse);
     self
   }
 
@@ -1756,7 +1775,9 @@ impl ModuleOptionsBuilder {
     target_properties: &TargetProperties,
     mode: &Mode,
   ) -> Result<ModuleOptions> {
-    let parser = self.parser.get_or_insert(ParserOptionsMap::default());
+    let mut options = std::mem::take(&mut self.options);
+    options.options_store = Default::default();
+    let parser = options.parser.get_or_insert(ParserOptionsMap::default());
 
     if !parser.contains_key("asset") {
       parser.insert(
@@ -1825,7 +1846,9 @@ impl ModuleOptionsBuilder {
       );
     }
 
-    let generator = self.generator.get_or_insert(GeneratorOptionsMap::default());
+    let generator = options
+      .generator
+      .get_or_insert(GeneratorOptionsMap::default());
     if !generator.contains_key("json") {
       generator.insert(
         "json".to_string(),
@@ -1857,6 +1880,7 @@ impl ModuleOptionsBuilder {
         "css".to_string(),
         GeneratorOptions::Css(CssGeneratorOptions {
           exports_only: Some(exports_only),
+          runtime_public_path: Some(false),
           es_module: Some(true),
         }),
       );
@@ -1886,25 +1910,24 @@ impl ModuleOptionsBuilder {
       );
     }
 
-    let default_rules = default_rules(async_web_assembly, css);
-
-    let mut module_options = ModuleOptions {
-      rules: vec![
-        ModuleRule {
-          rules: Some(default_rules),
-          ..Default::default()
-        },
-        ModuleRule {
-          rules: Some(std::mem::take(&mut self.rules)),
-          ..Default::default()
-        },
-      ],
-      parser: self.parser.take(),
-      generator: self.generator.take(),
-      no_parse: self.no_parse.take(),
+    let defaults = ModuleRuleBuilder {
+      rules: Some(default_rules(async_web_assembly, css)),
+      ..Default::default()
+    }
+    .build(&mut options.effects);
+    let effect = ModuleRuleEffect::default().push(&mut options.effects);
+    for rule in std::mem::take(&mut self.rules) {
+      options.rules.push(rule.build(&mut options.effects));
+    }
+    let custom = ModuleRule {
+      effect,
+      rules: Some(std::mem::take(&mut options.rules)),
+      one_of: None,
+      r#as: None,
+      matcher: ModuleRuleMatcher::default(),
     };
-    module_options.assign_rule_ids()?;
-    Ok(module_options)
+    options.rules = vec![defaults, custom];
+    Ok(options)
   }
 }
 
@@ -1915,11 +1938,14 @@ fn extension_rule(extension: &str) -> RuleSetCondition {
   )
 }
 
-fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
+fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRuleBuilder> {
   let mut rules = vec![
     // application/node
-    ModuleRule {
-      mimetype: Some(RuleSetCondition::String("application/node".into()).into()),
+    ModuleRuleBuilder {
+      matcher: ModuleRuleMatcher {
+        mimetype: Some(RuleSetCondition::String("application/node".into()).into()),
+        ..Default::default()
+      },
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::JsAuto),
         ..Default::default()
@@ -1927,8 +1953,11 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
       ..Default::default()
     },
     // .json
-    ModuleRule {
-      test: Some(extension_rule(".json")),
+    ModuleRuleBuilder {
+      matcher: ModuleRuleMatcher {
+        test: Some(extension_rule(".json")),
+        ..Default::default()
+      },
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::Json),
         ..Default::default()
@@ -1936,8 +1965,11 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
       ..Default::default()
     },
     // application/json
-    ModuleRule {
-      mimetype: Some(RuleSetCondition::String("application/json".into()).into()),
+    ModuleRuleBuilder {
+      matcher: ModuleRuleMatcher {
+        mimetype: Some(RuleSetCondition::String("application/json".into()).into()),
+        ..Default::default()
+      },
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::Json),
         ..Default::default()
@@ -1945,8 +1977,11 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
       ..Default::default()
     },
     // .mjs
-    ModuleRule {
-      test: Some(extension_rule(".mjs")),
+    ModuleRuleBuilder {
+      matcher: ModuleRuleMatcher {
+        test: Some(extension_rule(".mjs")),
+        ..Default::default()
+      },
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::JsEsm),
         resolve: Some(Resolve {
@@ -1964,12 +1999,15 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
       ..Default::default()
     },
     // .js with type:module
-    ModuleRule {
-      test: Some(extension_rule(".js")),
-      description_data: Some(HashMap::from_iter([(
-        "type".into(),
-        RuleSetCondition::String("module".into()).into(),
-      )])),
+    ModuleRuleBuilder {
+      matcher: ModuleRuleMatcher {
+        test: Some(extension_rule(".js")),
+        description_data: Some(HashMap::from_iter([(
+          "type".into(),
+          RuleSetCondition::String("module".into()).into(),
+        )])),
+        ..Default::default()
+      },
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::JsEsm),
         resolve: Some(Resolve {
@@ -1987,8 +2025,11 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
       ..Default::default()
     },
     // .cjs
-    ModuleRule {
-      test: Some(extension_rule(".cjs")),
+    ModuleRuleBuilder {
+      matcher: ModuleRuleMatcher {
+        test: Some(extension_rule(".cjs")),
+        ..Default::default()
+      },
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::JsDynamic),
         ..Default::default()
@@ -1996,12 +2037,15 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
       ..Default::default()
     },
     // .js with type:commonjs
-    ModuleRule {
-      test: Some(extension_rule(".js")),
-      description_data: Some(HashMap::from_iter([(
-        "type".into(),
-        RuleSetCondition::String("commonjs".into()).into(),
-      )])),
+    ModuleRuleBuilder {
+      matcher: ModuleRuleMatcher {
+        test: Some(extension_rule(".js")),
+        description_data: Some(HashMap::from_iter([(
+          "type".into(),
+          RuleSetCondition::String("commonjs".into()).into(),
+        )])),
+        ..Default::default()
+      },
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::JsDynamic),
         ..Default::default()
@@ -2009,18 +2053,21 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
       ..Default::default()
     },
     // text/javascript or application/javascript
-    ModuleRule {
-      mimetype: Some(
-        RuleSetCondition::Logical(Box::new(RuleSetLogicalConditions::new(
-          None,
-          Some(vec![
-            RuleSetCondition::String("text/javascript".into()),
-            RuleSetCondition::String("application/javascript".into()),
-          ]),
-          None,
-        )))
-        .into(),
-      ),
+    ModuleRuleBuilder {
+      matcher: ModuleRuleMatcher {
+        mimetype: Some(
+          RuleSetCondition::Logical(Box::new(RuleSetLogicalConditions::new(
+            None,
+            Some(vec![
+              RuleSetCondition::String("text/javascript".into()),
+              RuleSetCondition::String("application/javascript".into()),
+            ]),
+            None,
+          )))
+          .into(),
+        ),
+        ..Default::default()
+      },
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::JsEsm),
         resolve: Some(Resolve {
@@ -2042,17 +2089,23 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
   // Add WebAssembly rules if enabled
   if async_web_assembly {
     rules.extend(vec![
-      ModuleRule {
-        test: Some(extension_rule(".wasm")),
+      ModuleRuleBuilder {
+        matcher: ModuleRuleMatcher {
+          test: Some(extension_rule(".wasm")),
+          ..Default::default()
+        },
         effect: ModuleRuleEffect {
           r#type: Some(ModuleType::WasmAsync),
           ..Default::default()
         },
-        rules: Some(vec![ModuleRule {
-          description_data: Some(HashMap::from_iter([(
-            "type".into(),
-            RuleSetCondition::String("module".into()).into(),
-          )])),
+        rules: Some(vec![ModuleRuleBuilder {
+          matcher: ModuleRuleMatcher {
+            description_data: Some(HashMap::from_iter([(
+              "type".into(),
+              RuleSetCondition::String("module".into()).into(),
+            )])),
+            ..Default::default()
+          },
           effect: ModuleRuleEffect {
             resolve: Some(Resolve {
               fully_specified: Some(true),
@@ -2064,17 +2117,23 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
         }]),
         ..Default::default()
       },
-      ModuleRule {
-        mimetype: Some(RuleSetCondition::String("application/wasm".into()).into()),
+      ModuleRuleBuilder {
+        matcher: ModuleRuleMatcher {
+          mimetype: Some(RuleSetCondition::String("application/wasm".into()).into()),
+          ..Default::default()
+        },
         effect: ModuleRuleEffect {
           r#type: Some(ModuleType::WasmAsync),
           ..Default::default()
         },
-        rules: Some(vec![ModuleRule {
-          description_data: Some(HashMap::from_iter([(
-            "type".into(),
-            RuleSetCondition::String("module".into()).into(),
-          )])),
+        rules: Some(vec![ModuleRuleBuilder {
+          matcher: ModuleRuleMatcher {
+            description_data: Some(HashMap::from_iter([(
+              "type".into(),
+              RuleSetCondition::String("module".into()).into(),
+            )])),
+            ..Default::default()
+          },
           effect: ModuleRuleEffect {
             resolve: Some(Resolve {
               fully_specified: Some(true),
@@ -2098,8 +2157,11 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
     };
 
     rules.extend(vec![
-      ModuleRule {
-        test: Some(extension_rule(".css")),
+      ModuleRuleBuilder {
+        matcher: ModuleRuleMatcher {
+          test: Some(extension_rule(".css")),
+          ..Default::default()
+        },
         effect: ModuleRuleEffect {
           r#type: Some(ModuleType::CssAuto),
           resolve: Some(resolve.clone()),
@@ -2107,8 +2169,11 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
         },
         ..Default::default()
       },
-      ModuleRule {
-        mimetype: Some(RuleSetCondition::String("text/css+module".into()).into()),
+      ModuleRuleBuilder {
+        matcher: ModuleRuleMatcher {
+          mimetype: Some(RuleSetCondition::String("text/css+module".into()).into()),
+          ..Default::default()
+        },
         effect: ModuleRuleEffect {
           r#type: Some(ModuleType::CssModule),
           resolve: Some(resolve.clone()),
@@ -2116,8 +2181,11 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
         },
         ..Default::default()
       },
-      ModuleRule {
-        mimetype: Some(RuleSetCondition::String("text/css".into()).into()),
+      ModuleRuleBuilder {
+        matcher: ModuleRuleMatcher {
+          mimetype: Some(RuleSetCondition::String("text/css".into()).into()),
+          ..Default::default()
+        },
         effect: ModuleRuleEffect {
           r#type: Some(ModuleType::Css),
           resolve: Some(resolve),
@@ -2130,18 +2198,24 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
 
   // Add URL dependency rules
   rules.extend(vec![
-    ModuleRule {
-      dependency: Some(RuleSetCondition::String("url".into())),
+    ModuleRuleBuilder {
+      matcher: ModuleRuleMatcher {
+        dependency: Some(RuleSetCondition::String("url".into())),
+        ..Default::default()
+      },
       one_of: Some(vec![
-        ModuleRule {
-          scheme: Some(RuleSetCondition::String("data".into()).into()),
+        ModuleRuleBuilder {
+          matcher: ModuleRuleMatcher {
+            scheme: Some(RuleSetCondition::String("data".into()).into()),
+            ..Default::default()
+          },
           effect: ModuleRuleEffect {
             r#type: Some(ModuleType::AssetInline),
             ..Default::default()
           },
           ..Default::default()
         },
-        ModuleRule {
+        ModuleRuleBuilder {
           effect: ModuleRuleEffect {
             r#type: Some(ModuleType::AssetResource),
             ..Default::default()
@@ -2151,11 +2225,14 @@ fn default_rules(async_web_assembly: bool, css: bool) -> Vec<ModuleRule> {
       ]),
       ..Default::default()
     },
-    ModuleRule {
-      with: Some(HashMap::from_iter([(
-        "type".into(),
-        RuleSetCondition::String("json".into()).into(),
-      )])),
+    ModuleRuleBuilder {
+      matcher: ModuleRuleMatcher {
+        with: Some(HashMap::from_iter([(
+          "type".into(),
+          RuleSetCondition::String("json".into()).into(),
+        )])),
+        ..Default::default()
+      },
       effect: ModuleRuleEffect {
         r#type: Some(ModuleType::Json),
         ..Default::default()
@@ -2283,7 +2360,7 @@ impl From<OutputOptions> for OutputOptionsBuilder {
       chunk_loading: Some(value.chunk_loading),
       chunk_loading_global: Some(value.chunk_loading_global),
       chunk_load_timeout: Some(value.chunk_load_timeout),
-      chunk_format: None,
+      chunk_format: Some(value.chunk_format),
       filename: Some(value.filename),
       chunk_filename: Some(value.chunk_filename),
       cross_origin_loading: Some(value.cross_origin_loading),
@@ -2823,7 +2900,7 @@ impl OutputOptionsBuilder {
         let library_name = match name {
           LibraryName::NonUmdObject(LibraryNonUmdObject::String(s)) => s.clone(),
           LibraryName::NonUmdObject(LibraryNonUmdObject::Array(arr)) => arr.join("."),
-          LibraryName::UmdObject(obj) => obj.root.as_ref().map(|r| r.join(".")).unwrap_or_default(),
+          LibraryName::UmdObject(obj) => obj.root.as_ref().map_or_default(|r| r.join(".")),
         };
 
         // Clean up library name using regex
@@ -3172,11 +3249,16 @@ impl OutputOptionsBuilder {
     environment.async_function = tp
       .map(|t| optimistic!(t.async_function))
       .unwrap_or_default();
+    environment.top_level_await = tp
+      .map(|t| optimistic!(t.top_level_await))
+      .unwrap_or_default();
     environment.for_of = tp.map(|t| optimistic!(t.for_of)).unwrap_or_default();
     environment.destructuring = tp.map(|t| optimistic!(t.destructuring)).unwrap_or_default();
     environment.optional_chaining = tp
       .map(|t| optimistic!(t.optional_chaining))
       .unwrap_or_default();
+    environment.spread = tp.map(|t| optimistic!(t.spread)).unwrap_or_default();
+    environment.symbol = tp.map(|t| optimistic!(t.symbol)).unwrap_or_default();
     environment.node_prefix_for_core_modules = tp
       .map(|t| optimistic!(t.node_prefix_for_core_modules))
       .unwrap_or_default();
@@ -3207,6 +3289,7 @@ impl OutputOptionsBuilder {
       wasm_streaming_fallback: self.wasm_streaming_fallback.take().unwrap_or(true),
       webassembly_module_filename,
       unique_name,
+      chunk_format,
       chunk_loading,
       chunk_loading_global,
       chunk_load_timeout,

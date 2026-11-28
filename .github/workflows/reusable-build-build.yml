@@ -82,9 +82,10 @@ jobs:
 
       - name: Install cargo-zigbuild for musl build
         if: ${{ contains(inputs.target, 'musl') }}
-        uses: taiki-e/install-action@16b05812d776ae1dfaabc8277e421fb6d2506419 # v2
-        with:
-          tool: cargo-zigbuild
+        run: |
+          cargo install cargo-zigbuild --locked \
+            --git https://github.com/rust-cross/cargo-zigbuild \
+            --rev 875d3aa050975e468e4771686f1cdbf35adaeccb
 
       - name: Install clang with PowerPC and SystemZ backends
         if: ${{ inputs.target == 'powerpc64le-unknown-linux-gnu' || inputs.target == 's390x-unknown-linux-gnu' }}
@@ -98,9 +99,7 @@ jobs:
         run: cargo codegen
 
       - name: Trim paths
-        run: |
-          echo $'\n' >> .cargo/config.toml
-          echo 'trim-paths = true' >> .cargo/config.toml
+        run: echo 'CARGO_PROFILE_RELEASE_TRIM_PATHS=object' >> "$GITHUB_ENV"
 
       - name: Enable checksum-freshness (CI profile only)
         if: ${{ inputs.profile == 'ci' }}
@@ -112,8 +111,16 @@ jobs:
         uses: xc2/free-disk-space@fbe203b3788f2bebe2c835a15925da303eaa5efe # v1.0.0
         with:
           tool-cache: false
+          # Keep LLVM/Clang for native dependencies built with TARGET_CC=clang.
+          large-packages: false
 
       # Linux
+      - name: Check clang
+        if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
+        run: |
+          command -v clang
+          clang --version
+
       - name: Build x86_64-unknown-linux-gnu
         if: ${{ inputs.target == 'x86_64-unknown-linux-gnu' }}
         run: RUST_TARGET=x86_64-unknown-linux-gnu USE_NAPI_CROSS=1 pnpm build:binding:${{ inputs.profile }}
@@ -236,6 +243,10 @@ jobs:
           wasm-opt -Oz crates/node_binding/rspack.browser.wasm -o crates/node_binding/rspack.browser.optimized.wasm
           mv crates/node_binding/rspack.browser.optimized.wasm crates/node_binding/rspack.browser.wasm
 
+      - name: Check WASI types
+        if: ${{ inputs.target == 'wasm32-wasip1-threads' }}
+        run: pnpm --filter @rspack/binding test:wasi
+
       - name: Diff artifact
         run: |
           export EXCLUDE=":(exclude).cargo/config.toml"
@@ -248,6 +259,7 @@ jobs:
           path: |
             crates/node_binding/*.node
             crates/node_binding/*.d.ts
+            ${{ inputs.target == 'wasm32-wasip1-threads' && 'crates/node_binding/rspack.wasi.d.cts' || '' }}
             crates/node_binding/rspack.wasm32-wasi.wasm
             crates/node_binding/rspack.wasm32-wasi.debug.wasm
             crates/node_binding/rspack.browser.wasm

@@ -11,18 +11,22 @@ export default async function action({ github, context, limit }) {
   ).size;
   console.log(`Head commit size: ${headSize}`);
 
+  const trunk = context.payload.pull_request
+    ? await resolveTrunk(github, context)
+    : null;
+
   let baseCommit;
   let baseSize;
   try {
-    ({ baseCommit, baseSize } = context.payload.pull_request
-      ? await findBaseCommit(github, context)
+    ({ baseCommit, baseSize } = trunk
+      ? await findBaseCommit(github, context, trunk)
       : await waitForBaseCommit(github, context));
   } catch (e) {
     if (e instanceof PendingBinaryDataError) {
       await tryComment(
         github,
         context,
-        pendingBinarySizeComment(context, headSize, e),
+        pendingBinarySizeComment(context, trunk, headSize, e),
       );
     }
     throw e;
@@ -33,7 +37,7 @@ export default async function action({ github, context, limit }) {
   await tryComment(
     github,
     context,
-    compareBinarySize(headSize, baseSize, context, baseCommit),
+    compareBinarySize(headSize, baseSize, context, trunk, baseCommit),
   );
 
   const increasedSize = headSize - baseSize;
@@ -101,9 +105,9 @@ async function waitForBaseCommit(github, context) {
 // its size data, or — when it isn't published yet (eco CI is slow) — fail loudly,
 // attaching the nearest ancestor that already has data as a non-authoritative
 // reference for a rough number.
-async function findBaseCommit(github, context) {
+async function findBaseCommit(github, context, trunk) {
   const { owner, repo } = context.repo;
-  const baseSha = await resolveBaseSha(github, owner, repo, context);
+  const baseSha = await resolveBaseSha(github, owner, repo, context, trunk);
   console.log(`Base trunk commit: ${baseSha}`);
 
   let pendingBase = null;
@@ -161,7 +165,7 @@ async function findBaseCommit(github, context) {
 
 // Size data only exists for trunk commits, so the baseline must be a trunk commit
 // — the newest one the binding under test actually contains.
-async function resolveBaseSha(github, owner, repo, context) {
+async function resolveBaseSha(github, owner, repo, context, trunk) {
   const pr = context.payload.pull_request;
   const { data: commit } = await github.rest.repos.getCommit({
     owner,
@@ -183,10 +187,9 @@ async function resolveBaseSha(github, owner, repo, context) {
     return pr.base.sha;
   }
 
-  // For a standalone PR the base branch is the trunk, so the merged first parent
-  // is the baseline outright.
-  const stack = await resolveStack(github, owner, repo, pr);
-  if (!stack) {
+  // A PR that targets its trunk directly has the trunk as its merged first
+  // parent, so that parent is the baseline outright.
+  if (pr.base.ref === trunk) {
     return base.sha;
   }
 
@@ -198,14 +201,36 @@ async function resolveBaseSha(github, owner, repo, context) {
   // can end up behind the trunk commit the binding contains and silently drag the
   // baseline backwards. The branch tip is always at or ahead of that commit, and
   // the merge base is the same however far ahead it is.
-  console.log(`Stack trunk: ${stack.base.ref}`);
+  console.log(`Stack trunk: ${trunk}`);
   const { data: comparison } =
     await github.rest.repos.compareCommitsWithBasehead({
       owner,
       repo,
-      basehead: `${stack.base.ref}...${context.sha}`,
+      basehead: `${trunk}...${context.sha}`,
     });
   return comparison.merge_base_commit.sha;
+}
+
+// Size data is published only for pushes to trunk branches. A native stack names
+// its trunk. An ordinary branch-based stack has no stack metadata, but its base
+// branch is the head of another open PR, and its trunk is the default branch.
+async function resolveTrunk(github, context) {
+  const { owner, repo } = context.repo;
+  const pr = context.payload.pull_request;
+  const stack = await resolveStack(github, owner, repo, pr);
+  if (stack) return stack.base.ref;
+
+  const defaultBranch = context.payload.repository.default_branch;
+  if (pr.base.ref === defaultBranch) return defaultBranch;
+
+  const { data: parents } = await github.rest.pulls.list({
+    owner,
+    repo,
+    state: 'open',
+    head: `${owner}:${pr.base.ref}`,
+    per_page: 1,
+  });
+  return parents.length ? defaultBranch : pr.base.ref;
 }
 
 // `stack` is missing from the payload when a PR's `opened` event outruns the stack
@@ -342,21 +367,20 @@ function runUrl(context) {
   return `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
 }
 
-function comparingInfo(context, baseCommit) {
+function comparingInfo(context, trunk, baseCommit) {
   const message = baseCommit.commit.message.split('\n')[0];
   const author = baseCommit.commit.author.name;
   const headSha = context.payload.pull_request?.head.sha || context.sha;
   return (
     `> Comparing [\`${headSha.slice(0, 7)}\`](${context.payload.repository.html_url}/commit/${headSha}) to  [${message} by ${author}](${baseCommit.html_url})\n\n` +
-    stackNote(context.payload.pull_request)
+    stackNote(context.payload.pull_request, trunk)
   );
 }
 
 // Only the bottom PR of a stack sits directly on the trunk; for the ones above it
 // the baseline is still the trunk, so the reported diff covers every PR below as
 // well. Say so, otherwise the number reads as this PR's own contribution.
-function stackNote(pr) {
-  const trunk = pr?.stack?.base?.ref;
+function stackNote(pr, trunk) {
   if (!trunk || pr.base.ref === trunk) return '';
   return (
     '> [!NOTE]\n' +
@@ -365,9 +389,14 @@ function stackNote(pr) {
   );
 }
 
-function pendingBinarySizeComment(context, headSize, { baseCommit, fallback }) {
+function pendingBinarySizeComment(
+  context,
+  trunk,
+  headSize,
+  { baseCommit, fallback },
+) {
   let body =
-    comparingInfo(context, baseCommit) +
+    comparingInfo(context, trunk, baseCommit) +
     '⏳ The base commit triggered a linux binding build, but its binary size data ' +
     'has not been generated yet, so the size comparison is skipped.\n\n' +
     `Please [re-run this workflow](${runUrl(context)}) once the ecosystem-benchmark ` +
@@ -392,8 +421,10 @@ function referenceComparison(headSize, { baseCommit, baseSize }) {
   );
 }
 
-function compareBinarySize(headSize, baseSize, context, baseCommit) {
-  return comparingInfo(context, baseCommit) + sizeDiffLine(headSize, baseSize);
+function compareBinarySize(headSize, baseSize, context, trunk, baseCommit) {
+  return (
+    comparingInfo(context, trunk, baseCommit) + sizeDiffLine(headSize, baseSize)
+  );
 }
 
 function sizeDiffLine(headSize, baseSize) {

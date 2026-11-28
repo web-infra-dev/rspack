@@ -15,13 +15,14 @@ rspack_cacheable   = { workspace = true }
 rspack_collections = { workspace = true }
 rspack_intern      = { workspace = true, features = ["atom"] }
 rspack_macros      = { workspace = true }
+rspack_paths       = { workspace = true }
 rspack_util        = { workspace = true }
 serde              = { workspace = true }
 sha2               = { workspace = true }
 simd-json          = { workspace = true }
 smol_str           = { workspace = true }
 swc_config         = { workspace = true }
-xxhash-rust        = { workspace = true, features = ["xxh64"] }
+xxhash-rust        = { workspace = true, features = ["xxh3", "xxh64"] }
 
 [lints]
 workspace = true

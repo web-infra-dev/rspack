@@ -9,8 +9,8 @@
     "|Compilation/modules": {
       "hits": 2,
       "misses": 0,
-      "reused": 1,
-      "stores": 1
+      "reused": 2,
+      "stores": 0
     },
     "|meta": {
       "hits": 1,

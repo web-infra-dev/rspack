@@ -10,31 +10,18 @@ use rspack_core::{
   NormalModuleFactoryResolveLoader, ResolveResult, Resolver, Resource, RunnerContext,
 };
 use rspack_error::Result;
-use rspack_hash::{HashFunction, RspackHasher};
 use rspack_hook::plugin_hook;
-use rspack_paths::Utf8Path;
+use rspack_paths::{InternedPath, Utf8Path};
 use rspack_util::identifier::split_at_query_mark;
 
 use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
-
-pub(crate) async fn loader_cache_version(
-  resolver: &Resolver,
-  path: &Utf8Path,
-) -> Result<Option<String>> {
-  // V1 fingerprints only the resolved loader entry file. Files that the
-  // loader imports or requires are intentionally not included yet.
-  let contents = resolver.inner_fs().read(path).await?;
-  let mut hasher = RspackHasher::new(&HashFunction::Xxhash64);
-  hasher.write(&contents);
-  Ok(Some(format!("file:{:016x}", hasher.finish())))
-}
 
 #[cacheable]
 #[derive(Debug)]
 pub struct JsLoader(
   pub Identifier,
   /* LoaderType */ #[cacheable(with=AsOption<AsRefStr>)] pub Option<Cow<'static, str>>,
-  pub Option<String>,
+  pub Vec<InternedPath>,
 );
 
 #[cacheable_dyn]
@@ -47,8 +34,8 @@ impl Loader<RunnerContext> for JsLoader {
     self.1.as_deref()
   }
 
-  fn cache_version(&self) -> Option<&str> {
-    self.2.as_deref()
+  fn build_dependencies(&self) -> &[InternedPath] {
+    &self.2
   }
 
   fn execution_kind(&self) -> LoaderExecutionKind {
@@ -122,10 +109,10 @@ pub(crate) async fn resolve_loader(
       // Use `str::ends_with` instead of `Path::extension` to avoid unnecessary allocation
       let path = path.as_str();
 
-      let cache_version = if l.cache {
-        loader_cache_version(resolver, Utf8Path::new(path)).await?
+      let build_dependencies = if l.cache {
+        vec![InternedPath::from(Utf8Path::new(path).as_std_path())]
       } else {
-        None
+        Vec::new()
       };
 
       let r#type = if path.ends_with(".mjs") {
@@ -135,8 +122,7 @@ pub(crate) async fn resolve_loader(
       } else {
         description_data.as_ref().and_then(|data| {
           data
-            .json()
-            .get("type")
+            .get(["type"])
             .and_then(|t| t.as_str().map(|t| Cow::Owned(t.to_owned())))
         })
       };
@@ -159,7 +145,7 @@ pub(crate) async fn resolve_loader(
       Ok(Some(Arc::new(JsLoader(
         resource.into(),
         r#type,
-        cache_version,
+        build_dependencies,
       ))))
     }
     ResolveResult::Ignored => Ok(None),

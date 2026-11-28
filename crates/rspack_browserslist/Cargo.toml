@@ -4,7 +4,6 @@ categories.workspace    = true
 description             = "Rspack browserslist"
 documentation.workspace = true
 edition.workspace       = true
-homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack_browserslist"
 repository.workspace    = true

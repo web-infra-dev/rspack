@@ -109,13 +109,13 @@ export default {
 
 Optimizing ESM output has long been one of the key challenges faced by Rspack. Previously, we relied on [module concatenation](/config/optimization#optimizationconcatenatemodules) to optimize ESM outputs, but that approach had several limitations:
 
-- **Impure output** – The generated files contained Rspack's runtime code.
+- **Impure output** – The generated files contained Rspack runtime code.
 - **Prone to errors** – Some modules could not be correctly concatenated, leading to unexpected runtime issues.
 - **Limited code-splitting support** – Split bundles became complex and difficult to analyze or optimize statically.
 
 To address these issues once and for all, we introduced an experimental plugin called [EsmLibraryPlugin](https://v1.rspack.rs/plugins/rspack/esm-library-plugin), purpose-built for constructing clean and efficient ESM libraries:
 
-- **Full control over the bundling process** – All modules are linked during compilation, eliminating reliance on Rspack's runtime.
+- **Full control over the bundling process** – All modules are linked during compilation, eliminating reliance on the Rspack runtime.
 - **Code-splitting support** – Code after splitting can be statically analyzed and is tree-shaking friendly.
 
 The image below compares the code splitting output before and after using this plugin — the left side shows the previous output, while the right side shows the cleaner output produced by EsmLibraryPlugin:
@@ -130,7 +130,7 @@ import { rspack } from '@rspack/core';
 export default {
   plugins: [new rspack.experiments.EsmLibraryPlugin()],
   optimization: {
-    // Recommended to enable; otherwise, consumers must import runtime code from the entry.
+    // Recommended to enable; otherwise, consumers must import Rspack runtime code from the entry.
     runtimeChunk: true,
   },
 };

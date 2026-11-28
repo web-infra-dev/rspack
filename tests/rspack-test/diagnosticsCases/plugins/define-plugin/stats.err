@@ -1,2 +1,2 @@
-WARNING in ⚠ DefinePlugin:
-  │ Conflicting values for 'process.env.NODE_ENV' ("/"production/"" !== "/"development/"")
+WARNING in ⚠ DefinePlugin: 'process.env.NODE_ENV' has conflicting values: "production" and "development".
+  help: Check 'optimization.nodeEnv' and any DefinePlugin entries for this key. Remove the duplicate definition or make the values match.

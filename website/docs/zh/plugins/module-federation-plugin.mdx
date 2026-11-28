@@ -71,7 +71,7 @@ export default {
 
 - 类型：`string | false`
 
-定义远程应用入口的 runtime chunk。
+定义远程应用入口的 Rspack 运行时 chunk。
 
 ### library
 
@@ -218,13 +218,13 @@ export default {
 
 <ApiMeta addedVersion="2.0.0" />
 
-是否将 shared 使用的 exports 注入到 bundler runtime 中。
+是否将共享模块中已使用的导出信息注入到 Rspack 运行时。
 
 - 类型：`boolean`
 - 是否必填：否
 - 默认值：`true`
 
-此选项用于控制是否将共享模块中实际使用的导出信息注入到打包器的运行时中，以便进行更精确的依赖管理和优化。
+开启此选项后，Rspack 运行时可以获取共享模块中已使用的导出信息，以便进行依赖管理和优化。
 
 如果你使用的是 mode 为 'server-calc'，那么推荐将此选项设置为 `false`。
 

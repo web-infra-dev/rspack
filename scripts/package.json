@@ -7,13 +7,9 @@
   "author": "",
   "license": "MIT",
   "private": true,
-  "scripts": {
-    "typecheck": "tsc --noEmit"
-  },
   "devDependencies": {
     "@actions/core": "catalog:",
     "chalk": "catalog:",
-    "typescript": "catalog:",
     "glob": "catalog:",
     "semver": "catalog:",
     "zx": "catalog:",

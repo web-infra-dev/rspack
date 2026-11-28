@@ -38,6 +38,10 @@ pub enum ResolveError {
   #[error("Tsconfig's project reference path points to this tsconfig {0}")]
   TsconfigSelfReference(PathBuf),
 
+  /// Tsconfig extends another config already in its inheritance chain.
+  #[error("Tsconfig extends configs circularly: {0}")]
+  TsconfigCircularExtend(String),
+
   #[error("{0}")]
   IOError(IOError),
 

@@ -40,6 +40,7 @@ impl ModuleBuildCache {
     module: &BoxModule,
     file_system_info: &FileSystemInfo,
     value_cache_versions: &ValueCacheVersions,
+    force_build: bool,
   ) -> Result<Option<ModuleRef>> {
     if !self.restore_enabled {
       return Ok(None);
@@ -51,8 +52,10 @@ impl ModuleBuildCache {
     };
     if result
       .need_build(&NeedBuildContext::new(
+        module.as_ref(),
         file_system_info,
         value_cache_versions,
+        force_build,
       ))
       .await?
     {
@@ -70,7 +73,7 @@ impl ModuleBuildCache {
   /// dependencies and blocks retain shared identity.
   pub(crate) async fn store_pending(
     &self,
-    artifact: &mut BuildModuleGraphArtifact,
+    artifact: &BuildModuleGraphArtifact,
     file_system_info: &FileSystemInfo,
   ) -> Result<()> {
     let pending = self
@@ -105,15 +108,12 @@ impl ModuleBuildCache {
       .into_iter()
       .flatten()
       .filter_map(|module_identifier| {
-        let module = artifact
-          .get_module_graph()
-          .module_by_identifier(&module_identifier)?;
+        let module = module_graph.module_by_identifier(&module_identifier)?;
         module.freeze_build_info();
         Some(module_identifier)
       })
       .collect::<Vec<_>>();
 
-    let module_graph = artifact.get_module_graph();
     let cache_entries = rspack_parallel::scope::<_, Result<_>>(|token| {
       for module_identifier in module_identifiers {
         // SAFETY: the scope is awaited before the cache entries are published.

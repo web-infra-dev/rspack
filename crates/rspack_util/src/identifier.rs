@@ -1,18 +1,16 @@
-use std::{
-  borrow::Cow,
-  ops::Range,
-  path::{Path, PathBuf},
-  sync::LazyLock,
-};
+use std::{borrow::Cow, ops::Range, path::Path, sync::LazyLock};
 
 use concat_string::concat_string;
 use cow_utils::CowUtils;
-use memchr::{memchr, memchr2_iter};
+use memchr::{memchr, memchr2, memchr2_iter, memchr3};
 use regex::Regex;
+use rspack_paths::Utf8Path;
 #[cfg(windows)]
 use rspack_paths::dos_device_path_prefix_len;
 use smallvec::SmallVec;
 use sugar_path::SugarPath;
+
+use crate::node_path::NodePath;
 
 static WINDOWS_PATH_SEPARATOR: &[char] = &['/', '\\'];
 
@@ -158,27 +156,65 @@ pub fn push_absolute_to_request(context: &str, maybe_absolute_path: &str, out: &
   out.push_str(maybe_absolute_path);
 }
 
-fn push_request_to_absolute(context: &str, relative_path: &str, out: &mut String) {
-  if relative_path.starts_with("./") || relative_path.starts_with("../") {
-    let relative_path = if relative_path.starts_with("./") {
-      relative_path
-        .strip_prefix("./")
-        .expect("should start with ./")
-    } else {
-      relative_path
-    };
-
-    let mut absolute_path = PathBuf::with_capacity(
-      context
-        .len()
-        .saturating_add(relative_path.len())
-        .saturating_add(1),
-    );
-    absolute_path.push(context);
-    absolute_path.push(relative_path);
-    out.push_str(&absolute_path.to_string_lossy());
+/// Splits a resource into borrowed path, query, and fragment slices, preserving escapes.
+/// The query and fragment include their leading delimiters when present.
+pub fn split_resource(input: &str) -> (&str, Option<&str>, Option<&str>) {
+  let (path, suffix) = split_resource_path(input);
+  let (query, suffix) = if let Some(query_body) = suffix.strip_prefix('?') {
+    let (query, suffix) = suffix.split_at(1 + find_resource_delimiter(query_body, false));
+    (Some(query), suffix)
   } else {
-    out.push_str(relative_path);
+    (None, suffix)
+  };
+  (path, query, suffix.starts_with('#').then_some(suffix))
+}
+
+fn split_resource_path(input: &str) -> (&str, &str) {
+  #[cfg(windows)]
+  let prefix_len = dos_device_path_prefix_len(input);
+  #[cfg(not(windows))]
+  let prefix_len = 0;
+
+  input.split_at(prefix_len + find_resource_delimiter(&input[prefix_len..], true))
+}
+
+fn find_resource_delimiter(input: &str, allow_query: bool) -> usize {
+  const ESCAPE_START: u8 = 0xe2; // The first UTF-8 byte of U+200B.
+
+  let mut offset = 0;
+  loop {
+    let tail = &input[offset..];
+    let bytes = tail.as_bytes();
+    let next = if allow_query {
+      memchr3(b'?', b'#', ESCAPE_START, bytes)
+    } else {
+      memchr2(b'#', ESCAPE_START, bytes)
+    };
+    let Some(next) = next else {
+      return input.len();
+    };
+    if bytes[next] != ESCAPE_START {
+      return offset + next;
+    }
+
+    // The UTF-8 leading byte can also match other characters.
+    let mut chars = tail[next..].chars();
+    if chars.next() == Some('\u{200b}') && chars.next().is_none() {
+      // A trailing escape ends the path or query without becoming part of it.
+      return offset + next;
+    }
+    offset = input.len() - chars.as_str().len();
+  }
+}
+
+fn push_request_to_absolute(context: &str, request: &str, out: &mut String) {
+  if request.starts_with("./") || request.starts_with("../") {
+    let (path, suffix) = split_resource_path(request);
+    let absolute_path = Utf8Path::new(context).node_join(path).node_normalize();
+    out.push_str(absolute_path.as_str());
+    out.push_str(suffix);
+  } else {
+    out.push_str(request);
   }
 }
 
@@ -252,6 +288,20 @@ pub fn insert_zero_width_space_for_fragment(s: &str) -> Cow<'_, str> {
     return Cow::Borrowed(s);
   }
   s.cow_replace("#", "\u{200b}#")
+}
+
+/// Format a resolver result as a resource request, escaping literal fragment markers.
+pub fn format_resolved_resource(path: &str, query: &str, fragment: &str) -> String {
+  let mut resource = String::with_capacity(
+    path
+      .len()
+      .saturating_add(query.len())
+      .saturating_add(fragment.len()),
+  );
+  resource.push_str(&insert_zero_width_space_for_fragment(path));
+  resource.push_str(&insert_zero_width_space_for_fragment(query));
+  resource.push_str(fragment);
+  resource
 }
 
 static REQUEST_TO_ID_REGEX1: LazyLock<Regex> =

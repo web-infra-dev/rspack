@@ -15,6 +15,10 @@ function plugin(compiler: Compiler) {
       expect(chunkGroups.filter((i) => i.isInitial()).length).toEqual(2);
 
       const namedChunkGroups = compilation.namedChunkGroups;
+      expect(namedChunkGroups.size).toBe(2);
+      expect(namedChunkGroups.has('a')).toBe(true);
+      expect(namedChunkGroups.has('b')).toBe(true);
+      expect(namedChunkGroups.has('missing')).toBe(false);
       expect(Array.from(namedChunkGroups.keys()).length).toBe(2);
       expect(namedChunkGroups.get('a')?.getFiles()).toEqual(['a.js']);
       expect(namedChunkGroups.get('b')?.getFiles()).toEqual(['b.js']);

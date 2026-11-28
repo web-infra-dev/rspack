@@ -1,0 +1,10 @@
+[
+  {
+    "|Compilation/modules": {
+      "hits": 0,
+      "misses": 3,
+      "reused": 0,
+      "stores": 3
+    }
+  }
+]

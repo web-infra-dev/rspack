@@ -2,9 +2,8 @@ use rspack_cacheable::{cacheable, cacheable_dyn};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AffectType, AsContextDependency, AsDependencyCodeGeneration, ConnectionState, Dependency,
-  DependencyCategory, DependencyId, DependencyRange, DependencyType, LoaderDependencies,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ResourceIdentifier,
-  SideEffectsStateArtifact,
+  DependencyCategory, DependencyId, DependencyRange, DependencyType, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleLayer, ResourceIdentifier, SideEffectsStateArtifact,
 };
 
 #[cacheable]
@@ -26,8 +25,6 @@ pub struct CssDependency {
   // determine module's postOrderIndex
   range: DependencyRange,
   resource_identifier: ResourceIdentifier,
-  pub(crate) cacheable: bool,
-  pub(crate) dependencies: LoaderDependencies,
 }
 
 impl CssDependency {
@@ -43,10 +40,8 @@ impl CssDependency {
     source_map: Option<String>,
     identifier_index: u32,
     range: DependencyRange,
-    cacheable: bool,
-    dependencies: LoaderDependencies,
   ) -> Self {
-    let resource_identifier = format!("css-module-{}-{}", &identifier, identifier_index).into();
+    let resource_identifier = format!("css-module-{identifier}-{identifier_index}").into();
     Self {
       id: DependencyId::new(),
       identifier,
@@ -60,8 +55,6 @@ impl CssDependency {
       identifier_index,
       range,
       resource_identifier,
-      cacheable,
-      dependencies,
     }
   }
 }
@@ -113,6 +106,10 @@ impl Dependency for CssDependency {
 
   fn could_affect_referencing_module(&self) -> AffectType {
     AffectType::Transitive
+  }
+
+  fn is_module_executor_result(&self) -> bool {
+    true
   }
 }
 

@@ -17,6 +17,7 @@ use self::{
   rspack_context::RspackContextRuntimeRenderer, rspack_export::RspackExportRuntimeRenderer,
   webpack::WebpackRuntimeRenderer,
 };
+use super::RequestSlots;
 use crate::chunk_link::{ChunkLinkContext, RawImportSource};
 
 static WEBPACK_RENDERER: WebpackRuntimeRenderer = WebpackRuntimeRenderer;
@@ -58,7 +59,11 @@ pub(super) struct RuntimeRenderContext<'a> {
 pub(super) trait RuntimeModeRenderer: Sync {
   fn render_module_registration_ident(&self, runtime_template: &RuntimeCodeTemplate) -> String;
 
-  fn render_runtime_imports(&self, context: RuntimeImportRenderContext<'_>) -> ConcatSource;
+  fn render_runtime_imports(
+    &self,
+    context: RuntimeImportRenderContext<'_>,
+    request_slots: &mut RequestSlots,
+  ) -> ConcatSource;
 
   fn render_direct_runtime_export(
     &self,
@@ -152,20 +157,23 @@ fn render_runtime_chunk_import(
   runtime_import_idents: &FxIndexSet<String>,
 ) -> ConcatSource {
   let mut source = ConcatSource::default();
-  if runtime_import_idents.is_empty() {
-    return source;
-  }
-
   let runtime_chunk = get_chunk(compilation, *runtime_chunk_ukey);
-  source.add(RawStringSource::from(format!(
-    "import {{ {} }} from \"__RSPACK_ESM_CHUNK_{}\";\n",
-    runtime_import_idents
-      .iter()
-      .map(String::as_str)
-      .collect::<Vec<_>>()
-      .join(", "),
+  let request = format!(
+    "\"__RSPACK_ESM_CHUNK_{}\"",
     runtime_chunk.expect_id().as_str()
-  )));
+  );
+  if runtime_import_idents.is_empty() {
+    source.add(RawStringSource::from(format!("import {request};\n")));
+  } else {
+    source.add(RawStringSource::from(format!(
+      "import {{ {} }} from {request};\n",
+      runtime_import_idents
+        .iter()
+        .map(String::as_str)
+        .collect::<Vec<_>>()
+        .join(", "),
+    )));
+  }
   source
 }
 
@@ -173,6 +181,7 @@ fn render_single_runtime_import(
   context: RuntimeImportRenderContext<'_>,
   runtime_import_ident: String,
   extra_match_ident: Option<String>,
+  request_slots: &mut RequestSlots,
 ) -> ConcatSource {
   let runtime_import_idents = FxIndexSet::from_iter([runtime_import_ident]);
   let mut runtime_import_match_idents = runtime_import_idents.clone();
@@ -198,6 +207,7 @@ fn render_single_runtime_import(
     None,
     &runtime_import_match_idents,
     None,
+    request_slots,
   ));
   source
 }
@@ -208,8 +218,9 @@ fn render_raw_import_stmts(
   runtime_chunk_ukey: Option<&ChunkUkey>,
   runtime_import_match_idents: &FxIndexSet<String>,
   legacy_context_idents: Option<&FxIndexSet<String>>,
+  request_slots: &mut RequestSlots,
 ) -> ConcatSource {
-  let mut source = ConcatSource::default();
+  let mut runtime_source = ConcatSource::default();
   for (raw_import_source, import_spec) in &chunk_link.raw_import_stmts {
     let should_skip = match raw_import_source {
       RawImportSource::Chunk(import_chunk) => {
@@ -242,13 +253,20 @@ fn render_raw_import_stmts(
       ),
     };
 
-    source.add(RawStringSource::from(render_imports(
-      &request,
-      attr,
-      import_spec,
-    )));
+    let statement = RawStringSource::from(render_imports(&request, attr, import_spec));
+    if matches!(raw_import_source, RawImportSource::Chunk(_))
+      && import_spec_imports_any(import_spec, runtime_import_match_idents)
+    {
+      runtime_source.add(statement);
+    } else {
+      request_slots
+        .entry(raw_import_source.clone())
+        .or_default()
+        .imports
+        .add(statement);
+    }
   }
-  source
+  runtime_source
 }
 
 fn render_runtime_prelude(context: RuntimeRenderContext<'_>) -> ConcatSource {

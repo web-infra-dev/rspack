@@ -1,8 +1,9 @@
 use std::{
   borrow::Cow,
   hash::{Hash, Hasher},
-  sync::Arc,
 };
+
+use bytes_str::BytesStr;
 
 use crate::{
   MapOptions, Source, SourceMap, SourceValue,
@@ -20,11 +21,11 @@ pub struct SourceMapSourceOptions<V, N> {
   /// Name of the file.
   pub name: N,
   /// The source map of the source code.
-  pub source_map: SourceMap<'static>,
+  pub source_map: SourceMap,
   /// The original source code.
   pub original_source: Option<Box<str>>,
   /// The original source map.
-  pub inner_source_map: Option<SourceMap<'static>>,
+  pub inner_source_map: Option<SourceMap>,
   /// Whether remove the original source.
   pub remove_original_source: bool,
 }
@@ -38,7 +39,7 @@ pub struct WithoutOriginalOptions<V, N> {
   /// Name of the file.
   pub name: N,
   /// The source map of the source code.
-  pub source_map: SourceMap<'static>,
+  pub source_map: SourceMap,
 }
 
 impl<V, N> From<WithoutOriginalOptions<V, N>> for SourceMapSourceOptions<V, N> {
@@ -61,10 +62,10 @@ impl<V, N> From<WithoutOriginalOptions<V, N>> for SourceMapSourceOptions<V, N> {
 #[derive(Eq)]
 pub struct SourceMapSource {
   value: Box<str>,
-  name: Box<str>,
-  source_map: SourceMap<'static>,
-  original_source: Option<Box<str>>,
-  inner_source_map: Option<SourceMap<'static>>,
+  name: BytesStr,
+  source_map: SourceMap,
+  original_source: Option<BytesStr>,
+  inner_source_map: Option<SourceMap>,
   remove_original_source: bool,
 }
 
@@ -79,9 +80,11 @@ impl SourceMapSource {
     let options = options.into();
     Self {
       value: Box::from(options.value.into()),
-      name: Box::from(options.name.into()),
+      name: BytesStr::from_string(options.name.into()),
       source_map: options.source_map,
-      original_source: options.original_source,
+      original_source: options
+        .original_source
+        .map(|text| BytesStr::from_string(text.into())),
       inner_source_map: options.inner_source_map,
       remove_original_source: options.remove_original_source,
     }
@@ -98,7 +101,7 @@ impl SourceMapSource {
   }
 
   /// Get the source map.
-  pub fn source_map(&self) -> &SourceMap<'static> {
+  pub fn source_map(&self) -> &SourceMap {
     &self.source_map
   }
 
@@ -108,7 +111,7 @@ impl SourceMapSource {
   }
 
   /// Get the inner source map.
-  pub fn inner_source_map(&self) -> Option<&SourceMap<'static>> {
+  pub fn inner_source_map(&self) -> Option<&SourceMap> {
     self.inner_source_map.as_ref()
   }
 
@@ -135,40 +138,12 @@ impl Source for SourceMapSource {
     self.value.len()
   }
 
-  fn map<'a>(&'a self, options: &MapOptions) -> Option<SourceMap<'a>> {
+  fn map(&self, options: &MapOptions) -> Option<SourceMap> {
     if self.inner_source_map.is_none() {
       return Some(self.source_map.as_borrowed());
     }
     let chunks = self.stream_chunks();
-    get_map(chunks.as_ref(), options).map(SourceMap::from_fields)
-  }
-
-  fn map_static(self: Arc<Self>, options: &MapOptions) -> Option<SourceMap<'static>> {
-    match Arc::try_unwrap(self) {
-      Ok(mut source) => {
-        if source.inner_source_map.is_none() {
-          // The supplied map already owns its data.
-          return Some(source.source_map);
-        }
-
-        // A combined map needs the generated value while calculating mappings,
-        // but its resulting fields only borrow the remaining map-related data.
-        let value = std::mem::take(&mut source.value);
-        let source = Arc::new(source);
-        let owner = source.clone();
-        let chunks = SourceMapSourceChunks::new(source.as_ref(), &value);
-        get_map(&chunks, options)
-          .map(SourceMap::from_fields)
-          .map(|map| map.into_static(owner))
-      }
-      Err(source) => {
-        let owner = source.clone();
-        source
-          .as_ref()
-          .map(options)
-          .map(|map| map.into_static(owner))
-      }
-    }
+    get_map(chunks.as_ref(), options)
   }
 
   fn to_writer(&self, writer: &mut dyn std::io::Write) -> std::io::Result<()> {
@@ -240,10 +215,10 @@ impl std::fmt::Debug for SourceMapSource {
 
 struct SourceMapSourceChunks<'source, 'value> {
   value: &'value str,
-  name: &'source str,
-  source_map: &'source SourceMap<'static>,
-  original_source: Option<&'source str>,
-  inner_source_map: Option<&'source SourceMap<'static>>,
+  name: &'source BytesStr,
+  source_map: &'source SourceMap,
+  original_source: Option<&'source BytesStr>,
+  inner_source_map: Option<&'source SourceMap>,
   remove_original_source: bool,
 }
 
@@ -253,7 +228,7 @@ impl<'source, 'value> SourceMapSourceChunks<'source, 'value> {
       value,
       name: &source.name,
       source_map: &source.source_map,
-      original_source: source.original_source.as_deref(),
+      original_source: source.original_source.as_ref(),
       inner_source_map: source.inner_source_map.as_ref(),
       remove_original_source: source.remove_original_source,
     }
@@ -265,17 +240,17 @@ impl<'source, 'value> Chunks<'source> for SourceMapSourceChunks<'source, 'value>
     &'chunk self,
     options: &MapOptions,
     on_chunk: crate::helpers::OnChunk<'_, 'chunk>,
-    on_source: crate::helpers::OnSource<'_, 'source>,
-    on_name: crate::helpers::OnName<'_, 'source>,
+    on_source: crate::helpers::OnSource<'_>,
+    on_name: crate::helpers::OnName<'_>,
   ) -> crate::helpers::GeneratedInfo {
     if let Some(inner_source_map) = self.inner_source_map {
       stream_chunks_of_combined_source_map(
         options,
         self.value,
-        self.source_map.fields(),
+        self.source_map,
         self.name,
         self.original_source,
-        inner_source_map.fields(),
+        inner_source_map,
         self.remove_original_source,
         on_chunk,
         on_source,
@@ -285,7 +260,7 @@ impl<'source, 'value> Chunks<'source> for SourceMapSourceChunks<'source, 'value>
       stream_chunks_of_source_map(
         options,
         TextSpan::new(self.value),
-        self.source_map.fields(),
+        self.source_map,
         on_chunk,
         on_source,
         on_name,
@@ -331,7 +306,7 @@ mod tests {
       name: "text",
       source_map: SourceMap::from_json(source_map_str.to_string()).unwrap(),
       original_source: Some(inner_source.source().into_string_lossy().into()),
-      inner_source_map: inner_source.clone().map_static(&MapOptions::default()),
+      inner_source_map: inner_source.map(&MapOptions::default()),
       remove_original_source: false,
     });
     let sms2 = SourceMapSource::new(SourceMapSourceOptions {
@@ -339,7 +314,7 @@ mod tests {
       name: "text",
       source_map: SourceMap::from_json(source_map_str.to_string()).unwrap(),
       original_source: Some(inner_source.source().into_string_lossy().into()),
-      inner_source_map: inner_source.clone().map_static(&MapOptions::default()),
+      inner_source_map: inner_source.map(&MapOptions::default()),
       remove_original_source: true,
     });
     let expected_content = "Translated: Hallo Welt\nist ein test Text\nAnderer Text";
@@ -379,7 +354,7 @@ mod tests {
 
     let mut hasher = twox_hash::XxHash64::default();
     sms1.hash(&mut hasher);
-    assert_eq!(format!("{:x}", hasher.finish()), "736934c6e249aa6e");
+    assert_eq!(format!("{:x}", hasher.finish()), "a37920f47a1e8a44");
   }
 
   #[test]
@@ -387,20 +362,20 @@ mod tests {
     let a = SourceMapSource::new(WithoutOriginalOptions {
       value: "hello world\n",
       name: "hello.txt",
-      source_map: SourceMap::new("AAAA".to_string(), vec!["".into()], vec!["".into()], vec![]),
+      source_map: SourceMap::new("AAAA".into(), vec!["".into()], vec![None], vec![]),
     });
     let b = SourceMapSource::new(WithoutOriginalOptions {
       value: "hello world\n",
       name: "hello.txt",
-      source_map: SourceMap::new("AAAA".to_string(), vec![], vec![], vec![]),
+      source_map: SourceMap::new("AAAA".into(), vec![], vec![], vec![]),
     });
     let c = SourceMapSource::new(WithoutOriginalOptions {
       value: "hello world\n",
       name: "hello.txt",
       source_map: SourceMap::new(
-        "AAAA".to_string(),
+        "AAAA".into(),
         vec!["hello-source.txt".into()],
-        vec!["hello world\n".into()],
+        vec![Some("hello world\n".into())],
         vec![],
       ),
     });
@@ -473,40 +448,25 @@ mod tests {
     let a = SourceMapSource::new(WithoutOriginalOptions {
       value: "hello\n",
       name: "a",
-      source_map: SourceMap::new(
-        "AAAA;AACA".to_string(),
-        vec!["hello1".into()],
-        vec![],
-        vec![],
-      ),
+      source_map: SourceMap::new("AAAA;AACA".into(), vec!["hello1".into()], vec![], vec![]),
     })
     .boxed();
     let b = SourceMapSource::new(WithoutOriginalOptions {
       value: "hi",
       name: "b",
-      source_map: SourceMap::new(
-        "AAAA,EAAE".to_string(),
-        vec!["hello2".into()],
-        vec![],
-        vec![],
-      ),
+      source_map: SourceMap::new("AAAA,EAAE".into(), vec!["hello2".into()], vec![], vec![]),
     })
     .boxed();
     let b2 = SourceMapSource::new(WithoutOriginalOptions {
       value: "hi",
       name: "b",
-      source_map: SourceMap::new(
-        "AAAA,EAAE".to_string(),
-        vec!["hello3".into()],
-        vec![],
-        vec![],
-      ),
+      source_map: SourceMap::new("AAAA,EAAE".into(), vec!["hello3".into()], vec![], vec![]),
     })
     .boxed();
     let c = SourceMapSource::new(WithoutOriginalOptions {
       value: "",
       name: "c",
-      source_map: SourceMap::new("AAAA".to_string(), vec!["hello4".into()], vec![], vec![]),
+      source_map: SourceMap::new("AAAA".into(), vec!["hello4".into()], vec![], vec![]),
     })
     .boxed();
     let source = ConcatSource::new([
@@ -547,14 +507,8 @@ mod tests {
       .source()
       .into_string_lossy()
       .into_owned());
-    test_cached!(source, |s: BoxSource| Source::map_static(
-      s,
-      &MapOptions::default()
-    ));
-    test_cached!(source, |s: BoxSource| Source::map_static(
-      s,
-      &MapOptions::new(false)
-    ));
+    test_cached!(source, |s: BoxSource| s.map(&MapOptions::default()));
+    test_cached!(source, |s: BoxSource| s.map(&MapOptions::new(false)));
   }
 
   #[test]
@@ -710,8 +664,7 @@ mod tests {
       value: "console.log('a')\n",
       name: "a.js",
       source_map: OriginalSource::new("console.log('a')\n", "a.js")
-        .boxed()
-        .map_static(&MapOptions::new(false))
+        .map(&MapOptions::new(false))
         .unwrap(),
     });
     let source = ConcatSource::new([
@@ -746,14 +699,10 @@ mod tests {
         .to_string(),
     )
     .unwrap();
-    let inner_source_map =
-      inner_source
-        .clone()
-        .map_static(&MapOptions::default())
-        .map(|mut map| {
-          map.set_source_root(Some("/path/to/folder/".to_string().into()));
-          map
-        });
+    let inner_source_map = inner_source.map(&MapOptions::default()).map(|mut map| {
+      map.set_source_root(Some("/path/to/folder/".to_string().into()));
+      map
+    });
     let sms = SourceMapSource::new(SourceMapSourceOptions {
       value: source_r_code,
       name: "text",
@@ -865,6 +814,54 @@ mod tests {
           "mappings": "AAAA,MAAE",
           "sources": ["hello world.txt"],
           "sourcesContent": ["你好✋世界"]
+        }"#
+          .to_string()
+      )
+      .unwrap()
+    );
+  }
+
+  #[test]
+  fn should_not_shadow_mapped_segment_with_unmapped_one_at_same_column() {
+    // The outer map (e.g. from a minifier) has two segments at generated column 2:
+    // the first maps into a mapped region of the inner map, the second maps to an
+    // inner position without any inner mapping. Combining must not end with a
+    // source-less segment at column 2 that hides the mapped one.
+    let source = SourceMapSource::new(SourceMapSourceOptions {
+      value: "a;b;",
+      name: "inner.js",
+      source_map: SourceMap::from_json(
+        r#"{
+          "version": 3,
+          "sources": ["inner.js"],
+          "mappings": "AAAA,EAAC,AACD"
+        }"#
+          .to_string(),
+      )
+      .unwrap(),
+      original_source: Some("a;\n  b;".into()),
+      inner_source_map: Some(
+        SourceMap::from_json(
+          r#"{
+          "version": 3,
+          "sources": ["original.js"],
+          "mappings": "AAAA;EACA",
+          "sourcesContent": ["a;\nb;"]
+        }"#
+            .to_string(),
+        )
+        .unwrap(),
+      ),
+      remove_original_source: true,
+    });
+    assert_eq!(
+      source.map(&MapOptions::default()).unwrap(),
+      SourceMap::from_json(
+        r#"{
+          "version": 3,
+          "mappings": "AAAA,EAAC",
+          "sources": ["original.js"],
+          "sourcesContent": ["a;\nb;"]
         }"#
           .to_string()
       )

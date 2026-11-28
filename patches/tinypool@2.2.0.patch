@@ -1,0 +1,34 @@
+diff --git a/dist/index.js b/dist/index.js
+index a38174cbbd0853d598a64a50b251cfc6d3af7528..4782f4aba19c4231909be09ba878c21869fca07a 100644
+--- a/dist/index.js
++++ b/dist/index.js
+@@ -428,7 +428,7 @@ var WorkerInfo = class extends AsynchronouslyCreatedResource {
+ 			this.port.postMessage(message, taskInfo.transferList);
+ 		} catch (err) {
+ 			taskInfo.done(err);
+-			return;
++			return false;
+ 		}
+ 		taskInfo.workerInfo = this;
+ 		this.taskInfos.set(taskInfo.taskId, taskInfo);
+@@ -436,6 +436,7 @@ var WorkerInfo = class extends AsynchronouslyCreatedResource {
+ 		this.clearIdleTimeout();
+ 		Atomics.add(this.sharedBuffer, kRequestCountField, 1);
+ 		Atomics.notify(this.sharedBuffer, kRequestCountField, 1);
++		return true;
+ 	}
+ 	processPendingMessages() {
+ 		const actualResponseCount = Atomics.load(this.sharedBuffer, kResponseCountField);
+@@ -584,9 +585,10 @@ var ThreadPool = class {
+ 			}
+ 			const now = performance.now();
+ 			taskInfo.started = now;
+-			workerInfo.postTask(taskInfo);
++			const submitted = workerInfo.postTask(taskInfo);
+ 			this._maybeDrain();
+-			return;
++			if (submitted) return;
++			// Failed submissions leave the worker available for the next queued task.
+ 		}
+ 		if (workerInfo.taskInfos.size === 0 && this.workers.size > this.options.minThreads) workerInfo.idleTimeout = setTimeout(() => {
+ 			assert.strictEqual(workerInfo.taskInfos.size, 0);

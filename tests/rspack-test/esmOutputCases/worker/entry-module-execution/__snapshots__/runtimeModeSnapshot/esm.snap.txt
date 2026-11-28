@@ -5,12 +5,7 @@ var rspackRequire = {};
 var hasOwnProperty, baseUri;
 // rspack/runtime/get javascript chunk filename
 // This function allow to reference chunks
-var getChunkScriptFilename = (chunkId) => {
-  // return url for filenames not based on template
-
-  // return url for filenames based on template
-  return "" + chunkId + ".mjs"
-};
+var getChunkScriptFilename = (chunkId) => (chunkId + ".mjs");
 // rspack/runtime/public_path
 var publicPath = "";;
 // rspack/runtime/module_chunk_loading
@@ -71,13 +66,12 @@ var moduleFactories = modules;
 
 var entryModuleId;
 // rspack/runtime/async_module
-var hasSymbol = typeof Symbol === "function";
-var rspackQueues = hasSymbol ? Symbol("rspack queues") : "__rspack_queues";
-var asyncModuleExportSymbol = hasSymbol ? Symbol("rspack exports") : "exports";
+var rspackQueues = Symbol("rspack queues");
+var asyncModuleExportSymbol = Symbol("rspack exports");
 var rspackExports = asyncModuleExportSymbol;
-var rspackError = hasSymbol ? Symbol("rspack error") : "__rspack_error";
-var rspackDone = hasSymbol ? Symbol("rspack done") : "__rspack_done";
-var deferredModulesAsyncTransitiveDependenciesSymbol = hasSymbol ? Symbol("rspack defer") : "__rspack_defer";
+var rspackError = Symbol("rspack error");
+var rspackDone = Symbol("rspack done");
+var deferredModulesAsyncTransitiveDependenciesSymbol = Symbol("rspack defer");
 var rspackDefer = deferredModulesAsyncTransitiveDependenciesSymbol;
 var deferredModulesAsyncTransitiveDependencies = (asyncDeps) => {
 	var hasUnresolvedAsyncSubgraph = asyncDeps.some((id) => {
@@ -127,7 +121,7 @@ var wrapDeps = (deps) => {
 			}
 		}
 		var ret = {};
-		ret[rspackQueues] = () => {};
+		ret[rspackQueues] = x => {};
 		ret[rspackExports] = dep;
 		return ret;
 	});
@@ -145,7 +139,7 @@ var asyncModule = (module, body, hasAwait, useModuleExports) => {
 		outerResolve = resolve;
 	});
 	promise[rspackExports] = exports;
-	promise[rspackQueues] = (fn) => { queue && fn(queue), depQueues.forEach(fn), promise["catch"](() => {}); };
+	promise[rspackQueues] = (fn) => { queue && fn(queue), depQueues.forEach(fn), promise["catch"](x => {}); };
 	module.exports = promise;
 	var asyncModule = module;
 	if (useModuleExports) {
@@ -195,10 +189,7 @@ var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, p
 // rspack/runtime/make_namespace_object
 // define __esModule on exports
 var makeNamespaceObject = (exports) => {
-	if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
-		Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
-	}
-	Object.defineProperty(exports, '__esModule', { value: true });
+	Object.defineProperties(exports, { [Symbol.toStringTag]: { value: 'Module' }, __esModule: { value: true } });
 };;
 
 moduleFactories.add({

@@ -278,7 +278,6 @@ pub struct ContextModule {
   factory_meta: FactoryMetaStore,
   build_info: FreezeLock<BuildInfo>,
   build_meta: FreezeLock<BuildMeta>,
-  force_build: bool,
   // Only needed before building. Cache misses build a fresh module from the factory.
   #[debug(skip)]
   #[cacheable(with=Skip)]
@@ -306,7 +305,6 @@ impl ContextModule {
         .with_exports_type(BuildMetaExportsType::Default)
         .with_default_object(BuildMetaDefaultObject::RedirectWarn)
         .into(),
-      force_build: true,
       source_map_kind: SourceMapKind::empty(),
       resolve_dependencies: Some(resolve_dependencies),
     }
@@ -819,25 +817,22 @@ impl ContextModule {
 
     let mut items = block_and_first_dependency_list
       .filter_map(|(b, dependency)| {
-        let chunks: Vec<_> = compilation
-          .build_chunk_graph_artifact
+        let graph = &compilation.build_chunk_graph_artifact;
+        let group = graph
           .chunk_graph
-          .get_block_chunk_group(
-            &b.identifier(),
-            &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-          )
-          .expect("should have block chunk group")
-          .chunks
-          .iter()
-          .map(|c| {
-            compilation
-              .build_chunk_graph_artifact
-              .chunk_by_ukey
-              .expect_get(c)
-              .id()
-              .expect("should have chunk id in code generation")
-          })
-          .collect();
+          .get_block_chunk_group(&b.identifier(), &graph.chunk_group_by_ukey)
+          .expect("should have block chunk group");
+        let chunks: Vec<_> = if compilation.hot
+          && let Some(chunk) = group.get_hmr_loading_chunk(compilation)
+        {
+          vec![chunk.expect_id()]
+        } else {
+          group
+            .chunks
+            .iter()
+            .map(|c| graph.chunk_by_ukey.expect_get(c).expect_id())
+            .collect()
+        };
         if !chunks.is_empty() {
           has_no_chunk = false;
         }
@@ -899,9 +894,7 @@ impl ContextModule {
       Some(GroupOptions::ChunkGroup(group)) => group.fetch_priority,
       _ => None,
     };
-    let fetch_priority_arg = fetch_priority
-      .map(|x| format!(r#", "{x}""#))
-      .unwrap_or_default();
+    let fetch_priority_arg = fetch_priority.map_or_default(|x| format!(r#", "{x}""#));
     if fetch_priority.is_some() {
       runtime_template
         .runtime_requirements_mut()
@@ -1406,14 +1399,7 @@ impl Module for ContextModule {
       id += " referencedExports: ";
       id += &specifiers
         .iter()
-        .map(|specifier| {
-          let s = specifier.names.iter().join(".");
-          if specifier.namespace_object_as_context && specifier.is_call {
-            format!("*.{s}()")
-          } else {
-            s
-          }
-        })
+        .map(ReferencedSpecifier::to_identifier_string)
         .join(", ");
     }
     if let Some(import) = &self.options.context_options.glob_import {
@@ -1431,7 +1417,7 @@ impl Module for ContextModule {
   }
 
   async fn need_build(&self, context: &NeedBuildContext<'_>) -> Result<bool> {
-    if self.force_build {
+    if context.force_build {
       return Ok(true);
     }
 
@@ -1575,7 +1561,6 @@ impl Module for ContextModule {
       self.build_info.get_mut().dependencies.context = context_dependencies;
     }
 
-    self.force_build = false;
     Ok(BoxModule::new(self).with_dependencies(
       dependencies.into_iter().map(Into::into).collect(),
       blocks.into_iter().map(Into::into).collect(),
@@ -1662,13 +1647,7 @@ fn create_identifier(options: &ContextModuleOptions, resource: Option<&str>) -> 
     id += "|referencedExports: ";
     id += &specifiers
       .iter()
-      .map(|specifier| {
-        if specifier.namespace_object_as_context && specifier.is_call {
-          format!("*.{}()", specifier.names.iter().join("."))
-        } else {
-          specifier.names.iter().join(".")
-        }
-      })
+      .map(ReferencedSpecifier::to_identifier_string)
       .join(", ");
   }
   if let Some(import) = &options.context_options.glob_import {

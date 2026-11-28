@@ -64,7 +64,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 控制所有 stats options 是否输出。
 
 :::warning 警告
-开启 `stats.all` 会导致大量的 Rust 与 JavaScript 的数据传输，这将显著提高 Stats 生成耗时，请谨慎使用。
+开启 `stats.all` 可能显著增加 Rust 与 JavaScript 之间的数据传输量和 Stats 生成耗时。建议设置 `all: false`，只开启需要的字段。这也适用于传给 `stats.toJson()` 和 `stats.toString()` 的选项，示例见[性能开销](/api/javascript-api/stats#performance-overhead)。
 :::
 
 ### stats.preset
@@ -82,7 +82,7 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-是否输出产物相关信息，参考 [Asset 对象结构](/api/javascript-api/stats-json#asset-对象结构)。
+是否输出产物相关信息，参考 [Asset 对象结构](/api/javascript-api/stats-json#asset-object)。
 
 ### stats.assetsSort
 
@@ -316,9 +316,9 @@ type Stats = boolean | StatsOptions | StatsPresets;
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-是否展示运行时模块。
+是否展示 [Rspack 运行时模块](/misc/glossary#rspack-runtime-module)。
 
-> 运行时模块为 Rspack 内置模块，用于提供各种运行时能力。
+> Rspack 运行时模块提供模块加载、chunk 加载等功能所需的代码。
 
 :::tip
 `stats.runtime` 是 `stats.runtimeModules` 的兼容性别名。只有在没有指定 `stats.runtimeModules` 时才会生效；如果两者都设置，以 `stats.runtimeModules` 为准。

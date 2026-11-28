@@ -7,9 +7,9 @@ use std::{
 };
 
 use rspack_util::SpanExt;
-use swc_next_ecma_ast::{Expr, GetSpan, Span, UnaryExpression};
+use swc_next_ecma_ast::{Expr, GetSpan, Program, Span, UnaryExpression};
 
-use super::{VALUE_DEP_PREFIX, utils::gen_const_dep, walk_data::WalkData};
+use super::{VALUE_DEP_MAIN, VALUE_DEP_PREFIX, utils::gen_const_dep, walk_data::WalkData};
 use crate::{
   JavascriptParserPlugin,
   define_plugin::walk_data::DefineRecord,
@@ -53,6 +53,21 @@ impl DefineParserPlugin {
 
 #[rspack_macros::implemented_javascript_parser_hooks]
 impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
+  fn program(&self, parser: &mut JavascriptParser<'p>, _ast: Program) -> Option<bool> {
+    // Track the key set even when this module did not use any existing definition.
+    let value = parser
+      .value_cache_versions
+      .get(VALUE_DEP_MAIN)
+      .expect("DefinePlugin should register its key hash");
+    if parser.build_info.value_dependencies.get(VALUE_DEP_MAIN) != Some(value) {
+      parser
+        .build_info
+        .value_dependencies
+        .insert(VALUE_DEP_MAIN.to_string(), value.clone());
+    }
+    None
+  }
+
   fn can_rename(&self, parser: &mut JavascriptParser<'p>, str: &str) -> Option<bool> {
     if let Some(first_key) = self.walk_data.can_rename.get(str) {
       self.add_value_dependency(parser, str);
@@ -105,15 +120,13 @@ impl<'p, 'a> JavascriptParserPlugin<'p, 'a> for DefineParserPlugin {
     start: u32,
     end: u32,
   ) -> Option<crate::utils::eval::BasicEvaluatedExpression<'p>> {
-    if let Some(record) = self.get_define_record(for_name)
-      && let Some(on_evaluate_identifier) = &record.on_evaluate_identifier
-    {
+    if let Some(record) = self.walk_data.define_record.get(for_name) {
       // Avoid endless recursion, for example: new DefinePlugin({ "a": "a" })
       if self.recurse.swap(true, Ordering::Acquire) {
         return None;
       }
       self.add_value_dependency(parser, for_name);
-      let evaluated = on_evaluate_identifier(record, parser, for_name, start, end);
+      let evaluated = record.evaluate(parser, false, start, end);
       self.recurse.store(false, Ordering::Release);
       return evaluated;
     } else if let Some(record) = self.walk_data.object_define_record.get(for_name)

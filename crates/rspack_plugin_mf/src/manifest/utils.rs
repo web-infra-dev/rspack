@@ -144,8 +144,7 @@ pub fn strip_ext(path: &str) -> String {
         Path::new(path)
           .extension()
           .and_then(|e| e.to_str())
-          .map(|e| format!(".{e}"))
-          .unwrap_or_default()
+          .map_or_default(|e| format!(".{e}"))
           .as_str(),
       )
       .to_string(),
@@ -216,28 +215,6 @@ pub fn record_shared_usage(
       }
     }
   }
-}
-
-pub fn parse_provide_shared_identifier(identifier: &str) -> Option<(String, String)> {
-  let (before_request, _) = identifier.split_once(" = ")?;
-  let token = before_request.split_whitespace().last()?;
-  // For scoped packages like @scope/pkg@1.0.0, split at the LAST '@'
-  let (name, version) = token.rsplit_once('@')?;
-  Some((name.to_string(), version.to_string()))
-}
-
-pub fn parse_consume_shared_identifier(identifier: &str) -> Option<(String, Option<String>)> {
-  let (_, rest) = identifier.split_once(") ")?;
-  let token = rest.split_whitespace().next()?;
-  // For scoped packages like @scope/pkg@1.0.0, split at the LAST '@'
-  let (name, version) = token.rsplit_once('@')?;
-  let version = version.trim();
-  let required = if version.is_empty() || version == "*" {
-    None
-  } else {
-    Some(version.to_string())
-  };
-  Some((name.to_string(), required))
 }
 
 pub fn collect_expose_requirements(

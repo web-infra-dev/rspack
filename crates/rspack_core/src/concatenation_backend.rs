@@ -380,9 +380,12 @@ impl<'a> ConcatenationBindingResolver<'a> {
           FindTargetResult::InvalidTarget(target) => {
             if let Some(export) = target.export {
               let target_exports_info = exports_info_artifact.get_exports_info_data(&target.module);
-              if let Some(used_name @ UsedName::Inlined(_)) =
-                target_exports_info.get_used_name(exports_info_artifact, runtime, &export)
-              {
+              let target_export_name = [export, export_name[1..].to_vec()].concat();
+              if let Some(used_name @ UsedName::Inlined(_)) = target_exports_info.get_used_name(
+                exports_info_artifact,
+                runtime,
+                &target_export_name,
+              ) {
                 return ConcatenationBindingPlan {
                   info_id: info.module,
                   export_name,
@@ -609,9 +612,11 @@ fn analyze_identifiers<T>(
     ));
   }
 
-  let ast = parse_return.ast;
-  let semantic = analyze(&ast, AnalyzeOptions::default()).semantic;
-  Ok(analyze_program(&ast, &semantic))
+  let (ast, semantic) = analyze(parse_return.ast, AnalyzeOptions::default())
+    .semantic
+    .into_parts();
+  // SAFETY: Analysis only reads handles from this AST, which is never mutated.
+  Ok(analyze_program(unsafe { ast.ast() }, &semantic))
 }
 
 /// Copy only the facts needed after the arena-backed AST and semantic are dropped.

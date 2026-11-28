@@ -24,7 +24,10 @@ export default defineConfig({
             module: false,
             nodePrefixForCoreModules: false,
             optionalChaining: false,
+            spread: false,
+            symbol: false,
             templateLiteral: false,
+            topLevelAwait: false,
           }
         `);
         expect(compilation.options.externalsPresets).toMatchInlineSnapshot(`

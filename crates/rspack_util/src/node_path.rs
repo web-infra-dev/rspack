@@ -1,6 +1,17 @@
 use std::borrow::Cow;
 
+use cow_utils::CowUtils;
 use rspack_paths::{Utf8Path, Utf8PathBuf};
+
+/// Normalizes a native path using POSIX rules, like Vite's `normalizePath`.
+pub fn normalize_path_to_posix(path: &Utf8Path) -> Utf8PathBuf {
+  if cfg!(windows) {
+    let path = path.as_str().cow_replace('\\', "/");
+    Utf8Path::new(path.as_ref()).node_normalize_posix()
+  } else {
+    path.node_normalize_posix()
+  }
+}
 
 fn is_path_separator(byte: &u8) -> bool {
   *byte == b'/' || *byte == b'\\'

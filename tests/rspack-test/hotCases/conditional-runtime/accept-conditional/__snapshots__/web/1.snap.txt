@@ -9,10 +9,10 @@
 - Bundle: dep1_js-module_js.chunk.CURRENT_HASH.js
 - Bundle: shared.chunk.CURRENT_HASH.js
 - Manifest: [runtime of dep1_js-dep2_js-worker_js].LAST_HASH.hot-update.json, size: 49
-- Manifest: main.LAST_HASH.hot-update.json, size: 48
+- Manifest: main.LAST_HASH.hot-update.json, size: 94
 - Update: dep1_js-dep2_js-worker_js.LAST_HASH.hot-update.js, size: 486
 - Update: dep1_js-module_js.LAST_HASH.hot-update.js, size: 347
-- Update: main.LAST_HASH.hot-update.js, size: 181
+- Update: main.LAST_HASH.hot-update.js, size: 319
 
 ## Manifest
 
@@ -27,7 +27,7 @@
 ### main.LAST_HASH.hot-update.json
 
 ```json
-{"c":["dep1_js-module_js","main"],"r":[],"m":[]}
+{"c":["dep1_js-module_js","main"],"r":[],"m":[],"changed":{"./dep1.js":["dep1_js-module_js"]}}
 ```
 
 
@@ -102,6 +102,7 @@ __webpack_require__.d(__webpack_exports__, {
 
 #### Changed Runtime Modules
 - webpack/runtime/get_full_hash
+- webpack/runtime/hot_module_replacement_chunk_versions
 
 #### Changed Content
 ```js
@@ -110,6 +111,11 @@ self["rspackHotUpdate"]("main", {},function(__webpack_require__) {
 // webpack/runtime/get_full_hash
 (() => {
 __webpack_require__.h = () => ("CURRENT_HASH")
+})();
+// webpack/runtime/hot_module_replacement_chunk_versions
+(() => {
+__webpack_require__.hmrV["dep1_js-module_js"] = "CHUNK_VERSION";
+
 })();
 
 }

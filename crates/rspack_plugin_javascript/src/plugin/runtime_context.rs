@@ -1,20 +1,24 @@
 use std::borrow::Cow;
 
 use rspack_core::{
-  ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey,
-  CodeGenerationDataTopLevelDeclarations, Compilation, ExportsArgument, Module,
-  RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeVariable, SourceType,
-  property_access, render_init_fragments,
-  rspack_sources::{BoxSource, ConcatSource, RawStringSource, SourceExt},
+  ChunkGraph, ChunkInitFragments, ChunkRenderContext, ChunkUkey, Compilation, ExportsArgument,
+  Module, ModuleGraph, RuntimeCodeTemplate, RuntimeGlobals, RuntimeGlobalsRenderMode,
+  RuntimeVariable, SourceType, property_access, render_init_fragments,
+  rspack_sources::{BoxSource, ConcatSource, OriginalSource, RawStringSource, SourceExt},
+  runtime_variable_name,
 };
 use rspack_error::Result;
 
-use super::{JsPlugin, RenderBootstrapResult, get_js_entry_modules_with_chunk_group};
+use super::{
+  JsPlugin, RenderBootstrapResult, entry_top_level_declarations_bailout,
+  get_js_entry_modules_with_chunk_group,
+};
 use crate::{
   RenderSource,
   runtime::{
-    render_chunk_modules, render_module, render_runtime_context_declaration,
-    render_runtime_context_require_assignment, render_runtime_modules, stringify_array,
+    render_awaited_entries, render_chunk_modules, render_module,
+    render_runtime_context_declaration, render_runtime_context_require_assignment,
+    render_runtime_modules, startup_awaits_entries, stringify_array,
   },
 };
 
@@ -79,18 +83,36 @@ var module = ({module_cache}[moduleId] = {{"#,
     let module_execution = if runtime_requirements
       .contains(RuntimeGlobals::INTERCEPT_MODULE_EXECUTION)
     {
-      let (factory_runtime_argument, context_prototype) =
-        if runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext {
-          (
-            "execOptions.context",
-            runtime_template.render_runtime_variable(&RuntimeVariable::Context),
-          )
-        } else {
-          ("execOptions.require", callable_require.clone())
-        };
+      let context_mode = runtime_template.render_mode() == RuntimeGlobalsRenderMode::RspackContext;
+      let bridged = compilation
+        .runtime_proxy_metadata_artifact
+        .get(chunk_ukey)
+        .is_some_and(|m| m.runtime_module_bridge.owner);
+      let context_prototype = if context_mode {
+        runtime_template.render_runtime_variable(&RuntimeVariable::Context)
+      } else if bridged {
+        runtime_variable_name(&RuntimeVariable::Context).to_owned()
+      } else {
+        callable_require.clone()
+      };
+      let loader = if bridged {
+        format!("{context_prototype}.r")
+      } else {
+        callable_require
+      };
+      let factory_runtime_argument = if bridged && context_mode {
+        // A webpack interceptor can replace the factory or the loader it receives.
+        format!(
+          "execOptions.factory === {module_factories}[execOptions.id] && execOptions.require === execOptions.context.r ? execOptions.context : execOptions.require"
+        )
+      } else if context_mode {
+        "execOptions.context".into()
+      } else {
+        "execOptions.require".into()
+      };
       format!(
         r#"
-        var execOptions = {{ id: moduleId, module: module, factory: {module_factories}[moduleId], require: {callable_require}, context: Object.create({context_prototype}) }};
+        var execOptions = {{ id: moduleId, module: module, factory: {module_factories}[moduleId], require: {loader}, context: Object.create({context_prototype}) }};
         {}.forEach(function(handler) {{ handler(execOptions); }});
         module = execOptions.module;
         execOptions.factory.call(module.exports, module, module.exports, {factory_runtime_argument});
@@ -338,6 +360,9 @@ function {}(moduleId) {{
         buf2.push("// Load entry module and return exports".into());
         let entries = get_js_entry_modules_with_chunk_group(chunk_ukey, compilation);
         let module_graph = compilation.get_module_graph();
+        let exports = runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS);
+        let can_await_entry = startup_awaits_entries(compilation, chunk_ukey);
+        let mut awaited_entries: Vec<String> = Vec::new();
         for (i, (module, entry)) in entries.iter().enumerate() {
           let chunk_group = compilation
             .build_chunk_graph_artifact
@@ -392,23 +417,15 @@ function {}(moduleId) {{
             );
             allow_inline_startup = false;
           }
-          if allow_inline_startup && {
-            let codegen = compilation
-              .code_generation_results
-              .get(module, Some(chunk.runtime()));
-            let module_graph = compilation.get_module_graph();
-            let top_level_decls = codegen
-              .data()
-              .get::<CodeGenerationDataTopLevelDeclarations>()
-              .map(|_| ())
-              .or_else(|| {
-                module_graph
-                  .module_by_identifier(module)
-                  .and_then(|m| m.build_info().top_level_declarations.as_ref().map(|_| ()))
-              });
-            top_level_decls.is_none()
-          } {
-            buf2.push("// This entry module doesn't tell about it's top-level declarations so it can't be inlined".into());
+          if allow_inline_startup
+            && let Some(bailout) = entry_top_level_declarations_bailout(
+              compilation,
+              module,
+              chunk.runtime(),
+              runtime_template,
+            )
+          {
+            buf2.push(bailout.into());
             allow_inline_startup = false;
           }
           let hooks = JsPlugin::get_compilation_hooks(compilation.id());
@@ -442,26 +459,38 @@ function {}(moduleId) {{
             );
           }
 
+          let is_last_entry = i + 1 == entries.len();
+          let await_entry =
+            can_await_entry && ModuleGraph::is_async(&compilation.async_modules_artifact, module);
+          let target = if is_last_entry {
+            exports.clone()
+          } else {
+            format!("{exports}_{}", entries.len() - i - 1)
+          };
+
           if !chunk_ids.is_empty() {
-            let on_chunks_loaded_callback = if supports_arrow_function {
-              format!(
-                "() => {}({module_id_expr})",
-                runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-              )
+            let entry_call = format!(
+              "{}({module_id_expr})",
+              runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
+            );
+            let entry_call = if await_entry {
+              if !is_last_entry {
+                buf2.push(format!("var {target};").into());
+              }
+              format!("({target} = {entry_call})")
             } else {
-              format!(
-                "function() {{ return {}({module_id_expr}) }}",
-                runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
-              )
+              entry_call
+            };
+            let on_chunks_loaded_callback = if supports_arrow_function {
+              format!("() => {entry_call}")
+            } else {
+              format!("function() {{ return {entry_call} }}")
             };
             buf2.push(
               format!(
                 "{}{}(undefined, {}, {});",
-                if i + 1 == entries.len() {
-                  format!(
-                    "var {} = ",
-                    runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
-                  )
+                if is_last_entry {
+                  format!("var {exports} = ")
                 } else {
                   String::new()
                 },
@@ -471,22 +500,25 @@ function {}(moduleId) {{
               )
               .into(),
             );
+            if await_entry {
+              awaited_entries.push(target);
+            }
           } else if use_require {
             buf2.push(
               format!(
                 "{}{}({module_id_expr});",
-                if i + 1 == entries.len() {
-                  format!(
-                    "var {} = ",
-                    runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS)
-                  )
+                if is_last_entry || await_entry {
+                  format!("var {target} = ")
                 } else {
                   String::new()
                 },
                 runtime_template.render_runtime_globals(&RuntimeGlobals::REQUIRE)
               )
               .into(),
-            )
+            );
+            if await_entry {
+              awaited_entries.push(target);
+            }
           } else {
             let should_exec = i + 1 == entries.len();
             if should_exec {
@@ -549,8 +581,8 @@ function {}(moduleId) {{
             .into(),
           );
         }
+        buf2.extend(render_awaited_entries(&awaited_entries).map(Cow::from));
         if runtime_requirements.contains(RuntimeGlobals::STARTUP) {
-          let exports = runtime_template.render_runtime_globals(&RuntimeGlobals::EXPORTS);
           allow_inline_startup = false;
           header.push(
             format!(
@@ -646,6 +678,11 @@ impl JsPlugin {
     let mut chunk_init_fragments = ChunkInitFragments::default();
     let iife = compilation.options.output.iife;
     let mut all_strict = compilation.options.output.module;
+    let use_source_map = hooks
+      .use_source_map
+      .call(compilation, chunk_ukey)
+      .await?
+      .unwrap_or_default();
     let RenderBootstrapResult {
       header,
       startup,
@@ -730,7 +767,11 @@ impl JsPlugin {
     if !header.is_empty() {
       let mut header = header.join("\n");
       header.push('\n');
-      sources.add(RawStringSource::from(header));
+      sources.add(if use_source_map {
+        OriginalSource::new(header, "rspack/bootstrap").boxed()
+      } else {
+        RawStringSource::from(header).boxed()
+      });
     }
     let should_render_runtime_context =
       !runtime_template.render_mode().is_legacy() && !has_bootstrap_runtime_context;
@@ -900,7 +941,11 @@ impl JsPlugin {
         .next_back()
     }) {
       let mut render_source = RenderSource {
-        source: RawStringSource::from(startup.join("\n") + "\n").boxed(),
+        source: if use_source_map {
+          OriginalSource::new(startup.join("\n") + "\n", "rspack/startup").boxed()
+        } else {
+          RawStringSource::from(startup.join("\n") + "\n").boxed()
+        },
       };
       hooks
         .render_startup

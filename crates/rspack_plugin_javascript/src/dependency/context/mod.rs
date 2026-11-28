@@ -1,6 +1,7 @@
 use rspack_core::{
   ContextDependency, ContextMode, ContextModulePattern, ContextOptions, DependencyRange,
-  GroupOptions, ResourceIdentifier, TemplateContext, TemplateReplaceSource, context_identifier,
+  GroupOptions, ReferencedSpecifier, ResourceIdentifier, TemplateContext, TemplateReplaceSource,
+  context_identifier,
 };
 
 mod amd_require_context_dependency;
@@ -49,36 +50,28 @@ fn create_resource_identifier_for_context_dependency(
   let include = options
     .include
     .as_ref()
-    .map(|x| x.to_source_string())
-    .unwrap_or_default();
+    .map_or_default(|x| x.to_source_string());
   let exclude = options
     .exclude
     .as_ref()
-    .map(|x| x.to_source_string())
-    .unwrap_or_default();
+    .map_or_default(|x| x.to_source_string());
   let mode = options.mode.as_str();
   let referenced_exports = options
     .referenced_specifiers
     .as_ref()
-    .map(|specifiers| {
-      specifiers
-        .iter()
-        .map(|specifier| {
-          let s = specifier.names.iter().join(".");
-          if specifier.namespace_object_as_context && specifier.is_call {
-            format!("*.{s}()")
-          } else {
-            s
-          }
-        })
-        .join(", ")
-    })
-    .unwrap_or_default();
+    .map_or_default(|specifiers| {
+      format!(
+        "referencedExports: {}",
+        specifiers
+          .iter()
+          .map(ReferencedSpecifier::to_identifier_string)
+          .join(", ")
+      )
+    });
   let glob_import = options
     .glob_import
     .as_ref()
-    .map(|import| format!("globImport: {import}"))
-    .unwrap_or_default();
+    .map_or_default(|import| format!("globImport: {import}"));
   let glob_exhaustive = if options.glob_exhaustive {
     "globExhaustive"
   } else {
@@ -180,11 +173,6 @@ fn context_dependency_template_as_id(
     source.replace(*start, *end, content.clone(), None);
   }
 
-  source.replace(
-    range.start,
-    range.start,
-    format!("{}.resolve(", &expr),
-    None,
-  );
+  source.replace(range.start, range.start, format!("{expr}.resolve("), None);
   source.replace_static(range.end, range.end, ")", None);
 }

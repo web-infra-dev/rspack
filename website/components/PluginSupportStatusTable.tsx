@@ -359,6 +359,7 @@ const pluginSupportStatusList: PluginSupportStatus[] = [
   },
   {
     name: 'DeterministicChunkIdsPlugin',
+    url: '/plugins/deterministic-chunk-ids-plugin',
     status: SupportStatus.PartiallySupported,
     notes: {
       en: '`context` and `maxLength` options are not supported',

@@ -15,7 +15,7 @@ runs:
   steps:
     - name: Cache to github
       if: ${{ runner.environment == 'github-hosted' }}
-      uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       with:
         prefix-key: 'RCache-G-6'
         shared-key: ${{ inputs.key }}
@@ -27,22 +27,87 @@ runs:
       if: ${{ runner.environment == 'self-hosted' }}
       shell: bash
       run: |
-        echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
         echo "SCCACHE_S3_KEY_PREFIX=caches/${{ github.repository }}-sccache-V-1/${{ runner.os }}" >> "$GITHUB_ENV"
 
         # Force vergen's output to be idempotent to improve cache hit rate
         echo "VERGEN_IDEMPOTENT=1" >> "$GITHUB_ENV"
 
-        # Windows: keep proc-macro DLLs and rmeta (single-thread frontend)
-        # reproducible cross-pod
         if [[ "${{ runner.os }}" == "Windows" ]]; then
+          # Windows: keep proc-macro DLLs and rmeta (single-thread frontend)
+          # reproducible cross-pod
           echo "LINK=-Brepro" >> "$GITHUB_ENV"
           sed -i 's/-Zthreads=8/-Zthreads=1/' .cargo/config.toml
+        else
+          # On Windows RUSTC_WRAPPER points to the read-after-link shim
+          # installed below; only other platforms use sccache directly.
+          echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
         fi
 
     - name: Setup sccache
-      if: ${{ runner.environment == 'self-hosted' }}
+      if: ${{ runner.environment == 'self-hosted' && runner.os != 'Windows' }}
       uses: rstackjs/sccache-action@8ece41fd13fd5d944a38144ac9eb98a7455fe438 # v0.1.0
+      with:
+        # Keep the cache stats out of the run summary and the annotations panel.
+        disable_annotations: 'true'
+
+    # Since sccache 0.17.0 (mozilla/sccache#2782), Cargo's `@response-file`
+    # arguments are expanded before spawning rustc. On Windows the expanded
+    # command line can exceed CreateProcessW's 32,767-character limit and fail
+    # with `os error 206` (mozilla/sccache#2787). The `\\?\` verbatim prefix
+    # only lifts the MAX_PATH limit, not the command line limit, so it cannot
+    # fix this. Pin Windows to 0.16.0, the last release that passes the
+    # response file through unchanged, until a release containing
+    # mozilla/sccache#3026 (response-file respawn) is available.
+    - name: Setup sccache (Windows)
+      if: ${{ runner.environment == 'self-hosted' && runner.os == 'Windows' }}
+      uses: rstackjs/sccache-action@8ece41fd13fd5d944a38144ac9eb98a7455fe438 # v0.1.0
+      with:
+        version: v0.16.0
+
+    # Workaround for a Windows race in which a freshly linked proc-macro DLL is
+    # memory-mapped with zeroed pages when sccache's hashing read overlaps its
+    # first load by rustc. It surfaces flakily as `LoadLibraryExW failed
+    # (os error 998)`, `error[E0463]: can't find crate` for a just-built
+    # proc-macro, or rustc ICEs in proc_macro::bridge. See:
+    # https://crates.io/crates/read-after-link and rust-lang/rust#107595.
+    # The wrapper reads each newly linked proc-macro/dylib once before cargo
+    # can load it, and delegates the actual compile to sccache.
+    - name: Setup read-after-link wrapper (Windows)
+      if: ${{ runner.environment == 'self-hosted' && runner.os == 'Windows' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        # Persisted in CARGO_HOME on the self-hosted runner; install is a no-op
+        # when the pinned version is already present.
+        if ! command -v read-after-link >/dev/null 2>&1; then
+          cargo install --locked --version 0.1.0 read-after-link
+        fi
+
+        # The `cc` crate forwards RUSTC_WRAPPER to C/C++ compiles only when the
+        # wrapper's file name is sccache/cachepot/buildcache/kache (it compares
+        # the file name alone, ignoring case and extension, so sccache.exe
+        # counts). Install a copy of the read-after-link binary renamed to
+        # `sccache.exe` in a dedicated directory and point RUSTC_WRAPPER at it,
+        # so cc routes the mimalloc/lz4 C builds through the same shim. The
+        # shim passes C/C++ compiles straight to the real sccache unchanged
+        # (they link no Rust library, so it performs no read-after-link read),
+        # while retaining the proc-macro read-after-link behavior for rustc.
+        # See the "Keeping C and C++ on sccache" section of the read-after-link
+        # crate docs. SCCACHE_PATH is exported by the sccache action; normalize
+        # both paths to native Windows form for the wrapper's child process.
+        cargo_home_bin="$(dirname "$(command -v read-after-link)")"
+        shim_dir="${CARGO_HOME:-$HOME/.cargo}/read-after-link-shim"
+        mkdir -p "$shim_dir"
+        cp -f "$cargo_home_bin/read-after-link.exe" "$shim_dir/sccache.exe"
+
+        wrapper_path="$(cygpath -w "$shim_dir/sccache.exe")"
+        real_sccache="$(cygpath -w "${SCCACHE_PATH:-sccache}")"
+
+        echo "RUSTC_WRAPPER=$wrapper_path" >> "$GITHUB_ENV"
+        echo "READ_AFTER_LINK_WRAPPER=$real_sccache" >> "$GITHUB_ENV"
+        echo "Configured RUSTC_WRAPPER=$wrapper_path"
+        echo "Configured READ_AFTER_LINK_WRAPPER=$real_sccache"
 
     - name: Reset sccache server
       if: ${{ runner.environment == 'self-hosted' }}

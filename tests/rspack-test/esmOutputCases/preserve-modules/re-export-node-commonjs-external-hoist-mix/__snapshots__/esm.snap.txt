@@ -34,9 +34,9 @@ export { readFile as readFileHoisted, readFileSync as readFileSyncHoisted };
 
 ```mjs title=index.mjs
 import { __webpack_require__ } from "./runtime.mjs";
+import "./hoisted.mjs";
 import "./wrapped.mjs";
 import "./fs.mjs";
-import "./hoisted.mjs";
 
 // ./src/index.js
 const wrapped_0 = __webpack_require__("./src/wrapped.js");
@@ -93,18 +93,6 @@ return module.exports;
 // expose the modules object (__webpack_modules__)
 __webpack_require__.m = __webpack_modules__;
 
-// webpack/runtime/compat_get_default_export
-(() => {
-// getDefaultExport function for compatibility with non-ESM modules
-__webpack_require__.n = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	__webpack_require__.d(getter, { a: getter });
-	return getter;
-};
-
-})();
 // webpack/runtime/define_property_getters
 (() => {
 __webpack_require__.d = (exports, getters, values) => {
@@ -158,7 +146,6 @@ __webpack_require__.add({
   \************************/
 (module, __webpack_exports__, __webpack_require__) {
 /* import */ var fs__rspack_import_0 = __webpack_require__(/*! fs */ "fs");
-/* import */ var fs__rspack_import_0_default = /*#__PURE__*/__webpack_require__.n(fs__rspack_import_0);
 /* module decorator */ module = __webpack_require__.hmd(module);
 
 

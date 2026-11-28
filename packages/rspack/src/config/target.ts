@@ -101,10 +101,16 @@ export type EcmaTargetProperties = {
   optionalChaining: boolean | null;
   /**  logical assignment is available */
   logicalAssignment: boolean | null;
+  /**  spread and rest in array/object literals and calls is available */
+  spread: boolean | null;
+  /**  Symbol and well-known symbols are available */
+  symbol: boolean | null;
   /**  template literal is available */
   templateLiteral: boolean | null;
   /**  async functions and await are available */
   asyncFunction: boolean | null;
+  /**  top-level await is available */
+  topLevelAwait: boolean | null;
 };
 
 export type ExtractedTargetProperties = {
@@ -300,10 +306,14 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         computedProperty: v(4),
         templateLiteral: v(4),
         optionalChaining: v(14),
+        spread: v(8, 3),
+        symbol: v(6),
         logicalAssignment: v(15),
         methodShorthand: v(4),
         arrowFunction: v(6),
         asyncFunction: v(7, 6),
+        // v14.8.0
+        topLevelAwait: v(14, 8),
         forOf: v(5),
         destructuring: v(6),
         bigIntLiteral: v(10, 4),
@@ -375,10 +385,14 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         computedProperty: v(1, 1),
         templateLiteral: v(1, 1),
         optionalChaining: v(8),
+        spread: v(2),
+        symbol: v(0, 37),
         logicalAssignment: v(10),
         methodShorthand: v(1, 1),
         arrowFunction: v(1, 1),
         asyncFunction: v(1, 7),
+        // 12.0.0 - Chromium 89
+        topLevelAwait: v(12),
         forOf: v(0, 36),
         destructuring: v(1, 1),
         bigIntLiteral: v(4),
@@ -440,9 +454,13 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         computedProperty: v(0, 15),
         templateLiteral: v(0, 13),
         optionalChaining: v(0, 44),
+        spread: v(0, 23),
+        symbol: v(0, 13),
         methodShorthand: v(0, 15),
         arrowFunction: v(0, 15),
         asyncFunction: v(0, 21),
+        // 0.52.0 - Chromium 89
+        topLevelAwait: v(0, 52),
         forOf: v(0, 13),
         destructuring: v(0, 15),
         bigIntLiteral: v(0, 32),
@@ -466,6 +484,8 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         computedProperty: v >= 2015,
         templateLiteral: v >= 2015,
         optionalChaining: v >= 2020,
+        spread: v >= 2018,
+        symbol: v >= 2015,
         logicalAssignment: v >= 2021,
         methodShorthand: v >= 2015,
         arrowFunction: v >= 2015,
@@ -473,6 +493,7 @@ You can also more options via the 'target' option: 'browserslist' / 'browserslis
         destructuring: v >= 2015,
         module: v >= 2015,
         asyncFunction: v >= 2017,
+        topLevelAwait: v >= 2022,
         globalThis: v >= 2020,
         bigIntLiteral: v >= 2020,
         dynamicImport: v >= 2020,

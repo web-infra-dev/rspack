@@ -8,6 +8,7 @@ import {
 } from '@rspack/core';
 import fs from 'fs-extra';
 import { isJavaScript, RSPACK_CONFIG_FILES } from '../helper';
+import { getCacheStats } from '../helper/cache';
 import { normalizePlaceholder } from '../helper/expect/placeholder';
 import { HotUpdatePlugin } from '../helper/hot-update';
 import { checkArrayExpectation } from '../helper/legacy/checkArrayExpectation';
@@ -15,20 +16,11 @@ import { NodeRunner } from '../runner';
 import { BasicCaseCreator } from '../test/creator';
 import type { ITestContext, ITestEnv, ITestProcessor } from '../type';
 import { afterExecute, build, check, compiler, config, run } from './common';
-import { createConfigProcessor } from './config';
-import { createNormalProcessor } from './normal';
-import {
-  cachedStats,
-  createMultiCompilerRunner,
-  createRunner as createCaseRunner,
-  getMultiCompilerRunnerKey,
-} from './runner';
+import { cachedStats } from './runner';
 
 type TTarget = RspackOptions['target'];
 
 export type TCacheCaseOptions = {
-  /** Reuse the configuration and runner of the original case suite. */
-  type?: 'cache' | 'normal' | 'config';
   /** Enable persistent newCache, restart unchanged cases, and check cache hits. */
   newCache?: boolean;
 };
@@ -46,46 +38,40 @@ function createCacheProcessor(
   target: TTarget,
   caseOptions: TCacheCaseOptions,
 ): ITestProcessor {
-  const type = caseOptions.type || 'cache';
   const compileTemp = caseOptions.newCache ? path.join(temp, 'src') : temp;
-  const updatePlugin =
-    type === 'cache' ? new HotUpdatePlugin(src, compileTemp) : undefined;
-  const base: ITestProcessor =
-    type === 'normal'
-      ? createNormalProcessor(name)
-      : type === 'config'
-        ? createConfigProcessor(name)
-        : {
-            config: async (context) => {
-              context
-                .getCompiler()
-                .setOptions(
-                  await generateOptions(
-                    context,
-                    compileTemp,
-                    target,
-                    updatePlugin!,
-                  ),
-                );
-            },
-            compiler: async (context) => {
-              await compiler(context, name);
-            },
-            build: async (context) => {
-              await build(context, name);
-            },
-            run: async (env, context) => {
-              await run(env, context, name, (context) =>
-                findBundle(name, target, context),
-              );
-            },
-            check: async (env, context) => {
-              await check(env, context, name);
-            },
-            after: async (context) => {
-              await afterExecute(context, name);
-            },
-          };
+  const updatePlugin = new HotUpdatePlugin(src, compileTemp);
+  const base: ITestProcessor = {
+    config: async (context) => {
+      context
+        .getCompiler()
+        .setOptions(
+          await generateOptions(
+            context,
+            compileTemp,
+            target,
+            updatePlugin,
+            !!caseOptions.newCache,
+          ),
+        );
+    },
+    compiler: async (context) => {
+      await compiler(context, name);
+    },
+    build: async (context) => {
+      await build(context, name);
+    },
+    run: async (env, context) => {
+      await run(env, context, name, (context) =>
+        findBundle(name, target, context),
+      );
+    },
+    check: async (env, context) => {
+      await check(env, context, name);
+    },
+    after: async (context) => {
+      await afterExecute(context, name);
+    },
+  };
   let buildIndex = 0;
   let testEnv: ITestEnv;
 
@@ -96,30 +82,26 @@ function createCacheProcessor(
   ) => {
     const stats = context.getCompiler().getStats()!;
     if (!caseOptions.newCache) {
-      if (!unchanged && updatePlugin)
-        matchStatsSnapshot(env, src, updatePlugin!.getUpdateIndex(), stats);
+      if (!unchanged)
+        matchStatsSnapshot(env, src, updatePlugin.getUpdateIndex(), stats);
       return;
     }
-    const cacheStats = ('stats' in stats ? stats.stats : [stats]).map(
-      (stats) => stats.toJson({ all: false, cacheInfo: true }).cacheInfo!,
-    );
+    const cacheStats = getCacheStats(stats);
     fs.outputJsonSync(
       context.getTemp(`cache-stats/${buildIndex}.json`)!,
       cacheStats,
       { spaces: 2 },
     );
-    if (type === 'cache') {
-      env
-        .expect(JSON.stringify(cacheStats, null, 2))
-        .toMatchFileSnapshotSync(
-          path.join(src, '__snapshots__', `cache-stats-${buildIndex}.txt`),
-        );
-    }
+    env
+      .expect(JSON.stringify(cacheStats, null, 2))
+      .toMatchFileSnapshotSync(
+        path.join(src, '__snapshots__', `cache-stats-${buildIndex}.txt`),
+      );
   };
 
   return {
     before: async (context) => {
-      await updatePlugin?.initialize();
+      await updatePlugin.initialize();
       const state: CacheState = {
         compilerIndex: 0,
         nextStart: async (advance = true) => {
@@ -132,12 +114,11 @@ function createCacheProcessor(
           await manager.close();
           const advanceUpdate = !!(
             advance &&
-            updatePlugin &&
             (!caseOptions.newCache ||
               updatePlugin.getUpdateIndex() + 1 <
                 updatePlugin.getTotalUpdates())
           );
-          if (advanceUpdate) await updatePlugin!.goNext();
+          if (advanceUpdate) await updatePlugin.goNext();
           state.compilerIndex++;
           buildIndex++;
           manager.createCompiler();
@@ -159,8 +140,6 @@ function createCacheProcessor(
         },
         nextHmr: async (module, options) => {
           const env = testEnv;
-          if (!updatePlugin)
-            throw new Error('NEXT_HMR is only supported by cache cases');
           await updatePlugin.goNext();
           buildIndex++;
           await context.getCompiler().build();
@@ -200,7 +179,6 @@ function createCacheProcessor(
     },
     after: base.after,
     afterAll: () => {
-      if (!updatePlugin) return;
       const updateIndex = updatePlugin.getUpdateIndex();
       const totalUpdates = updatePlugin.getTotalUpdates();
       if (updateIndex + 1 !== totalUpdates) {
@@ -218,7 +196,7 @@ function createCacheProcessor(
   ) {
     const manager = context.getCompiler();
     const stats = manager.getStats()!;
-    if (type !== 'cache' || !advance) {
+    if (!advance) {
       await base.check(env, context);
     }
     const jsonStats = stats.toJson({
@@ -229,8 +207,8 @@ function createCacheProcessor(
       entrypoints: true,
       chunkGroups: true,
     });
-    if (type === 'cache' && advance) {
-      const updateIndex = updatePlugin!.getUpdateIndex();
+    if (advance) {
+      const updateIndex = updatePlugin.getUpdateIndex();
       for (const kind of ['error', 'warning'] as const) {
         await checkArrayExpectation(
           src,
@@ -271,14 +249,10 @@ export function createCacheCase(
         key: (context, name, file) => {
           const index =
             context.getValue<CacheState>('cacheState')!.compilerIndex;
-          const key =
-            options.type === 'config'
-              ? getMultiCompilerRunnerKey(context, name, file)
-              : name;
-          return `${key}:${index}`;
+          return `${name}:${index}`;
         },
         runner: (context, name, file, env) =>
-          createRunner(context, name, file, env, options),
+          createRunner(context, name, file, env),
       },
       concurrent: true,
     });
@@ -289,37 +263,39 @@ export function createCacheCase(
 
 function enableNewCache(context: ITestContext, temp: string) {
   const options = context.getCompiler().getOptions();
+  const defaultNewCache = {
+    codeGeneration: true,
+    module: true,
+    devtool: true,
+    loader: true,
+    minimize: true,
+    resolver: true,
+  };
   for (const [index, config] of (Array.isArray(options)
     ? options
     : [options]
   ).entries()) {
     config.experiments = {
       ...config.experiments,
-      newCache: config.experiments?.newCache ?? {
-        codeGeneration: true,
-        module: true,
-        devtool: true,
-        loader: true,
-        minimize: true,
-        resolver: true,
-      },
+      newCache: config.experiments?.newCache ?? defaultNewCache,
     };
-    const cache =
-      typeof config.cache === 'object' && config.cache.type === 'persistent'
-        ? config.cache
-        : undefined;
-    const storage = cache?.storage;
-    config.cache = {
-      ...cache,
-      type: 'persistent',
-      storage:
-        storage?.directory !== undefined || storage?.location !== undefined
-          ? storage
-          : {
-              type: 'filesystem',
-              directory: path.join(temp, '.cache', String(index)),
-            },
+    const cache = config.cache;
+    const storage = {
+      type: 'filesystem' as const,
+      directory: path.join(temp, '.cache', String(index)),
     };
+    if (cache === undefined) {
+      // NewCache cases need filesystem storage to verify cache restoration.
+      config.cache = { type: 'persistent', storage };
+    } else if (
+      typeof cache === 'object' &&
+      cache?.type === 'persistent' &&
+      cache.storage?.directory === undefined &&
+      cache.storage?.location === undefined
+    ) {
+      // Keep the user's persistent cache options, but isolate its storage.
+      config.cache = { ...cache, storage };
+    }
   }
 }
 
@@ -356,10 +332,13 @@ async function generateOptions(
   temp: string,
   target: TTarget,
   updatePlugin: HotUpdatePlugin,
+  newCache: boolean,
 ): Promise<RspackOptions> {
   let options = {
     context: temp,
-    cache: true,
+    // Legacy cache cases default to memory cache. NewCache cases leave it
+    // unset so an explicit user configuration can take precedence.
+    ...(newCache ? {} : { cache: true }),
     devtool: false,
     output: {
       path: context.getDist(),
@@ -450,7 +429,6 @@ function createRunner(
   name: string,
   file: string,
   env: ITestEnv,
-  options: TCacheCaseOptions,
 ) {
   const state = context.getValue<CacheState>('cacheState')!;
   const testConfig = context.getTestConfig();
@@ -467,18 +445,6 @@ function createRunner(
       return scope;
     },
   };
-  if (options.type === 'config') {
-    return createMultiCompilerRunner(context, name, file, env, {
-      testConfig: scopedConfig,
-      cachable: false,
-    });
-  }
-  if (options.type === 'normal') {
-    return createCaseRunner(context, name, file, env, {
-      testConfig: scopedConfig,
-      cachable: false,
-    });
-  }
   return new NodeRunner({
     env,
     stats: cachedStats(context, name),

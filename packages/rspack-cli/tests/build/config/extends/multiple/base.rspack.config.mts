@@ -1,8 +1,6 @@
 import { defineConfig } from '../../../../../dist/index.js';
 
 export default defineConfig({
-  output: {
-    filename: 'base.bundle.js',
-  },
+  extends: './shared.config.json',
   mode: 'development',
 });

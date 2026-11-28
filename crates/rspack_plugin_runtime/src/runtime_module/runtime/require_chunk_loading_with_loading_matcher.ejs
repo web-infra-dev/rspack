@@ -3,7 +3,15 @@
 	// "1" is the signal for "already loaded"
 	if (!requireInstalledChunks[chunkId]) {
 		if (<%- _js_matcher %>) {
-			requireInstallChunk(require("<%- _output_dir %>" + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId)));
+			<% if (_with_hmr) { %>
+			try {
+				var filename = "<%- _output_dir %>" + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId);
+				if (require.cache) delete require.cache[require.resolve(filename)];
+				requireInstallChunk(require(filename));
+			} catch (error) {
+				promises.push(Promise.reject(error));
+			}
+			<% } else { %>requireInstallChunk(require("<%- _output_dir %>" + <%- GET_CHUNK_SCRIPT_FILENAME %>(chunkId)));<% } %>
 		} else requireInstalledChunks[chunkId] = 1;
 	}
 };

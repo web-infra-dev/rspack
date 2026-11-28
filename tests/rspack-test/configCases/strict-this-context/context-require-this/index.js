@@ -17,6 +17,15 @@ it("should always correctly handle this for exportsType is DefaultWithNamed and 
 	const cjs = require("./modules/" + cjsName);
 	expect(cjs.that().value).toBe(STRICT_THIS_CONTEXT_ON_IMPORTS ? 42 : undefined);
 	const dataName = "data.json";
-	const json = require("./modules/" + dataName);
+	const json = require("./json-modules/" + dataName);
+	expect(json.map(d => d * 2)).toEqual([2, 4, 6]);
+})
+
+it("should keep the receiver of a context element that does not provide the called member", () => {
+	const cjsName = "cjs";
+	const cjs = require("./shared/" + cjsName);
+	expect(cjs.that().value).toBe(42);
+	const dataName = "data.json";
+	const json = require("./shared/" + dataName);
 	expect(json.map(d => d * 2)).toEqual([2, 4, 6]);
 })

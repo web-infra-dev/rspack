@@ -1,15 +1,23 @@
-<%- var("hotCurrentUpdatedModulesList") %>;
-<%- var("hotWaitingUpdateResolves") %> = {};
-<%- fn("jsonpLoadUpdateChunk") %>(chunkId, updatedModulesList) {
-	hotCurrentUpdatedModulesList = updatedModulesList;
-	return new Promise(<%- basicFunction("resolve, reject") %> {
-		hotWaitingUpdateResolves[chunkId] = resolve;
+<%- var("hotWaitingUpdateResolves") %> = Object.create(null);
+<%- fn("jsonpLoadUpdateChunk") %>(chunkId, updatedModulesList, full) {
+	var pending = hotWaitingUpdateResolves[chunkId];
+	// Both files use the same callback and chunk id. Finish one response before
+	// requesting the other so it can be routed to its own staging area.
+	if (pending) return pending.promise.then(function () { return jsonpLoadUpdateChunk(chunkId, updatedModulesList, full); });
+	pending = {};
+	var promise = new Promise(<%- basicFunction("resolve, reject") %> {
+		pending.resolve = function (moreModules, runtime) {
+			hotAddUpdateChunk(chunkId, moreModules, runtime, updatedModulesList, full);
+			resolve();
+		};
+		hotWaitingUpdateResolves[chunkId] = pending;
 		// start update chunk loading
-		var url = <%- PUBLIC_PATH %> + <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId);
+		var filename = <%- GET_CHUNK_UPDATE_SCRIPT_FILENAME %>(chunkId);
+		var url = <%- PUBLIC_PATH %> + filename + (full ? (/\.mjs$/.test(filename) ? ".full.mjs" : ".full.js") : "");
 		// create error before stack unwound to get useful stacktrace later
 		var error = new Error();
 		var loadingEnded = <%- basicFunction("event") %> {
-			if (hotWaitingUpdateResolves[chunkId]) {
+			if (hotWaitingUpdateResolves[chunkId] === pending) {
 				hotWaitingUpdateResolves[chunkId] = undefined;
 				var errorType =
 					event && (event.type === 'load' ? 'missing' : event.type);
@@ -30,18 +38,13 @@
 		};
 		<%- LOAD_SCRIPT %>(url, loadingEnded);
 	});
+	pending.promise = promise;
+	return promise;
 }
 
 <%- _global_object %>[<%- _hot_update_global %>] = <%- basicFunction("chunkId, moreModules, runtime") %> {
-	for (var moduleId in moreModules) {
-		if (<%- HAS_OWN_PROPERTY %>(moreModules, moduleId)) {
-			hotCurrentUpdate[moduleId] = moreModules[moduleId];
-			if (hotCurrentUpdatedModulesList) hotCurrentUpdatedModulesList.push(moduleId);
-		}
-	}
-	if (runtime) hotCurrentUpdateRuntime.push(runtime);
 	if (hotWaitingUpdateResolves[chunkId]) {
-		hotWaitingUpdateResolves[chunkId]();
+		hotWaitingUpdateResolves[chunkId].resolve(moreModules, runtime);
 		hotWaitingUpdateResolves[chunkId] = undefined;
 	}
 };

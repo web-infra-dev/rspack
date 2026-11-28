@@ -10,6 +10,8 @@ Inline matchResource 允许你在加载资源时动态改变匹配规则。你�
 
 当 `matchResource` 被设置时，它将被用来与 `module.rules` 而不是原始资源进行匹配。当如果有更多的 loader 应该应用到资源上，或者需要改变模块的类型，这可能很有用。
 
+在匹配资源的末尾添加 `.rspack[type]` 或 `.webpack[type]`，可以显式指定模块类型。例如，`foo.webpack.bar.webpack[json]` 的匹配资源是 `foo.webpack.bar`，模块类型是 `json`。
+
 :::tip
 不建议在源代码中使用这种语法。内联请求语法应该仅用于 loader 生成的代码。如果不遵循此建议，你的代码将与 Rspack 耦合，且不符合标准规范。
 :::

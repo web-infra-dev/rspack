@@ -83,7 +83,11 @@ impl IntoIterator for RuntimeSpec {
 }
 
 impl RuntimeSpec {
-  pub fn new(inner: UstrSet) -> Self {
+  pub fn new(mut inner: UstrSet) -> Self {
+    // A set collected from an iterator reserves room for every item, duplicates
+    // included, and each clone copies that room. Runtime specs are cloned into
+    // per-module tables, so trim the set once here.
+    inner.shrink_to_fit();
     let mut this = Self {
       inner,
       key: RuntimeKey::default(),
@@ -273,7 +277,7 @@ pub fn merge_runtime_condition_non_false(
     }
     (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => merge_runtime(a, b),
   };
-  if runtime.map(|spec| spec.len()).unwrap_or_default() == merged.len() {
+  if runtime.map_or_default(|spec| spec.len()) == merged.len() {
     return RuntimeCondition::Boolean(true);
   }
   RuntimeCondition::Spec(merged)
@@ -292,7 +296,7 @@ pub fn merge_runtime_condition(
     }
     (RuntimeCondition::Spec(a), RuntimeCondition::Spec(b)) => merge_runtime(a, b),
   };
-  if runtime.map(|spec| spec.len()).unwrap_or_default() == merged.len() {
+  if runtime.map_or_default(|spec| spec.len()) == merged.len() {
     return RuntimeCondition::Boolean(true);
   }
   RuntimeCondition::Spec(merged)

@@ -1,5 +1,4 @@
 use rspack_collections::{IdentifierMap, IdentifierSet};
-use rspack_error::Diagnosable;
 
 use super::BuildModuleGraphArtifact;
 use crate::SharedBuildMeta;
@@ -35,7 +34,7 @@ impl FixBuildMeta {
     for (id, build_meta) in self.origin_module_build_meta {
       if let Some(module) = module_graph.module_by_identifier(&id)
         && let Some(module) = module.as_normal_module()
-        && module.first_error().is_some()
+        && module.error().is_some()
       {
         module.restore_build_meta(build_meta);
       }

@@ -273,3 +273,39 @@ export default isDev ? merge(base, dev) : base;
 ```
 
 > 查看 [rspack-merge 文档](https://github.com/rstackjs/rspack-merge) 了解更多。
+
+## rspack-chain
+
+[rspack-chain](https://github.com/rstackjs/rspack-chain) 是一个通过链式 API 创建和修改 Rspack 配置的库。你可以为规则、loader 和插件指定名称，后续通过名称访问和修改它们，无需遍历配置数组来查找对应的配置项。
+
+当配置由 Rsbuild 这类构建工具生成，或在多个项目间共享时，这种基于名称的访问方式可以为配置扩展提供统一的约定。例如，构建工具将 HTML 插件命名为 `html`，使用方就可以通过这个名称修改插件选项，而不必了解它在 `plugins` 数组中的位置。
+
+首先安装 `rspack-chain`：
+
+<PackageManagerTabs command="add rspack-chain -D" />
+
+以下示例添加一个 HTML 插件，然后通过名称 `html` 修改它的选项：
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+import { RspackChain } from 'rspack-chain';
+
+const config = new RspackChain();
+
+config.entry('main').add('./src/index.js');
+
+// 在共享配置中添加一个具名插件
+config.plugin('html').use(rspack.HtmlRspackPlugin, [{ title: 'My app' }]);
+
+// 根据项目需要修改已有插件的选项
+config.plugin('html').tap((args) => {
+  args[0].title = 'My project';
+  return args;
+});
+
+export default config.toConfig();
+```
+
+完成所有修改后，调用 `toConfig()` 生成供 Rspack 使用的配置对象。`html` 这样的名称用于在 `rspack-chain` 中定位配置项。
+
+> 查看 [rspack-chain 文档](https://github.com/rstackjs/rspack-chain) 了解更多。

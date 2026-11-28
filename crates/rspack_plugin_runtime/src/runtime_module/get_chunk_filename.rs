@@ -1,21 +1,59 @@
-use std::{borrow::Cow, cmp::Ordering, fmt};
+use std::{cmp::Ordering, fmt};
 
 use itertools::Itertools;
 use rspack_cacheable::with::Unsupported;
 use rspack_core::{
-  Chunk, ChunkGraph, ChunkUkey, Compilation, Filename, FilenameRenderValue, PathData,
-  PlaceholderKind, RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModule,
-  RuntimeModuleGenerateContext, RuntimeTemplate, SourceType, StringTemplatePlaceholder,
-  impl_runtime_module,
+  Chunk, ChunkGraph, ChunkGroupByUkey, ChunkUkey, Compilation, CompiledStringTemplate,
+  Concatenation, ConcatenationPart, Filename, PathData, PlaceholderKind, RuntimeCodeTemplate,
+  RuntimeGlobals, RuntimeGlobalsRenderMode, RuntimeModule, RuntimeModuleGenerateContext,
+  RuntimeTemplate, SourceType, StringTemplatePlaceholder, impl_runtime_module,
 };
 use rspack_util::fx_hash::{FxIndexMap, FxIndexSet};
 use rustc_hash::FxHashMap;
 
 use super::{stringify_dynamic_chunk_map, stringify_static_chunk_map};
-use crate::{get_chunk_runtime_requirements, runtime_module::unquoted_stringify};
+use crate::get_chunk_runtime_requirements;
 
 type GetChunkFilenameAllChunks = Box<dyn Fn(&RuntimeGlobals) -> bool + Sync + Send>;
 type GetFilenameForChunk = Box<dyn Fn(&Chunk, &Compilation) -> Option<Filename> + Sync + Send>;
+
+// Collect chunks reachable through async chunk groups without excluding chunks that are also
+// present in an initial group. CSS loading can receive these shared chunk ids from import().
+fn get_chunks_in_async_groups(
+  chunk: &Chunk,
+  chunk_group_by_ukey: &ChunkGroupByUkey,
+) -> FxIndexSet<ChunkUkey> {
+  let mut initial_groups = chunk
+    .get_sorted_groups_iter(chunk_group_by_ukey)
+    .copied()
+    .collect::<FxIndexSet<_>>();
+  let mut async_groups = FxIndexSet::default();
+  let mut index = 0;
+
+  while let Some(group_ukey) = initial_groups.get_index(index).copied() {
+    index += 1;
+    let group = chunk_group_by_ukey.expect_get(&group_ukey);
+    for child_ukey in &group.children {
+      let child_group = chunk_group_by_ukey.expect_get(child_ukey);
+      if child_group.is_initial() && !initial_groups.contains(child_ukey) {
+        initial_groups.insert(*child_ukey);
+      } else {
+        async_groups.insert(*child_ukey);
+      }
+    }
+  }
+
+  let mut chunks = FxIndexSet::default();
+  index = 0;
+  while let Some(group_ukey) = async_groups.get_index(index).copied() {
+    index += 1;
+    let group = chunk_group_by_ukey.expect_get(&group_ukey);
+    chunks.extend(group.chunks.iter().copied());
+    async_groups.extend(group.children.iter().copied());
+  }
+
+  chunks
+}
 
 fn render_hash(placeholder: StringTemplatePlaceholder, hash: &str) -> String {
   placeholder
@@ -24,21 +62,38 @@ fn render_hash(placeholder: StringTemplatePlaceholder, hash: &str) -> String {
     .into_owned()
 }
 
-fn render_full_hash<'value>(
-  placeholder: StringTemplatePlaceholder,
-  compilation: &'value Compilation,
-  runtime_template: &rspack_core::RuntimeCodeTemplate,
-) -> FilenameRenderValue<'value> {
-  if placeholder.hash_encoding().is_some() {
-    return FilenameRenderValue::Value(Cow::Borrowed(compilation.get_hash().unwrap_or("XXXX")));
-  }
+fn render_filename<'a>(
+  template: &'a CompiledStringTemplate<'_>,
+  compilation: &Compilation,
+  runtime_template: &RuntimeCodeTemplate,
+  mut resolve: impl FnMut(StringTemplatePlaceholder) -> Option<ConcatenationPart<'a>>,
+) -> String {
+  use ConcatenationPart::{Expression, Literal};
 
-  let runtime_global = runtime_template.render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH);
-  let hash_expression = match placeholder.hash_len() {
-    Some(hash_len) => format!("{runtime_global}().slice(0, {hash_len})"),
-    None => format!("{runtime_global}()"),
-  };
-  FilenameRenderValue::Rendered(Cow::Owned(format!("\" + {hash_expression} + \"")))
+  let mut concatenation = Concatenation::default();
+  for (text, placeholder) in template.parts() {
+    let part = placeholder
+      .and_then(|placeholder| match placeholder.kind() {
+        PlaceholderKind::Hash | PlaceholderKind::FullHash => {
+          if placeholder.hash_encoding().is_some() {
+            return Some(Literal(
+              render_hash(placeholder, compilation.get_hash().unwrap_or("XXXX")).into(),
+            ));
+          }
+
+          let hash = runtime_template.render_runtime_globals(&RuntimeGlobals::GET_FULL_HASH);
+          let expression = match placeholder.hash_len() {
+            Some(len) => format!("{hash}().slice(0, {len})"),
+            None => format!("{hash}()"),
+          };
+          Some(Expression(expression.into()))
+        }
+        _ => resolve(placeholder),
+      })
+      .unwrap_or_else(|| Literal(text.into()));
+    concatenation.push(part);
+  }
+  runtime_template.concatenation(&concatenation)
 }
 
 #[impl_runtime_module]
@@ -53,6 +108,7 @@ pub struct GetChunkFilenameRuntimeModule {
   all_chunks: GetChunkFilenameAllChunks,
   #[cacheable(with=Unsupported)]
   filename_for_chunk: GetFilenameForChunk,
+  include_initial_chunks_in_async_groups: bool,
   chunk_ukey: ChunkUkey,
 }
 
@@ -96,6 +152,7 @@ impl GetChunkFilenameRuntimeModule {
       false,
       Box::new(all_chunks),
       Box::new(filename_for_chunk),
+      false,
       chunk_ukey,
     )
   }
@@ -110,6 +167,11 @@ impl GetChunkFilenameRuntimeModule {
     self
   }
 
+  pub fn with_initial_chunks_in_async_groups(mut self) -> Self {
+    self.include_initial_chunks_in_async_groups = true;
+    self
+  }
+
   fn get_filename_chunks(&self, compilation: &Compilation) -> Option<FxIndexSet<ChunkUkey>> {
     let chunk_ukey = self.chunk().unwrap_or(self.chunk_ukey);
     compilation
@@ -118,29 +180,34 @@ impl GetChunkFilenameRuntimeModule {
       .get(&chunk_ukey)
       .map(|chunk| {
         let runtime_requirements = get_chunk_runtime_requirements(compilation, &chunk.ukey());
-        let mut chunks = if (self.all_chunks)(runtime_requirements) {
+        let all_chunks = (self.all_chunks)(runtime_requirements);
+        let mut chunks = if all_chunks {
           chunk
             .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
+        } else if self.include_initial_chunks_in_async_groups {
+          get_chunks_in_async_groups(
+            chunk,
+            &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+          )
         } else {
-          let mut chunks =
-            chunk.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
-
-          if ChunkGraph::get_tree_runtime_requirements(compilation, &chunk.ukey())
-            .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
-          {
-            chunks.extend(
-              compilation
-                .build_chunk_graph_artifact
-                .chunk_graph
-                .get_runtime_chunk_dependent_chunks_iterable(
-                  &chunk.ukey(),
-                  &compilation.build_chunk_graph_artifact.chunk_by_ukey,
-                  &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-                ),
-            );
-          }
-          chunks
+          chunk.get_all_async_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey)
         };
+
+        if !all_chunks
+          && ChunkGraph::get_tree_runtime_requirements(compilation, &chunk.ukey())
+            .contains(RuntimeGlobals::ENSURE_CHUNK_INCLUDE_ENTRIES)
+        {
+          chunks.extend(
+            compilation
+              .build_chunk_graph_artifact
+              .chunk_graph
+              .get_runtime_chunk_dependent_chunks_iterable(
+                &chunk.ukey(),
+                &compilation.build_chunk_graph_artifact.chunk_by_ukey,
+                &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+              ),
+          );
+        }
         for entrypoint in chunk.get_all_referenced_async_entrypoints(
           &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
         ) {
@@ -272,6 +339,22 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         });
     }
 
+    let chunk_hash = |chunk: &Chunk, placeholder: StringTemplatePlaceholder| {
+      let digest_length = compilation.options.output.hash_digest_length;
+      let hash = match placeholder.kind() {
+        PlaceholderKind::ChunkHash => {
+          chunk.rendered_hash(&compilation.chunk_hashes_artifact, digest_length)
+        }
+        PlaceholderKind::ContentHash => chunk.rendered_content_hash_by_source_type(
+          &compilation.chunk_hashes_artifact,
+          &self.source_type,
+          digest_length,
+        ),
+        _ => return None,
+      };
+      hash.map(|hash| render_hash(placeholder, hash))
+    };
+
     let dynamic_url = if let Some(dynamic_filename) = &dynamic_filename {
       let chunks = chunk_filenames
         .iter()
@@ -285,69 +368,38 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
         .collect::<FxIndexSet<ChunkUkey>>();
       let filename = Filename::from(dynamic_filename.clone());
       let compiled = filename
-        .as_json_string_literal_template(PathData::default(), None)
-        .await?;
-
-      let chunk_id = "\" + chunkId + \"";
-      let chunk_name = stringify_dynamic_chunk_map(
-        |c| c.name_for_filename_template().map(|s| s.to_string()),
-        &chunks,
-        &chunk_map,
-      );
-      let chunk_runtime = stringify_dynamic_chunk_map(
-        |c| Some(c.runtime().as_str().to_string()),
-        &chunks,
-        &chunk_map,
-      );
-
-      Some(
-        compiled.render_with_path_data(
-          PathData::default()
-            .chunk_id(chunk_id)
-            .chunk_name(&chunk_name)
-            .runtime(&chunk_runtime),
-          None,
-          |placeholder| match placeholder.kind() {
-            PlaceholderKind::Hash | PlaceholderKind::FullHash => {
-              Some(render_full_hash(placeholder, compilation, runtime_template))
+        .compiled_template()
+        .expect("dynamic filename is a string template");
+      Some(render_filename(
+        &compiled,
+        compilation,
+        runtime_template,
+        |placeholder| {
+          Some(match placeholder.kind() {
+            PlaceholderKind::Id => ConcatenationPart::Expression("chunkId".into()),
+            PlaceholderKind::Name => stringify_dynamic_chunk_map(
+              |c| c.name_for_filename_template().map(str::to_owned),
+              &chunks,
+              &chunk_map,
+            ),
+            PlaceholderKind::Runtime => stringify_dynamic_chunk_map(
+              |c| Some(c.runtime().as_str().to_string()),
+              &chunks,
+              &chunk_map,
+            ),
+            PlaceholderKind::ChunkHash | PlaceholderKind::ContentHash => {
+              stringify_dynamic_chunk_map(|c| chunk_hash(c, placeholder), &chunks, &chunk_map)
             }
-            PlaceholderKind::ChunkHash => {
-              let chunk_hash = stringify_dynamic_chunk_map(
-                |c| {
-                  c.rendered_hash(
-                    &compilation.chunk_hashes_artifact,
-                    compilation.options.output.hash_digest_length,
-                  )
-                  .map(|hash| render_hash(placeholder, hash))
-                },
-                &chunks,
-                &chunk_map,
-              );
-              Some(FilenameRenderValue::Rendered(Cow::Owned(chunk_hash)))
-            }
-            PlaceholderKind::ContentHash => {
-              let content_hash = stringify_dynamic_chunk_map(
-                |c| {
-                  c.rendered_content_hash_by_source_type(
-                    &compilation.chunk_hashes_artifact,
-                    &self.source_type,
-                    compilation.options.output.hash_digest_length,
-                  )
-                  .map(|hash| render_hash(placeholder, hash))
-                },
-                &chunks,
-                &chunk_map,
-              );
-              Some(FilenameRenderValue::Rendered(Cow::Owned(content_hash)))
-            }
-            _ => None,
-          },
-        ),
-      )
+            _ => return None,
+          })
+        },
+      ))
     } else {
       None
     };
 
+    let dynamic_url =
+      dynamic_url.unwrap_or_else(|| format!("chunkId + \".{}\"", self.content_type));
     let mut static_urls = FxIndexMap::default();
     for (filename_template, chunk_ukey) in
       chunk_filenames
@@ -359,7 +411,7 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
     {
       if let Some(chunk) = chunk_map.get(chunk_ukey) {
         let compiled = filename_template
-          .as_json_string_literal_template(
+          .compiled(
             PathData::default()
               .chunk(chunk.ukey(), compilation)
               .chunk_name_optional(chunk.name())
@@ -368,43 +420,30 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
           )
           .await?;
 
-        let chunk_id = chunk
-          .id()
-          .map(|chunk_id| unquoted_stringify(Some(chunk_id), chunk_id.as_str()));
-        let chunk_name = match chunk.name() {
-          Some(chunk_name) => Some(unquoted_stringify(chunk.id(), chunk_name)),
-          None => chunk
-            .id()
-            .map(|chunk_id| unquoted_stringify(Some(chunk_id), chunk_id.as_str())),
+        let chunk_id_or_literal = |value: &'_ str| {
+          if value.len() >= 5 && chunk.id().is_some_and(|id| id.as_str() == value) {
+            ConcatenationPart::Expression("chunkId".into())
+          } else {
+            ConcatenationPart::Literal(value.to_owned().into())
+          }
         };
-        let chunk_runtime = chunk.runtime().as_str();
-
-        let filename = compiled.render_with_path_data(
-          PathData::default()
-            .chunk_id_optional(chunk_id.as_deref())
-            .chunk_name_optional(chunk_name.as_deref())
-            .runtime(chunk_runtime),
-          None,
-          |placeholder| match placeholder.kind() {
-            PlaceholderKind::Hash | PlaceholderKind::FullHash => {
-              Some(render_full_hash(placeholder, compilation, runtime_template))
-            }
-            PlaceholderKind::ChunkHash => chunk
-              .rendered_hash(
-                &compilation.chunk_hashes_artifact,
-                compilation.options.output.hash_digest_length,
-              )
-              .map(|chunk_hash| FilenameRenderValue::Value(Cow::Borrowed(chunk_hash))),
-            PlaceholderKind::ContentHash => chunk
-              .rendered_content_hash_by_source_type(
-                &compilation.chunk_hashes_artifact,
-                &self.source_type,
-                compilation.options.output.hash_digest_length,
-              )
-              .map(|content_hash| FilenameRenderValue::Value(Cow::Borrowed(content_hash))),
-            _ => None,
-          },
-        );
+        let filename =
+          render_filename(
+            &compiled,
+            compilation,
+            runtime_template,
+            |placeholder| match placeholder.kind() {
+              PlaceholderKind::Id => chunk.id().map(|id| chunk_id_or_literal(id.as_str())),
+              PlaceholderKind::Name => chunk.name_for_filename_template().map(chunk_id_or_literal),
+              PlaceholderKind::Runtime => {
+                Some(ConcatenationPart::Literal(chunk.runtime().as_str().into()))
+              }
+              PlaceholderKind::ChunkHash | PlaceholderKind::ContentHash => {
+                chunk_hash(chunk, placeholder).map(|hash| ConcatenationPart::Literal(hash.into()))
+              }
+              _ => None,
+            },
+          );
 
         if let Some(chunk_id) = chunk.id() {
           static_urls
@@ -438,7 +477,8 @@ impl RuntimeModule for GetChunkFilenameRuntimeModule {
                         .iter()
                         .map(|(filename, chunk_ids)| stringify_static_chunk_map(filename, chunk_ids))
                         .join("\n"),
-      "_dynamic_url": dynamic_url.unwrap_or_else(|| format!("\"\" + chunkId + \".{}\"", self.content_type))
+      "_has_static_urls": !static_urls.is_empty(),
+      "_dynamic_url": dynamic_url
     })))?;
 
     Ok(source)

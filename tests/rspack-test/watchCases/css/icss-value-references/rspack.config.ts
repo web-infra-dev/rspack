@@ -3,7 +3,6 @@ import { defineConfig } from '@rspack/cli';
 export default defineConfig({
   target: 'node',
   cache: true,
-  experiments: { css: true },
   module: {
     rules: [
       {

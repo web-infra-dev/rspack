@@ -279,7 +279,7 @@ export default {
 
 ### 修改 output.bundlerInfo.force 的默认值
 
-[output.bundlerInfo.force](/config/output#outputbundlerinfo) 的默认值已从 `true` 改为 `false`。在 Rspack 2.0 中，`__rspack_version__` 和 `__rspack_unique_id__` 默认改为按需注入，而不是始终作为 runtime modules 注入。如果你的应用依赖之前始终注入的行为，可显式配置：
+[output.bundlerInfo.force](/config/output#outputbundlerinfo) 的默认值已从 `true` 改为 `false`。在 Rspack 2.0 中，`__rspack_version__` 和 `__rspack_unique_id__` 默认改为按需注入，而不是始终作为 [Rspack 运行时模块](/misc/glossary#rspack-runtime-module)注入。如果你的应用依赖之前始终注入的行为，可显式配置：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -459,9 +459,9 @@ export default {
 };
 ```
 
-### 移除 Runtime module 废弃属性
+### 移除 Rspack 运行时模块的废弃属性 \{#removed-deprecated-properties-of-rspack-runtime-modules}
 
-Runtime module 的以下废弃属性已被移除：
+Rspack 运行时模块的以下废弃属性已被移除：
 
 - `constructorName` - 构造函数名称属性
 - `moduleIdentifier` - 模块标识符属性

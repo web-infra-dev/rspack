@@ -269,7 +269,7 @@ new URL('./icon.svg', import.meta.url);
 new URL('./icon[hash].svg', import.meta.url);
 ```
 
-当使用 `'relative'` 时，Rspack 将生成运行时代码，为 `new URL()` 语法计算出相对的 URL，结果 URL 中不包含根 URL：
+当使用 `'relative'` 时，Rspack 运行时会为 `new URL()` 计算相对 URL，结果中不包含基准 URL：
 
 ```js title="rspack.config.mjs"
 export default {
@@ -1133,7 +1133,7 @@ export default {
 
 配置 CSS 内容如何导出到 JavaScript。
 
-默认情况下，`exportType` 为 `'link'`，会将 CSS 作为样式表产物输出，并通过内置 CSS loading runtime 加载。
+默认情况下，`exportType` 为 `'link'`，会将 CSS 作为样式表产物输出，并由 Rspack 运行时中内置的 CSS 加载逻辑处理。
 
 - `'link'`：将 CSS 作为样式表产物输出，并保留 CSS Modules 导出。
 - `'text'`：将生成后的 CSS 文本作为默认导出。

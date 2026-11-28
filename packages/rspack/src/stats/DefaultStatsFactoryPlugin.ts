@@ -14,8 +14,13 @@ import type {
   JsStatsAssetInfo,
   JsStatsError,
   JsStatsModule,
+  JsStatsModuleReason,
 } from '@rspack/binding';
-import type { LogEntry, NormalizedStatsOptions } from '../Compilation';
+import type {
+  Compilation,
+  LogEntry,
+  NormalizedStatsOptions,
+} from '../Compilation';
 import type { Compiler } from '../Compiler';
 import type { StatsOptions } from '../config';
 import {
@@ -30,9 +35,10 @@ import {
   type Comparator,
   compareNumbers,
   compareSelect,
+  concatComparators,
 } from '../util/comparators';
 import { makePathsRelative, parseResource } from '../util/identifier';
-import type { GroupConfig } from '../util/smartGrouping';
+import { type GroupConfig, smartGrouping } from '../util/smartGrouping';
 import type {
   KnownStatsFactoryContext,
   StatsFactory,
@@ -47,6 +53,7 @@ import type {
   StatsAsset,
   StatsChunk,
   StatsChunkOrigin,
+  StatsCompilation,
   StatsError,
   StatsModuleReason,
   StatsModuleTraceItem,
@@ -381,7 +388,9 @@ const MODULES_GROUPERS = (
       groupConfigs.push({
         getKeys: (module) => {
           if (!module.name) return;
-          const resource = parseResource(module.name.split('!').pop()).path;
+          const resource = parseResource(
+            module.name.slice(module.name.lastIndexOf('!') + 1),
+          ).path;
           const dataUrl = /^data:[^,;]+/.exec(resource);
           if (dataUrl) return [dataUrl[0]];
           const extensionMatch =
@@ -615,11 +624,14 @@ const EXTRACT_ERROR: Record<
     error: JsStatsError,
     context: KnownStatsFactoryContext,
     options: StatsOptions,
-    factory: StatsFactory,
+    factory: Pick<StatsFactory, 'create'>,
   ) => void
 > = {
-  _: (object, error) => {
-    object.message = error.message;
+  _: (object, error, _context, options) => {
+    object.message =
+      options.colors === false
+        ? util.stripVTControlCharacters(error.message)
+        : error.message;
     // `error.code` is rspack-specific
     if (error.code) {
       object.code = error.code;
@@ -667,6 +679,33 @@ const EXTRACT_ERROR: Record<
     object.stack = error.stack;
   },
 };
+
+const MODULE_REASON_EXTRACTORS = {
+  _: (object, reason) => {
+    if (reason.moduleDescriptor) {
+      object.moduleIdentifier = reason.moduleDescriptor.identifier;
+      object.moduleName = reason.moduleDescriptor.name;
+    }
+    object.type = reason.type;
+    object.userRequest = reason.userRequest;
+    if (reason.resolvedModuleDescriptor) {
+      object.resolvedModuleIdentifier =
+        reason.resolvedModuleDescriptor.identifier;
+      object.resolvedModule = reason.resolvedModuleDescriptor.name;
+    }
+    object.explanation = reason.explanation;
+    object.active = reason.active;
+    object.loc = reason.loc;
+  },
+  ids: (object, reason) => {
+    object.moduleId = reason.moduleDescriptor
+      ? reason.moduleDescriptor.id
+      : null;
+    object.resolvedModuleId = reason.resolvedModuleDescriptor
+      ? reason.resolvedModuleDescriptor.id
+      : null;
+  },
+} satisfies SimpleExtractors['moduleReason'];
 
 const SIMPLE_EXTRACTORS: SimpleExtractors = {
   compilation: {
@@ -1071,9 +1110,10 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
       );
       let filtered = 0;
       if (options.errorDetails === 'auto' && rawErrors.length >= 3) {
-        filtered = rawErrors
-          .map((e) => typeof e !== 'string' && e.details)
-          .filter(Boolean).length;
+        filtered = rawErrors.reduce(
+          (count, e) => count + (typeof e !== 'string' && e.details ? 1 : 0),
+          0,
+        );
       }
       if (
         options.errorDetails === true ||
@@ -1114,9 +1154,10 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
       );
       let filtered = 0;
       if (options.errorDetails === 'auto') {
-        filtered = cachedGetWarnings!(compilation)
-          .map((e) => typeof e !== 'string' && e.details)
-          .filter(Boolean).length;
+        filtered = cachedGetWarnings!(compilation).reduce(
+          (count, e) => count + (typeof e !== 'string' && e.details ? 1 : 0),
+          0,
+        );
       }
       if (
         options.errorDetails === true ||
@@ -1370,32 +1411,7 @@ const SIMPLE_EXTRACTORS: SimpleExtractors = {
       object.id = module.moduleDescriptor.id;
     },
   },
-  moduleReason: {
-    _: (object, reason) => {
-      if (reason.moduleDescriptor) {
-        object.moduleIdentifier = reason.moduleDescriptor.identifier;
-        object.moduleName = reason.moduleDescriptor.name;
-      }
-      object.type = reason.type;
-      object.userRequest = reason.userRequest;
-      if (reason.resolvedModuleDescriptor) {
-        object.resolvedModuleIdentifier =
-          reason.resolvedModuleDescriptor.identifier;
-        object.resolvedModule = reason.resolvedModuleDescriptor.name;
-      }
-      object.explanation = reason.explanation;
-      object.active = reason.active;
-      object.loc = reason.loc;
-    },
-    ids: (object, reason) => {
-      object.moduleId = reason.moduleDescriptor
-        ? reason.moduleDescriptor.id
-        : null;
-      object.resolvedModuleId = reason.resolvedModuleDescriptor
-        ? reason.resolvedModuleDescriptor.id
-        : null;
-    },
-  },
+  moduleReason: MODULE_REASON_EXTRACTORS,
   chunk: {
     _: (object, chunk) => {
       object.type = chunk.type;
@@ -1510,6 +1526,73 @@ const FILTER: Record<
   },
 };
 
+function configureDefaultStatsFactory(
+  stats: StatsFactory,
+  options: StatsOptions,
+) {
+  iterateConfig(SIMPLE_EXTRACTORS, options, (hookFor, fn) => {
+    stats.hooks.extract
+      .for(hookFor)
+      .tap('DefaultStatsFactoryPlugin', (obj, data, ctx) =>
+        fn(obj, data, ctx, options, stats),
+      );
+  });
+  iterateConfig(FILTER, options, (hookFor, fn) => {
+    stats.hooks.filter
+      .for(hookFor)
+      .tap('DefaultStatsFactoryPlugin', (item, ctx, idx, i) =>
+        fn(item, ctx, options, idx, i),
+      );
+  });
+  iterateConfig(SORTERS, options, (hookFor, fn) => {
+    stats.hooks.sort
+      .for(hookFor)
+      .tap('DefaultStatsFactoryPlugin', (comparators, ctx) =>
+        fn(comparators, ctx, options),
+      );
+  });
+  iterateConfig(RESULT_SORTERS, options, (hookFor, fn) => {
+    stats.hooks.sortResults
+      .for(hookFor)
+      .tap('DefaultStatsFactoryPlugin', (comparators, ctx) =>
+        fn(comparators, ctx, options),
+      );
+  });
+  iterateConfig(RESULT_GROUPERS, options, (hookFor, fn) => {
+    stats.hooks.groupResults
+      .for(hookFor)
+      .tap('DefaultStatsFactoryPlugin', (groupConfigs, ctx) =>
+        fn(groupConfigs, ctx, options),
+      );
+  });
+  for (const key of Object.keys(ITEM_NAMES)) {
+    const itemName = ITEM_NAMES[key];
+    stats.hooks.getItemName
+      .for(key)
+      .tap('DefaultStatsFactoryPlugin', () => itemName);
+  }
+  for (const key of Object.keys(MERGER)) {
+    const merger = MERGER[key];
+    stats.hooks.merge.for(key).tap('DefaultStatsFactoryPlugin', merger);
+  }
+}
+
+function hasExternalStatsFactoryHooks(compilation: Compilation): boolean {
+  const { taps, interceptors } = compilation.hooks.statsFactory;
+  return (
+    interceptors.length !== 0 ||
+    taps.some(({ fn }) => fn !== configureDefaultStatsFactory) ||
+    compilation.children.some(hasExternalStatsFactoryHooks)
+  );
+}
+
+export function canCreateDefaultStatsJson(compilation: Compilation): boolean {
+  return (
+    compilation.hooks.statsFactory.taps.length === 1 &&
+    !hasExternalStatsFactoryHooks(compilation)
+  );
+}
+
 export class DefaultStatsFactoryPlugin {
   apply(compiler: Compiler) {
     compiler.hooks.compilation.tap(
@@ -1517,57 +1600,169 @@ export class DefaultStatsFactoryPlugin {
       (compilation) => {
         compilation.hooks.statsFactory.tap(
           'DefaultStatsFactoryPlugin',
-          (stats: StatsFactory, options: StatsOptions) => {
-            iterateConfig(SIMPLE_EXTRACTORS, options, (hookFor, fn) => {
-              stats.hooks.extract
-                .for(hookFor)
-                .tap('DefaultStatsFactoryPlugin', (obj, data, ctx) =>
-                  fn(obj, data, ctx, options, stats),
-                );
-            });
-            iterateConfig(FILTER, options, (hookFor, fn) => {
-              stats.hooks.filter
-                .for(hookFor)
-                .tap('DefaultStatsFactoryPlugin', (item, ctx, idx, i) =>
-                  fn(item, ctx, options, idx, i),
-                );
-            });
-            iterateConfig(SORTERS, options, (hookFor, fn) => {
-              stats.hooks.sort
-                .for(hookFor)
-                .tap('DefaultStatsFactoryPlugin', (comparators, ctx) =>
-                  fn(comparators, ctx, options),
-                );
-            });
-            iterateConfig(RESULT_SORTERS, options, (hookFor, fn) => {
-              stats.hooks.sortResults
-                .for(hookFor)
-                .tap('DefaultStatsFactoryPlugin', (comparators, ctx) =>
-                  fn(comparators, ctx, options),
-                );
-            });
-            iterateConfig(RESULT_GROUPERS, options, (hookFor, fn) => {
-              stats.hooks.groupResults
-                .for(hookFor)
-                .tap('DefaultStatsFactoryPlugin', (groupConfigs, ctx) =>
-                  fn(groupConfigs, ctx, options),
-                );
-            });
-            for (const key of Object.keys(ITEM_NAMES)) {
-              const itemName = ITEM_NAMES[key];
-              stats.hooks.getItemName
-                .for(key)
-                .tap('DefaultStatsFactoryPlugin', () => itemName);
-            }
-            for (const key of Object.keys(MERGER)) {
-              const merger = MERGER[key];
-              stats.hooks.merge
-                .for(key)
-                .tap('DefaultStatsFactoryPlugin', merger);
-            }
-          },
+          configureDefaultStatsFactory,
         );
       },
     );
   }
+}
+
+type StatsCallback = (...args: any[]) => any;
+
+function enabledCallbacks(
+  config: Record<string, Record<string, Function>>,
+  options: StatsOptions,
+): Map<string, StatsCallback[]> {
+  const callbacks = new Map<string, StatsCallback[]>();
+  iterateConfig(config, options, (type, fn) => {
+    const list = callbacks.get(type);
+    if (list) list.push(fn as StatsCallback);
+    else callbacks.set(type, [fn as StatsCallback]);
+  });
+  return callbacks;
+}
+
+function* statsTypes(type: string): Iterable<string> {
+  for (;;) {
+    yield type;
+    const dot = type.indexOf('.');
+    if (dot === -1) return;
+    type = type.slice(dot + 1);
+  }
+}
+
+function callbacksForType(
+  callbacks: Map<string, StatsCallback[]>,
+  type: string,
+): StatsCallback[] {
+  const result: StatsCallback[] = [];
+  for (const name of statsTypes(type)) {
+    const list = callbacks.get(name);
+    if (list) result.push(...list);
+  }
+  return result;
+}
+
+export function createDefaultStatsJson(
+  compilation: Compilation,
+  options: StatsOptions,
+  context: Omit<KnownStatsFactoryContext, 'type'>,
+): StatsCompilation {
+  const extracts = enabledCallbacks(SIMPLE_EXTRACTORS, options);
+  const filters = enabledCallbacks(FILTER, options);
+  const sorters = enabledCallbacks(SORTERS, options);
+  const resultSorters = enabledCallbacks(RESULT_SORTERS, options);
+  const groupers = enabledCallbacks(RESULT_GROUPERS, options);
+  const includeReasonIds = extracts
+    .get('moduleReason')!
+    .includes(MODULE_REASON_EXTRACTORS.ids);
+
+  const extractByType = new Map<string, StatsCallback[]>();
+  type ArrayPlan = ReturnType<typeof arrayPlan>;
+  const arraysByType = new Map<string, ArrayPlan>();
+
+  function arrayPlan(type: string) {
+    const itemType = `${type}[]`;
+    let itemName: string | undefined;
+    let merge: (typeof MERGER)[string] | undefined;
+    for (const name of statsTypes(itemType)) {
+      itemName = ITEM_NAMES[name];
+      if (itemName !== undefined) break;
+    }
+    for (const name of statsTypes(type)) {
+      merge = MERGER[name];
+      if (merge !== undefined) break;
+    }
+    return {
+      itemName,
+      itemType: itemName === undefined ? itemType : `${itemType}.${itemName}`,
+      filters: callbacksForType(filters, type),
+      sorters: callbacksForType(sorters, type),
+      resultSorters: callbacksForType(resultSorters, type),
+      groupers: callbacksForType(groupers, type),
+      merge,
+    };
+  }
+
+  const factory = { create };
+  function create(type: string, data: any, context: StatsFactoryContext): any {
+    const parentType = context.type;
+    context.type = type;
+    try {
+      if (!Array.isArray(data)) {
+        let extractors = extractByType.get(type);
+        if (extractors === undefined) {
+          extractors = callbacksForType(extracts, type);
+          extractByType.set(type, extractors);
+        }
+        const object = {};
+        for (const extract of extractors) {
+          extract(object, data, context, options, factory);
+        }
+        return object;
+      }
+
+      let plan = arraysByType.get(type);
+      if (plan === undefined) {
+        plan = arrayPlan(type);
+        arraysByType.set(type, plan);
+      }
+      let items = data;
+      if (plan.filters.length) {
+        items = data.filter((item) => {
+          for (const filter of plan.filters) {
+            const include = filter(item, context, options);
+            if (include !== undefined) return include;
+          }
+          return true;
+        });
+      }
+      if (plan.sorters.length) {
+        const comparators: Comparator[] = [];
+        for (const sort of plan.sorters) sort(comparators, context, options);
+        if (comparators.length) {
+          if (items === data) items = items.slice();
+          items.sort(concatComparators(...comparators));
+        }
+      }
+
+      let results: any[];
+      if (plan.itemName === 'moduleReason') {
+        results = items.map((reason: JsStatsModuleReason) => {
+          const object = {} as StatsModuleReason;
+          MODULE_REASON_EXTRACTORS._(object, reason);
+          if (includeReasonIds) MODULE_REASON_EXTRACTORS.ids(object, reason);
+          return object;
+        });
+      } else if (plan.itemName === 'compilation') {
+        results = items.map((child: Compilation) =>
+          create(plan.itemType, child, { ...context, compilation: child }),
+        );
+      } else {
+        results = items.map((item) => create(plan.itemType, item, context));
+      }
+
+      if (plan.resultSorters.length) {
+        const comparators: Comparator[] = [];
+        for (const sort of plan.resultSorters)
+          sort(comparators, context, options);
+        if (comparators.length) results.sort(concatComparators(...comparators));
+      }
+      if (plan.groupers.length) {
+        const groups: GroupConfig<any>[] = [];
+        for (const group of plan.groupers) group(groups, context, options);
+        if (groups.length) results = smartGrouping(results, groups);
+      }
+      return plan.merge ? plan.merge(results) : results;
+    } finally {
+      context.type = parentType;
+    }
+  }
+
+  // Built-in extractors only need the fixed context fields. Custom hooks
+  // still receive a separate context at each level from StatsFactory.
+  return create('compilation', compilation, {
+    ...context,
+    type: 'compilation',
+  });
 }

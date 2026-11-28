@@ -91,3 +91,28 @@ it("should analyze then arguments", async () => {
 		});
 	});
 })
+
+it("should not tree-shake if the namespace is reached through arguments", async () => {
+	await import("../statical-dynamic-import/dir1/a?4").then(function (m) {
+		expect(m.default).toBe(3);
+		expect(arguments[0].a).toBe(1);
+		expect(m.usedExports).toBe(true);
+	});
+	await import("../statical-dynamic-import/dir1/a?5").then(function (m) {
+		const check = () => {
+			expect(arguments[0].a).toBe(1);
+		};
+		check();
+		expect(m.usedExports).toBe(true);
+	});
+});
+
+it("should still tree-shake if arguments belongs to a nested function", async () => {
+	await import("../statical-dynamic-import/dir1/a?6").then(function (m) {
+		(function () {
+			expect(arguments[0]).toBe(42);
+		})(42);
+		expect(m.a).toBe(1);
+		expect(m.usedExports).toEqual(["a", "usedExports"]);
+	});
+});

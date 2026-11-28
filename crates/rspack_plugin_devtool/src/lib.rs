@@ -10,8 +10,9 @@ use std::sync::{Arc, LazyLock};
 pub use eval_dev_tool_module_plugin::*;
 pub use eval_source_map_dev_tool_plugin::*;
 use futures::future::BoxFuture;
-use rspack_core::{ModuleIdentifier, runtime_mode::RuntimeMode};
+use rspack_core::{Compilation, ModuleIdentifier, runtime_mode::RuntimeMode};
 use rspack_error::Result;
+use rspack_util::identifier::make_paths_absolute;
 pub use source_map_dev_tool_module_options_plugin::*;
 pub use source_map_dev_tool_plugin::*;
 
@@ -78,4 +79,23 @@ pub struct ModuleFilenameTemplateFnCtx {
 enum SourceReference {
   Source(Arc<str>),
   Module(ModuleIdentifier),
+}
+
+fn resolve_source_reference(compilation: &Compilation, source: &str) -> SourceReference {
+  let Some(stripped) = source
+    .strip_prefix("webpack://")
+    .or_else(|| source.strip_prefix("rspack://"))
+  else {
+    return SourceReference::Source(Arc::from(source));
+  };
+
+  let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
+  let identifier = ModuleIdentifier::from(source.as_str());
+  match compilation
+    .get_module_graph()
+    .module_by_identifier(&identifier)
+  {
+    Some(module) => SourceReference::Module(module.identifier()),
+    None => SourceReference::Source(Arc::from(source)),
+  }
 }

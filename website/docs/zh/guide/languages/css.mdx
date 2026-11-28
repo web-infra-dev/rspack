@@ -139,7 +139,7 @@ export default {
 
 ### CSS export type
 
-内置 CSS 支持默认使用 `exportType: 'link'`。这会将 CSS 作为样式表产物输出，并通过内置 CSS loading runtime 加载。你可以设置 `module.parser.css.exportType`，或设置 `css/auto`、`css/global`、`css/module` 的 parser 选项，来改变 CSS 导出到 JavaScript 的方式。
+内置 CSS 支持默认使用 `exportType: 'link'`。这会将 CSS 作为样式表产物输出，并由 Rspack 运行时中内置的 CSS 加载逻辑处理。你可以设置 `module.parser.css.exportType`，或设置 `css/auto`、`css/global`、`css/module` 的 parser 选项，来改变 CSS 导出到 JavaScript 的方式。
 
 支持的取值：
 

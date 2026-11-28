@@ -5,6 +5,7 @@ pub mod factorize;
 pub mod lazy;
 pub mod process_dependencies;
 
+use rspack_collections::IdentifierSet;
 use rspack_error::Result;
 use rustc_hash::{FxHashMap as HashMap, FxHashSet as HashSet};
 
@@ -20,8 +21,10 @@ pub async fn repair(
   artifact: BuildModuleGraphArtifact,
   exports_info_artifact: ExportsInfoArtifact,
   build_dependencies: HashSet<BuildDependency>,
-) -> Result<(BuildModuleGraphArtifact, ExportsInfoArtifact)> {
+  force_build_modules: IdentifierSet,
+) -> (BuildModuleGraphArtifact, ExportsInfoArtifact, Result<()>) {
   let mut ctx = TaskContext::new(compilation, artifact, exports_info_artifact);
+  ctx.force_build_modules = force_build_modules;
   let module_graph = &ctx.artifact.module_graph;
   let mut grouped_deps = HashMap::default();
   for (dep_id, parent_module_identifier) in build_dependencies {
@@ -64,6 +67,6 @@ pub async fn repair(
     })
     .collect::<Vec<_>>();
 
-  run_task_loop(&mut ctx, init_tasks).await?;
-  Ok((ctx.artifact, ctx.exports_info_artifact))
+  let result = run_task_loop(&mut ctx, init_tasks, |_| {}).await;
+  (ctx.artifact, ctx.exports_info_artifact, result)
 }

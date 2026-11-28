@@ -1,3 +1,5 @@
+#![feature(unique_rc_arc)]
+
 use std::{fmt, sync::Arc};
 
 #[cfg(allocative)]
@@ -19,8 +21,9 @@ pub use compilation::{
 };
 pub use exports::*;
 pub use new_cache::{
-  Cache, CacheFacade, CacheInfo, CacheRecord, CacheValue, CompilerCache, Etag, FileSystemInfo,
-  ItemCacheFacade, MultiItemCache, Snapshot, SnapshotValidationResult, create_cache,
+  Cache, CacheCounters, CacheFacade, CacheInfo, CacheRecord, CacheValue, CompilerCache, Etag,
+  FileSystemInfo, ItemCacheFacade, LoaderCache, MultiItemCache, Snapshot, SnapshotValidationResult,
+  create_cache,
 };
 pub use transient_cache::*;
 pub use value_cache_versions::ValueCacheVersions;
@@ -99,8 +102,10 @@ mod stats;
 pub use stats::*;
 mod runtime;
 mod runtime_module;
+mod runtime_module_bridge;
 pub use runtime::*;
 pub use runtime_module::*;
+pub use runtime_module_bridge::RuntimeModuleSourceKind;
 mod entrypoint;
 pub use entrypoint::*;
 mod loader;
@@ -458,6 +463,10 @@ impl ChunkGroupByUkey {
 
   pub fn values(&self) -> impl Iterator<Item = &ChunkGroup> {
     self.inner.values()
+  }
+
+  pub fn values_mut(&mut self) -> impl Iterator<Item = &mut ChunkGroup> {
+    self.inner.values_mut()
   }
 
   pub fn iter(&self) -> impl Iterator<Item = (&ChunkGroupUkey, &ChunkGroup)> {

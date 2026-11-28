@@ -2,12 +2,12 @@
 use std::{cell::RefCell, sync::Arc};
 
 use criterion::BatchSize;
-use rspack::builder::{Builder as _, CompilerBuilder};
+use rspack::builder::{Builder as _, CompilerBuilder, ModuleRuleBuilder};
 use rspack_benchmark::Criterion;
 use rspack_core::{
-  Cache, Compilation, Compiler, CompilerCache, InfrastructureLogger, ModuleOptions, ModuleRule,
-  ModuleRuleEffect, ModuleRuleUse, ModuleRuleUseLoader, Optimization, PrintlnInfrastructureLogSink,
-  RuleSetCondition, build_chunk_graph,
+  Cache, Compilation, Compiler, CompilerCache, InfrastructureLogger, ModuleOptions,
+  ModuleRuleEffect, ModuleRuleMatcher, ModuleRuleUse, ModuleRuleUseLoader, Optimization,
+  PrintlnInfrastructureLogSink, RuleSetCondition, build_chunk_graph,
   build_module_graph::{build_module_graph_pass, finish_build_module_graph},
   fast_set,
   incremental::{Incremental, IncrementalOptions},
@@ -189,12 +189,11 @@ pub fn build_chunk_graph_benchmark_inner(c: &mut Criterion) {
     // Finalize build module graph (clean entry deps, finalize artifacts)
     let make_artifact = compiler.compilation.build_module_graph_artifact.steal();
     let exports_info_artifact = compiler.compilation.exports_info_artifact.steal();
-    let (make_artifact, exports_info_artifact) =
-      finish_build_module_graph(&compiler.compilation, make_artifact, exports_info_artifact)
-        .await
-        .unwrap();
-    compiler.compilation.build_module_graph_artifact = make_artifact.into();
-    compiler.compilation.exports_info_artifact = exports_info_artifact.into();
+    let update =
+      finish_build_module_graph(&compiler.compilation, make_artifact, exports_info_artifact).await;
+    compiler.compilation.build_module_graph_artifact = update.artifact.into();
+    compiler.compilation.exports_info_artifact = update.exports_info_artifact.into();
+    update.result.unwrap();
   });
 
   assert_no_compilation_errors(&compiler.compilation, "build_chunk_graph benchmark setup");
@@ -326,10 +325,13 @@ fn create_build_module_graph_compiler(fs: Arc<MemoryFileSystem>, swc_loader: boo
 
 fn configure_swc_loader(builder: &mut CompilerBuilder) {
   builder
-    .module(ModuleOptions::builder().rule(ModuleRule {
-      test: Some(RuleSetCondition::Regexp(
-        RspackRegex::new("\\.js$").unwrap(),
-      )),
+    .module(ModuleOptions::builder().rule(ModuleRuleBuilder {
+      matcher: ModuleRuleMatcher {
+        test: Some(RuleSetCondition::Regexp(
+          RspackRegex::new("\\.js$").unwrap(),
+        )),
+        ..Default::default()
+      },
       effect: ModuleRuleEffect {
         r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
           loader: "builtin:swc-loader".to_string(),
@@ -393,6 +395,7 @@ fn reset_compilation_state(compiler: &mut Compiler) {
       Some(Default::default()),
       Default::default(),
       cache,
+      Default::default(),
       Default::default(),
       Default::default(),
       compiler.input_filesystem.clone(),

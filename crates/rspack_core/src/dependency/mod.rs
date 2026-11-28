@@ -31,6 +31,7 @@ pub use dependency_template::*;
 pub use dependency_trait::*;
 pub use dependency_type::DependencyType;
 pub use entry::*;
+use itertools::Itertools;
 pub use loader_import::*;
 pub use module_dependency::*;
 use rspack_cacheable::{
@@ -47,9 +48,9 @@ use serde::Serialize;
 pub use static_exports_dependency::{StaticExportsDependency, StaticExportsSpec};
 
 use crate::{
-  ConnectionState, EvaluatedInlinableValue, ExportsInfoArtifact, ExportsType, ModuleGraph,
-  ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier, ReferencedExport, RuntimeSpec,
-  SideEffectsStateArtifact, create_exports_object_referenced,
+  ConnectionState, EvaluatedInlinableValue, ExportProvided, ExportsInfoArtifact, ExportsInfoData,
+  ExportsType, ModuleGraph, ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleIdentifier,
+  ReferencedExport, RuntimeSpec, SideEffectsStateArtifact, create_exports_object_referenced,
 };
 
 #[derive(Debug, Default)]
@@ -64,6 +65,9 @@ pub struct ExportSpec {
   pub from: Option<ModuleGraphConnection>,
   pub from_export: Option<ModuleGraphConnection>,
   pub inlinable: Option<EvaluatedInlinableValue>,
+  /// The export is a fake namespace object of a non-ESM module, whose `default` property is the
+  /// exports object of that module itself.
+  pub default_points_to_self: Option<bool>,
 }
 
 #[derive(Debug)]
@@ -293,12 +297,79 @@ impl ReferencedSpecifier {
       namespace_object_as_context,
     }
   }
+
+  pub fn to_identifier_string(&self) -> String {
+    let names = self.names.iter().join(".");
+    match (self.is_call, self.namespace_object_as_context) {
+      (true, true) => format!("*.{names}()"),
+      (true, false) => format!("{names}()"),
+      (false, _) => names,
+    }
+  }
+}
+
+/// Whether a member call `receiver.method()` should reference `receiver` as a whole
+/// rather than only `receiver.method`.
+///
+/// If the module is not known to provide the last name, the method probably comes from
+/// the receiver's prototype, so the receiver value itself must be kept:
+///
+/// ```js
+/// import arr from "./array.json";
+/// arr.map(fn);          // `map` is not provided -> reference the whole JSON
+///
+/// import obj from "./object.json";
+/// obj.list.includes(x); // `includes` is not provided -> reference `list`
+///
+/// import lib from "./lib.cjs";
+/// lib.used();           // `used` is provided -> reference only `used`
+/// ```
+pub fn should_reference_call_receiver(
+  names: &[Atom],
+  exports_type: ExportsType,
+  exports_info_artifact: &ExportsInfoArtifact,
+  exports_info: &ExportsInfoData,
+) -> bool {
+  (names.len() > 1 || !matches!(exports_type, ExportsType::Namespace))
+    && !matches!(
+      exports_info.is_export_provided(exports_info_artifact, names),
+      Some(ExportProvided::Provided)
+    )
+}
+
+/// A fulfilled import promise observes a namespace's `then` export, even when
+/// the import result is destructured into an empty pattern. A callable `then`
+/// also receives the namespace as its receiver, so keep it intact unless the
+/// export is known to be absent.
+pub fn create_dynamic_import_referenced_exports(
+  referenced_specifiers: &[ReferencedSpecifier],
+  exports_type: ExportsType,
+  exports_info_artifact: &ExportsInfoArtifact,
+  exports_info: &ExportsInfoData,
+) -> Vec<ReferencedExport> {
+  if referenced_specifiers.is_empty()
+    && !matches!(
+      exports_info
+        .get_read_only_export_info(&Atom::from("then"))
+        .provided(),
+      Some(ExportProvided::NotProvided)
+    )
+  {
+    return create_exports_object_referenced();
+  }
+  create_referenced_exports_by_referenced_specifiers(
+    referenced_specifiers,
+    exports_type,
+    exports_info_artifact,
+    exports_info,
+  )
 }
 
 pub fn create_referenced_exports_by_referenced_specifiers(
   referenced_specifiers: &[ReferencedSpecifier],
   exports_type: ExportsType,
-  is_json: bool,
+  exports_info_artifact: &ExportsInfoArtifact,
+  exports_info: &ExportsInfoData,
 ) -> Vec<ReferencedExport> {
   let mut refs = vec![];
   for ReferencedSpecifier {
@@ -308,17 +379,6 @@ pub fn create_referenced_exports_by_referenced_specifiers(
   } in referenced_specifiers
   {
     let mut names = names.as_slice();
-    let mut namespace_object_as_context = *namespace_object_as_context;
-
-    // Force enable namespace object as context for json module, it's a common case:
-    // import json from "./array.json"; json.map(d => d * 2);
-    if matches!(
-      exports_type,
-      ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
-    ) && is_json
-    {
-      namespace_object_as_context = true;
-    }
 
     if let Some(id) = names.first()
       && id == "default"
@@ -337,12 +397,14 @@ pub fn create_referenced_exports_by_referenced_specifiers(
       }
     }
 
-    if namespace_object_as_context && *is_call {
-      if names.len() == 1 {
+    if *is_call
+      && (*namespace_object_as_context
+        || should_reference_call_receiver(names, exports_type, exports_info_artifact, exports_info))
+    {
+      names = &names[..names.len().saturating_sub(1)];
+      if names.is_empty() {
         return create_exports_object_referenced();
       }
-      // remove last one
-      names = &names[..names.len().saturating_sub(1)];
     }
     refs.push(
       ReferencedExport::from(names)

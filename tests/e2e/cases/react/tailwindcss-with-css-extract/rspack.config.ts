@@ -17,9 +17,6 @@ export default defineConfig({
   resolve: {
     extensions: ['...', '.ts', '.tsx', '.jsx'],
   },
-  experiments: {
-    css: false,
-  },
   module: {
     rules: [
       {

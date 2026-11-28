@@ -4,13 +4,13 @@ use futures::Future;
 use rspack_collections::IdentifierMap;
 use rspack_error::Result;
 use rspack_util::{fx_hash::FxIndexMap, tracing_preset::TRACING_BENCH_TARGET};
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 use tracing::instrument;
 
 use crate::{
-  ArtifactExt, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey, Compilation,
-  Logger,
-  build_chunk_graph::code_splitter::CodeSplitter,
+  ArtifactExt, Chunk, ChunkByUkey, ChunkGraph, ChunkGroupByUkey, ChunkGroupUkey, ChunkUkey,
+  Compilation, Logger, ModuleIdentifier,
+  build_chunk_graph::code_splitter::{CodeSplitter, ModuleReuseInfo},
   fast_set,
   incremental::{IncrementalPasses, Mutation},
 };
@@ -26,9 +26,17 @@ pub struct BuildChunkGraphArtifact {
   pub named_chunks: HashMap<String, ChunkUkey>,
   pub(crate) code_splitter: CodeSplitter,
   pub module_idx: IdentifierMap<(u32, u32)>,
+  pub(crate) runtime_chunks: Option<FxHashSet<ChunkUkey>>,
 }
 
 impl BuildChunkGraphArtifact {
+  pub fn is_runtime_chunk(&self, chunk: &Chunk) -> bool {
+    match &self.runtime_chunks {
+      Some(runtime_chunks) => runtime_chunks.contains(&chunk.ukey()),
+      None => chunk.has_runtime(&self.chunk_group_by_ukey),
+    }
+  }
+
   pub(crate) fn set_code_splitter(&mut self, code_splitter: CodeSplitter) {
     fast_set(&mut self.code_splitter, code_splitter);
   }
@@ -37,11 +45,17 @@ impl BuildChunkGraphArtifact {
   // has changed its outgoings
   // we don't need to check if module has changed its incomings
   // if it changes, the incoming module changes its outgoings as well
-  fn can_skip_rebuilding(&self, this_compilation: &Compilation) -> bool {
-    self.can_skip_rebuilding_legacy(this_compilation)
+  fn get_reuse_info(
+    &self,
+    this_compilation: &Compilation,
+  ) -> Option<Vec<(ModuleIdentifier, ModuleReuseInfo)>> {
+    self.get_reuse_info_legacy(this_compilation)
   }
 
-  fn can_skip_rebuilding_legacy(&self, this_compilation: &Compilation) -> bool {
+  fn get_reuse_info_legacy(
+    &self,
+    this_compilation: &Compilation,
+  ) -> Option<Vec<(ModuleIdentifier, ModuleReuseInfo)>> {
     let logger = this_compilation.get_logger("rspack.Compilation.codeSplittingCache");
 
     if !this_compilation.entries.keys().eq(
@@ -51,7 +65,7 @@ impl BuildChunkGraphArtifact {
         .keys(),
     ) {
       logger.log("entrypoints change detected, rebuilding chunk graph");
-      return false;
+      return None;
     }
 
     let Some(mutations) = this_compilation
@@ -60,7 +74,7 @@ impl BuildChunkGraphArtifact {
     else {
       logger.log("incremental for build module graph disabled, rebuilding chunk graph");
       // if disable incremental for build module graph phase, we can't skip rebuilding
-      return false;
+      return None;
     };
 
     // if we have module removal, we can't skip rebuilding
@@ -69,11 +83,11 @@ impl BuildChunkGraphArtifact {
       .any(|mutation| matches!(mutation, Mutation::ModuleRemove { .. }))
     {
       logger.log("module removal detected, rebuilding chunk graph");
-      return false;
+      return None;
     }
 
     let module_graph = this_compilation.get_module_graph();
-    let affected_modules = mutations.get_affected_modules_with_module_graph(module_graph);
+    let mut affected_modules = mutations.get_affected_modules_with_module_graph(module_graph);
     let previous_modules_map = &this_compilation
       .build_chunk_graph_artifact
       .code_splitter
@@ -81,20 +95,27 @@ impl BuildChunkGraphArtifact {
 
     if previous_modules_map.is_empty() {
       logger.log("no cache detected, rebuilding chunk graph");
-      return false;
+      return None;
     }
 
+    // A dependency condition may change when exports usage changes even if its
+    // owning module was not rebuilt. Revalidate every conditional module that
+    // contributed to the cached chunk graph in addition to mutated modules.
+    affected_modules.extend(self.code_splitter.cached_conditional_modules());
+
+    let mut reuse_info = Vec::with_capacity(affected_modules.len());
     for module in affected_modules {
-      if !self
+      let Some(info) = self
         .code_splitter
-        .can_reuse_affected_module(module, this_compilation)
-      {
+        .get_module_reuse_info(module, this_compilation)
+      else {
         logger.log(format!("module topology change detected: {module}"));
-        return false;
-      }
+        return None;
+      };
+      reuse_info.push((module, info));
     }
 
-    true
+    Some(reuse_info)
   }
 
   /// Reset cached chunks back to the initial render state.
@@ -119,6 +140,7 @@ impl BuildChunkGraphArtifact {
     self.named_chunks.clear();
     self.set_code_splitter(Default::default());
     self.module_idx.clear();
+    self.runtime_chunks = None;
   }
 }
 
@@ -143,12 +165,21 @@ where
   let incremental_code_splitting = compilation
     .incremental
     .passes_enabled(IncrementalPasses::BUILD_CHUNK_GRAPH);
-  let no_change = incremental_code_splitting
-    && compilation
+  let reuse_info = if incremental_code_splitting {
+    compilation
       .build_chunk_graph_artifact
-      .can_skip_rebuilding(compilation);
+      .get_reuse_info(compilation)
+  } else {
+    None
+  };
 
-  if no_change {
+  if let Some(reuse_info) = reuse_info {
+    // A rebuilt module can gain a condition while its connection stays active.
+    // Keep tracking it so later export usage changes invalidate the reused graph.
+    compilation
+      .build_chunk_graph_artifact
+      .code_splitter
+      .update_conditional_modules(reuse_info);
     let module_idx = &compilation.build_chunk_graph_artifact.module_idx;
     let module_graph = compilation
       .build_module_graph_artifact
@@ -187,6 +218,7 @@ impl ArtifactExt for BuildChunkGraphArtifact {
   }
   fn recover(_incremental: &crate::incremental::Incremental, new: &mut Self, old: &mut Self) {
     new.code_splitter = mem::take(&mut old.code_splitter);
+    new.runtime_chunks = None;
     rayon::scope(|s| {
       s.spawn(|_| new.chunk_by_ukey.clone_from(&old.chunk_by_ukey));
       s.spawn(|_| new.chunk_graph.clone_from(&old.chunk_graph));

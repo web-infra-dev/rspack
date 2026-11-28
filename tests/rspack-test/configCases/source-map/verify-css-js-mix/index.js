@@ -13,13 +13,16 @@ it("verify importing css js source map", async () => {
 	const map = JSON.parse(source);
 	let sourceUrl = source => `webpack:///${source}`;
 	let runtimeSource = name => sourceUrl(`webpack/runtime/${name}`);
+	let bootstrapSource = sourceUrl("webpack/bootstrap");
 	if (globalThis.__RSPACK_TEST_RUNTIME_MODE_RSPACK) {
 		sourceUrl = source => `rspack:///${source}`;
 		runtimeSource = name => sourceUrl(`rspack/runtime/${name}`);
+		bootstrapSource = sourceUrl("rspack/bootstrap");
 	}
 	expect(map.sources.sort()).toEqual([
 		sourceUrl("./a.js"),
 		sourceUrl("./index.js"),
+		bootstrapSource,
 		runtimeSource("make_namespace_object"),
 	].sort());
 	expect(map.file).toEqual("bundle0.js");

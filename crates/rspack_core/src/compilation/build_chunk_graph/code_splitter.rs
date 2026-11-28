@@ -21,9 +21,10 @@ use crate::{
   AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
   AsyncDependenciesBlockIdentifierSet, ChunkGraph, ChunkGroup, ChunkGroupKind, ChunkGroupOptions,
   ChunkGroupUkey, ChunkLoading, ChunkUkey, Compilation, ConnectionState, DependenciesBlock,
-  DependencyId, DependencyLocation, EntryDependency, EntryRuntime, ExportsInfoArtifact,
-  GroupOptions, Logger, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleIdentifier,
-  RuntimeSpec, SideEffectsStateArtifact, SyntheticDependencyLocation, assign_depths,
+  DependencyId, DependencyLocation, DependencyType, EntryDependency, EntryRuntime,
+  ExportsInfoArtifact, GroupOptions, Logger, ModuleDependency, ModuleGraph,
+  ModuleGraphCacheArtifact, ModuleIdentifier, RuntimeSpec, SideEffectsStateArtifact,
+  SyntheticDependencyLocation, assign_depths,
   dependencies_block::AsyncDependenciesToInitialChunkError,
   get_entry_runtime,
   incremental::{IncrementalPasses, Mutation},
@@ -49,6 +50,31 @@ struct PreparedBlockConnection {
   block: DependenciesBlockIdentifier,
   module: ModuleIdentifier,
   connections: ConnectionIdList,
+}
+
+impl PreparedBlockConnection {
+  fn has_conditional_imports(&self, module_graph: &ModuleGraph) -> bool {
+    let is_async = matches!(
+      self.block,
+      DependenciesBlockIdentifier::AsyncDependenciesBlock(_)
+    );
+    self.connections.iter().any(|dependency_id| {
+      let dependency = module_graph.dependency_by_id(dependency_id);
+      (is_async
+        || matches!(
+          dependency.dependency_type(),
+          DependencyType::DynamicImportEager
+        ))
+        && dependency
+          .as_module_dependency()
+          .and_then(|dependency| dependency.get_condition())
+          .is_some()
+    })
+  }
+}
+
+pub(crate) struct ModuleReuseInfo {
+  has_conditional_imports: bool,
 }
 
 struct PreparedBlockConnectionBuilder {
@@ -130,7 +156,9 @@ fn prepare_module_connection_map(
     if module_dependency.is_none() && dependency.as_context_dependency().is_none() {
       continue;
     }
-    if module_dependency.is_some_and(|dependency| dependency.weak()) {
+    if module_graph.is_lazy_dependency(dependency_id)
+      || module_dependency.is_some_and(|dependency| dependency.weak())
+    {
       continue;
     }
     let Some(connection) = module_graph.connection_by_dependency_id(dependency_id) else {
@@ -404,6 +432,10 @@ pub(crate) struct CodeSplitter {
   prepared_blocks_map: DependenciesBlockIdentifierMap<Vec<AsyncDependenciesBlockIdentifier>>,
 
   prepared_block_group_options: AsyncDependenciesBlockIdentifierMap<GroupOptions>,
+
+  // Conditions on async and eager dynamic imports can change with exports
+  // usage even when their owning module is not part of the mutation set.
+  conditional_modules: IdentifierSet,
 }
 
 fn add_chunk_in_group(
@@ -475,11 +507,34 @@ fn get_active_state_of_connections(
 }
 
 impl CodeSplitter {
-  pub(crate) fn can_reuse_affected_module(
+  pub(crate) fn cached_conditional_modules(&self) -> impl Iterator<Item = ModuleIdentifier> + '_ {
+    self.conditional_modules.iter().copied().filter(|module| {
+      let module_block = DependenciesBlockIdentifier::Module(*module);
+      self
+        .block_modules_runtime_map
+        .values()
+        .any(|block_modules| block_modules.contains_key(&module_block))
+    })
+  }
+
+  pub(crate) fn update_conditional_modules(
+    &mut self,
+    modules: impl IntoIterator<Item = (ModuleIdentifier, ModuleReuseInfo)>,
+  ) {
+    for (module, info) in modules {
+      if info.has_conditional_imports {
+        self.conditional_modules.insert(module);
+      } else {
+        self.conditional_modules.remove(&module);
+      }
+    }
+  }
+
+  pub(crate) fn get_module_reuse_info(
     &self,
     module: ModuleIdentifier,
     compilation: &Compilation,
-  ) -> bool {
+  ) -> Option<ModuleReuseInfo> {
     let module_block = DependenciesBlockIdentifier::Module(module);
     let current_blocks = compilation
       .get_module_graph()
@@ -489,11 +544,10 @@ impl CodeSplitter {
     let cached_blocks = self
       .prepared_blocks_map
       .get(&module_block)
-      .map(Vec::as_slice)
-      .unwrap_or_default();
+      .map_or_default(Vec::as_slice);
 
     if current_blocks != cached_blocks {
-      return false;
+      return None;
     }
 
     let module_graph = compilation.get_module_graph();
@@ -509,19 +563,22 @@ impl CodeSplitter {
           ))
           .is_some_and(|blocks| !blocks.is_empty())
       {
-        return false;
+        return None;
       }
 
       if block.get_group_options() != self.prepared_block_group_options.get(block_id) {
-        return false;
+        return None;
       }
     }
 
     let mut current_connections_by_block = DependenciesBlockIdentifierMap::default();
     let mut scratch = PreparedConnectionScratch::default();
+    let mut has_conditional_imports = false;
     for connection in
       prepare_module_connection_map(module, module_graph, &mut scratch).unwrap_or_default()
     {
+      has_conditional_imports =
+        has_conditional_imports || connection.has_conditional_imports(module_graph);
       current_connections_by_block
         .entry(connection.block)
         .or_insert_with(Vec::new)
@@ -561,17 +618,14 @@ impl CodeSplitter {
           .copied()
           .map(DependenciesBlockIdentifier::AsyncDependenciesBlock),
       ) {
-        let Some(cached_modules) = block_modules.get(&block) else {
-          return false;
-        };
+        let cached_modules = block_modules.get(&block)?;
         found_cached_root |= block == module_block;
 
         let current_connections = current_connections_by_block
           .get(&block)
-          .map(Vec::as_slice)
-          .unwrap_or_default();
+          .map_or_default(Vec::as_slice);
         if current_connections.len() != cached_modules.len() {
-          return false;
+          return None;
         }
 
         for (current, (cached_module, cached_state, _)) in
@@ -587,13 +641,15 @@ impl CodeSplitter {
               exports_info_artifact,
             ) != *cached_state
           {
-            return false;
+            return None;
           }
         }
       }
     }
 
-    found_cached_root
+    found_cached_root.then_some(ModuleReuseInfo {
+      has_conditional_imports,
+    })
   }
 
   pub(crate) fn chunk_group_info(&self, ukey: &CgiUkey) -> &ChunkGroupInfo {
@@ -612,10 +668,7 @@ impl CodeSplitter {
 
   pub fn get_module_ordinal(&self, module_id: ModuleIdentifier) -> u64 {
     *self.ordinal_by_module.get(&module_id).unwrap_or_else(|| {
-      panic!(
-        "expected a module ordinal for identifier '{}', but none was found.",
-        &module_id
-      )
+      panic!("expected a module ordinal for identifier '{module_id}', but none was found.")
     })
   }
 
@@ -858,7 +911,6 @@ Remove the 'runtime' option from the entrypoint."
       let mut entry_point_runtime = None;
       let mut depend_on_entries = vec![];
       let mut entry_point_parents = vec![];
-      let mut has_error = false;
 
       {
         let entry_point = compilation
@@ -873,36 +925,41 @@ Remove the 'runtime' option from the entrypoint."
           .get_all_referenced_chunks(&compilation.build_chunk_graph_artifact.chunk_group_by_ukey);
 
         for dep in depend_on {
-          if let Some(dependency_ukey) = compilation.build_chunk_graph_artifact.entrypoints.get(dep)
+          let message = if let Some(dependency_ukey) =
+            compilation.build_chunk_graph_artifact.entrypoints.get(dep)
           {
             let dependency_chunk_ukey = compilation
               .build_chunk_graph_artifact
               .chunk_group_by_ukey
               .expect_get(dependency_ukey)
               .get_entrypoint_chunk();
-            if referenced_chunks.contains(&dependency_chunk_ukey) {
-              let mut diagnostic = Diagnostic::from(error!(
-                "Entrypoints '{name}' and '{dep}' use 'dependOn' to depend on each other in a circular way."
-              ));
-              diagnostic.chunk = Some(entry_point.get_entrypoint_chunk().as_u32());
-              runtime_errors.push(diagnostic);
-              entry_point_runtime = Some(entry_point_chunk.ukey());
-              has_error = true;
-              break;
+            if !referenced_chunks.contains(&dependency_chunk_ukey) {
+              depend_on_entries.push(dependency_ukey);
+              continue;
             }
-            depend_on_entries.push(dependency_ukey);
+            format!(
+              "Entrypoints '{name}' and '{dep}' use 'dependOn' to depend on each other in a circular way."
+            )
           } else {
-            panic!("Entry {name} depends on {dep}, but this entry was not found");
-          }
+            let entries = compilation.entries.keys().sorted().format("', '");
+            format!(
+              "Entrypoint '{name}' references unknown entry '{dep}' in 'dependOn'. Configured entries: '{entries}'."
+            )
+          };
+          let mut diagnostic = Diagnostic::from(Error::error(message));
+          diagnostic.chunk = Some(entry_point_chunk.ukey().as_u32());
+          runtime_errors.push(diagnostic);
+          entry_point_runtime = Some(entry_point_chunk.ukey());
+          break;
         }
       }
 
-      if has_error {
+      if let Some(runtime_chunk) = entry_point_runtime {
         let entry_point = compilation
           .build_chunk_graph_artifact
           .chunk_group_by_ukey
           .expect_get_mut(ukey);
-        entry_point.set_runtime_chunk(entry_point_runtime.expect("Should set runtime chunk"));
+        entry_point.set_runtime_chunk(runtime_chunk);
       } else {
         {
           for depend in depend_on_entries {
@@ -1458,7 +1515,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let module_ordinal = *self.ordinal_by_module.get(&item.module).unwrap_or_else(|| {
       panic!(
         "expected a module ordinal for identifier '{}', but none was found.",
-        &item.module
+        item.module
       )
     });
 
@@ -1509,7 +1566,7 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
     let module_ordinal = *self.ordinal_by_module.get(&item.module).unwrap_or_else(|| {
       panic!(
         "expected a module ordinal for identifier '{}', but none was found.",
-        &item.module
+        item.module
       )
     });
     let cgi = self.chunk_group_info_mut(&item.chunk_group_info);
@@ -2829,6 +2886,16 @@ Or do you want to use the entrypoints '{name}' and '{runtime}' independently on 
       })
       .filter_map(|entry| entry)
       .collect::<IdentifierMap<_>>();
+    self.conditional_modules = self
+      .prepared_connection_map
+      .iter()
+      .filter_map(|(module, connections)| {
+        connections
+          .iter()
+          .any(|connection| connection.has_conditional_imports(mg))
+          .then_some(*module)
+      })
+      .collect();
 
     let mut prepared_blocks_map = DependenciesBlockIdentifierMap::<
       Vec<AsyncDependenciesBlockIdentifier>,
@@ -2971,8 +3038,7 @@ fn extract_block_modules(
   let block = module.into();
   let blocks = prepared_blocks_map
     .get(&block)
-    .map(|blocks| blocks.as_slice())
-    .unwrap_or_default();
+    .map_or_default(|blocks| blocks.as_slice());
   let connection_map = prepared_connection_map.get(&module);
 
   if blocks.is_empty() && connection_map.is_none() {
@@ -3010,7 +3076,7 @@ fn extract_block_modules(
   // Most roots have no async block or a single async block. Construct their results
   // directly, without a temporary hash map or repeatedly growing the output vectors.
   if blocks.len() <= 1 && !has_nested_async_blocks {
-    let connections = connection_map.map(Vec::as_slice).unwrap_or_default();
+    let connections = connection_map.map_or_default(Vec::as_slice);
     let root_cached = map.contains_key(&block);
     let async_block = blocks
       .first()

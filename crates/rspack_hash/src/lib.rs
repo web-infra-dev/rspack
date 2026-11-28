@@ -10,9 +10,10 @@ use rspack_cacheable::{cacheable, with::AsPreset};
 pub use rspack_macros::RspackHash;
 use rspack_util::MergeFrom;
 use smol_str::SmolStr;
-use xxhash_rust::xxh64::Xxh64;
+use xxhash_rust::{xxh3::Xxh3Default, xxh64::Xxh64};
 
 mod hashable;
+pub use hashable::UnorderedHasher;
 
 #[cacheable]
 #[derive(Debug, Clone, Copy)]
@@ -120,6 +121,7 @@ impl MergeFrom for HashSalt {
 #[derive(Clone)]
 pub enum RspackHasher {
   Xxhash64(Box<Xxh64>),
+  Xxh3(Box<Xxh3Default>),
   MD4(Box<md4::Md4>),
   SHA256(Box<sha2::Sha256>),
 }
@@ -202,6 +204,7 @@ impl fmt::Debug for RspackHasher {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
       Self::Xxhash64(_) => write!(f, "RspackHasher(Xxhash64)"),
+      Self::Xxh3(_) => write!(f, "RspackHasher(Xxh3)"),
       Self::MD4(_) => write!(f, "RspackHasher(MD4)"),
       Self::SHA256(_) => write!(f, "RspackHasher(SHA256)"),
     }
@@ -231,6 +234,10 @@ impl RspackHasher {
         let buf = hasher.finish().to_be_bytes();
         RspackHashDigest::new(&buf, digest)
       }
+      RspackHasher::Xxh3(hasher) => {
+        let buf = hasher.digest128().to_be_bytes();
+        RspackHashDigest::new(&buf, digest)
+      }
       RspackHasher::MD4(hash) => {
         let buf = hash.finalize();
         RspackHashDigest::new(&buf, digest)
@@ -249,14 +256,34 @@ impl RspackHasher {
   pub fn write(&mut self, bytes: &[u8]) {
     match self {
       RspackHasher::Xxhash64(hasher) => hasher.write(bytes),
+      RspackHasher::Xxh3(hasher) => hasher.update(bytes),
       RspackHasher::MD4(hasher) => hasher.update(bytes),
       RspackHasher::SHA256(hasher) => hasher.update(bytes),
+    }
+  }
+
+  pub(crate) fn new_xxh3() -> Self {
+    Self::Xxh3(Box::default())
+  }
+
+  pub(crate) fn reset_xxh3(&mut self) {
+    match self {
+      Self::Xxh3(hasher) => hasher.reset(),
+      _ => unreachable!("UnorderedHasher always uses Xxh3"),
+    }
+  }
+
+  pub(crate) fn finish_xxh3_128(&self) -> u128 {
+    match self {
+      Self::Xxh3(hasher) => hasher.digest128(),
+      _ => unreachable!("UnorderedHasher always uses Xxh3"),
     }
   }
 
   pub fn finish(&self) -> u64 {
     match self {
       RspackHasher::Xxhash64(hasher) => hasher.finish(),
+      RspackHasher::Xxh3(hasher) => hasher.digest(),
       RspackHasher::MD4(hasher) => {
         let hash = (**hasher).clone().finalize();
         u64::from_be_bytes(
@@ -281,6 +308,7 @@ impl Hasher for RspackHasher {
   fn finish(&self) -> u64 {
     match self {
       RspackHasher::Xxhash64(hasher) => hasher.finish(),
+      RspackHasher::Xxh3(hasher) => hasher.digest(),
       RspackHasher::MD4(hasher) => {
         let hash = (**hasher).clone().finalize();
         u64::from_be_bytes(
@@ -303,6 +331,7 @@ impl Hasher for RspackHasher {
   fn write(&mut self, bytes: &[u8]) {
     match self {
       RspackHasher::Xxhash64(hasher) => hasher.write(bytes),
+      RspackHasher::Xxh3(hasher) => hasher.update(bytes),
       RspackHasher::MD4(hasher) => hasher.update(bytes),
       RspackHasher::SHA256(hasher) => hasher.update(bytes),
     }
@@ -363,6 +392,22 @@ impl RspackHashDigest {
   pub fn rendered(&self, length: usize) -> &str {
     let len = self.encoded.len().min(length);
     &self.encoded[..len]
+  }
+
+  pub fn non_numeric_only(self, length: usize) -> Self {
+    let rendered = self.rendered(length);
+    let Some(&first) = rendered.as_bytes().first() else {
+      return self;
+    };
+    if !rendered.bytes().all(|b| b.is_ascii_digit()) {
+      return self;
+    }
+    let mut encoded = String::with_capacity(self.encoded.len());
+    encoded.push(char::from(b'a' + (first - b'0') % 6));
+    encoded.push_str(&self.encoded[1..]);
+    Self {
+      encoded: encoded.into(),
+    }
   }
 }
 

@@ -8,7 +8,7 @@ use rayon::prelude::*;
 use rspack_collections::{IdentifierHasher, IdentifierMap};
 use rspack_error::Result;
 use rspack_intern::Atom;
-use rustc_hash::FxHashMap as HashMap;
+use rustc_hash::{FxHashMap as HashMap, FxHashSet};
 
 use crate::{
   AsyncDependenciesBlock, AsyncDependenciesBlockIdentifier, AsyncDependenciesBlockIdentifierMap,
@@ -99,6 +99,8 @@ pub(crate) struct ModuleGraphData {
 
   /// Dependencies indexed by `DependencyId`.
   dependencies: rollback::DenseDependencyIdMap<DependencyRef>,
+  /// Current make-stage deferrals, kept with the graph across incremental rebuilds.
+  lazy_dependencies: FxHashSet<DependencyId>,
   /// AsyncDependenciesBlocks indexed by `AsyncDependenciesBlockIdentifier`.
   blocks: AsyncDependenciesBlockIdentifierMap<AsyncDependenciesBlockRef>,
 
@@ -172,9 +174,54 @@ impl ModuleGraph {
   pub fn reset(&mut self) {
     self.inner.recover()
   }
+
+  #[doc(hidden)]
+  pub fn dense_storage_stats(&self) -> [(&'static str, rollback::DenseStorageStats); 8] {
+    let inner = &self.inner;
+    let (dependency_id_to_connection_id, dependency_id_to_connection_id_overlay) =
+      inner.dependency_id_to_connection_id.stats();
+    let (connections, connections_overlay) = inner.connections.stats();
+    [
+      ("dependencies", inner.dependencies.stats()),
+      (
+        "dependency_id_to_parents",
+        inner.dependency_id_to_parents.stats(),
+      ),
+      (
+        "connection_to_condition",
+        inner.connection_to_condition.stats(),
+      ),
+      ("dep_meta_map", inner.dep_meta_map.stats()),
+      (
+        "dependency_id_to_connection_id",
+        dependency_id_to_connection_id,
+      ),
+      (
+        "dependency_id_to_connection_id(overlay)",
+        dependency_id_to_connection_id_overlay,
+      ),
+      ("connections", connections),
+      ("connections(overlay)", connections_overlay),
+    ]
+  }
 }
 
 impl ModuleGraph {
+  #[inline]
+  pub fn is_lazy_dependency(&self, dependency: &DependencyId) -> bool {
+    self.inner.lazy_dependencies.contains(dependency)
+  }
+
+  #[inline]
+  pub fn add_lazy_dependency(&mut self, dependency: DependencyId) {
+    self.inner.lazy_dependencies.insert(dependency);
+  }
+
+  #[inline]
+  pub fn remove_lazy_dependency(&mut self, dependency: &DependencyId) -> bool {
+    self.inner.lazy_dependencies.remove(dependency)
+  }
+
   #[inline]
   pub fn modules_len(&self) -> usize {
     self.inner.modules.len()
@@ -308,6 +355,7 @@ impl ModuleGraph {
       self.inner.dependency_id_to_connection_id.remove(dep_id);
     }
     if force {
+      self.inner.lazy_dependencies.remove(dep_id);
       self.inner.dependencies.remove(dep_id);
       self.inner.dependency_id_to_parents.remove(dep_id);
       self.inner.connection_to_condition.remove(dep_id);
@@ -349,12 +397,11 @@ impl ModuleGraph {
   pub fn revoke_module(&mut self, module_id: &ModuleIdentifier) -> Vec<BuildDependency> {
     let mut blocks = self
       .module_by_identifier(module_id)
-      .map(|m| Vec::from(m.get_blocks()))
-      .unwrap_or_default();
+      .map_or_default(|m| Vec::from(m.get_blocks()));
 
     let (incoming_connections, all_dependencies) = self
       .module_graph_module_by_identifier(module_id)
-      .map(|mgm| {
+      .map_or_default(|mgm| {
         (
           mgm
             .incoming_connections()
@@ -364,8 +411,7 @@ impl ModuleGraph {
             .collect::<Vec<_>>(),
           mgm.all_dependencies().to_vec(),
         )
-      })
-      .unwrap_or_default();
+      });
 
     self.inner.modules.remove(module_id);
     self.inner.module_graph_modules.remove(module_id);
@@ -536,6 +582,7 @@ impl ModuleGraph {
       .insert(dependency_id, parents);
   }
 
+  #[inline]
   pub fn get_parent_module(&self, dependency_id: &DependencyId) -> Option<&ModuleIdentifier> {
     self
       .inner
@@ -544,6 +591,7 @@ impl ModuleGraph {
       .map(|p| &p.module)
   }
 
+  #[inline]
   pub fn get_parent_block(
     &self,
     dependency_id: &DependencyId,
@@ -555,6 +603,7 @@ impl ModuleGraph {
       .and_then(|p| p.block.as_ref())
   }
 
+  #[inline]
   pub fn get_parent_block_index(&self, dependency_id: &DependencyId) -> Option<usize> {
     self
       .inner
@@ -648,6 +697,7 @@ impl ModuleGraph {
       .and_then(|module_identifier| self.module_graph_module_by_identifier(module_identifier))
   }
 
+  #[inline(always)]
   pub fn module_identifier_by_dependency_id(
     &self,
     dep_id: &DependencyId,
@@ -788,6 +838,7 @@ impl ModuleGraph {
       .flatten()
   }
 
+  #[inline]
   pub fn connection_by_dependency_id(
     &self,
     dependency_id: &DependencyId,
@@ -799,6 +850,7 @@ impl ModuleGraph {
     self.connection_by_id(connection_id)
   }
 
+  #[inline]
   pub fn connection_by_id(
     &self,
     connection_id: &ModuleGraphConnectionId,
@@ -806,6 +858,7 @@ impl ModuleGraph {
     self.inner.connections.get(connection_id)
   }
 
+  #[inline]
   fn connection_by_id_mut(
     &mut self,
     connection_id: &ModuleGraphConnectionId,
@@ -842,6 +895,7 @@ impl ModuleGraph {
     }
   }
 
+  #[inline(always)]
   pub fn get_resolved_module(&self, dependency_id: &DependencyId) -> Option<&ModuleIdentifier> {
     match self.connection_by_dependency_id(dependency_id) {
       Some(connection) => Some(&connection.resolved_module),
@@ -979,6 +1033,7 @@ impl ModuleGraph {
 
   /// We can't insert all sort of things into one hashmap like javascript, so we create different
   /// hashmap to store different kinds of meta.
+  #[inline]
   pub fn get_dep_meta_if_existing(&self, id: &DependencyId) -> Option<&DependencyExtraMeta> {
     self.inner.dep_meta_map.get(id)
   }

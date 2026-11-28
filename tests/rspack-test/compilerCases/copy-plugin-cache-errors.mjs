@@ -38,7 +38,8 @@ function diagnosticRecoveryCase() {
 			expect(failed.errors.length).toBeGreaterThan(0);
 			expect(
 				failed.errors.filter(error =>
-					String(error.message ?? error).includes("unable to locate")
+					error.name === "CopyRspackPlugin Error" &&
+					error.message.includes("CopyRspackPlugin: No files matched")
 				)
 			).toHaveLength(1);
 			expect(reusedPatterns(failed)).toBe(0);

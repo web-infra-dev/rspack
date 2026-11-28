@@ -58,9 +58,12 @@ pub struct RawEnvironment {
   pub module: bool,
   pub optional_chaining: bool,
   pub logical_assignment: bool,
+  pub spread: bool,
+  pub symbol: bool,
   pub template_literal: bool,
   pub dynamic_import_in_worker: bool,
   pub import_meta_dirname_and_filename: bool,
+  pub top_level_await: bool,
 }
 
 impl From<RawEnvironment> for Environment {
@@ -81,9 +84,12 @@ impl From<RawEnvironment> for Environment {
       module: value.module,
       optional_chaining: value.optional_chaining,
       logical_assignment: value.logical_assignment,
+      spread: value.spread,
+      symbol: value.symbol,
       template_literal: value.template_literal,
       dynamic_import_in_worker: value.dynamic_import_in_worker,
       import_meta_dirname_and_filename: value.import_meta_dirname_and_filename,
+      top_level_await: value.top_level_await,
     }
   }
 }
@@ -122,6 +128,8 @@ pub struct RawOutputOptions {
   pub import_meta_name: String,
   pub iife: bool,
   pub module: bool,
+  #[napi(ts_type = "string | false")]
+  pub chunk_format: WithFalse<String>,
   #[napi(ts_type = "string | false")]
   pub chunk_loading: RawChunkLoading,
   pub chunk_load_timeout: u32,
@@ -189,6 +197,10 @@ impl TryFrom<RawOutputOptions> for OutputOptions {
       wasm_streaming_fallback: value.wasm_streaming_fallback,
       webassembly_module_filename: value.webassembly_module_filename.into(),
       unique_name: value.unique_name,
+      chunk_format: match value.chunk_format {
+        WithFalse::False => "false".to_string(),
+        WithFalse::True(format) => format,
+      },
       chunk_loading: value.chunk_loading.into(),
       chunk_loading_global: value.chunk_loading_global.as_str().into(),
       filename: value.filename.into(),

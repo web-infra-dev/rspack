@@ -2,6 +2,24 @@ export function createReadonlyMap<T>(
   obj: Pick<ReadonlyMap<string, T>, 'get' | 'keys'>,
 ) {
   return {
+    has(key: string) {
+      if (this.get(key) != null) {
+        return true;
+      }
+      for (const k of this.keys()) {
+        if (k === key) {
+          return true;
+        }
+      }
+      return false;
+    },
+    get size() {
+      let count = 0;
+      for (const _ of this.keys()) {
+        count++;
+      }
+      return count;
+    },
     ...obj,
     *values() {
       const keys = this.keys();

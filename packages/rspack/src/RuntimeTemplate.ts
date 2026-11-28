@@ -182,6 +182,10 @@ export class RuntimeTemplate {
     return Boolean(this.#environment.destructuring);
   }
 
+  supportsSpread(): boolean {
+    return Boolean(this.#environment.spread);
+  }
+
   supportsBigIntLiteral(): boolean {
     return Boolean(this.#environment.bigIntLiteral);
   }
@@ -196,6 +200,10 @@ export class RuntimeTemplate {
 
   supportTemplateLiteral(): boolean {
     return Boolean(this.#environment.templateLiteral);
+  }
+
+  supportsTopLevelAwait(): boolean {
+    return Boolean(this.#environment.topLevelAwait);
   }
 
   supportNodePrefixForCoreModules(): boolean {

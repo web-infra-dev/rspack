@@ -1936,7 +1936,7 @@ async fn create_concatenated_module(
       })
       .map(|id| id.to_string()),
     layer: root_module.get_layer().cloned(),
-    resolve_options: root_module.get_resolve_options(),
+    resolve_options: root_module.get_resolve_options(&compilation.options.module),
     code_generation_dependencies: root_module
       .get_code_generation_dependencies()
       .map(|deps| deps.to_vec()),
@@ -1992,7 +1992,11 @@ async fn create_concatenated_module(
         resolver_factory: compilation.resolver_factory.clone(),
         plugin_driver: compilation.plugin_driver.clone(),
         compiler_options: compilation.options.clone(),
-        loader_cache: compilation.get_cache("loader"),
+        loader_cache: compilation.loader_cache(),
+        loader_build_dependencies_cache: compilation.loader_build_dependencies_cache(),
+        loader_cache_counters: compilation.loader_cache_counters(),
+        // Concatenated modules do not parse source or read value cache versions.
+        value_cache_versions: Default::default(),
         file_system_info: compilation.file_system_info.clone(),
         fs: compilation.input_filesystem.clone(),
         runtime_template: compilation.runtime_template.create_module_code_template(),

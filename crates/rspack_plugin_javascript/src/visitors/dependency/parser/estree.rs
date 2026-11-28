@@ -387,7 +387,8 @@ let x = 0;
       parsed.diagnostics
     );
 
-    let ast = &parsed.ast;
+    // SAFETY: This test only reads handles obtained from the parsed AST.
+    let ast = unsafe { parsed.ast.ast() };
     let program = ast.root_program();
     let mut names = Vec::new();
     for statement in ast.nodes(program.body(ast)) {

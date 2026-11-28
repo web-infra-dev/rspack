@@ -111,6 +111,10 @@ loadLocale('english');
 
 Rspack can now find and bundle the `.json` files under `./locale`. When your application runs, `loadLocale('english')` loads `./locale/english.json`, and `loadLocale('german')` loads `./locale/german.json`, provided those files exist when you build the application.
 
+To tell Rspack to skip an `import(path)` with a fully dynamic path, write `import(/* rspackIgnore: true */ path)`. The runtime then handles the import directly.
+
+If the `import(path)` call is inside a third-party package, add a rule to `module.rules` that matches the package and set the rule's [`parser.importDynamic`](/config/module-parser#javascriptimportdynamic) to `false`. See [Solid's hydration module example](/guide/integrations/solid#load-hydration-modules).
+
 ### Magic comments in import() \{#magic-comments}
 
 <ApiMeta specific={['Rspack', 'Webpack']} />
@@ -362,7 +366,7 @@ Module ID's type can be a number or a string depending on the `optimization.modu
 
 ### require.cache
 
-Multiple requires of the same module result in only one module execution and only one export. Therefore a cache in the runtime exists. Removing values from this cache causes new module execution and a new export.
+The Rspack runtime maintains a module cache. Repeated `require` calls for the same module reuse its cached exports without executing the module again. Deleting a cache entry causes the next request for that module to execute it again and produce new exports.
 
 ```js
 var d1 = require('dependency');

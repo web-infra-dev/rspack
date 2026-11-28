@@ -4,26 +4,32 @@ use rspack_paths::{InternedPath, InternedPathDashSet};
 use tokio::sync::mpsc::{UnboundedSender, unbounded_channel};
 
 use super::{FsEvent, FsEventKind};
+#[cfg(test)]
+use crate::watcher_manager::DirectorySubscriptions;
 use crate::{
-  EventBatch,
+  EventBatch, ResolvedEvents,
   analyzer::{Analyzer, RecommendedAnalyzer},
   paths::PathManager,
+  watcher_manager::{ContextLookup, WatcherManager},
 };
-/// `DependencyFinder` provides references to sets of files, directories, and missing paths,
-/// allowing efficient lookup and dependency resolution for a given path.
-///
-/// This struct is typically used to determine which registered dependencies (files, directories,
-/// or missing paths) are related to a specific filesystem path, such as when handling file system events.
-pub struct DependencyFinder<'a> {
-  /// Reference to the set of registered file paths.
-  pub files: &'a InternedPathDashSet,
-  /// Reference to the set of registered directory paths.
-  pub directories: &'a InternedPathDashSet,
-  /// Reference to the set of registered missing paths (paths that were expected but not found).
-  pub missing: &'a InternedPathDashSet,
+
+#[cfg(test)]
+impl ContextLookup for InternedPathDashSet {
+  fn subscriptions(&self, path: &InternedPath) -> DirectorySubscriptions {
+    DirectorySubscriptions {
+      explicit: self.contains(path),
+      parent: None,
+    }
+  }
 }
 
-impl<'a> DependencyFinder<'a> {
+struct DependencyFinder<'a, D = WatcherManager> {
+  files: &'a InternedPathDashSet,
+  directories: &'a D,
+  missing: &'a InternedPathDashSet,
+}
+
+impl<D: ContextLookup> DependencyFinder<'_, D> {
   /// Finds all registered dependencies related to the given path.
   ///
   /// This method checks if the path is a directory or file and then determines if it is registered
@@ -51,8 +57,7 @@ impl<'a> DependencyFinder<'a> {
       paths.push((path.clone(), kind));
     }
 
-    // Recursively add all parent directories that are registered as directories or missing.
-    self.recurse_parent_directories(path, &mut paths);
+    self.collect_parent_dependencies(path, &mut paths);
 
     paths
   }
@@ -64,29 +69,27 @@ impl<'a> DependencyFinder<'a> {
 
   /// Checks if the given path is registered as a directory or missing.
   fn contains_directory(&self, path: &InternedPath) -> bool {
-    self.directories.contains(path) || self.missing.contains(path)
+    self.directories.subscriptions(path).explicit || self.missing.contains(path)
   }
 
   fn contains_path(&self, path: &InternedPath) -> bool {
-    self.files.contains(path) || self.directories.contains(path) || self.missing.contains(path)
+    self.contains_file(path) || self.directories.subscriptions(path).explicit
   }
 
-  /// Recursively adds all parent directories that are registered as directories or missing.
-  fn recurse_parent_directories(
+  fn collect_parent_dependencies(
     &self,
     path: &InternedPath,
     paths: &mut Vec<(InternedPath, FsEventKind)>,
   ) {
-    match path.parent() {
-      Some(parent) => {
-        if self.contains_directory(&InternedPath::from(parent)) {
-          // For parent directory, it always FsEventKind::Change its recursive children no matter what kind is
-          paths.push((InternedPath::from(parent), FsEventKind::Change));
-        }
-        self.recurse_parent_directories(&InternedPath::from(parent), paths);
-      }
-      None => {
-        // Reached the root directory, stop recursion
+    let mut parent = path.parent().map(InternedPath::from);
+    while let Some(directory) = parent {
+      let subscriptions = self.directories.subscriptions(&directory);
+      // An event can arrive before a new directory was scanned or after its members were swept.
+      parent = subscriptions
+        .parent
+        .or_else(|| directory.parent().map(InternedPath::from));
+      if subscriptions.explicit || self.missing.contains(&directory) {
+        paths.push((directory, FsEventKind::Change));
       }
     }
   }
@@ -105,7 +108,7 @@ struct EventProcessor {
   /// Shared reference to the path register, which tracks watched files/directories/missing.
   path_manager: Arc<PathManager>,
   /// Sender for communicating file system events to the watcher executor.
-  tx: UnboundedSender<EventBatch>,
+  tx: UnboundedSender<ResolvedEvents>,
   analyzer: Arc<RecommendedAnalyzer>,
 }
 
@@ -124,6 +127,8 @@ pub struct Trigger {
 enum Origin {
   /// The OS watcher; `appeared` when it created or renamed the path into place.
   Disk { appeared: bool },
+  /// An explicit event supplied through `FsWatcher::trigger_event`.
+  Injected,
   /// A scan, for what changed while the watch was not active yet: a file a
   /// context's initial scan found changed since the start time, or a
   /// registered path the scanner backfills. Already judged a change, it is
@@ -133,7 +138,7 @@ enum Origin {
 
 impl Trigger {
   /// Create a new `Trigger` with the given path register and event sender.
-  pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<EventBatch>) -> Self {
+  pub fn new(path_manager: Arc<PathManager>, tx: UnboundedSender<ResolvedEvents>) -> Self {
     let (pending, mut incoming) = unbounded_channel::<(InternedPath, FsEventKind, Origin)>();
     let analyzer = Arc::default();
     let processor = EventProcessor {
@@ -166,11 +171,10 @@ impl Trigger {
     Self { pending, analyzer }
   }
 
-  /// Hands a raw event to the filter thread. Never blocks — this runs straight
-  /// from the OS watcher callback.
+  /// Queues an explicit event from `FsWatcher::trigger_event` without blocking.
   pub fn on_event(&self, path: &InternedPath, kind: FsEventKind) {
     self.analyzer.invalidate_path(path);
-    self.on_disk_event(path, kind, kind == FsEventKind::Create);
+    let _ = self.pending.send((path.clone(), kind, Origin::Injected));
   }
 
   /// Preserves whether an OS event created or renamed a path into place,
@@ -225,7 +229,8 @@ impl EventProcessor {
   /// - `/path`
   /// - `/path/to`
   async fn process(&self, path: &InternedPath, kind: FsEventKind, origin: Origin) {
-    let appeared = matches!(origin, Origin::Disk { appeared: true });
+    let appeared = matches!(origin, Origin::Disk { appeared: true })
+      || (matches!(origin, Origin::Injected) && kind == FsEventKind::Create);
     // Drop events inside ignored subtrees. The recursive-root watch delivers
     // events for unregistered paths (e.g. the build-output dir); left through,
     // `find_associated_event` bubbles them to a registered parent and triggers
@@ -239,15 +244,19 @@ impl EventProcessor {
     // how the OS reported the event. macOS FSEvents reports an unlink as a
     // rename (`ModifyKind::Name` → `Change`), so normalize a `Change` whose
     // path is gone into a `Remove`, keeping the event kind consistent with
-    // inotify (which already reports `Remove`). Done before the stale-event
+    // inotify (which already reports `Remove`). A delayed `Create` whose
+    // path has already disappeared is also a removal. Done before the stale-event
     // filter below, which only applies to `Change`/`Create`.
     // The reverse holds too: a removal of a path back on disk (unlinked and
     // re-created) ends as the path's final state, like watchpack's lstat on
-    // each event. Its records still go, so it is taken as new.
-    let removed = kind == FsEventKind::Remove;
+    // each event. Keep its records unless the absence was observed, so an
+    // unchanged aged mtime is suppressed just as it is by watchpack. Explicit and
+    // scanned removals already declare the old record invalid.
+    let removed = kind == FsEventKind::Remove && !matches!(origin, Origin::Disk { .. });
+    let initial_missing = removed && matches!(origin, Origin::Scan);
     let exists = std::fs::symlink_metadata(path).is_ok();
     let kind = match kind {
-      FsEventKind::Change if !exists => FsEventKind::Remove,
+      FsEventKind::Change | FsEventKind::Create if !exists => FsEventKind::Remove,
       FsEventKind::Remove if exists => FsEventKind::Change,
       kind => kind,
     };
@@ -313,6 +322,29 @@ impl EventProcessor {
       }
     }
 
+    let context_removal = (kind == FsEventKind::Remove
+      && !initial_missing
+      && associated_event
+        .iter()
+        .any(|(associated, kind)| associated != path && *kind == FsEventKind::Change))
+    .then(|| path.clone());
+    let context_only_removal = context_removal.is_some() && !finder.contains_file(path);
+    if context_removal.is_some() {
+      associated_event.retain_mut(|(associated, associated_kind)| {
+        if *associated_kind == FsEventKind::Remove && !finder.contains_file(associated) {
+          if associated == path {
+            return false;
+          }
+          *associated_kind = FsEventKind::Change;
+        }
+        true
+      });
+    }
+    let raw = (!associated_event.is_empty() && !context_only_removal).then(|| FsEvent {
+      path: path.clone(),
+      kind,
+    });
+    let mut recovered = Vec::new();
     if appeared && path.is_dir() && !path.is_symlink() {
       // On Linux, inotify adds a new directory's watch before emitting its
       // Create event, so files written before that watch existed are already
@@ -345,7 +377,14 @@ impl EventProcessor {
             {
               continue;
             }
-            associated_event.extend(finder.find_associated_event(&entry_path, FsEventKind::Create));
+            let associated = finder.find_associated_event(&entry_path, FsEventKind::Create);
+            if !associated.is_empty() {
+              recovered.push(FsEvent {
+                path: entry_path.clone(),
+                kind: FsEventKind::Create,
+              });
+              associated_event.extend(associated);
+            }
           }
           // DirEntry::file_type does not follow symlinks.
           if file_type.is_dir() {
@@ -361,34 +400,42 @@ impl EventProcessor {
         self.analyzer.invalidate_path(associated);
       }
     }
-    self.trigger_events(associated_event);
+    self.trigger_events(associated_event, raw, recovered, context_removal);
   }
   /// Helper to construct a `DependencyFinder` for the current path register state.
   fn finder(&self) -> DependencyFinder<'_> {
     let accessor = self.path_manager.access();
 
     let files = accessor.files().0;
-    let directories = accessor.directories().0;
     let missing = accessor.missing().0;
 
     DependencyFinder {
       files,
-      directories,
+      directories: &self.path_manager.watchers,
       missing,
     }
   }
 
   /// Sends a group of file system events for the given path and event kind.
   /// If the event is successfully sent, it returns true; otherwise, it returns false.
-  fn trigger_events(&self, events: Vec<(InternedPath, FsEventKind)>) -> bool {
+  fn trigger_events(
+    &self,
+    events: Vec<(InternedPath, FsEventKind)>,
+    raw: Option<FsEvent>,
+    recovered: EventBatch,
+    context_removal: Option<InternedPath>,
+  ) -> bool {
     self
       .tx
-      .send(
-        events
+      .send(ResolvedEvents {
+        dependencies: events
           .into_iter()
           .map(|(path, kind)| FsEvent { path, kind })
           .collect(),
-      )
+        raw,
+        recovered,
+        context_removal,
+      })
       .is_ok()
   }
 }

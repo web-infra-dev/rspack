@@ -188,7 +188,7 @@ impl Module for DelegatedModule {
   }
 
   async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
-    Ok(false)
+    Ok(self.build_meta.frozen().is_none())
   }
 
   async fn get_runtime_hash(
@@ -209,11 +209,7 @@ impl Identifiable for DelegatedModule {
   fn identifier(&self) -> Identifier {
     format!(
       "delegated {} from {}",
-      self
-        .request
-        .as_ref()
-        .map(|r| r.to_string())
-        .unwrap_or_default(),
+      self.request.as_ref().map_or_default(|r| r.to_string()),
       self.source_request
     )
     .into()

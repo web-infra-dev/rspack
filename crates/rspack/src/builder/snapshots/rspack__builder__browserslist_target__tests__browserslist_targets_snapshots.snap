@@ -87,6 +87,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -94,6 +100,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -180,6 +189,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -187,6 +202,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -273,6 +291,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -280,6 +304,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -366,6 +393,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -373,6 +406,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -459,6 +495,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -466,6 +508,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -552,6 +597,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -559,6 +610,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -645,6 +699,12 @@ expression: results
             optional_chaining: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -652,6 +712,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -738,6 +801,12 @@ expression: results
             optional_chaining: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -745,6 +814,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -831,6 +903,12 @@ expression: results
             optional_chaining: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -838,6 +916,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -924,6 +1005,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -931,6 +1018,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1017,6 +1107,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1024,6 +1120,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1110,6 +1209,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1117,6 +1222,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1203,6 +1311,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -1210,6 +1324,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1296,6 +1413,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1303,6 +1426,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1389,6 +1515,12 @@ expression: results
             optional_chaining: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1396,6 +1528,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                true,
+            ),
         },
     ),
     (
@@ -1482,6 +1617,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1489,6 +1630,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1575,6 +1719,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1582,6 +1732,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1668,6 +1821,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1675,6 +1834,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1761,6 +1923,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1768,6 +1936,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1854,6 +2025,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1861,6 +2038,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -1947,6 +2127,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -1954,6 +2140,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2040,6 +2229,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -2047,6 +2242,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2133,6 +2331,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -2140,6 +2344,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2226,6 +2433,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -2233,6 +2446,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2319,6 +2535,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -2326,6 +2548,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2412,6 +2637,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -2419,6 +2650,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2505,6 +2739,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -2512,6 +2752,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2598,6 +2841,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -2605,6 +2854,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2691,6 +2943,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -2698,6 +2956,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2784,6 +3045,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -2791,6 +3058,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2877,6 +3147,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -2884,6 +3160,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -2970,6 +3249,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -2977,6 +3262,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -3063,6 +3351,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -3070,6 +3364,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -3156,6 +3453,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -3163,6 +3466,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -3250,6 +3556,12 @@ expression: results
             optional_chaining: Some(
                 true,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -3257,6 +3569,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -3328,6 +3643,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                true,
+            ),
+            symbol: Some(
+                true,
+            ),
             template_literal: Some(
                 true,
             ),
@@ -3335,6 +3656,9 @@ expression: results
                 true,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
     (
@@ -3421,6 +3745,12 @@ expression: results
             optional_chaining: Some(
                 false,
             ),
+            spread: Some(
+                false,
+            ),
+            symbol: Some(
+                false,
+            ),
             template_literal: Some(
                 false,
             ),
@@ -3428,6 +3758,9 @@ expression: results
                 false,
             ),
             import_meta_dirname_and_filename: None,
+            top_level_await: Some(
+                false,
+            ),
         },
     ),
 ]

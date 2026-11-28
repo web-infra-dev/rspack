@@ -8,7 +8,7 @@
   {
     "type": "dir-section-header",
     "name": "runtime-api",
-    "label": "运行时 API"
+    "label": "Rspack 运行时 API"
   },
   {
     "type": "dir-section-header",

@@ -6,10 +6,11 @@ use rspack_util::json_stringify;
 
 use super::AffectType;
 use crate::{
-  AsContextDependency, AsDependencyCodeGeneration, Context, ContextNameSpaceObject, Dependency,
-  DependencyCategory, DependencyId, DependencyType, ExportsInfoArtifact, ImportAttributes,
-  ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ReferencedExport,
-  ReferencedSpecifier, ResourceIdentifier, RuntimeSpec, create_exports_object_referenced,
+  AsContextDependency, AsDependencyCodeGeneration, Context, ContextNameSpaceObject,
+  ContextTypePrefix, Dependency, DependencyCategory, DependencyId, DependencyType,
+  ExportsInfoArtifact, ImportAttributes, ModuleDependency, ModuleGraph, ModuleGraphCacheArtifact,
+  ModuleLayer, ReferencedExport, ReferencedSpecifier, ResourceIdentifier, RuntimeSpec,
+  create_dynamic_import_referenced_exports, create_exports_object_referenced,
   create_referenced_exports_by_referenced_specifiers,
 };
 
@@ -89,6 +90,13 @@ impl Dependency for ContextElementDependency {
       else {
         return create_exports_object_referenced();
       };
+      if parent_module
+        .get_context_options()
+        .phase
+        .is_some_and(|phase| phase.is_source())
+      {
+        return create_exports_object_referenced();
+      }
       let Some(imported_module) = module_graph.get_module_by_dependency_id(&self.id) else {
         return create_exports_object_referenced();
       };
@@ -102,10 +110,19 @@ impl Dependency for ContextElementDependency {
         exports_info_artifact,
         is_strict,
       );
-      create_referenced_exports_by_referenced_specifiers(
+      let create_referenced_exports = if matches!(
+        self.dependency_type,
+        DependencyType::ContextElement(ContextTypePrefix::Import)
+      ) {
+        create_dynamic_import_referenced_exports
+      } else {
+        create_referenced_exports_by_referenced_specifiers
+      };
+      create_referenced_exports(
         referenced_specifiers,
         exports_type,
-        imported_module.build_info().json_data.is_some(),
+        exports_info_artifact,
+        exports_info_artifact.get_exports_info_data(&imported_module.identifier()),
       )
     } else {
       create_exports_object_referenced()

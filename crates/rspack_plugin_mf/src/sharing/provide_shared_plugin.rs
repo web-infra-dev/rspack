@@ -273,8 +273,8 @@ async fn normal_module_factory_module(
   create_data: &NormalModuleCreateData,
   _module: &mut BoxModule,
 ) -> Result<()> {
-  let resource = create_data.resource_resolve_data.resource();
-  let resource_data = create_data.resource_resolve_data.as_ref();
+  let resource_data = create_data.resource_resolve_data();
+  let resource = resource_data.resource();
   if self
     .resolved_provide_map
     .read()

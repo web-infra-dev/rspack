@@ -529,11 +529,11 @@ impl<'a> JavaScriptTransformer<'a> {
   pub fn input_source_map(
     &self,
     input_src_map: &InputSourceMap,
-  ) -> Result<Option<RspackSourceMap<'static>>, anyhow::Error> {
+  ) -> Result<Option<RspackSourceMap>, anyhow::Error> {
     let fm = &self.fm;
     let name = &self.fm.name;
     let read_inline_sourcemap =
-      |data_url: Option<&str>| -> Result<Option<RspackSourceMap<'static>>, anyhow::Error> {
+      |data_url: Option<&str>| -> Result<Option<RspackSourceMap>, anyhow::Error> {
         match data_url {
           Some(data_url) => {
             let url = Url::parse(data_url)
@@ -563,7 +563,7 @@ impl<'a> JavaScriptTransformer<'a> {
       };
 
     let read_file_sourcemap =
-      |data_url: Option<&str>| -> Result<Option<RspackSourceMap<'static>>, anyhow::Error> {
+      |data_url: Option<&str>| -> Result<Option<RspackSourceMap>, anyhow::Error> {
         match name.as_ref() {
           FileName::Real(filename) => {
             let dir = match filename.parent() {
@@ -632,7 +632,7 @@ impl<'a> JavaScriptTransformer<'a> {
         }
       };
 
-    let read_sourcemap = || -> Option<RspackSourceMap<'static>> {
+    let read_sourcemap = || -> Option<RspackSourceMap> {
       let s = "sourceMappingURL=";
       let idx = fm.src.rfind(s);
 

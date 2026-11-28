@@ -27,3 +27,7 @@ doctest = false
 [[test]]
 name = "test"
 path = "tests/test.rs"
+
+[package.metadata.cargo-shear]
+# Linked from src/dependency_types.rs and src/lexer.rs via #[path].
+ignored-paths = ["tests/dependency_types_tests.rs", "tests/lexer_tests.rs"]

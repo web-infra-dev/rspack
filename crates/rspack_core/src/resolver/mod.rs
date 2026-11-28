@@ -10,11 +10,11 @@ use std::{
 
 use regex::Regex;
 use rspack_cacheable::{cacheable, with::AsPreset};
-use rspack_error::Error;
+use rspack_error::{Error, cyan, yellow};
 use rspack_fs::ReadableFileSystem;
 use rspack_loader_runner::{DescriptionData, ResourceData};
 use rspack_paths::{AssertUtf8, Utf8PathBuf};
-use rspack_util::identifier::insert_zero_width_space_for_fragment;
+use rspack_util::identifier::format_resolved_resource;
 use sugar_path::SugarPath;
 
 pub use self::{
@@ -84,29 +84,14 @@ impl Eq for Resource {}
 impl Resource {
   /// Get the full path with query and fragment attached.
   pub fn full_path(&self) -> String {
-    let mut buf = String::with_capacity(
-      self
-        .path
-        .as_str()
-        .len()
-        .saturating_add(self.query.len())
-        .saturating_add(self.fragment.len()),
-    );
-    buf.push_str(&insert_zero_width_space_for_fragment(self.path.as_str()));
-    buf.push_str(&insert_zero_width_space_for_fragment(&self.query));
-    buf.push_str(&self.fragment);
-    buf
+    format_resolved_resource(self.path.as_str(), &self.query, &self.fragment)
   }
 }
 
 impl From<Resource> for ResourceData {
   fn from(resource: Resource) -> Self {
-    let mut resource_data = Self::new_with_path(
-      resource.full_path(),
-      resource.path,
-      Some(resource.query),
-      Some(resource.fragment),
-    );
+    let mut resource_data =
+      Self::new_with_resolved_path(resource.path, resource.query, resource.fragment);
     resource_data.set_description_optional(resource.description_data);
     resource_data
   }
@@ -155,7 +140,7 @@ pub async fn resolve_for_error_hints(
         .as_std_path()
         .relative(args.context)
         .assert_utf8();
-      let suggestion = if let Some((_, [prefix])) = CURRENT_DIR_REGEX
+      let suggested_path = if let Some((_, [prefix])) = CURRENT_DIR_REGEX
         .captures_iter(args.specifier)
         .next()
         .map(|c| c.extract())
@@ -172,14 +157,16 @@ pub async fn resolve_for_error_hints(
         // then we return the full path.
         resource.path.as_str().to_string()
       };
-      return Some(format!("Did you mean '{}'?
-
-The request '{}' failed to resolve only because it was resolved as fully specified,
-probably because the origin is strict ECMAScript Module,
-e. g. a module with javascript mimetype, a '*.mjs' file, or a '*.js' file where the package.json contains '\"type\": \"module\"'.
-
-The extension in the request is mandatory for it to be fully specified.
-Add the extension to the request.", suggestion, args.specifier));
+      let suggestion =
+        format_resolved_resource(&suggested_path, &resource.query, &resource.fragment);
+      let resolution = match args.dependency_category {
+        DependencyCategory::Esm => "Strict ESM resolution",
+        _ => "`resolve.fullySpecified`",
+      };
+      return Some(format!(
+        "Did you mean {}? {resolution} requires an explicit filename and extension, even for a directory's index file.",
+        yellow(&format_args!("'{suggestion}'"))
+      ));
     }
   }
 
@@ -202,20 +189,21 @@ Add the extension to the request.", suggestion, args.specifier));
     let request = format!("./{}", args.specifier);
     if resolver.resolve(base_dir, &request).await.is_ok() {
       return Some(format!(
-          "Did you mean './{}'?
+          "Did you mean {}?
 
 Requests that should resolve in the current directory need to start with './'.
 Requests that start with a name are treated as module requests and resolve within module directories{module_directories}
 
-If changing the source code is not an option, there is also a resolve options called 'preferRelative'
+If changing the source code is not an option, there is also a resolve options called '{}'
 which tries to resolve these kind of requests in the current directory too.",
-          args.specifier
+          yellow(&format_args!("'{request}'")),
+          cyan(&"preferRelative")
         ));
     }
   }
 
   // try to resolve relative path with extension
-  if RELATIVE_PATH_REGEX.is_match(args.specifier) {
+  if !args.resolve_to_context && RELATIVE_PATH_REGEX.is_match(args.specifier) {
     let connected_path = base_dir.join(args.specifier);
     let normalized_path = connected_path.absolutize();
 
@@ -244,12 +232,7 @@ which tries to resolve these kind of requests in the current directory too.",
     {
       // read the files in the parent directory
       if let Ok(files) = fs.read_dir(&parent_path).await {
-        let mut requested_names = vec![
-          file_name
-            .to_str()
-            .map(|f| f.to_string())
-            .unwrap_or_default(),
-        ];
+        let mut requested_names = vec![file_name.to_str().map_or_default(|f| f.to_string())];
         if is_resolving_dir {
           // The request maybe is like `./` or `./dir` to resolve the main file (e.g.: index) in directory
           // So we need to check them.
@@ -295,9 +278,13 @@ which tries to resolve these kind of requests in the current directory too.",
           "Found module '{suggestion}'. However, it's not possible to request this module without the extension 
 if its extension was not listed in the `resolve.extensions`. Here're some possible solutions:
 
-1. add the extension `\".{suggestion_ext}\"` to `resolve.extensions` in your rspack configuration
-2. use '{suggestion}' instead of '{specifier}'
-"));
+1. add the extension `{extension}` to `{option}` in your rspack configuration
+2. use {replacement} instead of '{specifier}'
+",
+          extension = cyan(&format_args!("\".{suggestion_ext}\"")),
+          option = cyan(&"resolve.extensions"),
+          replacement = yellow(&format_args!("'{suggestion}'")),
+          ));
         }
 
         return Some(hint.join("\n"));

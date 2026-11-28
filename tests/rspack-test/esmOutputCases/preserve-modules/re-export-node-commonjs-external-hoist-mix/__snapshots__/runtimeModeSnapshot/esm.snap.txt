@@ -33,9 +33,9 @@ export { readFile as readFileHoisted, readFileSync as readFileSyncHoisted };
 
 ```mjs title=index.mjs
 import { rspackRequire } from "./runtime.mjs";
+import "./hoisted.mjs";
 import "./wrapped.mjs";
 import "./fs.mjs";
-import "./hoisted.mjs";
 
 // ./src/index.js
 const wrapped_0 = rspackRequire("./src/wrapped.js");
@@ -94,17 +94,6 @@ export { rspackRequire };
 var moduleFactories = modules;
 export { moduleFactories };
 
-// rspack/runtime/compat_get_default_export
-// getDefaultExport function for compatibility with non-ESM modules
-var compatGetDefaultExport = (module) => {
-	var getter = module && module.__esModule ?
-		() => (module['default']) :
-		() => (module);
-	definePropertyGetters(getter, { a: getter });
-	return getter;
-};
-;
-export { compatGetDefaultExport };
 // rspack/runtime/define_property_getters
 var definePropertyGetters = (exports, getters, values) => {
 	var define = (defs, kind) => {
@@ -141,7 +130,7 @@ var hasOwnProperty = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, p
 ```
 
 ```mjs title=wrapped.mjs
-import { rspackRequire, moduleFactories, definePropertyGetters, compatGetDefaultExport, esmModuleDecorator } from "./runtime.mjs";
+import { rspackRequire, moduleFactories, definePropertyGetters, esmModuleDecorator } from "./runtime.mjs";
 import "./fs.mjs";
 
 moduleFactories.add({
@@ -151,7 +140,6 @@ moduleFactories.add({
   \************************/
 (module, exports) {
 /* import */ var fs__rspack_import_0 = rspackRequire(/*! fs */ "fs");
-/* import */ var fs__rspack_import_0_default = /*#__PURE__*/compatGetDefaultExport(fs__rspack_import_0);
 /* module decorator */ module = esmModuleDecorator(module);
 
 

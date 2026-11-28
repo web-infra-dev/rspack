@@ -11,8 +11,8 @@ use regex::Regex;
 use rspack_core::{
   ChunkGraph, Compilation, CompiledStringTemplate, CompilerOptions, CssExportType,
   CssExportsConvention, CssModuleGeneratorOptions, CssModuleRenderCondition, Dependency,
-  FileReplacements, FilenameRenderValue, GeneratorOptions, ImportAttributes, LocalIdentName,
-  Module, NormalModuleCreateData, PathData, PlaceholderKind, ResourceData,
+  FileReplacements, GeneratorOptions, ImportAttributes, LocalIdentName, Module,
+  NormalModuleCreateData, PathData, PlaceholderKind, ResourceData,
 };
 use rspack_error::{Diagnostic, Error, Severity};
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHashDigest, RspackHasher};
@@ -28,9 +28,12 @@ use crate::{
 };
 
 pub const AUTO_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_AUTO_PUBLIC_PATH__";
+pub const RUNTIME_PUBLIC_PATH_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_RUNTIME_PUBLIC_PATH__";
 pub const CSS_MODULE_ID_PLACEHOLDER: &str = "__RSPACK_PLUGIN_CSS_MODULE_ID__";
 pub(crate) static AUTO_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
   LazyLock::new(|| PlaceholderFinder::new(AUTO_PUBLIC_PATH_PLACEHOLDER));
+pub(crate) static RUNTIME_PUBLIC_PATH_MATCHER: LazyLock<PlaceholderFinder> =
+  LazyLock::new(|| PlaceholderFinder::new(RUNTIME_PUBLIC_PATH_PLACEHOLDER));
 static CSS_MODULE_ID_MATCHER: LazyLock<PlaceholderFinder> =
   LazyLock::new(|| PlaceholderFinder::new(CSS_MODULE_ID_PLACEHOLDER));
 pub static LEADING_DIGIT_REGEX: LazyLock<Regex> =
@@ -49,19 +52,16 @@ pub(crate) fn source_order_to_i32(source_order: u32) -> i32 {
 }
 
 pub(crate) fn css_module_export_type(module: &dyn Module) -> Option<CssExportType> {
-  module
-    .build_info()
-    .css
-    .as_deref()
-    .and_then(|css| css.export_type)
-    .or_else(|| {
-      module.as_normal_module().and_then(|module| {
-        module
-          .parser_and_generator()
-          .downcast_ref::<CssParserAndGenerator>()
-          .and_then(|parser_and_generator| parser_and_generator.export_type)
-      })
-    })
+  let build_info = module.build_info();
+  if let Some(parser_and_generator) = module.as_normal_module().and_then(|module| {
+    module
+      .parser_and_generator()
+      .downcast_ref::<CssParserAndGenerator>()
+  }) {
+    parser_and_generator.effective_export_type(&build_info)
+  } else {
+    build_info.css.as_deref().and_then(|css| css.export_type)
+  }
 }
 
 pub(crate) fn css_render_conditions_from_module(
@@ -71,8 +71,7 @@ pub(crate) fn css_render_conditions_from_module(
     .build_info()
     .css
     .as_deref()
-    .map(|css| css.render_conditions().cloned().collect())
-    .unwrap_or_default()
+    .map_or_default(|css| css.render_conditions().cloned().collect())
 }
 
 pub(crate) fn css_module_has_charset(module: &dyn Module) -> bool {
@@ -138,8 +137,7 @@ pub(crate) fn css_dependency_meta(dependency: &dyn Dependency) -> CssDependencyM
     is_css_import_dependency,
     is_css_dependency,
     render_conditions: css_import_dependency
-      .map(|dep| dep.render_conditions().cloned().collect())
-      .unwrap_or_default(),
+      .map_or_default(|dep| dep.render_conditions().cloned().collect()),
     export_type: css_dependency_export_type(dependency)
       .or_else(|| css_attribute_export_type(dependency.get_attributes())),
   }
@@ -179,6 +177,10 @@ impl LocalIdentRenderCache {
       .has_placeholder(PlaceholderKind::FullHash)
   }
 
+  fn has_id_placeholder(&self) -> bool {
+    self.compiled_template.has_placeholder(PlaceholderKind::Id)
+  }
+
   fn new(options: &LocalIdentOptions<'_>) -> Self {
     let output = &options.compiler_options.output;
     let compiled_template = options
@@ -189,8 +191,11 @@ impl LocalIdentRenderCache {
     let content_hash = if compiled_template.has_placeholder(PlaceholderKind::ContentHash) {
       let mut hasher = RspackHasher::new(&output.hash_function);
       hasher.write(options.source.as_bytes());
-      let hash = hasher.digest(&output.hash_digest);
-      non_numeric_only_hash(hash.encoded(), output.hash_digest_length)
+      hasher
+        .digest(&output.hash_digest)
+        .non_numeric_only(output.hash_digest_length)
+        .rendered(output.hash_digest_length)
+        .to_string()
     } else {
       String::new()
     };
@@ -339,6 +344,13 @@ impl<'a> LocalIdentOptions<'a> {
       .replace(&local_ident, "_${1}")
       .into_owned()
   }
+
+  pub fn has_id_placeholder(&self) -> bool {
+    self
+      .render_cache
+      .get()
+      .is_some_and(LocalIdentRenderCache::has_id_placeholder)
+  }
 }
 
 pub fn replace_css_module_id_placeholder<'a>(
@@ -347,12 +359,24 @@ pub fn replace_css_module_id_placeholder<'a>(
   module: &dyn Module,
 ) -> Cow<'a, str> {
   if let Some(custom_property_ident) = local_ident.strip_prefix("--") {
-    let local_ident = replace_css_module_id_placeholder(custom_property_ident, compilation, module);
-    return Cow::Owned(format!("--{local_ident}"));
+    return match replace_css_module_id_placeholder(custom_property_ident, compilation, module) {
+      Cow::Borrowed(_) => Cow::Borrowed(local_ident),
+      Cow::Owned(replaced) => Cow::Owned(format!("--{replaced}")),
+    };
   }
 
-  let module_id = css_module_id_for_local_ident(compilation, module);
-  replace_css_module_id_placeholder_with_id(local_ident, &module_id)
+  let local_ident = CSS_MODULE_ID_MATCHER.replace_with(local_ident, || {
+    let module_id = css_module_id_for_local_ident(compilation, module);
+    Cow::Owned(prepare_css_module_id(&module_id).into_owned())
+  });
+  let Cow::Owned(local_ident) = local_ident else {
+    return local_ident;
+  };
+  Cow::Owned(
+    LEADING_DIGIT_REGEX
+      .replace(&local_ident, "_${1}")
+      .into_owned(),
+  )
 }
 
 fn css_module_id_for_local_ident(compilation: &Compilation, module: &dyn Module) -> String {
@@ -397,22 +421,6 @@ fn get_css_module_id_hash(value: impl Hash, length: usize) -> String {
   hash
 }
 
-pub fn replace_css_module_id_placeholder_with_id<'a>(
-  local_ident: &'a str,
-  module_id: &str,
-) -> Cow<'a, str> {
-  let local_ident =
-    CSS_MODULE_ID_MATCHER.replace_with(local_ident, || prepare_css_module_id(module_id));
-  let Cow::Owned(local_ident) = local_ident else {
-    return local_ident;
-  };
-  Cow::Owned(
-    LEADING_DIGIT_REGEX
-      .replace(&local_ident, "_${1}")
-      .into_owned(),
-  )
-}
-
 static PREPARE_CSS_MODULE_ID_START_REGEX: LazyLock<Regex> =
   LazyLock::new(|| Regex::new(r"^([.-]|[^a-zA-Z0-9_-])+").expect("invalid Regex"));
 static PREPARE_CSS_MODULE_ID_REGEX: LazyLock<Regex> =
@@ -438,24 +446,6 @@ struct LocalIdentNameRenderOptions<'a> {
   folder: &'a str,
 }
 
-fn non_numeric_only_hash(hash: &str, hash_length: usize) -> String {
-  if hash_length < 1 {
-    return String::new();
-  }
-  let len = hash_length.min(hash.len());
-  let slice = &hash[..len];
-  if slice.bytes().any(|b| !b.is_ascii_digit()) {
-    return slice.to_string();
-  }
-  let first = hash
-    .as_bytes()
-    .first()
-    .copied()
-    .filter(u8::is_ascii_digit)
-    .map_or(0, |b| b - b'0');
-  format!("{}{}", char::from(b'a' + (first % 6)), &slice[1..])
-}
-
 impl LocalIdentNameRenderOptions<'_> {
   pub fn render_local_ident_name(self) -> String {
     self
@@ -465,14 +455,10 @@ impl LocalIdentNameRenderOptions<'_> {
         self.file_replacements,
         None,
         |placeholder| match placeholder.kind() {
-          PlaceholderKind::FullHash => Some(FilenameRenderValue::Value(Cow::Borrowed(
-            self.local_ident_hash,
-          ))),
-          PlaceholderKind::UniqueName => {
-            Some(FilenameRenderValue::Value(Cow::Borrowed(self.unique_name)))
-          }
-          PlaceholderKind::Local => Some(FilenameRenderValue::Value(Cow::Borrowed(self.local))),
-          PlaceholderKind::Folder => Some(FilenameRenderValue::Value(Cow::Borrowed(self.folder))),
+          PlaceholderKind::FullHash => Some(Cow::Borrowed(self.local_ident_hash)),
+          PlaceholderKind::UniqueName => Some(Cow::Borrowed(self.unique_name)),
+          PlaceholderKind::Local => Some(Cow::Borrowed(self.local)),
+          PlaceholderKind::Folder => Some(Cow::Borrowed(self.folder)),
           _ => None,
         },
       )

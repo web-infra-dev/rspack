@@ -70,7 +70,11 @@ export const LightningCssMinimizerRspackPlugin = create(
         exclude: exclude ? toFeatures(exclude) : undefined,
         targets,
         drafts: drafts
-          ? { customMedia: drafts.customMedia ?? false }
+          ? {
+              customMedia: drafts.customMedia ?? false,
+              scrollNavigationControls:
+                drafts.scrollNavigationControls ?? false,
+            }
           : undefined,
         nonStandard: nonStandard
           ? {

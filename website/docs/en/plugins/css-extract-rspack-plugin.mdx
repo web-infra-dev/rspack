@@ -10,7 +10,7 @@ import { ApiMeta } from '@components/ApiMeta.tsx';
 
 `CssExtractRspackPlugin` works with [css-loader](https://github.com/webpack/css-loader) to extract CSS imported by JavaScript modules into separate files. In Rspack, use it as an alternative to [mini-css-extract-plugin](https://github.com/webpack/mini-css-extract-plugin), or whenever your project needs css-loader features.
 
-By default, CSS in entry chunks is emitted as `[name].css`. CSS loaded through dynamic `import()` is handled by runtime code injected by the plugin.
+By default, CSS in entry chunks is emitted as `[name].css`. CSS loaded through dynamic `import()` is handled by Rspack runtime code injected by the plugin.
 
 If your project does not need css-loader, prefer Rspack's [built-in CSS support](/guide/languages/css) to avoid the extra loader and plugin processing.
 
@@ -217,9 +217,9 @@ new rspack.CssExtractRspackPlugin({
 
 - **Default:** `undefined`
 
-Sets the insertion position of stylesheet `<link>` elements created by the plugin runtime for async CSS chunks and HMR updates. It does not affect stylesheet links already present in HTML.
+Sets the insertion position of stylesheet `<link>` elements created by the Rspack runtime for async CSS chunks and HMR updates. It does not affect stylesheet links already present in HTML.
 
-When omitted, the runtime appends a new async stylesheet to `document.head`. During a hot update, it inserts the replacement after the previous stylesheet.
+When omitted, the Rspack runtime appends a new async stylesheet to `document.head`. During a hot update, it inserts the replacement after the previous stylesheet.
 
 - **String:** Treats the value as a selector passed to `document.querySelector()` and inserts the stylesheet immediately after the first matching element. The selector must match an element at runtime.
 
@@ -229,7 +229,7 @@ When omitted, the runtime appends a new async stylesheet to `document.head`. Dur
   });
   ```
 
-- **Function:** Serializes the function into the generated runtime and calls it in the browser with the new `<link>` element. The function must insert the element itself and cannot use variables from the Rspack configuration's scope.
+- **Function:** Serializes the function into the generated Rspack runtime and calls it in the browser with the new `<link>` element. The function must insert the element itself and cannot use variables from the Rspack configuration's scope.
 
   ```js
   new rspack.CssExtractRspackPlugin({
@@ -246,7 +246,7 @@ The `insert` option has no effect when [`runtime`](#runtime) is `false`.
 - **Type:** `Record<string, string>`
 - **Default:** `undefined`
 
-Adds custom attributes to stylesheet `<link>` elements created by the plugin runtime. These elements are used when loading async CSS chunks and applying HMR updates; stylesheet links already present in HTML are not affected. When omitted, the runtime adds no custom attributes.
+Adds custom attributes to stylesheet `<link>` elements created by the Rspack runtime. These elements are used when loading async CSS chunks and applying HMR updates; stylesheet links already present in HTML are not affected. When omitted, the Rspack runtime adds no custom attributes.
 
 ```js
 new rspack.CssExtractRspackPlugin({
@@ -263,9 +263,9 @@ Use [`linkType`](#linktype) to control the `type` attribute. When both options s
 - **Type:** `string | false`
 - **Default:** `'text/css'`
 
-Sets the `type` attribute on stylesheet `<link>` elements created by the plugin runtime. These elements are used when loading async CSS chunks and applying HMR updates; stylesheet links already present in HTML are not affected.
+Sets the `type` attribute on stylesheet `<link>` elements created by the Rspack runtime. These elements are used when loading async CSS chunks and applying HMR updates; stylesheet links already present in HTML are not affected.
 
-When omitted, the runtime sets the attribute to `text/css`.
+When omitted, the Rspack runtime sets the attribute to `text/css`.
 
 - **String:** Sets the `type` attribute to the provided value.
 
@@ -292,7 +292,7 @@ The `linkType` option has no effect when [`runtime`](#runtime) is `false`.
 
 Controls whether the plugin injects code that loads CSS for async chunks at runtime. Setting it to `false` still emits extracted CSS assets, but your application must load CSS for on-demand chunks itself.
 
-When omitted, the plugin includes the CSS-loading runtime.
+When omitted, the plugin includes CSS loading code in the Rspack runtime.
 
 When disabled, [`insert`](#insert), [`attributes`](#attributes), and [`linkType`](#linktype) cannot affect async CSS loading because the plugin does not create those `<link>` elements.
 

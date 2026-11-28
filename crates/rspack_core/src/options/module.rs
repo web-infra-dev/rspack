@@ -9,7 +9,7 @@ use bitflags::bitflags;
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_cacheable::{cacheable, with::Unsupported};
-use rspack_error::{Result, error};
+use rspack_error::Result;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHasher};
 use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
@@ -18,7 +18,7 @@ use rustc_hash::FxHashMap as HashMap;
 use smallvec::SmallVec;
 use tokio::sync::OnceCell;
 
-use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve};
+use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve, ResourceData};
 
 #[derive(Debug, Default)]
 pub struct ParserOptionsMap(HashMap<String, ParserOptions>);
@@ -926,6 +926,14 @@ impl GeneratorOptions {
       })
   }
 
+  pub fn asset_import_mode(&self) -> Option<AssetGeneratorImportMode> {
+    match self {
+      Self::Asset(options) => options.import_mode,
+      Self::AssetResource(options) => options.import_mode,
+      _ => None,
+    }
+  }
+
   pub fn asset_data_url(&self) -> Option<&AssetGeneratorDataUrl> {
     self
       .get_asset()
@@ -1126,6 +1134,7 @@ impl From<String> for DataUrlEncoding {
 #[derive(Debug, Clone, MergeFrom)]
 pub struct CssGeneratorOptions {
   pub exports_only: Option<bool>,
+  pub runtime_public_path: Option<bool>,
   pub es_module: Option<bool>,
 }
 
@@ -1134,6 +1143,7 @@ pub struct CssGeneratorOptions {
 pub struct CssModuleGeneratorOptions {
   pub exports_convention: Option<CssExportsConvention>,
   pub exports_only: Option<bool>,
+  pub runtime_public_path: Option<bool>,
   pub local_ident_hash_digest: Option<HashDigest>,
   pub local_ident_hash_digest_length: Option<u32>,
   pub local_ident_hash_function: Option<HashFunction>,
@@ -1150,6 +1160,7 @@ impl CssModuleGeneratorOptions {
       local_ident_hash_digest_length: Some(6),
       local_ident_hash_function: Some(HashFunction::Xxhash64),
       local_ident_name: Some("[uniqueName]-[id]-[local]".into()),
+      runtime_public_path: Some(false),
       es_module: Some(true),
       ..Default::default()
     }
@@ -1160,6 +1171,7 @@ impl From<&CssGeneratorOptions> for CssModuleGeneratorOptions {
   fn from(value: &CssGeneratorOptions) -> Self {
     Self {
       exports_only: value.exports_only,
+      runtime_public_path: value.runtime_public_path,
       es_module: value.es_module,
       ..Default::default()
     }
@@ -1281,6 +1293,7 @@ impl fmt::Debug for RuleSetCondition {
 pub enum DataRef<'a> {
   Str(&'a str),
   Value(&'a serde_json::Value),
+  Resource(&'a ResourceData),
 }
 
 impl<'s> From<&'s str> for DataRef<'s> {
@@ -1300,6 +1313,7 @@ impl DataRef<'_> {
     match self {
       Self::Str(s) => Some(s),
       Self::Value(v) => v.as_str(),
+      Self::Resource(resource) => Some(resource.resource()),
     }
   }
 
@@ -1307,6 +1321,11 @@ impl DataRef<'_> {
     match self {
       Self::Str(s) => serde_json::Value::String((*s).to_owned()),
       Self::Value(v) => (*v).to_owned(),
+      Self::Resource(resource) => serde_json::json!({
+        "path": resource.path().map_or_default(|path| path.as_str()),
+        "query": resource.query().unwrap_or_default(),
+        "fragment": resource.fragment().unwrap_or_default(),
+      }),
     }
   }
 }
@@ -1690,8 +1709,18 @@ pub struct ModuleRuleUseLoader {
 pub type FnUse =
   Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<ModuleRuleUseLoader>>> + Sync + Send>;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ModuleRule {
+  pub r#as: Option<Filename>,
+  pub one_of: Option<Vec<ModuleRule>>,
+  pub rules: Option<Vec<ModuleRule>>,
+  pub matcher: ModuleRuleMatcher,
+  /// Index into the owning `ModuleOptions::effects`.
+  pub effect: ModuleRuleEffectIndex,
+}
+
+#[derive(Debug, Default)]
+pub struct ModuleRuleMatcher {
   /// A conditional match matching an absolute path + query + fragment.
   /// Note:
   ///   This is a custom matching rule not initially designed by webpack.
@@ -1714,19 +1743,13 @@ pub struct ModuleRule {
   pub mimetype: Option<RuleSetConditionWithEmpty>,
   pub description_data: Option<DescriptionData>,
   pub with: Option<With>,
-  pub one_of: Option<Vec<ModuleRule>>,
-  pub rules: Option<Vec<ModuleRule>>,
-  pub effect: ModuleRuleEffect,
-  pub extract_source_map: Option<bool>,
 }
 
-pub type ModuleRuleId = u16;
-pub const MODULE_RULE_ID_UNASSIGNED: ModuleRuleId = ModuleRuleId::MAX;
-pub type ModuleRuleIds = SmallVec<[ModuleRuleId; 4]>;
+pub type ModuleRuleEffectIndex = usize;
+pub type ModuleRuleEffectIndices = SmallVec<[ModuleRuleEffectIndex; 4]>;
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ModuleRuleEffect {
-  pub id: ModuleRuleId,
   pub side_effects: Option<bool>,
   /// The `ModuleType` to use for the matched resource.
   pub r#type: Option<ModuleType>,
@@ -1739,20 +1762,11 @@ pub struct ModuleRuleEffect {
   pub extract_source_map: Option<bool>,
 }
 
-impl Default for ModuleRuleEffect {
-  fn default() -> Self {
-    Self {
-      id: MODULE_RULE_ID_UNASSIGNED,
-      side_effects: None,
-      r#type: None,
-      layer: None,
-      r#use: ModuleRuleUse::default(),
-      parser: None,
-      generator: None,
-      resolve: None,
-      enforce: ModuleRuleEnforce::default(),
-      extract_source_map: None,
-    }
+impl ModuleRuleEffect {
+  pub fn push(self, effects: &mut Vec<Self>) -> ModuleRuleEffectIndex {
+    let index = effects.len();
+    effects.push(self);
+    index
   }
 }
 
@@ -1836,92 +1850,13 @@ pub enum ModuleRuleEnforce {
   Pre,
 }
 
-// BE CAREFUL:
-// Add more fields to this struct should result in adding new fields to options builder.
-// `impl From<ModuleOptions> for ModuleOptionsBuilder` should be updated.
 #[derive(Debug, Default)]
 pub struct ModuleOptions {
+  #[debug(skip)]
+  pub options_store: super::ModuleRuleOptionsStore,
   pub rules: Vec<ModuleRule>,
+  pub effects: Vec<ModuleRuleEffect>,
   pub parser: Option<ParserOptionsMap>,
   pub generator: Option<GeneratorOptionsMap>,
   pub no_parse: Option<ModuleNoParseRules>,
-}
-
-impl ModuleOptions {
-  pub fn assign_rule_ids(&mut self) -> Result<()> {
-    let mut next_id = 0usize;
-    for rule in &mut self.rules {
-      assign_rule_id(rule, &mut next_id)?;
-    }
-    Ok(())
-  }
-}
-
-fn assign_rule_id(rule: &mut ModuleRule, next_id: &mut usize) -> Result<()> {
-  if *next_id >= MODULE_RULE_ID_UNASSIGNED as usize {
-    return Err(error!(
-      "module.rules exceeds the maximum supported rule count of {}",
-      MODULE_RULE_ID_UNASSIGNED as usize
-    ));
-  }
-
-  rule.effect.id = *next_id as ModuleRuleId;
-  *next_id += 1;
-
-  if let Some(rules) = &mut rule.rules {
-    for rule in rules {
-      assign_rule_id(rule, next_id)?;
-    }
-  }
-
-  if let Some(one_of) = &mut rule.one_of {
-    for rule in one_of {
-      assign_rule_id(rule, next_id)?;
-    }
-  }
-
-  Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-  use super::*;
-
-  #[test]
-  fn assign_rule_ids_in_stable_depth_first_order() {
-    let mut options = ModuleOptions {
-      rules: vec![
-        ModuleRule {
-          rules: Some(vec![ModuleRule::default()]),
-          ..Default::default()
-        },
-        ModuleRule {
-          one_of: Some(vec![ModuleRule::default(), ModuleRule::default()]),
-          ..Default::default()
-        },
-      ],
-      ..Default::default()
-    };
-
-    options.assign_rule_ids().expect("should assign rule ids");
-
-    assert_eq!(options.rules[0].effect.id, 0);
-    assert_eq!(options.rules[0].rules.as_ref().unwrap()[0].effect.id, 1);
-    assert_eq!(options.rules[1].effect.id, 2);
-    assert_eq!(options.rules[1].one_of.as_ref().unwrap()[0].effect.id, 3);
-    assert_eq!(options.rules[1].one_of.as_ref().unwrap()[1].effect.id, 4);
-  }
-
-  #[test]
-  fn assign_rule_ids_can_be_called_twice() {
-    let mut options = ModuleOptions {
-      rules: vec![ModuleRule::default()],
-      ..Default::default()
-    };
-
-    options.assign_rule_ids().expect("should assign rule ids");
-    options.assign_rule_ids().expect("should reassign rule ids");
-
-    assert_eq!(options.rules[0].effect.id, 0);
-  }
 }

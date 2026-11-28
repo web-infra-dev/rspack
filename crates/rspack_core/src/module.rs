@@ -2,7 +2,7 @@ use std::{
   any::Any,
   borrow::Cow,
   fmt::{Debug, Display, Formatter},
-  sync::Arc,
+  sync::{Arc, Weak},
 };
 
 use async_trait::async_trait;
@@ -24,17 +24,18 @@ use smol_str::SmolStr;
 use swc_core::atoms::Wtf8Atom;
 
 use crate::{
-  AsyncDependenciesBlockRef, BindingCell, CacheFacade, ChunkGraph, ChunkUkey,
-  CodeGenerationResultBuilder, CollectedTypeScriptInfo, Compilation, CompilationAsset,
-  CompilationAssets, CompilationId, CompilerId, CompilerOptions, ConcatenationScope,
-  ConnectionState, Context, ContextModule, CssExportType, DependenciesBlock, DependenciesBlockData,
+  AsyncDependenciesBlockRef, BindingCell, ChunkGraph, ChunkUkey, CodeGenerationResultBuilder,
+  CollectedTypeScriptInfo, Compilation, CompilationAsset, CompilationAssets, CompilationId,
+  CompilerId, CompilerOptions, ConcatenationScope, ConnectionState, Context, ContextModule,
+  CssExportType, CssExportsConvention, DependenciesBlock, DependenciesBlockData,
   DependencyCodeGenerationRef, DependencyId, DependencyRef, ExportProvided, ExportsInfoArtifact,
-  ExternalModule, FileSystemInfo, Filename, GetTargetResult, ImportPhase, ModuleCodeTemplate,
-  ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleType, NormalModule,
-  OptimizationBailoutItem, RawModule, Resolve, ResolverFactory, RuntimeSpec, SelfModule,
-  SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
-  concatenated_module::ConcatenatedModule, dependencies_block::dependencies_block_update_hash,
-  get_target, value_cache_versions::ValueCacheVersions,
+  ExternalModule, FileSystemInfo, Filename, GetTargetResult, ImportPhase, LoaderCache,
+  ModuleCodeTemplate, ModuleGraph, ModuleGraphCacheArtifact, ModuleLayer, ModuleOptions,
+  ModuleType, NormalModule, OptimizationBailoutItem, RawModule, Resolve, ResolverFactory,
+  RuntimeSpec, SelfModule, SharedPluginDriver, SideEffectsStateArtifact, Snapshot, SourceType,
+  TypeReexportPresenceMode, concatenated_module::ConcatenatedModule,
+  dependencies_block::dependencies_block_update_hash, get_target,
+  value_cache_versions::ValueCacheVersions,
 };
 
 #[derive(Debug)]
@@ -42,7 +43,11 @@ pub struct BuildContext {
   pub compiler_id: CompilerId,
   pub compilation_id: CompilationId,
   pub compiler_options: Arc<CompilerOptions>,
-  pub loader_cache: CacheFacade,
+  // Background task contexts can outlive a failed build and compiler.close().
+  pub loader_cache: Weak<LoaderCache>,
+  pub loader_build_dependencies_cache: Option<Arc<crate::LoaderBuildDependenciesCache>>,
+  pub loader_cache_counters: Arc<crate::CacheCounters>,
+  pub value_cache_versions: ValueCacheVersions,
   pub file_system_info: FileSystemInfo,
   pub resolver_factory: Arc<ResolverFactory>,
   pub runtime_template: ModuleCodeTemplate,
@@ -51,22 +56,26 @@ pub struct BuildContext {
 }
 
 /// Context used to decide whether a previously built module is still valid.
-///
-/// This follows webpack's `NeedBuildContext` shape and provides the shared
-/// filesystem snapshot service used to validate a previous module build.
 pub struct NeedBuildContext<'a> {
+  /// The module created by the factory for this compilation, before building.
+  pub fresh_module: &'a dyn Module,
   pub file_system_info: &'a FileSystemInfo,
   pub value_cache_versions: &'a ValueCacheVersions,
+  pub force_build: bool,
 }
 
 impl<'a> NeedBuildContext<'a> {
   pub fn new(
+    fresh_module: &'a dyn Module,
     file_system_info: &'a FileSystemInfo,
     value_cache_versions: &'a ValueCacheVersions,
+    force_build: bool,
   ) -> Self {
     Self {
+      fresh_module,
       file_system_info,
       value_cache_versions,
+      force_build,
     }
   }
 }
@@ -220,6 +229,7 @@ pub fn push_css_module_identifier_part(identifier: &mut String, value: &str) {
 #[derive(Debug, Clone, Default)]
 pub struct CssBuildInfo {
   pub export_type: Option<CssExportType>,
+  pub exports_convention: CssExportsConvention,
   pub has_charset: bool,
   pub css_import_dependency: bool,
   #[cacheable(with=AsMap<AsPreset>)]
@@ -308,6 +318,7 @@ pub struct BuildInfo {
   pub assets: BindingCell<HashMap<String, CompilationAsset>>,
   pub module: bool,
   pub inline_exports: bool,
+  pub type_reexports_presence: TypeReexportPresenceMode,
   pub collected_typescript_info: Option<CollectedTypeScriptInfo>,
   pub rsc: Option<Box<RscMeta>>,
   pub import_phase: ImportPhase,
@@ -347,6 +358,7 @@ impl Default for BuildInfo {
       assets: Default::default(),
       module: false,
       inline_exports: false,
+      type_reexports_presence: Default::default(),
       collected_typescript_info: None,
       rsc: None,
       import_phase: ImportPhase::Evaluation,
@@ -856,7 +868,7 @@ pub trait Module:
   /// Resolve options matched by module rules.
   /// e.g `javascript/esm` may have special resolving options like `fullySpecified`.
   /// `css` and `css/module` may have special resolving options like `preferRelative`.
-  fn get_resolve_options(&self) -> Option<Arc<Resolve>> {
+  fn get_resolve_options(&self, _module_options: &ModuleOptions) -> Option<Arc<Resolve>> {
     None
   }
 
@@ -883,12 +895,8 @@ pub trait Module:
     ConnectionState::Active(true)
   }
 
-  /// Determines whether a module needs to be rebuilt using the complete build
-  /// context.
-  ///
-  /// Implementations inspect reusable build state and may perform asynchronous
-  /// work. As in webpack's base `Module`, the default is conservative: module
-  /// types that can prove an existing build is valid should override this.
+  /// Checks build state and fresh factory inputs without updating the cached module.
+  /// Returning true rejects the cached build and builds the factory-created module instead.
   async fn need_build(&self, _context: &NeedBuildContext<'_>) -> Result<bool> {
     Ok(true)
   }

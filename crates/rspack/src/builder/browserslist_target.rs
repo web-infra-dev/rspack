@@ -286,6 +286,44 @@ pub fn resolve(browsers: Vec<String>) -> TargetProperties {
           "node" => VersionRequirement::Major(14),
       },
     )),
+    spread: Some(raw_checker(
+      &browsers,
+      &hashmap! {
+          "chrome" => VersionRequirement::Major(60),
+          "and_chr" => VersionRequirement::Major(60),
+          "edge" => VersionRequirement::Major(79),
+          "firefox" => VersionRequirement::Major(55),
+          "and_ff" => VersionRequirement::Major(55),
+          "opera" => VersionRequirement::Major(47),
+          "op_mob" => VersionRequirement::Major(44),
+          "safari" => VersionRequirement::MajorMinor(11, 1),
+          "ios_saf" => VersionRequirement::MajorMinor(11, 3),
+          "samsung" => VersionRequirement::MajorMinor(8, 2),
+          "android" => VersionRequirement::Major(60),
+          "and_qq" => VersionRequirement::MajorMinor(13, 1),
+          "and_uc" => VersionRequirement::MajorMinor(15, 5),
+          "kaios" => VersionRequirement::MajorMinor(3, 0),
+          "node" => VersionRequirement::MajorMinor(8, 3),
+      },
+    )),
+    symbol: Some(raw_checker(
+      &browsers,
+      &hashmap! {
+          "chrome" => VersionRequirement::Major(49),
+          "and_chr" => VersionRequirement::Major(49),
+          "edge" => VersionRequirement::Major(15),
+          "firefox" => VersionRequirement::Major(51),
+          "and_ff" => VersionRequirement::Major(51),
+          "opera" => VersionRequirement::Major(36),
+          "op_mob" => VersionRequirement::Major(36),
+          "safari" => VersionRequirement::Major(10),
+          "ios_saf" => VersionRequirement::Major(10),
+          "samsung" => VersionRequirement::Major(5),
+          "android" => VersionRequirement::Major(49),
+          "kaios" => VersionRequirement::Major(3),
+          "node" => VersionRequirement::Major(6),
+      },
+    )),
     template_literal: Some(raw_checker(
       &browsers,
       &hashmap! {
@@ -326,6 +364,23 @@ pub fn resolve(browsers: Vec<String>) -> TargetProperties {
           "and_uc" => VersionRequirement::MajorMinor(15, 5),
           "kaios" => VersionRequirement::Major(3),
           "node" => VersionRequirement::MajorMinor(7, 6),
+      },
+    )),
+    top_level_await: Some(raw_checker(
+      &browsers,
+      &hashmap! {
+          "chrome" => VersionRequirement::Major(89),
+          "and_chr" => VersionRequirement::Major(89),
+          "edge" => VersionRequirement::Major(89),
+          "firefox" => VersionRequirement::Major(89),
+          "and_ff" => VersionRequirement::Major(89),
+          "opera" => VersionRequirement::Major(75),
+          "op_mob" => VersionRequirement::Major(63),
+          "safari" => VersionRequirement::Major(15),
+          "ios_saf" => VersionRequirement::Major(15),
+          "samsung" => VersionRequirement::Major(15),
+          "android" => VersionRequirement::Major(89),
+          "node" => VersionRequirement::MajorMinor(14, 8),
       },
     )),
     browser: browser_property,
@@ -427,7 +482,7 @@ mod tests {
     for test_case in tests {
       let input: Vec<String> = test_case.iter().map(|s| (*s).to_string()).collect();
 
-      let targets = resolve(input.clone());
+      let targets = resolve(input);
 
       results.push((test_case, targets));
     }

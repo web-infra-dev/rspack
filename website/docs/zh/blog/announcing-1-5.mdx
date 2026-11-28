@@ -267,13 +267,13 @@ export default {
 
 ### 模块联邦运行时提升
 
-此前 Module Federation 的运行时是通过在入口模块打补丁的形式运行起来的。新版的 Module Federation 插件通过将自己的运行时代码和 Rspack 的运行时代码合并，同时将 Module Federation 运行时代码提升到了运行时 chunk 中。这样能在应用启动前就将 Module Federation 的运行时提前准备好了。
+此前，Module Federation 通过修改入口模块来启动自己的运行时。新版插件将这些代码集成到 Rspack 运行时中，并放入对应的运行时 chunk，使 Module Federation 在应用启动前完成准备。
 
 这样改动带来如下收益：
 
 1. 在多入口的场景下产物尺寸减少
 2. 修复了 Module Federation 初始化出错的问题
-3. Module Federation 可以提取到运行时 chunk 中
+3. Module Federation 的运行时代码可以提取到 Rspack 运行时 chunk 中
 4. 提供一套基于 hook 的插件体系
 
 下面是一个演示项目在使用新版 Module Federation 插件所带来的产物体积优化对比。

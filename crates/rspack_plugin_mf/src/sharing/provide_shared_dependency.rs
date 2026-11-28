@@ -39,9 +39,9 @@ impl ProvideSharedDependency {
     let resource_identifier = format!(
       "provide module ({}) {} as {} @ {} {}",
       share_scope.key(),
-      &request,
-      &name,
-      &version,
+      request,
+      name,
+      version,
       if eager { "eager" } else { Default::default() },
     )
     .into();

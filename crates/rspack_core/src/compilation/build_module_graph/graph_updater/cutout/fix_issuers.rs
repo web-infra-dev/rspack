@@ -259,6 +259,7 @@ impl FixIssuers {
   fn try_set_first_incoming(
     artifact: &mut BuildModuleGraphArtifact,
     need_update_issuer_modules: IdentifierMap<Vec<Option<ModuleIdentifier>>>,
+    revoked_modules: &mut IdentifierSet,
   ) -> IdentifierMap<Vec<Option<ModuleIdentifier>>> {
     let mut queue = VecDeque::with_capacity(need_update_issuer_modules.len());
     for (mid, parents) in need_update_issuer_modules {
@@ -333,6 +334,7 @@ impl FixIssuers {
     });
     for mid in revoke_module {
       artifact.revoke_module(&mid);
+      revoked_modules.insert(mid);
     }
     need_check_available_modules
   }
@@ -403,6 +405,7 @@ impl FixIssuers {
     artifact: &mut BuildModuleGraphArtifact,
     helper: &mut IssuerHelper,
     clean_modules: IdentifierMap<IdentifierSet>,
+    revoked_modules: &mut IdentifierSet,
   ) -> IdentifierMap<Vec<Option<ModuleIdentifier>>> {
     let mut revoke_module = IdentifierSet::default();
     let module_graph = &mut artifact.module_graph;
@@ -501,34 +504,38 @@ impl FixIssuers {
     }
     for mid in revoke_module {
       artifact.revoke_module(&mid);
+      revoked_modules.insert(mid);
     }
 
     need_update_issuer_modules
   }
 
   /// fix artifact module graph issuers
-  pub fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) {
+  pub fn fix_artifact(self, artifact: &mut BuildModuleGraphArtifact) -> IdentifierSet {
     let mut need_update_issuer_modules = self.apply_force_build_module_issuer(artifact);
+    let mut revoked_modules = IdentifierSet::default();
 
     let mut helper = IssuerHelper::default();
-    loop {
-      if need_update_issuer_modules.is_empty() {
-        return;
-      }
+    while !need_update_issuer_modules.is_empty() {
       let need_check_available_modules =
-        Self::try_set_first_incoming(artifact, need_update_issuer_modules);
+        Self::try_set_first_incoming(artifact, need_update_issuer_modules, &mut revoked_modules);
       if need_check_available_modules.is_empty() {
-        return;
+        break;
       }
 
       let need_clean_cycle_modules =
         Self::set_available_issuer(artifact, &mut helper, need_check_available_modules);
       if need_clean_cycle_modules.is_empty() {
-        return;
+        break;
       }
 
-      need_update_issuer_modules =
-        Self::clean_cycle_module(artifact, &mut helper, need_clean_cycle_modules);
+      need_update_issuer_modules = Self::clean_cycle_module(
+        artifact,
+        &mut helper,
+        need_clean_cycle_modules,
+        &mut revoked_modules,
+      );
     }
+    revoked_modules
   }
 }

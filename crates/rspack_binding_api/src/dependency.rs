@@ -13,7 +13,7 @@ use rspack_plugin_javascript::dependency::{
 };
 use rustc_hash::FxHashMap as HashMap;
 
-use crate::{module::ModuleObject, with_compilation};
+use crate::{module::ModuleObject, module_graph::require_module_graph, with_compilation};
 
 // A dependency remains readable while its JS wrapper owns a shared reference.
 // Graph-derived properties still require the compilation that supplied it.
@@ -33,9 +33,7 @@ impl Dependency {
       return Ok(None);
     };
     with_compilation(compilation_id, |compilation| {
-      let module_graph = compilation.try_get_module_graph().ok_or_else(|| {
-        napi::Error::from_reason("ModuleGraph is not available during module graph building phase")
-      })?;
+      let module_graph = require_module_graph(compilation)?;
       let dependency = internal::try_dependency_by_id(module_graph, &self.dependency_id).ok_or_else(
         || {
           napi::Error::from_reason(format!(

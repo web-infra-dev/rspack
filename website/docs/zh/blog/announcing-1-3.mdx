@@ -147,7 +147,7 @@ export default {
 
 ### 产物体积优化
 
-Rspack 1.3 版本引入了对 [output.environment](/config/output#outputenvironment) 选项的完整支持，这允许你指定在 Rspack 生成的运行时代码中可使用的 ECMAScript 特性，能够生成更简短和现代的运行时代码。
+Rspack 1.3 版本引入了对 [output.environment](/config/output#outputenvironment) 选项的完整支持。你可以指定 Rspack 运行时代码允许使用的 ECMAScript 特性，从而生成更简短、更现代的代码。
 
 默认情况下，Rspack 会解析 [target](/config/target) 配置项，并基于 `browserslist` 来判断目标环境所支持的 ECMAScript 特性，自动设置 `output.environment` 子选项的值，从而输出优化后的代码。
 
@@ -161,7 +161,7 @@ Rspack 1.3 版本引入了对 [output.environment](/config/output#outputenvironm
 + __webpack_require__.d = (exports, definition) => {
 ```
 
-通过使用目标环境支持的现代 JavaScript 特性，Rspack 能够输出更小的运行时代码。在我们对一个真实大型项目的性能测试中，该优化减少了约 500KB 的产物体积（未经 gzip 压缩）。
+利用目标环境支持的现代 JavaScript 特性，可以减小 Rspack 运行时代码的体积。在一个真实大型项目的性能测试中，这项优化减少了约 500KB 的产物体积（未经 gzip 压缩）。
 
 ### 内存优化
 

@@ -1,5 +1,5 @@
 ---
-description: 'Configure tree shaking, minification, module and chunk IDs, runtime extraction, and code splitting in Rspack.'
+description: 'Configure tree shaking, minification, module and chunk IDs, Rspack runtime extraction, and code splitting in Rspack.'
 ---
 
 import { ApiMeta } from '@components/ApiMeta';
@@ -15,9 +15,9 @@ Rspack will select appropriate optimization configuration based on the [`mode`](
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-Use `optimization.avoidEntryIife` to avoid wrapping the entry module in an IIFE when it is required (search for `"This entry needs to be wrapped in an IIFE because"` in [rspack_plugin_javascript](https://github.com/web-infra-dev/rspack/blob/main/crates/rspack_plugin_javascript/src/plugin/mod.rs)). This approach helps optimize performance for JavaScript engines and helps tree shaking when building ESM libraries.
+Enable `optimization.avoidEntryIife` to let Rspack omit the immediately invoked function expression (IIFE) around the entry code when possible.
 
-Currently, `optimization.avoidEntryIife` can only optimize a single entry module along with other modules.
+When a single entry module is inlined into the startup code of a chunk that also contains other modules, Rspack normally wraps the entry in an IIFE to give it a separate scope. With this option enabled, Rspack can rename top-level variables in the entry module to avoid name conflicts, removing the need for that wrapper.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -27,8 +27,12 @@ export default {
 };
 ```
 
-:::warning
-The `⁠optimization.avoidEntryIife` option can negatively affect build performance. If you prioritize build performance over these optimizations, consider not enabling this option.
+:::tip Usage notes
+
+- If the entry needs strict mode but the surrounding code does not use it, Rspack keeps the IIFE. With minification disabled, a comment before the entry code explains why Rspack kept the wrapper.
+- To control the outer IIFE around the whole bundle, use [`output.iife`](/config/output#outputiife).
+- Analyzing variable names can increase build time.
+
 :::
 
 ## optimization.chunkIds
@@ -43,7 +47,7 @@ The `⁠optimization.avoidEntryIife` option can negatively affect build performa
 
 Tells Rspack which algorithm to use when generating chunk ids.
 
-The following string values are supported:
+The following values are supported:
 
 | option             | description                                                                                                                                    |
 | ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -53,13 +57,26 @@ The following string values are supported:
 | `'compact-hashed'` | Use the shortest available prefix of a stable lowercase alphanumeric hash.                                                                     |
 | `'size'`           | Use numeric ids to make the initial download package smaller.                                                                                  |
 | `'total-size'`     | Use numeric ids to make the overall download package smaller.                                                                                  |
-| `false`            | Disable Rspack's built-in chunk id algorithm, allowing a custom plugin to provide chunk ids.                                                   |
+| `false`            | Disable Rspack's built-in chunk id algorithm.                                                                                                  |
 
 ```js title="rspack.config.mjs"
 export default {
   optimization: {
     chunkIds: 'deterministic',
   },
+};
+```
+
+Custom JavaScript plugins cannot currently assign chunk IDs. When you set `chunkIds` to `false`, add a chunk ID plugin from `rspack.ids` to `plugins`:
+
+```js title="rspack.config.mjs"
+import { rspack } from '@rspack/core';
+
+export default {
+  optimization: {
+    chunkIds: false,
+  },
+  plugins: [new rspack.ids.CompactHashedChunkIdsPlugin()],
 };
 ```
 
@@ -493,11 +510,11 @@ export default {
   defaultValueList={[{ defaultValue: 'false' }]}
 />
 
-Used to control how the Rspack's [runtime](/misc/glossary#runtime) chunk is generated.
+Controls whether the [Rspack runtime](/misc/glossary#rspack-runtime) is extracted into separate chunks.
 
-Defaults to `false`, which means the runtime code is inlined into the entry chunks.
+Defaults to `false`, which means the Rspack runtime code is inlined into the entry chunks.
 
-Setting it to `true` or `'multiple'` will add an additional chunk containing only the runtime for each entry point. This setting is an alias for:
+Setting it to `true` or `'multiple'` will add an additional chunk containing only the Rspack runtime for each entry point. This setting is an alias for:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -509,7 +526,7 @@ export default {
 };
 ```
 
-Setting it to `'single'` will extract the runtime code of all entry points into a single separate chunk named `runtime`. This setting is an alias for:
+Setting it to `'single'` will extract the Rspack runtime code of all entry points into a single separate chunk named `runtime`. This setting is an alias for:
 
 ```js title="rspack.config.mjs"
 export default {
@@ -521,7 +538,7 @@ export default {
 };
 ```
 
-By setting `optimization.runtimeChunk` to an object it can provide an optional `name` property which stands for the name for the runtime chunks.
+When `optimization.runtimeChunk` is an object, its optional `name` property controls the names of the Rspack runtime chunks.
 
 ```js title="rspack.config.mjs"
 export default {
@@ -535,8 +552,34 @@ export default {
 ```
 
 :::tip
-Imported modules are initialized for each runtime chunk separately, so if you include multiple entry chunks on a page, beware of this behavior. You will need to set `optimization.runtimeChunk` to `'single'` or use another configuration that ensures the page only contains one runtime instance.
+Each Rspack runtime initializes imported modules separately. If multiple entries on the same page need to share module instances, set `optimization.runtimeChunk` to `'single'` or use another configuration that lets them share one runtime instance.
 :::
+
+The following configuration defines two entries, `pageA` and `pageB`. Suppose both entry files import the same `shared.js` module, and their generated bundles are loaded on the same HTML page:
+
+```js title="rspack.config.mjs"
+export default {
+  entry: {
+    pageA: './src/page-a.js',
+    pageB: './src/page-b.js',
+  },
+  optimization: {
+    runtimeChunk: 'single',
+  },
+};
+```
+
+Changing `runtimeChunk` affects the output files and how often `shared.js` is initialized:
+
+| `runtimeChunk` | Generated JavaScript files                                     | `shared.js` initializations |
+| -------------- | -------------------------------------------------------------- | --------------------------- |
+| `false`        | `pageA.js`, `pageB.js`                                         | Twice                       |
+| `'multiple'`   | `runtime~pageA.js`, `runtime~pageB.js`, `pageA.js`, `pageB.js` | Twice                       |
+| `'single'`     | `runtime.js`, `pageA.js`, `pageB.js`                           | Once                        |
+
+When writing HTML manually, place the runtime file's `<script>` tag before the entry bundles' tags. `HtmlRspackPlugin` handles this order automatically. With `'single'`, both entries share one Rspack runtime and its module cache, so `shared.js` is initialized only once.
+
+Sharing a Rspack runtime does not extract shared modules into a separate file. Use [SplitChunksPlugin](/plugins/split-chunks-plugin) to configure module splitting.
 
 ## optimization.sideEffects
 
@@ -610,7 +653,7 @@ export default {
 };
 ```
 
-To opt-out from used exports analysis per runtime:
+To analyze used exports globally instead of separately for each Rspack runtime:
 
 ```js title="rspack.config.mjs"
 export default {

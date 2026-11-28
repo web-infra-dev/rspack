@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use rspack_error::{Error, Severity};
 use rspack_util::swc::RspackComments;
 use serde_json::json;
@@ -13,6 +15,17 @@ pub fn eval_source<'parser>(
   parser: &mut JavascriptParser<'parser>,
   source: String,
   error_title: String,
+) -> Option<BasicEvaluatedExpression<'parser>> {
+  eval_source_with_warning(parser, source.into(), &error_title, |source| {
+    (format!("failed to parse {}", json!(source)), None)
+  })
+}
+
+pub(crate) fn eval_source_with_warning<'parser>(
+  parser: &mut JavascriptParser<'parser>,
+  source: Cow<'_, str>,
+  title: &str,
+  warning: impl FnOnce(&str) -> (String, Option<String>),
 ) -> Option<BasicEvaluatedExpression<'parser>> {
   // Fragment ASTs use the module AST's arena so their source, nodes, semantic
   // model, and wrapper all live for the complete parser lifetime. This lets us
@@ -33,38 +46,48 @@ pub fn eval_source<'parser>(
     Err(diagnostics) => {
       let span = diagnostics
         .first()
-        .map(|diagnostic| diagnostic.span)
-        .unwrap_or_default();
+        .map_or_default(|diagnostic| diagnostic.span);
+      let (message, help) = warning(&source);
       let mut error = Error::from_string(
-        Some(source.clone()),
+        Some(source.into_owned()),
         span.start as usize,
         span.end as usize,
-        format!("{error_title} warning"),
-        format!("failed to parse {}", json!(source.as_str())),
+        format!("{title} warning"),
+        message,
       );
       error.severity = Severity::Warning;
+      error.help = help;
       parser.add_warning(error.into());
       None
     }
     Ok(mut ast) => {
       let expression = ast.root_expression();
-      let expression_span = expression.span(&ast);
 
       // ParsedJavaScriptAst represents programs in the main scan path. Build a
       // minimal valid program root around the fragment so any evaluation hook
       // consulting parser.ast observes a self-consistent AST.
-      let statement = ast.expression_statement(expression_span, expression);
-      let directives = ast.add_sub_range(std::iter::empty::<Directive>());
-      let body = ast.add_sub_range([Stmt::ExpressionStatement(statement)]);
-      let program = ast.program(expression_span, directives, body, None);
-      ast.set_root_program(program);
+      let program = {
+        // SAFETY: All handles belong to this fragment. Adding its program root
+        // only appends storage, preserving existing nodes and handles.
+        let ast = unsafe { ast.ast_mut() };
+        let expression_span = expression.span(ast);
+        let statement = ast.expression_statement(expression_span, expression);
+        let directives = ast.add_sub_range(std::iter::empty::<Directive>());
+        let body = ast.add_sub_range([Stmt::ExpressionStatement(statement)]);
+        let program = ast.program(expression_span, directives, body, None);
+        ast.set_root_program(program);
+        program
+      };
 
-      let ast = &*allocator.alloc(ast);
-      let comments = &*allocator.alloc(RspackComments::from_ast(ast));
       let SemanticReturn {
         semantic,
         diagnostics: _,
       } = analyze(ast, AnalyzeOptions::default());
+      let (ast, semantic) = semantic.into_parts();
+      let ast = &*allocator.alloc(ast);
+      // SAFETY: Fragment evaluation retains its owning AST and never mutates it.
+      let ast = unsafe { ast.ast() };
+      let comments = &*allocator.alloc(RspackComments::from_ast(ast));
       let semantic = &*allocator.alloc(semantic);
       let fragment_ast = &*allocator.alloc(ParsedJavaScriptAst {
         ast,

@@ -64,7 +64,7 @@ You can specify exactly which packing information to output, all the following f
 A fallback value for stats options when an option is not defined. It has precedence over local Rspack defaults.
 
 :::warning
-Enabling `stats.all` will lead to a large amount of data transmission between Rust and JavaScript, which will significantly increase the time consumption for stats generation. Please use it with caution.
+Enabling `stats.all` can significantly increase data transfer between Rust and JavaScript and the time spent generating stats. Prefer `all: false` with only the fields you need enabled. This also applies to options passed to `stats.toJson()` and `stats.toString()`; see [Performance overhead](/api/javascript-api/stats#performance-overhead) for examples.
 :::
 
 ### stats.preset
@@ -316,9 +316,9 @@ Whether to display the orphan modules.
 
 <PropertyType type="boolean" defaultValueList={[{ defaultValue: 'false' }]} />
 
-Whether to display information about runtime modules.
+Whether to display information about [Rspack runtime modules](/misc/glossary#rspack-runtime-module).
 
-> The runtime modules are built-in modules of Rspack, used to provide various runtime capabilities.
+> Rspack runtime modules provide the code for features such as module and chunk loading.
 
 :::tip
 `stats.runtime` is a compatibility alias for `stats.runtimeModules`. It only takes effect when `stats.runtimeModules` is not specified; if both are set, `stats.runtimeModules` takes precedence.

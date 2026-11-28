@@ -113,19 +113,22 @@ const normalizeIgnoreWarnings = (ignoreWarnings?: IgnoreWarnings) => {
         return false;
       }
 
-      if (rule.message && !rule.message.test(warning.message)) {
+      if (rule.message && warning.message.search(rule.message) === -1) {
         return false;
       }
 
       if (
         rule.module &&
         (!warning.module ||
-          !rule.module.test(warning.module.readableIdentifier()))
+          warning.module.readableIdentifier().search(rule.module) === -1)
       ) {
         return false;
       }
 
-      if (rule.file && (!warning.file || !rule.file.test(warning.file))) {
+      if (
+        rule.file &&
+        (!warning.file || warning.file.search(rule.file) === -1)
+      ) {
         return false;
       }
 

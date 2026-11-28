@@ -233,7 +233,7 @@ impl DependencyTemplate for RuntimeRequirementsDependencyTemplate {
       &dep.mode,
       RuntimeRequirementsDependencyMode::UnsupportedRequireProperty
     ) {
-      source.replace(dep.range.start, dep.range.end, "undefined".into(), None);
+      source.replace_static(dep.range.start, dep.range.end, "undefined", None);
       return;
     }
 
@@ -294,10 +294,10 @@ impl DependencyTemplate for RuntimeRequirementsDependencyTemplate {
           (prefix, ")")
         };
         source.replace(dep.range.start, write_info.value_range.start, prefix, None);
-        source.replace(
+        source.replace_static(
           write_info.value_range.end,
           write_info.assignment_range.end,
-          suffix.to_string(),
+          suffix,
           None,
         );
         return;

@@ -323,7 +323,7 @@ type ExtractorsByOption<T, O> = {
     data: T,
     context: StatsFactoryContext,
     options: any,
-    factory: StatsFactory,
+    factory: Pick<StatsFactory, 'create'>,
   ) => void;
 };
 
@@ -705,7 +705,7 @@ export const errorsSpaceLimit = (errors: StatsError[], max: number) => {
         const error = errors[i++];
         result.push({
           ...error,
-          details: error.details!.split('\n').slice(0, -overLimit).join('\n'),
+          details: splitted.slice(0, -overLimit).join('\n'),
           filteredDetails: overLimit,
         });
         filtered = errors.length - i;

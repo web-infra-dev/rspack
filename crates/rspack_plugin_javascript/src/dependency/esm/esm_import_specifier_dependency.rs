@@ -14,7 +14,7 @@ use rspack_core::{
   ModuleGraphCacheArtifact, ModuleGraphConnection, ModuleReferenceOptions, ReferencedExport,
   ResourceIdentifier, RuntimeSpec, SideEffectsStateArtifact, TemplateContext,
   TemplateReplaceSource, UsedByExports, UsedName, create_exports_object_referenced,
-  property_access, to_normal_comment,
+  property_access, should_reference_call_receiver, to_normal_comment,
 };
 use rspack_error::Diagnostic;
 use rspack_hash::{RspackHash, RspackHasher};
@@ -110,7 +110,7 @@ impl ESMImportSpecifierDependency {
 
   pub fn get_ids<'a>(&'a self, mg: &'a ModuleGraph) -> &'a [Atom] {
     mg.get_dep_meta_if_existing(&self.id)
-      .map_or_else(|| self.ids.as_slice(), |meta| meta.ids.as_slice())
+      .map_or(self.ids.as_slice(), |meta| meta.ids.as_slice())
   }
 
   pub fn imported_name(&self) -> &Atom {
@@ -232,20 +232,6 @@ impl Dependency for ESMImportSpecifierDependency {
     module_graph: &ModuleGraph,
     module_graph_cache: &ModuleGraphCacheArtifact,
     exports_info_artifact: &ExportsInfoArtifact,
-  ) -> Option<Vec<Diagnostic>> {
-    self.get_diagnostics_with_context(
-      module_graph,
-      module_graph_cache,
-      exports_info_artifact,
-      &DependencyDiagnosticsContext::default(),
-    )
-  }
-
-  fn get_diagnostics_with_context(
-    &self,
-    module_graph: &ModuleGraph,
-    module_graph_cache: &ModuleGraphCacheArtifact,
-    exports_info_artifact: &ExportsInfoArtifact,
     diagnostics_context: &DependencyDiagnosticsContext,
   ) -> Option<Vec<Diagnostic>> {
     let module = module_graph.get_parent_module(&self.id)?;
@@ -289,8 +275,6 @@ impl Dependency for ESMImportSpecifierDependency {
       return self.get_referenced_exports_in_destructuring(None);
     }
 
-    let mut namespace_object_as_context = self.namespace_object_as_context;
-
     let module = module_graph
       .get_module_by_dependency_id(&self.id)
       .expect("should have module");
@@ -307,16 +291,6 @@ impl Dependency for ESMImportSpecifierDependency {
       exports_info_artifact,
       strict,
     );
-
-    // Force enable namespace object as context for json module, it's a common case:
-    // import json from "./array.json"; json.map(d => d * 2);
-    if matches!(
-      exports_type,
-      ExportsType::DefaultOnly | ExportsType::DefaultWithNamed
-    ) && module.build_info().json_data.is_some()
-    {
-      namespace_object_as_context = true;
-    }
 
     if let Some(id) = ids.first()
       && id == "default"
@@ -335,12 +309,21 @@ impl Dependency for ESMImportSpecifierDependency {
       }
     }
 
-    if namespace_object_as_context && self.call {
-      if ids.len() == 1 {
-        return create_exports_object_referenced();
-      }
+    if self.call
+      && !self.direct_import
+      && (self.namespace_object_as_context
+        || should_reference_call_receiver(
+          ids,
+          exports_type,
+          exports_info_artifact,
+          exports_info_artifact.get_exports_info_data(&module.identifier()),
+        ))
+    {
       // remove last one
       ids = &ids[..ids.len().saturating_sub(1)];
+      if ids.is_empty() {
+        return create_exports_object_referenced();
+      }
     }
     self.get_referenced_exports_in_destructuring(Some(ids))
   }
@@ -538,6 +521,10 @@ impl ESMImportSpecifierDependencyTemplate {
     let Some(con) = connection else {
       return;
     };
+    if ids.is_empty() {
+      source.replace_static(dep.range.start, dep.range.end, " true", None);
+      return;
+    }
     let TemplateContext {
       runtime,
       module: self_module,

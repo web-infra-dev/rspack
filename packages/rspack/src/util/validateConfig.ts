@@ -2,8 +2,10 @@ import { isAbsolute } from 'node:path';
 import type {
   Configuration,
   ExternalItem,
+  ExternalItemObjectKnown,
   ExternalItemUmdValue,
 } from '../config';
+import { resolveLayerExternals } from './resolveLayerExternals';
 
 const ERROR_PREFIX = 'Invalid Rspack configuration:';
 
@@ -34,7 +36,7 @@ const validateExternalUmd = ({
   let isLibraryUmd = false;
   const library = output?.library;
 
-  if (typeof library === 'object' && 'type' in library) {
+  if (typeof library === 'object' && library !== null && 'type' in library) {
     isLibraryUmd = library.type === 'umd';
   } else {
     isLibraryUmd = false;
@@ -49,14 +51,22 @@ const validateExternalUmd = ({
 
   const checkExternalItem = (externalItem: ExternalItem | undefined) => {
     if (typeof externalItem === 'object' && externalItem !== null) {
-      for (const value of Object.values(externalItem)) {
-        checkExternalItemValue(value);
+      const { byLayer } = externalItem as ExternalItemObjectKnown;
+      if (typeof byLayer === 'function') return;
+      if (byLayer && typeof byLayer === 'object') {
+        for (const layer of ['default', ...Object.keys(byLayer)]) {
+          checkExternalItem(resolveLayerExternals(externalItem, layer));
+        }
+        return;
+      }
+      for (const [request, value] of Object.entries(externalItem)) {
+        if (request !== 'byLayer') checkExternalItemValue(value);
       }
     }
   };
 
   const checkExternalItemValue = (value: ExternalItemUmdValue | undefined) => {
-    if (!value || typeof value !== 'object') {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
       return;
     }
 

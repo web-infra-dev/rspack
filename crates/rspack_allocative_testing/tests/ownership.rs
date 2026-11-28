@@ -69,6 +69,19 @@ fn capture_in(
   (total, folded, output.warnings())
 }
 
+// Like most users of the macro, this crate has no direct `ctor` dependency.
+#[rspack_allocative::root]
+static REGISTERED_ROOT: LazyLock<String> = LazyLock::new(|| String::with_capacity(8192));
+
+#[test]
+fn root_attribute_registers_the_static_at_startup() {
+  LazyLock::force(&REGISTERED_ROOT);
+  let mut builder = FlameGraphBuilder::default();
+  builder.visit_global_roots();
+  let folded = builder.finish().flamegraph().write();
+  assert!(folded.contains("LazyLock"), "root is missing: {folded}");
+}
+
 #[test]
 fn boxed_sources_preserve_owned_buffers_and_nested_sources() {
   let source = RawStringSource::from("x".repeat(4096)).boxed();
@@ -224,6 +237,35 @@ fn locked_values_report_missing_coverage_without_blocking() {
     warnings.contains("Unobserved nested allocations"),
     "{warnings}"
   );
+}
+
+#[test]
+fn reflected_fields_preserve_static_only_adapter_policies() {
+  struct Cached<'a> {
+    label: &'a str,
+    cache: String,
+  }
+  impl Allocative for Cached<'static> {
+    fn visit<'a, 'b: 'a>(&self, visitor: &'a mut Visitor<'b>) {
+      // This adapter deliberately excludes the cache's heap allocation.
+      visitor.enter_self(self).exit();
+    }
+  }
+  struct Root {
+    cached: Cached<'static>,
+  }
+  let value = Root {
+    cached: Cached {
+      label: "static",
+      cache: String::with_capacity(4096),
+    },
+  };
+  assert_eq!(value.cached.label, "static");
+  assert!(value.cached.cache.capacity() >= 4096);
+  let (total, folded, warnings) = capture(&value);
+  assert_eq!(total, size_of_val(&value));
+  assert!(folded.contains(";cached;"), "{folded}");
+  assert!(warnings.is_empty(), "{warnings}");
 }
 
 #[test]

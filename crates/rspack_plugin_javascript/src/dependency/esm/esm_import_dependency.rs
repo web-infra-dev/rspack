@@ -1,15 +1,10 @@
-use std::sync::atomic::{AtomicBool, Ordering};
-
-use rspack_cacheable::{
-  cacheable, cacheable_dyn,
-  rkyv::with::{AtomicLoad, Relaxed},
-  with::AsPreset,
-};
+use itertools::Itertools;
+use rspack_cacheable::{cacheable, cacheable_dyn, with::AsPreset};
 use rspack_collections::{IdentifierMap, IdentifierSet};
 use rspack_core::{
   AsContextDependency, AwaitDependenciesInitFragment, BuildMetaDefaultObject, ChunkGraph,
-  ConditionalInitFragment, ConnectionState, Dependency, DependencyCategory,
-  DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
+  ConditionalInitFragment, ConnectionState, DefaultInteropInitFragment, Dependency,
+  DependencyCategory, DependencyCodeGeneration, DependencyCondition, DependencyConditionFn,
   DependencyDiagnosticsContext, DependencyId, DependencyLocation, DependencyRange,
   DependencyTemplate, DependencyTemplateType, DependencyType, ExportProvided, ExportsInfoArtifact,
   ExportsType, ForwardId, ImportAttributes, ImportPhase, InitFragmentExt, InitFragmentKey,
@@ -19,6 +14,7 @@ use rspack_core::{
   TypeReexportPresenceMode, filter_runtime,
 };
 use rspack_error::{Diagnostic, Error, Severity};
+use rspack_hash::{RspackHash, RspackHasher};
 
 use crate::Atom;
 
@@ -74,8 +70,6 @@ pub struct ESMImportSideEffectDependency {
   attributes: Option<ImportAttributes>,
   resource_identifier: ResourceIdentifier,
   loc: Option<DependencyLocation>,
-  #[cacheable(with=AtomicLoad<Relaxed>)]
-  lazy_make: AtomicBool,
   star_export: bool,
 }
 
@@ -102,13 +96,12 @@ impl ESMImportSideEffectDependency {
       attributes,
       resource_identifier,
       loc,
-      lazy_make: AtomicBool::new(false),
       star_export,
     }
   }
 
-  fn missing_module_active(&self) -> bool {
-    !self.lazy_make.load(Ordering::Relaxed)
+  fn missing_module_active(&self, module_graph: &ModuleGraph) -> bool {
+    !module_graph.is_lazy_dependency(&self.id)
   }
 }
 
@@ -148,7 +141,8 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   }
 
   let target_module = module_graph.get_module_by_dependency_id(module_dependency.id());
-  if module_dependency.weak() {
+  let weak = module_dependency.weak() || module_graph.is_lazy_dependency(module_dependency.id());
+  if weak {
     // lazy
     if target_module.is_none() {
       return;
@@ -162,7 +156,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     }
   }
 
-  let runtime_condition = if module_dependency.weak() {
+  let runtime_condition = if weak {
     RuntimeCondition::Boolean(false)
   } else if let Some(connection) = connection {
     filter_runtime(*runtime, |r| {
@@ -187,7 +181,7 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
     phase,
     *runtime,
   );
-  let content: (String, String) = runtime_template.import_statement(
+  let (import_content, default_interop) = runtime_template.import_statement(
     *module,
     compilation,
     module_dependency.id(),
@@ -245,34 +239,49 @@ pub fn esm_import_dependency_apply<T: ModuleDependency>(
   }
 
   let is_async_module = matches!(target_module, Some(target_module) if ModuleGraph::is_async(&compilation.async_modules_artifact, &target_module.identifier()));
+  init_fragments.push(Box::new(ConditionalInitFragment::new(
+    import_content,
+    InitFragmentStage::StageESMImports,
+    source_order,
+    InitFragmentKey::ESMImport(key),
+    None,
+    runtime_condition.clone(),
+  )));
   if is_async_module {
-    init_fragments.push(Box::new(ConditionalInitFragment::new(
-      content.0,
-      InitFragmentStage::StageESMImports,
-      source_order,
-      InitFragmentKey::ESMImport(key.clone()),
-      None,
-      runtime_condition.clone(),
-    )));
-    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var).boxed());
-    init_fragments.push(Box::new(ConditionalInitFragment::new(
-      content.1,
-      InitFragmentStage::StageAsyncESMImports,
-      source_order,
-      InitFragmentKey::ESMImport(format!("{key} compat")),
-      None,
-      runtime_condition,
-    )));
-  } else {
-    init_fragments.push(Box::new(ConditionalInitFragment::new(
-      format!("{}{}", content.0, content.1),
-      InitFragmentStage::StageESMImports,
-      source_order,
-      InitFragmentKey::ESMImport(key),
-      None,
-      runtime_condition,
-    )));
+    init_fragments.push(AwaitDependenciesInitFragment::new_single(import_var.clone()).boxed());
   }
+  if default_interop {
+    init_fragments.push(
+      DefaultInteropInitFragment::new(
+        import_var,
+        if is_async_module {
+          InitFragmentStage::StageAsyncESMImports
+        } else {
+          InitFragmentStage::StageESMImports
+        },
+        source_order,
+        runtime_condition,
+      )
+      .boxed(),
+    );
+  }
+}
+
+/// Lists up to ten exports in full. For longer lists, shows four names around the
+/// missing name's insertion point in alphabetical order and counts the rest.
+fn format_possible_exports(exports: &[Atom], missing: &Atom) -> String {
+  const FULL_LIST_LIMIT: usize = 10;
+  const WINDOW_SIZE: usize = 4;
+
+  if exports.len() <= FULL_LIST_LIMIT {
+    return exports.iter().join(", ");
+  }
+
+  let pos = exports.partition_point(|name| name < missing);
+  let omitted = exports.len() - WINDOW_SIZE;
+  let start = pos.saturating_sub(WINDOW_SIZE / 2).min(omitted);
+  let nearby = &exports[start..start + WINDOW_SIZE];
+  format!("{}, and {omitted} more", nearby.iter().format(", "))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -356,12 +365,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
       //   1. export { T } from "./types";
       //   2. import { T } from "./types"; export { T };
       // Check if the export is really a type export, if it is, then skip the error.
-      let type_reexports_presence = parent_module
-        .as_normal_module()
-        .and_then(|m| m.get_parser_options())
-        .and_then(|o| o.get_javascript())
-        .and_then(|o| o.type_reexports_presence)
-        .unwrap_or_default();
+      let type_reexports_presence = parent_module.build_info().type_reexports_presence;
       // ref: https://github.com/evanw/esbuild/blob/f4159a7b823cd5fe2217da2c30e8873d2f319667/internal/linker/linker.go#L3129-L3131
       if !matches!(
         type_reexports_presence,
@@ -393,28 +397,35 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           return None;
         }
       }
-      let mut pos = 0;
+      let mut rest = ids;
+      let mut is_fake_namespace = false;
       let mut maybe_exports_info =
         Some(exports_info_artifact.get_exports_info_data(&imported_module_identifier));
-      while pos < ids.len()
+      while let Some((id, tail)) = rest.split_first()
         && let Some(exports_info) = &maybe_exports_info
       {
-        let id = &ids[pos];
-        pos += 1;
+        rest = tail;
+        if is_fake_namespace && id == "default" {
+          is_fake_namespace = false;
+          continue;
+        }
         let export_info = exports_info.get_read_only_export_info(id);
         if matches!(export_info.provided(), Some(ExportProvided::NotProvided)) {
-          let provided_exports = exports_info.get_provided_exports();
+          let mut provided_exports = exports_info.get_provided_exports();
+          if is_fake_namespace
+            && let ProvidedExports::ProvidedNames(names) = &mut provided_exports
+            && !names.iter().any(|name| name == "default")
+          {
+            names.push("default".into());
+            names.sort_unstable();
+          }
           let more_info = if let ProvidedExports::ProvidedNames(exports) = &provided_exports {
             if exports.is_empty() {
               " (module has no exports)".to_string()
             } else {
               format!(
                 " (possible exports: {})",
-                exports
-                  .iter()
-                  .map(|e| e.as_str())
-                  .collect::<Vec<_>>()
-                  .join(", ")
+                format_possible_exports(exports, id)
               )
             }
           } else {
@@ -422,9 +433,8 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           };
           let msg = format!(
             "export {} {} was not found in '{}'{more_info}",
-            ids
+            ids[..ids.len() - tail.len()]
               .iter()
-              .take(pos)
               .map(|id| format!("'{id}'"))
               .collect::<Vec<_>>()
               .join("."),
@@ -437,6 +447,7 @@ pub fn esm_import_dependency_get_linking_error<T: ModuleDependency>(
           maybe_exports_info = None;
           continue;
         };
+        is_fake_namespace = export_info.default_points_to_self();
         maybe_exports_info = Some(nested_exports_info.as_data(exports_info_artifact));
       }
       let msg = format!(
@@ -584,7 +595,7 @@ impl Dependency for ESMImportSideEffectDependency {
         connection_state_cache,
       )
     } else {
-      ConnectionState::Active(self.missing_module_active())
+      ConnectionState::Active(self.missing_module_active(module_graph))
     }
   }
 
@@ -610,22 +621,12 @@ impl Dependency for ESMImportSideEffectDependency {
     ForwardId::Empty
   }
 
-  fn lazy(&self) -> Option<LazyUntil> {
-    self.lazy_make.load(Ordering::Relaxed).then(|| {
-      if self.star_export {
-        LazyUntil::Fallback
-      } else {
-        LazyUntil::NoUntil
-      }
+  fn lazy_until(&self) -> Option<LazyUntil> {
+    (self.dependency_type == DependencyType::EsmExportImport).then_some(if self.star_export {
+      LazyUntil::Fallback
+    } else {
+      LazyUntil::NoUntil
     })
-  }
-
-  fn set_lazy(&self) {
-    self.lazy_make.store(true, Ordering::Relaxed);
-  }
-
-  fn unset_lazy(&self) -> bool {
-    self.lazy_make.swap(false, Ordering::Relaxed)
   }
 }
 
@@ -673,17 +674,26 @@ impl DependencyConditionFn for ESMImportSideEffectDependencyCondition {
         &mut IdentifierMap::default(),
       )
     } else {
-      let dependency = module_graph.dependency_by_id(&conn.dependency_id);
-      let dependency = dependency
-        .downcast_ref::<ESMImportSideEffectDependency>()
-        .expect("should be ESMImportSideEffectDependency");
-      ConnectionState::Active(dependency.missing_module_active())
+      ConnectionState::Active(!module_graph.is_lazy_dependency(&conn.dependency_id))
     }
   }
 }
 
 #[cacheable_dyn]
 impl DependencyCodeGeneration for ESMImportSideEffectDependency {
+  fn update_hash(
+    &self,
+    hasher: &mut RspackHasher,
+    compilation: &rspack_core::Compilation,
+    _runtime: Option<&RuntimeSpec>,
+  ) {
+    // A deferred target emits nothing; a missing target emits an error.
+    compilation
+      .get_module_graph()
+      .is_lazy_dependency(&self.id)
+      .hash(hasher);
+  }
+
   fn dependency_template(&self) -> Option<DependencyTemplateType> {
     Some(ESMImportSideEffectDependencyTemplate::template_type())
   }
@@ -719,7 +729,7 @@ impl DependencyTemplate for ESMImportSideEffectDependencyTemplate {
 
     let module = module_graph.get_module_by_dependency_id(&dep.id);
 
-    if module.is_none() && !dep.missing_module_active() {
+    if module.is_none() && !dep.missing_module_active(module_graph) {
       return;
     }
 

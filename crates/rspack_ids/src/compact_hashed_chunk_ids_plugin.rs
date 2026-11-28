@@ -20,12 +20,14 @@ use crate::{
 #[derive(Debug, Clone, Default)]
 pub struct CompactHashedChunkIdsPluginOptions {
   pub min_length: Option<usize>,
+  pub salt: Option<u32>,
 }
 
 #[plugin]
 #[derive(Debug)]
 pub struct CompactHashedChunkIdsPlugin {
   min_length: usize,
+  salt: u32,
 }
 
 impl Default for CompactHashedChunkIdsPlugin {
@@ -36,7 +38,10 @@ impl Default for CompactHashedChunkIdsPlugin {
 
 impl CompactHashedChunkIdsPlugin {
   pub fn new(options: CompactHashedChunkIdsPluginOptions) -> Self {
-    Self::new_inner(normalize_min_length(options.min_length))
+    Self::new_inner(
+      normalize_min_length(options.min_length),
+      options.salt.unwrap_or_default(),
+    )
   }
 }
 
@@ -86,6 +91,7 @@ async fn chunk_ids(
     .filter(|chunk| chunk.id().is_none())
     .collect::<Vec<_>>();
 
+  let hash_name = |name: &str| hash_lowercase_alphanumeric(name, self.salt);
   let mut chunks_with_hashes = chunks
     .into_par_iter()
     .map(|chunk| -> Result<_> {
@@ -101,27 +107,32 @@ async fn chunk_ids(
         context,
         &compilation.exports_info_artifact,
       )?;
-      Ok((chunk, hash_lowercase_alphanumeric(&name), name))
+      Ok((chunk, hash_name(&name), name))
     })
     .collect::<Result<Vec<_>>>()?;
 
+  // Order by hash so that chunks sharing a hash prefix keep the same short id across rebuilds.
+  // Ordering by the chunk graph instead lets runtime changes reorder them and swap ids, which breaks
+  // id-stable consumers such as HMR.
   let mut chunk_compare_cache = NaturalChunkCompareCache::default();
-  chunks_with_hashes.sort_unstable_by(|(a, _, _), (b, _, _)| {
-    compare_chunks_natural(
-      chunk_graph,
-      &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
-      &compilation.module_ids_artifact,
-      a,
-      b,
-      &mut chunk_compare_cache,
-    )
+  chunks_with_hashes.sort_unstable_by(|(a, hash_a, _), (b, hash_b, _)| {
+    hash_a.cmp(hash_b).then_with(|| {
+      compare_chunks_natural(
+        chunk_graph,
+        &compilation.build_chunk_graph_artifact.chunk_group_by_ukey,
+        &compilation.module_ids_artifact,
+        a,
+        b,
+        &mut chunk_compare_cache,
+      )
+    })
   });
 
   let mut chunk_key_to_id =
     FxHashMap::with_capacity_and_hasher(chunks_with_hashes.len(), FxBuildHasher::default());
   let mut id_assigner = CompactHashedIdAssigner::new(self.min_length, used_ids);
   for (chunk, hash, name) in chunks_with_hashes {
-    let Some(chunk_id) = id_assigner.assign(&name, hash, hash_lowercase_alphanumeric) else {
+    let Some(chunk_id) = id_assigner.assign(&name, hash, hash_name) else {
       return Err(error!(
         "Unable to assign a unique compact-hashed id to chunk '{:?}' after {MAX_REHASH_ATTEMPTS} rehash attempts",
         chunk.ukey()

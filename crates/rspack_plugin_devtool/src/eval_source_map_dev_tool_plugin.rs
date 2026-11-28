@@ -1,6 +1,6 @@
 #![allow(clippy::too_many_arguments)]
 
-use std::{borrow::Cow, sync::Arc};
+use std::borrow::Cow;
 
 use derive_more::Debug;
 use futures::future::join_all;
@@ -21,14 +21,13 @@ use rspack_util::{
   asset_condition::{AssetConditions, AssetConditionsObject, match_object},
   base64,
   fx_hash::FxDashMap,
-  identifier::make_paths_absolute,
   json_stringify_str,
 };
 
 use crate::{
-  ModuleFilenameTemplate, SourceMapDevToolPluginOptions, SourceReference,
-  default_eval_module_filename_template, generate_debug_id::generate_debug_id,
-  module_filename_helpers::ModuleFilenameHelpers,
+  ModuleFilenameTemplate, SourceMapDevToolPluginOptions, default_eval_module_filename_template,
+  generate_debug_id::generate_debug_id, module_filename_helpers::ModuleFilenameHelpers,
+  resolve_source_reference,
 };
 
 const EVAL_SOURCE_MAP_DEV_TOOL_PLUGIN_NAME: &str = "rspack.EvalSourceMapDevToolPlugin";
@@ -145,24 +144,10 @@ async fn render_module_content(
       let source = origin_source.source().into_string_lossy();
 
       {
-        let modules = map.sources().iter().map(|source| {
-          if let Some(stripped) = source
-            .strip_prefix("webpack://")
-            .or_else(|| source.strip_prefix("rspack://"))
-          {
-            let source = make_paths_absolute(compilation.options.context.as_str(), stripped);
-            let identifier = ModuleIdentifier::from(source.as_str());
-            match compilation
-              .get_module_graph()
-              .module_by_identifier(&identifier)
-            {
-              Some(module) => SourceReference::Module(module.identifier()),
-              None => SourceReference::Source(Arc::from(source)),
-            }
-          } else {
-            SourceReference::Source(Arc::from(source.as_ref()))
-          }
-        });
+        let modules = map
+          .sources()
+          .iter()
+          .map(|source| resolve_source_reference(compilation, source));
         let path_data = PathData::default()
           .chunk(chunk.ukey(), compilation)
           .chunk_id_optional(chunk.id().map(|id| id.as_str()))
@@ -240,7 +225,7 @@ async fn render_module_content(
         map.set_sources_content(vec![]);
       }
 
-      map.set_source_root(self.source_root.as_ref().map(|s| Cow::Borrowed(s.as_str())));
+      map.set_source_root(self.source_root.as_ref().map(|s| s.clone().into()));
 
       let module_ids = &compilation.module_ids_artifact;
       // align with https://github.com/webpack/webpack/blob/3919c844eca394d73ca930e4fc5506fb86e2b094/lib/EvalSourceMapDevToolPlugin.js#L171
@@ -255,13 +240,10 @@ async fn render_module_content(
       } else {
         module_id.to_owned()
       };
-      map.set_file(Some(Cow::Owned(map_file.clone())));
+      map.set_file(Some(map_file.clone().into()));
 
       if self.debug_ids {
-        map.set_debug_id(Some(Cow::Owned(generate_debug_id(
-          &map_file,
-          source.as_bytes(),
-        ))));
+        map.set_debug_id(Some(generate_debug_id(&map_file, source.as_bytes()).into()));
       }
       let source_map = map.to_json();
       let base64 = base64::encode_to_string(&source_map);

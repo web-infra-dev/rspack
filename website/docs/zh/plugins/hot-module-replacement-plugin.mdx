@@ -21,9 +21,9 @@ export default {
 };
 ```
 
-## 运行时 API
+## Rspack 运行时 API \{#rspack-runtime-api}
 
-当你注册 `HotModuleReplacementPlugin` 插件后，Rspack 会注入 HMR 相关的运行时 API，例如 `module.hot` 和 `import.meta.webpackHot`。
+注册 `HotModuleReplacementPlugin` 后，Rspack 运行时会提供 `module.hot` 和 `import.meta.webpackHot` 等 HMR API。
 
 详见 [模块热替换 API](/api/runtime-api/hmr)。
 
@@ -41,7 +41,7 @@ export default {
 
 ## 热更新清单 \{#hot-update-manifest}
 
-热更新时，运行时会读取 `hot-update.json`，确定需要更新的 chunk，以及需要移除的 chunk 或模块。清单中记录了它们的 ID，JavaScript 更新代码则存放在单独的 `*.hot-update.(js|mjs)` 文件中。
+热更新时，Rspack 运行时会读取 `hot-update.json`，确定需要更新的 chunk，以及需要移除的 chunk 或模块。清单中记录了它们的 ID，JavaScript 更新代码则存放在单独的 `*.hot-update.(js|mjs)` 文件中。
 
 下面的示例表示更新 `main` chunk 的 JavaScript 和内置 CSS，无需移除任何 chunk 或模块：
 
@@ -58,11 +58,11 @@ export default {
 
 | 字段        | 含义和作用                                                                                     |
 | ----------- | ---------------------------------------------------------------------------------------------- |
-| `c`         | 需要更新 JavaScript 的 chunk，运行时会按需加载对应的更新文件。                                 |
-| `r`         | 需要从当前运行时移除的 chunk。                                                                 |
-| `m`         | 需要从当前运行时移除的模块。                                                                   |
-| `css.c`     | 内置 CSS 发生变化的 chunk，运行时会重新加载对应的样式表。                                      |
-| `css.r`     | 内置 CSS 已被移除的 chunk，运行时会移除对应的旧样式表。                                        |
+| `c`         | 需要更新 JavaScript 的 chunk，Rspack 运行时会按需加载对应的更新文件。                          |
+| `r`         | 需要从当前 Rspack 运行时移除的 chunk。                                                         |
+| `m`         | 需要从当前 Rspack 运行时移除的模块。                                                           |
+| `css.c`     | 内置 CSS 发生变化的 chunk，Rspack 运行时会重新加载对应的样式表。                               |
+| `css.r`     | 内置 CSS 已被移除的 chunk，Rspack 运行时会移除对应的旧样式表。                                 |
 | `miniCss.c` | 含义同 `css.c`，用于 [CssExtractRspackPlugin](/plugins/css-extract-rspack-plugin) 提取的 CSS。 |
 | `miniCss.r` | 含义同 `css.r`，用于 `CssExtractRspackPlugin` 提取的 CSS。                                     |
 

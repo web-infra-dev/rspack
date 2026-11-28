@@ -10,7 +10,6 @@ export default defineConfig(
     './static.js',
     './lazy.js',
   ].map((request, index) => ({
-    experiments: { css: true },
     module: {
       rules: [
         { test: /\.css$/, type: 'css', generator: { exportsOnly: false } },

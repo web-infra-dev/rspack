@@ -15,7 +15,9 @@ type Entrypoint = {
   isInitial(): boolean; // 是否在页面初始加载
   getFiles(): string[]; // 关联的文件列表
   getParents(): ChunkGroup[]; // 父 chunk group 列表
-  getRuntimeChunk(): Chunk; // 获取该 entrypoint 的 runtime chunk（runtime chunk 指包含 runtime 代码的 chunk。一般情况下 runtime chunk 和 entrypoint chunk 是同一个 chunk，只有在通过 dependOn 或 optimization.runtimeChunk 将 runtime 单独拆到一个 chunk 时才指向不同的 chunk）
+  // 获取当前入口使用的 Rspack 运行时所在的 chunk。
+  // 默认与入口 chunk 相同；配置 dependOn 或 optimization.runtimeChunk 时可能不同。
+  getRuntimeChunk(): Chunk;
   getEntrypointChunk(): Chunk; // 获取该 entrypoint 的 entrypoint chunk（指包含 entry 模块的 chunk）
   getModulePreOrderIndex(module: Module): number | null;
   getModulePostOrderIndex(module: Module): number | null;

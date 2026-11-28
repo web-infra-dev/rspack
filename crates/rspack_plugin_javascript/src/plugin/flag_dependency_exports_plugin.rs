@@ -100,12 +100,7 @@ impl<'a> FlagDependencyExportsState<'a> {
       // 2. exports from an esm reexport and the target is a commonjs module which should create a interop `default` export
       let (non_nested_specs, has_nested_specs): (Vec<_>, Vec<_>) = module_exports_specs
         .into_iter()
-        .partition(|(_mid, (_, has_nested_exports))| {
-          if *has_nested_exports {
-            return false;
-          }
-          true
-        });
+        .partition(|(_mid, (_, has_nested_exports))| !*has_nested_exports);
 
       // parallelize the merging of exports specs to exports info data
       let non_nested_tasks = non_nested_specs
@@ -424,6 +419,7 @@ struct ParsedExportSpec<'a> {
   priority: Option<u8>,
   hidden: bool,
   inlinable: Option<&'a EvaluatedInlinableValue>,
+  default_points_to_self: bool,
 }
 
 impl<'a> ParsedExportSpec<'a> {
@@ -442,6 +438,7 @@ impl<'a> ParsedExportSpec<'a> {
         priority: global_export_info.priority,
         hidden: false,
         inlinable: None,
+        default_points_to_self: false,
       },
       ExportNameOrSpec::ExportSpec(spec) => Self {
         name: &spec.name,
@@ -455,6 +452,7 @@ impl<'a> ParsedExportSpec<'a> {
         priority: spec.priority.or(global_export_info.priority),
         hidden: spec.hidden.unwrap_or(false),
         inlinable: spec.inlinable.as_ref(),
+        default_points_to_self: spec.default_points_to_self.unwrap_or(false),
       },
     }
   }
@@ -485,11 +483,18 @@ fn merge_exports_without_nested(
       priority,
       hidden,
       inlinable,
+      default_points_to_self,
       ..
     } = ParsedExportSpec::new(export_name_or_spec, &global_export_info);
 
     let export_info = exports_info.ensure_owned_export_info(name);
-    changed |= set_export_base_info(export_info, can_mangle, terminal_binding, inlinable);
+    changed |= set_export_base_info(
+      export_info,
+      can_mangle,
+      terminal_binding,
+      inlinable,
+      default_points_to_self,
+    );
 
     changed |= set_export_target(
       export_info,
@@ -540,6 +545,7 @@ pub fn merge_exports(
       priority,
       hidden,
       inlinable,
+      default_points_to_self,
     } = ParsedExportSpec::new(export_name_or_spec, &global_export_info);
 
     let export_info = exports_info
@@ -550,6 +556,7 @@ pub fn merge_exports(
       can_mangle,
       terminal_binding,
       inlinable,
+      default_points_to_self,
     );
 
     if let Some(exports) = exports {
@@ -602,6 +609,7 @@ fn set_export_base_info(
   can_mangle: Option<bool>,
   terminal_binding: bool,
   inlinable: Option<&EvaluatedInlinableValue>,
+  default_points_to_self: bool,
 ) -> bool {
   let mut changed = false;
   if let Some(provided) = export_info.provided()
@@ -628,6 +636,11 @@ fn set_export_base_info(
 
   if terminal_binding && !export_info.terminal_binding() {
     export_info.set_terminal_binding(true);
+    changed = true;
+  }
+
+  if default_points_to_self && !export_info.default_points_to_self() {
+    export_info.set_default_points_to_self(true);
     changed = true;
   }
   changed

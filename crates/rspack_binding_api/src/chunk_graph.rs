@@ -7,6 +7,7 @@ use crate::{
   chunk::{Chunk, ChunkWrapper},
   chunk_group::ChunkGroupWrapper,
   module::{ModuleObject, ModuleObjectRef},
+  module_graph::require_module_graph,
   runtime::JsRuntimeSpec,
   with_compilation,
 };
@@ -61,7 +62,7 @@ impl ChunkGraph {
   #[napi(ts_return_type = "Module[]")]
   pub fn get_chunk_modules(&self, chunk: &Chunk) -> Result<Vec<ModuleObject>> {
     self.with_compilation(|compilation| {
-      let module_graph = compilation.get_module_graph();
+      let module_graph = require_module_graph(compilation)?;
       let modules = compilation
         .build_chunk_graph_artifact
         .chunk_graph
@@ -84,11 +85,11 @@ impl ChunkGraph {
   #[napi(ts_return_type = "Iterable<Module>")]
   pub fn get_chunk_entry_modules_iterable(&self, chunk: &Chunk) -> Result<Vec<ModuleObject>> {
     self.with_compilation(|compilation| {
+      let module_graph = require_module_graph(compilation)?;
       let modules = compilation
         .build_chunk_graph_artifact
         .chunk_graph
         .get_chunk_entry_modules(&chunk.chunk_ukey);
-      let module_graph = compilation.get_module_graph();
       Ok(
         modules
           .iter()
@@ -142,7 +143,7 @@ impl ChunkGraph {
     source_type: String,
   ) -> Result<Vec<ModuleObject>> {
     self.with_compilation(|compilation| {
-      let module_graph = compilation.get_module_graph();
+      let module_graph = require_module_graph(compilation)?;
 
       let chunk_modules = compilation
         .build_chunk_graph_artifact

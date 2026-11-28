@@ -39,8 +39,10 @@ export default [
 					environment: {
 						arrowFunction: false,
 						destructuring: false,
+						spread: false,
 						forOf: false,
 						templateLiteral: false,
+						topLevelAwait: false,
 						nodePrefixForCoreModules: false
 					}
 				},
@@ -57,8 +59,10 @@ export default [
 			// the environment configured above, without any ES2015 feature
 			expect(runtimeTemplate.supportsArrowFunction()).toBe(false);
 			expect(runtimeTemplate.supportsDestructuring()).toBe(false);
+			expect(runtimeTemplate.supportsSpread()).toBe(false);
 			expect(runtimeTemplate.supportsForOf()).toBe(false);
 			expect(runtimeTemplate.supportTemplateLiteral()).toBe(false);
+			expect(runtimeTemplate.supportsTopLevelAwait()).toBe(false);
 			expect(runtimeTemplate.returningFunction("a", "b")).toBe(
 				"function(b) { return a; }"
 			);
@@ -98,11 +102,15 @@ export default [
 					...runtimeTemplate.outputOptions.environment,
 					arrowFunction: true,
 					destructuring: true,
+					spread: true,
 					forOf: true,
 					templateLiteral: true,
+					topLevelAwait: true,
 					nodePrefixForCoreModules: true
 				}
 			});
+			expect(modern.supportsSpread()).toBe(true);
+			expect(modern.supportsTopLevelAwait()).toBe(true);
 			expect(modern.returningFunction("a", "b")).toBe("(b) => (a)");
 			expect(modern.basicFunction("a", "return a;")).toBe(
 				"(a) => {\n\treturn a;\n}"

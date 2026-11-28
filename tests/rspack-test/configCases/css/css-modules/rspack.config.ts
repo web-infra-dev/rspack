@@ -18,9 +18,6 @@ const baseRules = [
 ];
 
 const base = {
-  experiments: {
-    css: true,
-  },
   externals: {
     fs: 'node-commonjs fs',
     path: 'node-commonjs path',

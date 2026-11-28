@@ -1,0 +1,14 @@
+@custom-media --a (--b);
+@custom-media --b (--a);
+
+@media (--missing) {
+  .missing {
+    color: blue;
+  }
+}
+
+@media (--a) {
+  .cyclic {
+    color: red;
+  }
+}

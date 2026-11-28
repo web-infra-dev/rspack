@@ -12,8 +12,9 @@ use derive_more::Debug;
 use rspack_cacheable::cacheable_dyn;
 use rspack_collections::Identifier;
 use rspack_error::Result;
-use rspack_paths::{Utf8Path, Utf8PathBuf};
-use rspack_util::identifier::strip_zero_width_space_for_fragment;
+use rspack_hash::RspackHasher;
+use rspack_paths::{InternedPath, Utf8Path, Utf8PathBuf};
+use rspack_util::identifier::{split_resource, strip_zero_width_space_for_fragment};
 
 use super::{Content, LoaderContext, LoaderFilter, LoaderRunnerOptions};
 
@@ -314,6 +315,14 @@ where
     None
   }
 
+  /// Build dependency paths that fingerprint this loader implementation for caching.
+  fn build_dependencies(&self) -> &[InternedPath] {
+    &[]
+  }
+
+  /// Hashes loader-specific inputs into the cache etag before the chain runs.
+  fn etag(&self, _context: &Context, _hasher: &mut RspackHasher) {}
+
   /// Selects the runtime responsible for executing this loader.
   fn execution_kind(&self) -> LoaderExecutionKind {
     LoaderExecutionKind::Native
@@ -391,7 +400,7 @@ pub struct ResourceParsedData {
 }
 
 pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
-  let (path, query, fragment) = path_query_fragment(resource).ok()?;
+  let (path, query, fragment) = split_resource(resource);
 
   Some(ResourceParsedData {
     path: strip_zero_width_space_for_fragment(path)
@@ -400,44 +409,6 @@ pub fn parse_resource(resource: &str) -> Option<ResourceParsedData> {
     query: query.map(|q| strip_zero_width_space_for_fragment(q).into_owned()),
     fragment: fragment.map(|f| f.to_owned()),
   })
-}
-
-#[cfg(not(windows))]
-fn path_query_fragment(input: &str) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
-  path_query_fragment_impl(input)
-}
-
-#[cfg(windows)]
-fn path_query_fragment(input: &str) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
-  let prefix_len = rspack_paths::dos_device_path_prefix_len(input);
-  let (path, query, fragment) = path_query_fragment_impl(&input[prefix_len..])?;
-  let path = &input[..prefix_len + path.len()];
-  Ok((path, query, fragment))
-}
-
-fn path_query_fragment_impl(
-  mut input: &str,
-) -> winnow::ModalResult<(&str, Option<&str>, Option<&str>)> {
-  use winnow::{
-    combinator::{alt, opt, repeat},
-    prelude::*,
-    token::{any, none_of, rest},
-  };
-
-  let path = alt((
-    ('\u{200b}', any).take(),
-    none_of(('?', '#', '\u{200b}')).take(),
-  ));
-  let query = alt((('\u{200b}', any).take(), none_of(('#', '\u{200b}')).take()));
-  let fragment = rest;
-
-  let mut parser = (
-    repeat::<_, _, (), _, _>(.., path).take(),
-    opt(('?', repeat::<_, _, (), _, _>(.., query)).take()),
-    opt(('#', fragment).take()),
-  );
-
-  parser.parse_next(&mut input)
 }
 
 #[cfg(test)]

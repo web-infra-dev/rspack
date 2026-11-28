@@ -1,5 +1,5 @@
 ---
-description: '介绍 Rspack 对外暴露、用于目标预设、运行时模板、子编译器和上层插件的底层插件。'
+description: '介绍 Rspack 对外暴露、用于目标预设、Rspack 运行时模板、子编译器和上层插件的底层插件。'
 ---
 
 import Attribution from '@components/Attribution';
@@ -7,7 +7,7 @@ import { ApiMeta, Stability } from '@components/ApiMeta';
 
 # 底层插件
 
-这些插件是 Rspack 对外暴露的底层构件，主要用于实现目标预设、运行时模板、子编译器和上层插件。
+这些插件是 Rspack 对外暴露的底层构件，主要用于实现目标预设、Rspack 运行时模板、子编译器和上层插件。
 
 :::tip 使用建议
 常规应用构建应优先使用对应的上层配置。直接使用这些插件主要适用于自定义编译器、子编译器和高级集成。
@@ -152,7 +152,7 @@ compiler.rspack.EntryOptionPlugin.applyEntryOption(
 
 ## output
 
-影响模块、chunk 和运行时加载代码生成的插件。
+控制模块、chunk 以及 Rspack 运行时加载代码生成的插件。
 
 ### EnableChunkLoadingPlugin \{#enable-chunk-loading-plugin}
 
@@ -160,7 +160,7 @@ compiler.rspack.EntryOptionPlugin.applyEntryOption(
 new rspack.javascript.EnableChunkLoadingPlugin(type);
 ```
 
-`EnableChunkLoadingPlugin` 会启用指定 chunk loading 类型所需的运行时模块。Rspack 通常会根据 [`output.enabledChunkLoadingTypes`](/config/output#outputenabledchunkloadingtypes) 收集到的类型应用该插件。
+`EnableChunkLoadingPlugin` 会启用指定 chunk loading 类型所需的 [Rspack 运行时模块](/misc/glossary#rspack-runtime-module)。Rspack 通常会根据 [`output.enabledChunkLoadingTypes`](/config/output#outputenabledchunkloadingtypes) 收集到的类型应用该插件。
 
 支持的内置类型包括 `'jsonp'`、`'import-scripts'`、`'require'`、`'async-node'` 和 `'import'`。
 
@@ -183,7 +183,7 @@ export default {
 };
 ```
 
-自定义 chunk loading 实现可以在安装相应运行时钩子后调用 `EnableChunkLoadingPlugin.setEnabled(compiler, type)`。该方法只注册类型，并不会实现 chunk loading。
+自定义 chunk loading 实现可以在安装相应 Rspack 运行时钩子后调用 `EnableChunkLoadingPlugin.setEnabled(compiler, type)`。该方法只注册类型，并不会实现 chunk loading。
 
 ### EnableLibraryPlugin \{#enable-library-plugin}
 
@@ -224,11 +224,11 @@ export default {
 new rspack.wasm.EnableWasmLoadingPlugin(type);
 ```
 
-`EnableWasmLoadingPlugin` 会启用指定 WebAssembly 加载类型所需的运行时模块。Rspack 通常会根据 [`output.enabledWasmLoadingTypes`](/config/output#outputenabledwasmloadingtypes) 收集到的类型应用该插件。
+`EnableWasmLoadingPlugin` 会启用指定 WebAssembly 加载类型所需的 Rspack 运行时模块。Rspack 通常会根据 [`output.enabledWasmLoadingTypes`](/config/output#outputenabledwasmloadingtypes) 收集到的类型应用该插件。
 
 支持的类型包括 `'fetch'`、`'async-node'` 和 `'universal'`。
 
-下面的示例将 `output.wasmLoading` 设为 `false` 以关闭自动配置，然后直接应用 `EnableWasmLoadingPlugin` 安装 `'fetch'` 加载运行时：
+下面的示例将 `output.wasmLoading` 设为 `false` 以关闭自动配置，然后直接应用 `EnableWasmLoadingPlugin` 安装 Rspack 运行时中的 `'fetch'` 加载代码：
 
 ```js title="src/index.js"
 import { add } from './add.wasm';
@@ -286,7 +286,7 @@ export default {
 new rspack.web.FetchCompileAsyncWasmPlugin();
 ```
 
-`FetchCompileAsyncWasmPlugin` 会添加在浏览器中获取并编译异步 WebAssembly 模块的运行时代码。`EnableWasmLoadingPlugin('fetch')` 会在内部应用这个实现。
+`FetchCompileAsyncWasmPlugin` 会添加在浏览器中获取并编译异步 WebAssembly 模块的 Rspack 运行时代码。`EnableWasmLoadingPlugin('fetch')` 会在内部应用这个实现。
 
 下面的示例关闭 WebAssembly loading 的自动配置，并直接安装 fetch 实现：
 
@@ -312,7 +312,7 @@ export default {
 };
 ```
 
-常规 web 构建应优先使用 `output.wasmLoading: 'fetch'`，Rspack 会自动启用相同的运行时实现。
+常规 web 构建应优先使用 `output.wasmLoading: 'fetch'`，它会自动启用相同的 Rspack 运行时加载代码。
 
 ### JsonpTemplatePlugin \{#jsonp-template-plugin}
 
@@ -320,7 +320,7 @@ export default {
 new rspack.web.JsonpTemplatePlugin();
 ```
 
-`JsonpTemplatePlugin` 用于配置子编译器的浏览器产物。它会将 [`output.chunkLoading`](/config/output#outputchunkloading) 设置为 `'jsonp'`，应用 [`'array-push'` chunk format](/config/output#outputchunkformat)，并启用 JSONP chunk loading 所需的运行时代码。
+`JsonpTemplatePlugin` 用于配置子编译器的浏览器产物。它会将 [`output.chunkLoading`](/config/output#outputchunkloading) 设置为 `'jsonp'`，应用 [`'array-push'` chunk format](/config/output#outputchunkformat)，并启用 JSONP chunk loading 所需的 Rspack 运行时代码。
 
 下面的浏览器入口会生成一个异步 chunk：
 
@@ -380,7 +380,7 @@ export default {
 new rspack.node.NodeTemplatePlugin(options);
 ```
 
-`NodeTemplatePlugin` 用于配置子编译器的 Node.js 产物。它会应用 [`'commonjs'` chunk format](/config/output#outputchunkformat)，默认将 [`output.chunkLoading`](/config/output#outputchunkloading) 设置为 `'require'`，并启用所需的 chunk loading 运行时代码。
+`NodeTemplatePlugin` 用于配置子编译器的 Node.js 产物。它会应用 [`'commonjs'` chunk format](/config/output#outputchunkformat)，默认将 [`output.chunkLoading`](/config/output#outputchunkloading) 设置为 `'require'`，并启用 chunk loading 所需的 Rspack 运行时代码。
 
 #### asyncChunkLoading
 
@@ -451,7 +451,7 @@ export default {
 new rspack.webworker.WebWorkerTemplatePlugin();
 ```
 
-`WebWorkerTemplatePlugin` 用于配置子编译器的 Web Worker 产物。它会将 [`output.chunkLoading`](/config/output#outputchunkloading) 设置为 `'import-scripts'`，应用 [`'array-push'` chunk format](/config/output#outputchunkformat)，并启用基于 `importScripts` 的 chunk loading 运行时代码。
+`WebWorkerTemplatePlugin` 用于配置子编译器的 Web Worker 产物。它会将 [`output.chunkLoading`](/config/output#outputchunkloading) 设置为 `'import-scripts'`，应用 [`'array-push'` chunk format](/config/output#outputchunkformat)，并启用 Rspack 运行时中基于 `importScripts` 的 chunk loading 代码。
 
 下面的 Worker 入口会生成一个异步 chunk：
 
@@ -626,7 +626,7 @@ export default {
 new rspack.container.ContainerReferencePlugin(options);
 ```
 
-`ContainerReferencePlugin` 会将远程 container 注册为 external，并添加从远程加载模块所需的运行时代码。它是 `remotes` 配置的底层实现。
+`ContainerReferencePlugin` 会将远程 container 注册为 external，并添加从远程加载模块所需的 Rspack 运行时代码。它是 `remotes` 配置的底层实现。
 
 使用下面的配置后，`import('catalog/Button')` 这样的导入会从远程 container 加载 `./Button`：
 

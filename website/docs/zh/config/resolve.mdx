@@ -789,6 +789,10 @@ export default {
 
 这个选项接受的是 `tsconfig.json` 的文件路径。在开启这个选项后， Rspack 会基于 `tsconfig.json` 中 的 `paths` 和 `baseUrl` 来寻找模块，其功能等同于 [tsconfig-paths-webpack-plugin](https://www.npmjs.com/package/tsconfig-paths-webpack-plugin)。
 
+当 `extends` 为数组时，后面的配置优先于前面的配置。当前 tsconfig 中声明的 `paths` 和 `baseUrl` 优先于继承的值。
+
+`paths` 中的路径以最终合并后的 `baseUrl` 为基准。如果没有配置 `baseUrl`，则以声明 `paths` 的 tsconfig 所在目录为基准。
+
 ### resolve.tsConfig.references
 
 - **类型：** `string[] | "auto" | undefined`

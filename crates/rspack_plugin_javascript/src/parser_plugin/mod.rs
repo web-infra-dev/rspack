@@ -3,6 +3,7 @@ mod api_plugin;
 mod common_js_exports_parse_plugin;
 mod common_js_imports_parse_plugin;
 mod common_js_plugin;
+mod common_js_side_effects_analysis;
 mod compatibility_plugin;
 mod r#const;
 mod drive;

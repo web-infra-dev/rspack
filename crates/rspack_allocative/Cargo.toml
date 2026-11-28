@@ -4,7 +4,6 @@ categories.workspace    = true
 description             = "rspack allocative"
 documentation.workspace = true
 edition.workspace       = true
-homepage.workspace      = true
 license.workspace       = true
 name                    = "rspack-allocative"
 repository.workspace    = true

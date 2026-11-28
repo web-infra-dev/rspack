@@ -6,7 +6,6 @@ export default defineConfig(
       target: 'web',
       mode: 'development',
       devtool: false,
-      experiments: { css: true },
       optimization: { concatenateModules },
       module: {
         rules: [

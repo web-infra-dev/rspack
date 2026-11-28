@@ -109,13 +109,12 @@ pub fn collect_modules(
       let is_concatenated = module.as_concatenated_module().is_some();
       let chunks = chunk_graph
         .try_get_module_chunks(module_id)
-        .map(|chunks| {
+        .map_or_default(|chunks| {
           chunks
             .iter()
             .map(|i| i.as_u32() as ChunkUkey)
             .collect::<HashSet<_>>()
-        })
-        .unwrap_or_default();
+        });
 
       (
         module_id.to_owned(),
@@ -208,7 +207,7 @@ pub fn collect_module_original_sources(
         .and_then(|s| s.map(&MapOptions::default()))
         .and_then(|s| {
           let idx = s.sources().iter().position(|s| s.eq(&resource))?;
-          let source = s.sources_content().get(idx)?;
+          let source = s.get_source_content(idx)?;
           Some(RsdoctorModuleOriginalSource {
             module: *module_ukey,
             source: source.to_string(),
@@ -425,7 +424,6 @@ fn get_esm_export_imported_specifier_target_exports(
           mode
             .partial_namespace_export_info
             .as_data(exports_info_artifact),
-          false,
         );
       }
       ExportMode::ReexportNamespaceObject(mode) => {
@@ -434,7 +432,6 @@ fn get_esm_export_imported_specifier_target_exports(
           mode
             .partial_namespace_export_info
             .as_data(exports_info_artifact),
-          false,
         );
       }
       ExportMode::ReexportFakeNamespaceObject(mode) => {
@@ -443,7 +440,6 @@ fn get_esm_export_imported_specifier_target_exports(
           mode
             .partial_namespace_export_info
             .as_data(exports_info_artifact),
-          true,
         );
       }
       ExportMode::NormalReexport(mode) => {
@@ -469,7 +465,6 @@ fn get_esm_export_imported_specifier_target_exports(
             &mut referenced_exports,
             item.ids.iter().collect(),
             Some(item.export_info.as_data(exports_info_artifact)),
-            false,
             &mut Default::default(),
           );
         }
@@ -487,7 +482,6 @@ fn get_esm_export_imported_specifier_target_exports(
 fn collect_referenced_target_exports(
   exports_info_artifact: &ExportsInfoArtifact,
   export_info: &ExportInfoData,
-  default_points_to_self: bool,
 ) -> Vec<Option<Vec<String>>> {
   let mut referenced_exports = Vec::new();
   collect_referenced_export_items(
@@ -496,7 +490,6 @@ fn collect_referenced_target_exports(
     &mut referenced_exports,
     vec![],
     Some(export_info),
-    default_points_to_self,
     &mut Default::default(),
   );
   map_referenced_target_exports(referenced_exports)
@@ -605,7 +598,6 @@ fn get_esm_export_imported_specifier_exports(
         &mut referenced_exports,
         vec![name],
         Some(export_info),
-        false,
         &mut Default::default(),
       );
       Some(map_referenced_target_exports(referenced_exports))
@@ -837,8 +829,7 @@ pub fn collect_connections_only_imports(
           let dependency_type = dep.dependency_type().to_string();
           let user_request = dep
             .as_module_dependency()
-            .map(|d| d.user_request().to_string())
-            .unwrap_or_default();
+            .map_or_default(|d| d.user_request().to_string());
 
           let origin_module = conn
             .original_module_identifier
