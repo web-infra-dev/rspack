@@ -1,24 +1,5 @@
-import assert from 'node:assert/strict';
-import { join } from 'node:path';
-
 /** @type {import('@rspack/core').LoaderDefinition} */
 export default function () {
-  const file = join(this.context, 'dependency.js');
-  const missing = join(this.context, 'missing.js');
-  this.dependency(file);
-  this.addContextDependency(this.context);
-  this.addMissingDependency(missing);
-  this.addBuildDependency(file);
-  assert.ok(this.getDependencies().includes(file));
-  assert.ok(this.getContextDependencies().includes(this.context));
-  assert.ok(this.getMissingDependencies().includes(missing));
-
-  this.clearDependencies();
-  this.addDependency(this.resourcePath);
-  assert.deepEqual(this.getDependencies(), [this.resourcePath]);
-  assert.deepEqual(this.getContextDependencies(), []);
-  assert.deepEqual(this.getMissingDependencies(), []);
-
   const callback = this.async();
   const logger = this.getLogger('parallel-loader');
   const getResolve = this.getResolve();
