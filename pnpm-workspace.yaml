@@ -112,7 +112,7 @@ catalog:
   'less-loader': '^13.1.1'
   'lodash': '^4.18.1'
   'lodash-es': '^4.18.1'
-  'markdown-to-jsx': '^9.10.6'
+  'markdown-to-jsx': '^9.11.0'
   'memfs': '4.80.1'
   'mermaid': '^12.3.0'
   'mime-types': '^3.0.2'
