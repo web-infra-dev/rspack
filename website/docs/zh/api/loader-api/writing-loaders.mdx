@@ -363,6 +363,27 @@ export default class MetadataPlugin {
 
 启用持久化缓存时，Rspack 会将这些数据以 JSON 格式保存。请使用 JSON 支持的值，例如字符串、数字、数组和普通对象。函数属性不会被保存，数组中的函数会变成 `null`，因此后续构建从磁盘缓存恢复模块时，插件将无法再调用这些函数。
 
+## 让 loader 支持缓存 \{#loader-cache-compatibility}
+
+Loader 缓存会保存 loader 的转换结果，当输入未变化时，Rspack 可以在多次构建或多个 compiler 之间复用这些结果，避免重复执行耗时转换。配置和用法请参见 [Loader 缓存](/guide/features/loader#loader-cache)。
+
+复用缓存前，Rspack 会检查 loader 的输入、选项和文件依赖。对于 JavaScript loader，Rspack 只会自动检测其入口文件本身的变化，不会追踪该 loader 内部导入的其他文件。
+
+顶层 `cache.buildDependencies` 不会使 loader 缓存失效。请通过 [`this.addDependency()`](/api/loader-api/context#thisadddependency) 或 [`this.addBuildDependency()`](/api/loader-api/context#thisaddbuilddependency) 添加会影响输出的外部文件（包括该 loader 自身导入的辅助文件）。
+
+由于 loader 缓存不会自动追踪 `this.mode` 等 compiler 设置，请将影响输出的设置暴露为 loader 选项，并确保选项可无损 JSON 序列化；否则 Rspack 不会缓存该 loader 的结果（例如选项包含函数、`Date` 或 `RegExp` 时）。
+
+以下行为会导致 Rspack 不会缓存当前 loader 的输出；除发出警告或错误外，还会导致链中后续执行的 loader 也无法使用缓存：
+
+- 调用 [`this.cacheable(false)`](/api/loader-api/context#thiscacheable)。
+- 调用 [`this.addContextDependency()`](/api/loader-api/context#thisaddcontextdependency) 或 [`this.addMissingDependency()`](/api/loader-api/context#thisaddmissingdependency)。
+- 调用 [`this.emitFile()`](/api/loader-api/context#thisemitfile)，或向 `this._module.buildInfo` 写入自定义字段。
+- 在 normal 阶段调用 [`this.emitWarning()`](/api/loader-api/context#thisemitwarning) 或 [`this.emitError()`](/api/loader-api/context#thisemiterror)。
+
+当 loader 接收或输出 [`additionalData`](/api/loader-api/context#thiscallback) 时，Rspack 也不会缓存其结果。
+
+如果你的 loader 定义了 [pitch 函数](#pitching-loader)，需要注意 loader 缓存只缓存 normal 阶段。Pitch 阶段不会被缓存且始终会执行，缓存命中时会跳过 normal 阶段并直接复用其输出。此外，只有 normal 阶段添加的文件依赖会在内容变化时使 loader 缓存失效，因此即使 pitch 函数已经添加过依赖，也需要在 normal 阶段再次添加。
+
 ## 发布 loader
 
 ### 声明 peer dependencies

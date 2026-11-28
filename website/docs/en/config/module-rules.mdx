@@ -942,6 +942,15 @@ export default {
 };
 ```
 
+## rules[].use.cache
+
+<ApiMeta stability={Stability.Experimental} addedVersion="2.2.0" />
+
+- **Type:** `boolean`
+- **Default:** `false`
+
+Set this option to `true` to cache the loader's transform results. The top-level `cache` and `experiments.newCache.loader` must also be enabled. See [loader caching](/guide/features/loader#loader-cache) for a configuration example and reuse conditions.
+
 ## rules[].use.codeFilter
 
 - **Type:**

@@ -362,6 +362,27 @@ Choose a distinct string property name, such as `metadataPlugin` in this example
 
 When persistent caching is enabled, Rspack saves this data as JSON. Use values that JSON supports, such as strings, numbers, arrays, and plain objects. Function properties are omitted, and functions in arrays become `null`, so the plugin cannot call them after a later build restores the module from the disk cache.
 
+## Loader cache compatibility
+
+Loader caching stores a loader's transform results so Rspack can reuse them across builds or compilers when the inputs have not changed, helping avoid repeating expensive transformations. See [Loader cache](/guide/features/loader#loader-cache) for configuration and usage.
+
+Before reusing a cached result, Rspack checks the loader's input, options, and file dependencies. For JavaScript loaders, Rspack automatically detects changes to the loader's entry file, but not other files that the loader imports.
+
+Top-level `cache.buildDependencies` does not invalidate loader caching. Add external files that affect the output (including helper files imported by the loader) with [`this.addDependency()`](/api/loader-api/context#thisadddependency) or [`this.addBuildDependency()`](/api/loader-api/context#thisaddbuilddependency).
+
+Because loader caching does not automatically track compiler settings such as `this.mode`, expose settings that affect the output as loader options. Ensure options can be losslessly serialized as JSON; otherwise, Rspack does not cache that loader's result (for example, when options contain functions, `Date`, or `RegExp` values).
+
+The following actions prevent Rspack from caching a loader's output. Except for emitting warnings or errors, they also prevent subsequent loaders in the execution chain from using the cache:
+
+- Calling [`this.cacheable(false)`](/api/loader-api/context#thiscacheable).
+- Calling [`this.addContextDependency()`](/api/loader-api/context#thisaddcontextdependency) or [`this.addMissingDependency()`](/api/loader-api/context#thisaddmissingdependency).
+- Calling [`this.emitFile()`](/api/loader-api/context#thisemitfile) or writing custom fields to `this._module.buildInfo`.
+- Calling [`this.emitWarning()`](/api/loader-api/context#thisemitwarning) or [`this.emitError()`](/api/loader-api/context#thisemiterror) during the normal phase.
+
+Rspack also does not cache a loader's result when it receives or outputs [`additionalData`](/api/loader-api/context#thiscallback).
+
+If your loader defines a [pitch function](#pitching-loader), note that loader caching only caches the normal phase. The pitch phase is not cached and always runs, while a cache hit skips the normal phase and reuses its output. In addition, only dependencies added during the normal phase invalidate loader caching when their contents change, so add them again in the normal phase even if the pitch function already added them.
+
 ## Publishing loaders
 
 ### Declaring peer dependencies

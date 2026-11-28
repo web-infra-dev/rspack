@@ -193,3 +193,86 @@ When multiple loaders within the same rule have `parallel` enabled, Rspack execu
 :::
 
 For more details, see [rules[].use.parallel](/config/module-rules#rulesuseparallel).
+
+## Loader cache
+
+Rspack supports caching the transform results of individual loaders so unchanged inputs can skip repeated execution across builds or compilers, improving build performance for expensive loaders.
+
+To enable loader caching, set [`cache: true`](/config/module-rules#rulesusecache) on a loader in `module.rules[].use`, along with the top-level [`cache`](/config/cache) and the `loader` stage of [`experiments.newCache`](/config/experiments#experimentsnewcache) (enabled by default when `experiments.newCache: true`):
+
+```js title="rspack.config.mjs"
+export default {
+  cache: { type: 'persistent' },
+  experiments: { newCache: true },
+  module: {
+    rules: [
+      {
+        test: /\.less$/,
+        use: [{ loader: 'less-loader', cache: true }],
+        type: 'css',
+      },
+    ],
+  },
+};
+```
+
+With memory caching, compilers in the same process can share loader results. With persistent caching, compilers in the same process can share results and later builds can reuse them across processes when [`cache.storage.directory`](/config/cache#storagedirectory) and [`cache.version`](/config/cache#version) match.
+
+:::tip
+
+- Loader caching does not automatically track compiler settings such as `mode` or `target`. If a loader's output depends on them, pass them explicitly in `use.options`, or avoid enabling `cache: true` on that loader.
+- Ensure loader options can be losslessly serialized as JSON; otherwise, Rspack does not cache that loader's result (for example, when options contain functions, `Date`, or `RegExp` values).
+
+:::
+
+### When to use loader caching
+
+Persistent cache already stores full module build results (including loader transforms and parsing) per compiler, and invalidates as a whole when [`cache.buildDependencies`](/config/cache#builddependencies) changes. Loader caching instead caches individual loader transforms independently, invalidating only when that loader's input, options, file dependencies, or [`cache.version`](/config/cache#version) change.
+
+Enable `cache: true` mainly for expensive loaders such as `babel-loader`, `less-loader`, or `sass-loader`. Normal warm rebuilds already hit the persistent cache, so lightweight loaders rarely benefit. For loaders with their own built-in cache (such as `babel-loader`'s `cacheDirectory`), disable that cache and use Rspack's loader caching instead for better performance and to avoid redundant caching.
+
+Loader caching helps most when the persistent cache is invalidated or cannot be shared:
+
+- **Configuration changes**: Rspack CLI adds the configuration file to `cache.buildDependencies`, so changing even an unrelated option such as `output.filename` invalidates the persistent cache and forces modules to rebuild. Because loader caching does not depend on `cache.buildDependencies`, Rspack can still reuse cached loader transforms.
+- **Multi-compiler builds (such as SSR)**: Different compiler instances in an SSR setup have different configurations (such as `target`), so they cannot reuse each other's persistent cache even when using the same cache storage directory. Loader caching is not affected by this—once the client build finishes, the server build can reuse cached loader transforms for shared source files as long as the inputs, options, and dependencies match.
+
+```js title="rspack.config.mjs"
+const shared = {
+  mode: 'development',
+  cache: { type: 'persistent' },
+  experiments: { newCache: true },
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        use: [
+          {
+            loader: 'babel-loader',
+            options: { plugins: ['./your-custom-babel-plugin.cjs'] },
+            cache: true,
+          },
+        ],
+      },
+    ],
+  },
+};
+
+export default [
+  {
+    ...shared,
+    name: 'client',
+    target: 'web',
+    entry: { client: './src/client.js' },
+  },
+  {
+    ...shared,
+    name: 'server',
+    target: 'node',
+    entry: { server: './src/server.js' },
+    // Run after `client` so `server` can reuse cached loader results for shared files
+    dependencies: ['client'],
+  },
+];
+```
+
+For loader authors, see [loader cache compatibility](/api/loader-api/writing-loaders#loader-cache-compatibility).
