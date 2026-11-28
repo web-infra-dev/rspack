@@ -1,4 +1,5 @@
 mod analyzer;
+mod directory_watcher;
 mod disk_watcher;
 mod executor;
 mod ignored;
@@ -432,11 +433,7 @@ impl FsWatcherInner {
   ) -> Result<()> {
     self
       .path_manager
-      .update(
-        (files.0.into_iter(), files.1.into_iter()),
-        (directories.0.into_iter(), directories.1.into_iter()),
-        (missing.0.into_iter(), missing.1.into_iter()),
-      )
+      .update_with_start_time(files, directories, missing, start_time)
       .await?;
 
     // Record baseline mtimes for files added in this watch() cycle, BEFORE

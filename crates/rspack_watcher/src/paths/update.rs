@@ -4,20 +4,19 @@ use rspack_error::Result;
 use rspack_paths::InternedPath;
 
 use super::PathTracker;
-use crate::{ignored::IgnoredMatcher, watcher_manager::WatcherManager};
+use crate::ignored::IgnoredMatcher;
 
 /// `PathUpdater` is used to update collections of registered paths (files, directories, and missing paths)
 /// by specifying which paths have been added and which have been removed. It holds vectors of paths to be
 /// added and removed, and provides functionality to apply these changes to a path tracker. This struct
 /// facilitates batch updates to the path sets, ensuring that additions and removals are processed efficiently.
-pub(super) struct PathUpdater<'a> {
+pub(super) struct PathUpdater {
   pub added: Vec<InternedPath>,
   pub removed: Vec<InternedPath>,
   base_dir: PathBuf,
-  contexts: Option<&'a WatcherManager>,
 }
 
-impl<Added, Removed> From<(Added, Removed)> for PathUpdater<'_>
+impl<Added, Removed> From<(Added, Removed)> for PathUpdater
 where
   Added: Iterator<Item = InternedPath>,
   Removed: Iterator<Item = InternedPath>,
@@ -27,17 +26,11 @@ where
       added: added.collect(),
       removed: removed.collect(),
       base_dir: std::env::current_dir().unwrap_or_default(),
-      contexts: None,
     }
   }
 }
 
-impl<'a> PathUpdater<'a> {
-  pub(super) fn with_contexts(mut self, contexts: &'a WatcherManager) -> Self {
-    self.contexts = Some(contexts);
-    self
-  }
-
+impl PathUpdater {
   /// Update the paths in the given set. Returns the paths it newly holds and
   /// those it no longer does.
   pub(super) async fn update(
@@ -68,9 +61,6 @@ impl<'a> PathUpdater<'a> {
       }
 
       if watch_tracker.add(added.clone()) {
-        if let Some(contexts) = self.contexts {
-          contexts.subscribe_context(&added);
-        }
         registered.push(added);
       }
     }
@@ -82,9 +72,6 @@ impl<'a> PathUpdater<'a> {
         InternedPath::from(self.base_dir.join(removed.as_ref()))
       };
       if watch_tracker.remove(removed.clone()) {
-        if let Some(contexts) = self.contexts {
-          contexts.unsubscribe_context(&removed);
-        }
         unregistered.push(removed);
       }
     }

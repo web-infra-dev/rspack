@@ -1,13 +1,9 @@
-use std::path::Path;
+use std::{path::Path, time::SystemTime};
 
 use rspack_paths::InternedPath;
-use rspack_util::time::current_time;
 
 use super::PathManager;
-use crate::{
-  time::{mtime_accuracy, mtime_to_millis},
-  watcher_manager::MemberKind,
-};
+use crate::{time::mtime_accuracy, watcher_manager::normalize_dir_path};
 
 impl PathManager {
   /// An event named `path` below a registered context: index it the way the
@@ -23,6 +19,8 @@ impl PathManager {
   /// the start time, or a registered path past its baseline check — skips the
   /// attribute-only check and keeps the record already written for it.
   pub async fn set_context_entry(&self, path: &InternedPath, judged: bool) -> bool {
+    let norm = normalize_dir_path(path);
+    let path = &norm;
     let recovered: Vec<InternedPath> = self
       .absent_directories
       .iter()
@@ -36,8 +34,9 @@ impl PathManager {
       self.scan_below(recovered, true, None).await;
     }
 
+    let below_context = self.is_below_context(path);
     let registered_directory = self.watchers.is_explicit_context(path);
-    if !registered_directory && !self.is_below_context(path) {
+    if !registered_directory && !below_context {
       return true;
     }
     // Like watchpack's live events, `lstat`: a link is a file entry here even
@@ -50,36 +49,27 @@ impl PathManager {
     {
       mtime_accuracy(mtime);
     }
-    if registered_directory {
+    if !below_context {
       return true;
     }
     if metadata.is_dir() {
+      let birthtime = metadata
+        .created()
+        .or_else(|_| metadata.modified())
+        .unwrap_or_else(|_| SystemTime::now());
       // Like watchpack's `setDirectory`, only a directory not known before is
       // scanned: an event on a known one, e.g. a `chmod`, changes nothing below.
-      if self.record(path, || {
-        self.watchers.add_member(path, MemberKind::Directory)
-      }) {
+      let added = self.record(path, || self.watchers.record_dir(path, birthtime, false));
+      if added && !registered_directory {
         self.scan_below(vec![path.clone()], false, None).await;
       }
       return true;
     }
-    self.record(path, || self.watchers.add_member(path, MemberKind::File));
-    let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) else {
-      return true;
-    };
-    if judged {
+    let mtime = metadata.modified().or_else(|_| metadata.created()).ok();
+    if judged || mtime.is_none() {
+      self.record(path, || self.watchers.put_file(path, None, false, false));
       return true;
     }
-    let mtime_ms = mtime_to_millis(mtime);
-    let accuracy = mtime_accuracy(mtime);
-    let untouched = self
-      .file_times
-      .get(path)
-      .is_some_and(|old| old.mtime == mtime && mtime_ms + accuracy < current_time());
-    if untouched {
-      return false;
-    }
-    self.set_file_time(path, mtime, false, false);
-    true
+    self.record(path, || self.watchers.put_file(path, mtime, false, false))
   }
 }
