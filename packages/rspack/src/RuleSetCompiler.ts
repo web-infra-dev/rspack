@@ -1,12 +1,21 @@
+import type { RuleSetLoaderWithOptions } from './config/types';
+
+export type LoaderParallel = Exclude<
+  RuleSetLoaderWithOptions['parallel'],
+  undefined | false
+>;
+
+export class ParallelLoaderOptions {
+  constructor(
+    public readonly options: unknown,
+    public readonly parallel: LoaderParallel,
+  ) {}
+}
+
 class RuleSetCompiler {
   references: Map<string, any>;
-  /**
-   * builtin references that should be serializable and passed to Rust.
-   */
-  builtinReferences: Map<string, any>;
   constructor() {
     this.references = new Map();
-    this.builtinReferences = new Map();
   }
 }
 

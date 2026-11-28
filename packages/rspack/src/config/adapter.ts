@@ -128,7 +128,6 @@ export const getRawOptions = (
     node: getRawNode(options.node),
     amd: options.amd ? JSON.stringify(options.amd || {}) : undefined,
     bail: options.bail!,
-    __references: {},
   };
 };
 
@@ -383,7 +382,7 @@ const getRawModuleRule = (
       };
       const uses = use(context);
 
-      return createRawModuleRuleUses(uses ?? [], `${path}.use`, options);
+      return createRawModuleRuleUses(uses ?? [], `${path}.use`, options, true);
     };
   }
 

@@ -1350,7 +1350,6 @@ impl CompilerOptionsBuilder {
       optimization,
       amd,
       bail,
-      __references: Default::default(),
     })
   }
 }

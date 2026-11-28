@@ -333,7 +333,7 @@ fn configure_swc_loader(builder: &mut CompilerBuilder) {
         ..Default::default()
       },
       effect: ModuleRuleEffect {
-        r#use: ModuleRuleUse::Array(vec![ModuleRuleUseLoader {
+        r#use: ModuleRuleUse::Array(vec![Arc::new(ModuleRuleUseLoader {
           loader: "builtin:swc-loader".to_string(),
           options: Some(
             json!({
@@ -345,8 +345,10 @@ fn configure_swc_loader(builder: &mut CompilerBuilder) {
             })
             .to_string(),
           ),
+          ident: None,
           metadata: None,
-        }]),
+          js_options: None,
+        })]),
         ..Default::default()
       },
       ..Default::default()

@@ -73,6 +73,7 @@ import {
   loadLoader,
   runSyncOrAsync,
 } from './utils';
+import { ParallelLoaderOptions } from '../RuleSetCompiler';
 import { MODULE_BUILD_INFO_SYMBOL } from '../util/symbols';
 
 const LOADER_PROCESS_NAME = 'Loader Analysis';
@@ -105,6 +106,10 @@ export class LoaderObject {
   #noPitch = false;
 
   constructor(loaderItem: JsLoaderItem, compiler: Compiler) {
+    const directOptions = loaderItem.options;
+    // Clear immediately so parallel structuredClone does not touch uncloneable options.
+    loaderItem.options = undefined;
+
     const splittedRequest = parseResourceWithoutFragment(
       loaderItem.loader,
       compiler._lastCompilation,
@@ -118,7 +123,10 @@ export class LoaderObject {
     this.normal = null;
     this.pitch = null;
     this.raw = null;
+    this.parallel = false;
 
+    let resolvedOptions: unknown;
+    let hasResolvedOptions = false;
     if (typeof this.options === 'string' && this.options[0] === '?') {
       const ident = this.options.slice(1);
       if (ident === '[[missing ident]]') {
@@ -128,12 +136,28 @@ export class LoaderObject {
             "provide an 'ident' property for referenced loader options.",
         );
       }
-      this.options = compiler.__internal__ruleSet.references.get(ident) as
-        LoaderObjectOptions | undefined;
-      if (this.options === undefined) {
+      if (directOptions !== undefined) {
+        resolvedOptions = directOptions;
+      } else if (compiler.__internal__ruleSet.references.has(ident)) {
+        resolvedOptions = compiler.__internal__ruleSet.references.get(ident);
+      } else {
         throw new Error('Invalid ident is provided by referenced loader');
       }
+      hasResolvedOptions = true;
       this.ident = ident;
+    } else if (directOptions !== undefined) {
+      resolvedOptions = directOptions;
+      hasResolvedOptions = true;
+    }
+
+    if (hasResolvedOptions) {
+      if (resolvedOptions instanceof ParallelLoaderOptions) {
+        this.options = resolvedOptions.options as
+          LoaderObjectOptions | undefined;
+        this.parallel = resolvedOptions.parallel;
+      } else {
+        this.options = resolvedOptions as LoaderObjectOptions | undefined;
+      }
     }
 
     // CHANGE: `rspack_core` returns empty string for `undefined` type.
@@ -142,19 +166,14 @@ export class LoaderObject {
       loaderItem.type === ''
         ? undefined
         : (loaderItem.type as LoaderObject['type']);
-    if (this.options === null) this.query = '';
+    if (this.ident) this.query = `??${this.ident}`;
+    else if (this.options === null) this.query = '';
     else if (this.options === undefined) this.query = '';
     else if (typeof this.options === 'string') this.query = `?${this.options}`;
-    else if (this.ident) this.query = `??${this.ident}`;
     else if (this.options.ident) this.query = `??${this.options.ident}`;
     else this.query = `?${JSON.stringify(this.options)}`;
 
     this.request = stringifyLoaderRequest(this.path, this.query, this.fragment);
-    this.parallel = this.ident
-      ? (compiler.__internal__ruleSet.references.get(
-          `${this.ident}$$parallelism`,
-        ) as LoaderObject['parallel'])
-      : false;
     this.loaderItem = loaderItem;
     this.loaderItem.data = this.loaderItem.data ?? {};
   }
@@ -536,7 +555,9 @@ export async function runLoaders(
       const entry = loaderContext.loaders[loaderContext.loaderIndex];
       return entry.options && typeof entry.options === 'object'
         ? entry.options
-        : entry.query;
+        : entry.ident && entry.options === undefined
+          ? ''
+          : entry.query;
     },
   });
   loaderContext.version = 2;

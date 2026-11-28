@@ -1659,6 +1659,7 @@ CompilerOptions {
                 extract_source_map: None,
             },
         ],
+        loader_references: {},
         parser: Some(
             ParserOptionsMap(
                 {
@@ -1866,5 +1867,4 @@ CompilerOptions {
     },
     amd: None,
     bail: false,
-    __references: {},
 }

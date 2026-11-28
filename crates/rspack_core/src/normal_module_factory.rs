@@ -9,6 +9,7 @@ use rspack_hook::define_hook;
 use rspack_loader_runner::{
   Loader, LoaderMetadata, LoaderMetadataList, LoaderRunnerOptions, Scheme, get_scheme,
 };
+use smallvec::SmallVec;
 use sugar_path::SugarPath;
 
 use crate::{
@@ -19,7 +20,7 @@ use crate::{
   ParserAndGenerator, ParserOptions, RawModule, ResolveArgs, ResolveOptionsWithDependencyType,
   ResolveResult, Resolver, ResolverFactory, ResourceData, ResourceParsedData, RunnerContext,
   RuntimeGlobals, SharedPluginDriver, diagnostics::EmptyDependency, module_rules_matcher,
-  parse_resource, resolve, stringify_loaders_and_resource,
+  parse_resource, resolve,
 };
 
 define_hook!(NormalModuleFactoryBeforeResolve: SeriesBail(data: &mut ModuleFactoryCreateData) -> bool,tracing=false);
@@ -262,19 +263,23 @@ impl NormalModuleFactory {
           let ident = resource.as_ref().and_then(|r| {
             r.query
               .as_ref()
-              .and_then(|q| q.starts_with("??").then(|| &q[2..]))
+              .and_then(|q| q.strip_prefix("??"))
+              .filter(|ident| !ident.is_empty())
+          });
+          let reference = ident.and_then(|ident| {
+            data
+              .build_context
+              .compiler_options
+              .module
+              .loader_references
+              .get(ident)
           });
           ModuleRuleUseLoader {
             loader: r.to_owned(),
-            options: ident.and_then(|ident| {
-              data
-                .build_context
-                .compiler_options
-                .__references
-                .get(ident)
-                .map(|object| object.to_string())
-            }),
-            metadata: None,
+            options: reference.and_then(|r| r.options.clone()),
+            ident: None,
+            metadata: reference.and_then(|r| r.metadata.clone()),
+            js_options: reference.and_then(|r| r.js_options.clone()),
           }
         }));
         scheme = get_scheme(unresolved_resource);
@@ -405,12 +410,12 @@ module.exports = "data:,";
     let mut resolved_inline_loaders = vec![];
     for l in inline_loaders {
       resolved_inline_loaders
-        .push(resolve_each(plugin_driver, &context, &loader_resolver, &l, data).await?)
+        .push(resolve_each_with_options(plugin_driver, &context, &loader_resolver, &l, data).await?)
     }
 
     let user_request = {
       let suffix =
-        stringify_loaders_and_resource(&resolved_inline_loaders, resource_data.resource());
+        stringify_resolved_loaders_and_resource(&resolved_inline_loaders, resource_data.resource());
       if let Some(match_resource_data) = &match_resource_data {
         let mut resource = match_resource_data.resource().to_owned();
         resource += "!=!";
@@ -422,14 +427,22 @@ module.exports = "data:,";
     };
 
     let resolved_loaders: Vec<ResolvedLoader> = {
-      let mut pre_loaders: Vec<ModuleRuleUseLoader> = vec![];
-      let mut post_loaders: Vec<ModuleRuleUseLoader> = vec![];
-      let mut normal_loaders: Vec<ModuleRuleUseLoader> = vec![];
+      let mut pre_loaders: SmallVec<[Cow<'_, [Arc<ModuleRuleUseLoader>]>; 2]> = SmallVec::new();
+      let mut post_loaders: SmallVec<[Cow<'_, [Arc<ModuleRuleUseLoader>]>; 2]> = SmallVec::new();
+      let mut normal_loaders: SmallVec<[Cow<'_, [Arc<ModuleRuleUseLoader>]>; 2]> = SmallVec::new();
+      let mut pre_len = 0usize;
+      let mut post_len = 0usize;
+      let mut normal_len = 0usize;
 
       for &idx in &effect_indices {
         let effect = &self.options.module.effects[idx];
         let rule_use = match &effect.r#use {
-          ModuleRuleUse::Array(array_use) => Cow::Borrowed(array_use),
+          ModuleRuleUse::Array(array_use) => {
+            if array_use.is_empty() {
+              continue;
+            }
+            Cow::Borrowed(array_use.as_slice())
+          }
           ModuleRuleUse::Func(func_use) => {
             let resource_data_for_rules = match_resource_data.as_ref().unwrap_or(&resource_data);
             let context = FuncUseCtx {
@@ -448,50 +461,49 @@ module.exports = "data:,";
         match effect.enforce {
           ModuleRuleEnforce::Pre => {
             if !no_pre_auto_loaders && !no_pre_post_auto_loaders {
-              pre_loaders.extend_from_slice(&rule_use);
+              pre_len += rule_use.len();
+              pre_loaders.push(rule_use);
             }
           }
           ModuleRuleEnforce::Normal => {
             if !no_auto_loaders && !no_pre_auto_loaders {
-              normal_loaders.extend_from_slice(&rule_use);
+              normal_len += rule_use.len();
+              normal_loaders.push(rule_use);
             }
           }
           ModuleRuleEnforce::Post => {
             if !no_pre_post_auto_loaders {
-              post_loaders.extend_from_slice(&rule_use);
+              post_len += rule_use.len();
+              post_loaders.push(rule_use);
             }
           }
         }
       }
 
-      let mut all_loaders = Vec::with_capacity(
-        pre_loaders.len()
-          + post_loaders.len()
-          + normal_loaders.len()
-          + resolved_inline_loaders.len(),
-      );
+      let mut all_loaders =
+        Vec::with_capacity(pre_len + post_len + normal_len + resolved_inline_loaders.len());
 
-      for l in post_loaders {
+      for l in post_loaders.iter().flat_map(|loaders| loaders.iter()) {
         all_loaders.push(
           resolve_each_with_options(
             plugin_driver,
             &self.options.context,
             &loader_resolver,
-            &l,
+            l.as_ref(),
             data,
           )
           .await?,
         )
       }
 
-      let mut resolved_normal_loaders = vec![];
-      for l in normal_loaders {
+      let mut resolved_normal_loaders = Vec::with_capacity(normal_len);
+      for l in normal_loaders.iter().flat_map(|loaders| loaders.iter()) {
         resolved_normal_loaders.push(
           resolve_each_with_options(
             plugin_driver,
             &self.options.context,
             &loader_resolver,
-            &l,
+            l.as_ref(),
             data,
           )
           .await?,
@@ -500,27 +512,19 @@ module.exports = "data:,";
 
       if match_resource_data.is_some() {
         all_loaders.extend(resolved_normal_loaders);
-        all_loaders.extend(
-          resolved_inline_loaders
-            .into_iter()
-            .map(ResolvedLoader::uncached),
-        );
+        all_loaders.extend(resolved_inline_loaders);
       } else {
-        all_loaders.extend(
-          resolved_inline_loaders
-            .into_iter()
-            .map(ResolvedLoader::uncached),
-        );
+        all_loaders.extend(resolved_inline_loaders);
         all_loaders.extend(resolved_normal_loaders);
       }
 
-      for l in pre_loaders {
+      for l in pre_loaders.iter().flat_map(|loaders| loaders.iter()) {
         all_loaders.push(
           resolve_each_with_options(
             plugin_driver,
             &self.options.context,
             &loader_resolver,
-            &l,
+            l.as_ref(),
             data,
           )
           .await?,
@@ -758,13 +762,25 @@ struct ResolvedLoader {
   metadata: Option<Arc<LoaderMetadata>>,
 }
 
-impl ResolvedLoader {
-  fn uncached(loader: BoxLoader) -> Self {
-    Self {
-      loader,
-      options: LoaderRunnerOptions::default(),
-      metadata: None,
+fn stringify_resolved_loaders_and_resource<'a>(
+  loaders: &[ResolvedLoader],
+  resource: &'a str,
+) -> Cow<'a, str> {
+  if !loaders.is_empty() {
+    let mut s = String::new();
+    for resolved in loaders {
+      let identifier = resolved.loader.identifier();
+      if let Some((_type, ident)) = identifier.split_once('|') {
+        s.push_str(ident);
+      } else {
+        s.push_str(identifier.as_str());
+      }
+      s.push('!');
     }
+    s.push_str(resource);
+    Cow::Owned(s)
+  } else {
+    Cow::Borrowed(resource)
   }
 }
 

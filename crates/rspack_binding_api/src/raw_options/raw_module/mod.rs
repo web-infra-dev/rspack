@@ -1,4 +1,5 @@
 use std::{
+  any::Any,
   fmt::Formatter,
   ptr::NonNull,
   sync::{Arc, LazyLock},
@@ -23,12 +24,13 @@ use rspack_core::{
   JavascriptParserCommonjsExportsOption, JavascriptParserCommonjsOptions,
   JavascriptParserCreateRequire, JavascriptParserOptions, JavascriptParserOrder,
   JavascriptParserUrl, JavascriptParserWorkerOptions, JavascriptParserWorkerUrl,
-  JsonGeneratorOptions, JsonParserOptions, LoaderFilter, LoaderMetadata, ModuleNoParseRule,
-  ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule, ModuleRuleEffect,
-  ModuleRuleEnforce, ModuleRuleMatcher, ModuleRuleUse, ModuleRuleUseLoader, OverrideStrict,
-  ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
+  JsonGeneratorOptions, JsonParserOptions, LoaderFilter, LoaderMetadata, LoaderReferenceMap,
+  ModuleNoParseRule, ModuleNoParseRules, ModuleNoParseTestFn, ModuleOptions, ModuleRule,
+  ModuleRuleEffect, ModuleRuleEnforce, ModuleRuleMatcher, ModuleRuleUse, ModuleRuleUseLoader,
+  OverrideStrict, ParseOption, ParserOptions, ParserOptionsMap, TypeReexportPresenceMode,
 };
 use rspack_error::error;
+use rspack_napi::ThreadsafeValueRef;
 use rspack_regex::RspackRegex;
 use rustc_hash::FxHashMap as HashMap;
 
@@ -49,6 +51,9 @@ use crate::{
 pub struct RawModuleRuleUse {
   pub loader: String,
   pub options: Option<String>,
+  #[napi(ts_type = "unknown")]
+  pub js_options: Option<ThreadsafeValueRef>,
+  pub ident: Option<String>,
   pub metadata: Option<RawLoaderMetadata>,
 }
 
@@ -79,6 +84,10 @@ fn into_loader_metadata(value: RawLoaderMetadata) -> Option<Arc<LoaderMetadata>>
     options_cache_key: value.options_cache_key,
     filter,
   }))
+}
+
+fn into_js_options(js_options: Option<ThreadsafeValueRef>) -> Option<Arc<dyn Any + Send + Sync>> {
+  js_options.map(|options| Arc::new(options) as Arc<dyn Any + Send + Sync>)
 }
 
 #[rspack_napi_macros::tagged_union]
@@ -1051,22 +1060,45 @@ impl RawModuleRule {
   fn into_rules(
     rules: Vec<Self>,
     effects: &mut Vec<ModuleRuleEffect>,
+    loader_references: &mut LoaderReferenceMap,
   ) -> rspack_error::Result<Vec<ModuleRule>> {
     rules
       .into_iter()
-      .map(|rule| rule.into_rule(effects))
+      .map(|rule| rule.into_rule(effects, loader_references))
       .collect()
   }
 
-  fn into_rule(self, effects: &mut Vec<ModuleRuleEffect>) -> rspack_error::Result<ModuleRule> {
+  fn into_rule(
+    self,
+    effects: &mut Vec<ModuleRuleEffect>,
+    loader_references: &mut LoaderReferenceMap,
+  ) -> rspack_error::Result<ModuleRule> {
     let uses = self.r#use.map(|raw| match raw {
       Either::A(array) => {
         let uses = array
           .into_iter()
-          .map(|rule_use| ModuleRuleUseLoader {
-            loader: rule_use.loader,
-            options: rule_use.options,
-            metadata: rule_use.metadata.and_then(into_loader_metadata),
+          .map(|rule_use| {
+            let use_loader = Arc::new(ModuleRuleUseLoader {
+              loader: rule_use.loader,
+              options: rule_use.options,
+              ident: rule_use
+                .ident
+                .filter(|ident| !ident.is_empty())
+                .map(Into::into),
+              metadata: rule_use.metadata.and_then(into_loader_metadata),
+              js_options: into_js_options(rule_use.js_options),
+            });
+            if let Some(ident) = use_loader.reference_ident() {
+              if use_loader.options.is_some()
+                || use_loader.metadata.is_some()
+                || use_loader.js_options.is_some()
+              {
+                loader_references.insert(ident, Arc::clone(&use_loader));
+              } else {
+                loader_references.remove(ident.as_str());
+              }
+            }
+            use_loader
           })
           .collect::<Vec<_>>();
         Ok::<ModuleRuleUse, rspack_error::Error>(ModuleRuleUse::Array(uses))
@@ -1078,10 +1110,14 @@ impl RawModuleRule {
             tsfn.call_with_sync(ctx.into()).await.map(|uses| {
               uses
                 .into_iter()
-                .map(|rule_use| ModuleRuleUseLoader {
-                  loader: rule_use.loader,
-                  options: rule_use.options,
-                  metadata: rule_use.metadata.and_then(into_loader_metadata),
+                .map(|rule_use| {
+                  Arc::new(ModuleRuleUseLoader {
+                    loader: rule_use.loader,
+                    options: rule_use.options,
+                    ident: None,
+                    metadata: rule_use.metadata.and_then(into_loader_metadata),
+                    js_options: into_js_options(rule_use.js_options),
+                  })
                 })
                 .collect::<Vec<_>>()
             })
@@ -1136,13 +1172,13 @@ impl RawModuleRule {
       extract_source_map: self.extract_source_map,
     }
     .push(effects);
-    let rules = self
-      .rules
-      .map(|rules| Self::into_rules(rules, effects))
-      .transpose()?;
     let one_of = self
       .one_of
-      .map(|rules| Self::into_rules(rules, effects))
+      .map(|rules| Self::into_rules(rules, effects, loader_references))
+      .transpose()?;
+    let rules = self
+      .rules
+      .map(|rules| Self::into_rules(rules, effects, loader_references))
       .transpose()?;
 
     Ok(ModuleRule {
@@ -1179,11 +1215,13 @@ impl TryFrom<RawModuleOptions> for ModuleOptions {
 
   fn try_from(value: RawModuleOptions) -> rspack_error::Result<Self> {
     let mut effects = Vec::with_capacity(value.rules.len());
-    let rules = RawModuleRule::into_rules(value.rules, &mut effects)?;
+    let mut loader_references = LoaderReferenceMap::default();
+    let rules = RawModuleRule::into_rules(value.rules, &mut effects, &mut loader_references)?;
     Ok(ModuleOptions {
       options_store: Default::default(),
       rules,
       effects,
+      loader_references,
       parser: value
         .parser
         .map(|x| {

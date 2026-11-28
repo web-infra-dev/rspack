@@ -1,4 +1,6 @@
 use std::{
+  any::Any,
+  borrow::Cow,
   fmt,
   ops::{Deref, DerefMut},
   sync::Arc,
@@ -6,6 +8,7 @@ use std::{
 
 use async_recursion::async_recursion;
 use bitflags::bitflags;
+use concat_string::concat_string;
 use derive_more::Debug;
 use futures::future::BoxFuture;
 use rspack_cacheable::{cacheable, with::Unsupported};
@@ -13,9 +16,10 @@ use rspack_error::Result;
 use rspack_hash::{HashDigest, HashFunction, HashSalt, RspackHash, RspackHasher};
 use rspack_macros::MergeFrom;
 use rspack_regex::RspackRegex;
-use rspack_util::{MergeFrom, try_all, try_any};
+use rspack_util::{MergeFrom, identifier::split_at_query_mark, try_all, try_any};
 use rustc_hash::FxHashMap as HashMap;
 use smallvec::SmallVec;
+use smol_str::SmolStr;
 use tokio::sync::OnceCell;
 
 use crate::{Compilation, Filename, Module, ModuleType, PublicPath, Resolve, ResourceData};
@@ -1698,8 +1702,13 @@ pub struct ModuleRuleUseLoader {
   /// Loader options
   /// This only exists if the loader is a built-in loader.
   pub options: Option<String>,
+  /// Fallback rule ident appended as `??{ident}` when neither `loader` nor a resolved alias supplies a query.
+  pub ident: Option<SmolStr>,
   /// Shared per-rule metadata for caching and normal-stage filtering.
   pub metadata: Option<Arc<rspack_loader_runner::LoaderMetadata>>,
+  /// Optional shared JS options reference passed straight through to JS loaders.
+  #[debug(skip)]
+  pub js_options: Option<Arc<dyn Any + Send + Sync>>,
 }
 
 impl ModuleRuleUseLoader {
@@ -1723,10 +1732,39 @@ impl ModuleRuleUseLoader {
       .as_deref()
       .and_then(|meta| meta.filter.as_ref())
   }
+
+  pub fn loader_with_ident(&self) -> Cow<'_, str> {
+    if let Some(ident) = &self.ident
+      && split_at_query_mark(&self.loader).1.is_none()
+    {
+      Cow::Owned(concat_string!(self.loader, "??", ident.as_str()))
+    } else {
+      Cow::Borrowed(self.loader.as_str())
+    }
+  }
+
+  pub fn reference_ident(&self) -> Option<SmolStr> {
+    if split_at_query_mark(&self.loader).1.is_some()
+      && let Some(query) = crate::parse_resource(&self.loader).and_then(|r| r.query)
+    {
+      return query
+        .strip_prefix("??")
+        .filter(|ident| !ident.is_empty())
+        .map(SmolStr::new);
+    }
+    self
+      .ident
+      .as_ref()
+      .filter(|ident| !ident.is_empty())
+      .cloned()
+  }
 }
 
-pub type FnUse =
-  Box<dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<ModuleRuleUseLoader>>> + Sync + Send>;
+pub type LoaderReferenceMap = HashMap<SmolStr, Arc<ModuleRuleUseLoader>>;
+
+pub type FnUse = Box<
+  dyn Fn(FuncUseCtx) -> BoxFuture<'static, Result<Vec<Arc<ModuleRuleUseLoader>>>> + Sync + Send,
+>;
 
 #[derive(Debug)]
 pub struct ModuleRule {
@@ -1790,7 +1828,7 @@ impl ModuleRuleEffect {
 }
 
 pub enum ModuleRuleUse {
-  Array(Vec<ModuleRuleUseLoader>),
+  Array(Vec<Arc<ModuleRuleUseLoader>>),
   Func(FnUse),
 }
 
@@ -1875,6 +1913,7 @@ pub struct ModuleOptions {
   pub options_store: super::ModuleRuleOptionsStore,
   pub rules: Vec<ModuleRule>,
   pub effects: Vec<ModuleRuleEffect>,
+  pub loader_references: LoaderReferenceMap,
   pub parser: Option<ParserOptionsMap>,
   pub generator: Option<GeneratorOptionsMap>,
   pub no_parse: Option<ModuleNoParseRules>,

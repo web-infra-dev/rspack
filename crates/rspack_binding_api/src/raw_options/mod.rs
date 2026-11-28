@@ -5,7 +5,7 @@ use napi::{
 use napi_derive::napi;
 use rspack_core::{
   CompilerOptions, Context, Experiments, ModuleOptions, NodeDirnameOption, NodeFilenameOption,
-  NodeGlobalOption, NodeOption, OutputOptions, References, incremental::IncrementalOptions,
+  NodeGlobalOption, NodeOption, OutputOptions, incremental::IncrementalOptions,
 };
 use rspack_error::error;
 
@@ -67,8 +67,6 @@ pub struct RawOptions {
   pub node: Option<RawNodeOption>,
   pub amd: Option<String>,
   pub bail: bool,
-  #[napi(js_name = "__references", ts_type = "Record<string, any>")]
-  pub __references: References,
   #[napi(js_name = "__virtual_files")]
   pub __virtual_files: Option<Vec<JsVirtualFile>>,
 }
@@ -146,7 +144,6 @@ impl TryFrom<RawOptions> for CompilerOptions {
       node,
       amd: value.amd,
       bail: value.bail,
-      __references: value.__references,
     })
   }
 }

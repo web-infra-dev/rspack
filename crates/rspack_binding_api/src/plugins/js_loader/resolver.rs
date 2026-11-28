@@ -1,5 +1,6 @@
-use std::{borrow::Cow, sync::Arc};
+use std::{any::Any, borrow::Cow, sync::Arc};
 
+use concat_string::concat_string;
 use rspack_cacheable::{
   cacheable, cacheable_dyn,
   with::{AsOption, AsRefStr},
@@ -11,6 +12,7 @@ use rspack_core::{
 };
 use rspack_error::Result;
 use rspack_hook::plugin_hook;
+use rspack_napi::ThreadsafeValueRef;
 use rspack_paths::{InternedPath, Utf8Path};
 use rspack_util::identifier::split_at_query_mark;
 
@@ -18,28 +20,38 @@ use super::{JsLoaderRspackPlugin, JsLoaderRspackPluginInner};
 
 #[cacheable]
 #[derive(Debug)]
-pub struct JsLoader(
-  pub Identifier,
-  /* LoaderType */ #[cacheable(with=AsOption<AsRefStr>)] pub Option<Cow<'static, str>>,
-  pub Vec<InternedPath>,
-);
+pub struct JsLoader {
+  pub identifier: Identifier,
+  #[cacheable(with=AsOption<AsRefStr>)]
+  pub r#type: Option<Cow<'static, str>>,
+  pub build_dependencies: Vec<InternedPath>,
+  #[cacheable(with=rspack_cacheable::with::Skip)]
+  pub js_options: Option<ThreadsafeValueRef>,
+}
 
 #[cacheable_dyn]
 impl Loader<RunnerContext> for JsLoader {
   fn identifier(&self) -> Identifier {
-    self.0
+    self.identifier
   }
 
   fn r#type(&self) -> Option<&str> {
-    self.1.as_deref()
+    self.r#type.as_deref()
   }
 
   fn build_dependencies(&self) -> &[InternedPath] {
-    &self.2
+    &self.build_dependencies
   }
 
   fn execution_kind(&self) -> LoaderExecutionKind {
     LoaderExecutionKind::JavaScript
+  }
+
+  fn js_options(&self) -> Option<&(dyn Any + Send + Sync)> {
+    self
+      .js_options
+      .as_ref()
+      .map(|v| v as &(dyn Any + Send + Sync))
   }
 }
 
@@ -127,26 +139,38 @@ pub(crate) async fn resolve_loader(
         })
       };
       #[cfg(windows)]
-      let path = {
+      let stripped_path = {
         // Node's module loader may interpret a namespaced drive path as only
         // its drive component. Filesystem access and cache versioning above
         // still use the original namespaced path.
         rspack_paths::strip_dos_device_path_prefix(path)
       };
+      #[cfg(windows)]
+      let path = stripped_path.as_ref();
 
       // favor explicit loader query over aliased query, see webpack issue-3320
-      let resource = if let Some(rest) = rest
+      let identifier = if let Some(rest) = rest
         && !rest.is_empty()
       {
-        format!("{path}{rest}")
+        concat_string!(path, rest).into()
+      } else if !query.is_empty() {
+        concat_string!(path, query).into()
+      } else if let Some(ident) = &l.ident {
+        concat_string!(path, "??", ident.as_str()).into()
       } else {
-        format!("{path}{query}")
+        path.into()
       };
-      Ok(Some(Arc::new(JsLoader(
-        resource.into(),
+      let js_options = l
+        .js_options
+        .as_deref()
+        .and_then(|v| v.downcast_ref::<ThreadsafeValueRef>())
+        .cloned();
+      Ok(Some(Arc::new(JsLoader {
+        identifier,
         r#type,
         build_dependencies,
-      ))))
+        js_options,
+      })))
     }
     ResolveResult::Ignored => Ok(None),
   }
