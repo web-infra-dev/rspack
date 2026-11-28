@@ -20,6 +20,7 @@ rspack_plugin_javascript = { workspace = true }
 rspack_resolver          = { workspace = true }
 rspack_util              = { workspace = true }
 rustc-hash               = { workspace = true }
+serde_json              = { workspace = true }
 swc_next_ecma_ast        = { workspace = true }
 tracing                  = { workspace = true }
 
