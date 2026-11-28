@@ -131,6 +131,9 @@ pub struct FsWatcherOptions {
   pub aggregate_timeout: Option<u32>,
 }
 
+// Registration and filesystem events each run on a current-thread runtime.
+const SCAN_THREADS_PER_RUNTIME: usize = 8;
+
 const WATCHER_UNAVAILABLE: &str =
   "The watcher has been stopped and cannot accept new watch requests";
 
@@ -377,7 +380,7 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
     .name("rspack-fs-watcher".to_string())
     .spawn(move || {
       let runtime = tokio::runtime::Builder::new_current_thread()
-        .max_blocking_threads(crate::paths::MAX_SCAN_READS)
+        .max_blocking_threads(SCAN_THREADS_PER_RUNTIME)
         .enable_all()
         .build()
         .expect("create watcher runtime");

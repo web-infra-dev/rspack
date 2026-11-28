@@ -68,8 +68,6 @@ impl DirectoryWatcher {
 
 #[derive(Default)]
 pub(super) struct WatcherManager {
-  #[cfg(feature = "testing")]
-  pub(super) metadata_jobs: crate::testing::MetadataJobs,
   pub(super) directories: Arc<InternedPathDashMap<DirectoryWatcher>>,
 }
 

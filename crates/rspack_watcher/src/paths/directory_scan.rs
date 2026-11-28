@@ -49,6 +49,9 @@ impl DirectoryWatcher {
     let scan = Arc::clone(self.scan.get_or_insert_with(Default::default));
     async move {
       loop {
+        if paths.scans_closed.load(Ordering::Acquire) {
+          return ScannedDirectory::default();
+        }
         let (done, mut result) = oneshot::channel();
         scan.pending().push(Request {
           input: input.clone(),
@@ -111,6 +114,7 @@ impl DirectoryScan {
         None
       };
       let mut again = self.pending();
+      again.retain(|r| !r.done.is_closed());
       if !again.is_empty() {
         readers.append(&mut again);
         continue;
@@ -129,7 +133,7 @@ impl DirectoryScan {
       if self.revision.load(Ordering::Relaxed) != version {
         continue;
       }
-      if paths.scan_io.is_open()
+      if !paths.scans_closed.load(Ordering::Acquire)
         && paths
           .watchers
           .directories
@@ -188,20 +192,14 @@ impl DirectoryBatch {
   ) -> Option<Self> {
     let name = dir.clone();
     let follow = paths.follow_symlinks;
-    let listing = paths
-      .scan_io
-      .read(move || {
-        let real = if follow {
-          Some(std::fs::canonicalize(&name)?)
-        } else {
-          None
-        };
-        let names = std::fs::read_dir(name)?
-          .map(|e| e.map(|e| InternedPath::from(e.path())))
-          .collect::<io::Result<Vec<_>>>();
-        Ok((real, names))
-      })
-      .await?;
+    let listing = read_disk(move || {
+      let real = follow.then(|| std::fs::canonicalize(&name)).transpose()?;
+      let names = std::fs::read_dir(name)?
+        .map(|e| e.map(|e| InternedPath::from(e.path())))
+        .collect::<io::Result<Vec<_>>>();
+      Ok((real, names))
+    })
+    .await?;
     let (real, names, exists) = match listing {
       Ok((real, Ok(names))) => (real, names, true),
       Ok((_, Err(_))) => return None,
@@ -230,44 +228,35 @@ impl DirectoryBatch {
       .collect();
     if !eligible.is_empty() {
       let actual = real.clone();
-      #[cfg(feature = "testing")]
-      let trace = Arc::clone(&paths.watchers.metadata_jobs);
-      let observations = paths
-        .scan_io
-        .read(move || {
-          #[cfg(feature = "testing")]
-          trace
-            .lock()
-            .expect("lock metadata job trace")
-            .push((eligible.len(), tokio::runtime::Handle::current().id()));
-          let mut observed = Vec::with_capacity(eligible.len());
-          for path in eligible {
-            if scan.revision.load(Ordering::Relaxed) != version {
-              break;
-            }
-            let observed_entry = match PathManager::scan_metadata(actual.as_ref(), &path) {
-              Ok((m, symlink)) => {
-                let mtime = m.modified().or_else(|_| m.created()).ok();
-                if m.is_dir() {
-                  Some(Observation::Directory {
-                    mtime,
-                    birth: m.created().ok().or(mtime),
-                    symlink,
-                  })
-                } else {
-                  mtime.map(Observation::File)
-                }
-              }
-              Err(e) if absent(&e) => Some(Observation::Missing),
-              Err(_) => None,
-            };
-            if let Some(entry) = observed_entry {
-              observed.push((path, entry));
-            }
+      let observations = read_disk(move || {
+        let mut observed = Vec::with_capacity(eligible.len());
+        for path in eligible {
+          if scan.revision.load(Ordering::Relaxed) != version {
+            break;
           }
-          observed
-        })
-        .await?;
+          let observed_entry = match PathManager::scan_metadata(actual.as_ref(), &path) {
+            Ok((m, symlink)) => {
+              let mtime = m.modified().or_else(|_| m.created()).ok();
+              if m.is_dir() {
+                Some(Observation::Directory {
+                  mtime,
+                  birth: m.created().ok().or(mtime),
+                  symlink,
+                })
+              } else {
+                mtime.map(Observation::File)
+              }
+            }
+            Err(e) if absent(&e) => Some(Observation::Missing),
+            Err(_) => None,
+          };
+          if let Some(entry) = observed_entry {
+            observed.push((path, entry));
+          }
+        }
+        observed
+      })
+      .await?;
       entries.extend(observations);
     }
     Some(Self {
@@ -275,5 +264,16 @@ impl DirectoryBatch {
       entries,
       exists,
     })
+  }
+}
+
+/// Submit on the calling runtime so the filesystem event loop can finish its own reads on shutdown.
+pub(super) async fn read_disk<T: Send + 'static>(
+  read: impl FnOnce() -> T + Send + 'static,
+) -> Option<T> {
+  match tokio::task::spawn_blocking(read).await {
+    Ok(value) => Some(value),
+    Err(error) if error.is_cancelled() => None,
+    Err(error) => std::panic::resume_unwind(error.into_panic()),
   }
 }

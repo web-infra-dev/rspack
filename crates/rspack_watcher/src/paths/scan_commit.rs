@@ -18,19 +18,14 @@ impl DirectoryWatcher {
     let member = self.members.entry(path.clone()).or_default();
     member.file = true;
     let replaced_directory = std::mem::take(&mut member.directory);
-    self
-      .files
-      .entry(path.clone())
-      .or_default()
-      .set_time(mtime, initial, true);
+    let record = self.files.entry(path.clone()).or_default();
+    record.set_time(mtime, initial, true);
     replaced_directory
   }
 
   pub(crate) fn set_directory(&mut self, path: &InternedPath) -> bool {
-    !std::mem::replace(
-      &mut self.members.entry(path.clone()).or_default().directory,
-      true,
-    )
+    let member = self.members.entry(path.clone()).or_default();
+    !std::mem::replace(&mut member.directory, true)
   }
 
   fn set_missing(&mut self, path: &InternedPath) -> ContextMember {

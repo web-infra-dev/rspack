@@ -50,8 +50,6 @@ pub fn begin_time_info_snapshot(
   move || watcher.path_manager.collect_context_time_info(registered)
 }
 
-pub(crate) type MetadataJobs = Arc<Mutex<Vec<(usize, tokio::runtime::Id)>>>;
-
 pub struct DirectoryAnalyzer {
   paths: Arc<PathManager>,
   trigger: Arc<Trigger>,
@@ -79,15 +77,15 @@ impl DirectoryAnalyzer {
     }
   }
 
-  pub fn take_metadata_jobs(&self) -> Vec<(usize, tokio::runtime::Id)> {
-    std::mem::take(
-      &mut *self
-        .paths
-        .watchers
-        .metadata_jobs
-        .lock()
-        .expect("lock metadata job trace"),
-    )
+  pub fn publish_contexts(&self) -> tokio::task::JoinHandle<()> {
+    let paths = Arc::clone(&self.paths);
+    let trigger = Arc::clone(&self.trigger);
+    tokio::spawn(async move {
+      paths
+        .added_context_scan(SystemTime::UNIX_EPOCH)
+        .run(&paths, |events| trigger.on_scanned_events(events))
+        .await;
+    })
   }
 
   pub fn rescan_contexts(&self) -> impl Future<Output = Vec<InternedPath>> + Send + use<> {

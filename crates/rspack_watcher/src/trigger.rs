@@ -156,6 +156,7 @@ impl Trigger {
       .name("rspack-fs-event-filter".to_string())
       .spawn(move || {
         let runtime = tokio::runtime::Builder::new_current_thread()
+          .max_blocking_threads(crate::SCAN_THREADS_PER_RUNTIME)
           .enable_all()
           .build()
           .expect("create watcher event filter runtime");
