@@ -46,3 +46,5 @@ interface ModuleFederationPluginV1Options {
 ```
 
 暴露模块时必须提供 `name`。如果插件只配置远程模块或共享依赖，或未启用任何选项，则可以省略。公共字段的详细说明请参考 [ModuleFederationPlugin 选项](/plugins/module-federation-plugin#选项)。Module Federation v1 不支持 `implementation`、`runtimePlugins` 或 `shareStrategy`。
+
+当消费方为共享依赖设置 `eager: true` 时，V1 运行时只考虑同样设置了 `eager: true` 的提供方。远程模块仍在初始化时，消费方可以使用已经注册的 eager 提供方。
