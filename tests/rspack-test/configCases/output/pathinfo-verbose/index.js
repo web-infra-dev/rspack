@@ -19,7 +19,8 @@ it("should add all modules headers info above modules", () => {
 /*!****************!*\\
   !*** ./cjs.js ***!
   \\****************/
-/*! unknown exports (runtime-defined) */
+/*! default exports */
+/*! export secret [provided] [used in sut] [renamed to r] */
 /*! runtime requirements: module */
     `.trim())
 })

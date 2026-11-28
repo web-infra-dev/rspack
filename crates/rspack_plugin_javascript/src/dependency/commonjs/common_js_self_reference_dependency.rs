@@ -28,6 +28,7 @@ pub struct CommonJsSelfReferenceDependency {
   names: Vec<Atom>,
   names_optionals: Vec<bool>,
   is_call: bool,
+  render: bool,
 }
 
 impl CommonJsSelfReferenceDependency {
@@ -45,6 +46,16 @@ impl CommonJsSelfReferenceDependency {
       names,
       names_optionals,
       is_call,
+      render: true,
+    }
+  }
+
+  /// References the whole exports object from `range` without rewriting it,
+  /// for code that may reach any export in a way the parser can't follow.
+  pub fn new_keep_all_exports(range: DependencyRange, base: ExportsBase) -> Self {
+    Self {
+      render: false,
+      ..Self::new(range, base, Vec::new(), Vec::new(), false)
     }
   }
 }
@@ -157,6 +168,9 @@ impl DependencyTemplate for CommonJsSelfReferenceDependencyTemplate {
       .as_any()
       .downcast_ref::<CommonJsSelfReferenceDependency>()
       .expect("CommonJsSelfReferenceDependencyTemplate should only be used for CommonJsSelfReferenceDependency");
+    if !dep.render {
+      return;
+    }
 
     let TemplateContext {
       compilation,
