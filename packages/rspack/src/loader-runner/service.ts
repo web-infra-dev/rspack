@@ -77,7 +77,8 @@ export interface WorkerNotificationMessage {
     | RequestType.AddContextDependency
     | RequestType.AddMissingDependency
     | RequestType.AddBuildDependency
-    | RequestType.ClearDependencies;
+    | RequestType.ClearDependencies
+    | RequestType.GetLogger;
   data: WorkerArgs;
 }
 
@@ -374,7 +375,7 @@ export const run = async (
             reject(deserializeError(message.error));
           });
         } else if (message.type === 'notification') {
-          // Apply dependency changes before the next request or task completion.
+          // Process notifications before the next request or task completion.
           try {
             options.handleIncomingRequest(message.requestType, ...message.data);
           } catch (error) {

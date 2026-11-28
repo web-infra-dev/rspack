@@ -166,7 +166,7 @@ async function loaderImpl(
   loaderContext.getLogger = function getLogger(name) {
     let loggerId: number | undefined;
     const sendLog = (method: keyof Logger, args: unknown[]) => {
-      sendRequest(
+      sendRequest.notify(
         RequestType.GetLogger,
         (loggerId ??= nextLoggerId++),
         name,
@@ -613,7 +613,7 @@ function handleIncomingResponses(workerMessage: WorkerMessage) {
       throw new Error(`No callback found for response with id ${id}`);
     }
   } else if (workerMessage.type === 'notification-error') {
-    // Dependency methods return void. Surface failures as asynchronous rejections.
+    // These methods return void. Surface failures as asynchronous rejections.
     void Promise.reject(deserializeError(workerMessage.error));
   }
 }
