@@ -70,6 +70,22 @@ export interface WorkerRequestMessage {
   data: WorkerArgs;
 }
 
+export interface WorkerNotificationMessage {
+  type: 'notification';
+  requestType:
+    | RequestType.AddDependency
+    | RequestType.AddContextDependency
+    | RequestType.AddMissingDependency
+    | RequestType.AddBuildDependency
+    | RequestType.ClearDependencies;
+  data: WorkerArgs;
+}
+
+interface WorkerNotificationErrorMessage {
+  type: 'notification-error';
+  error: WorkerError;
+}
+
 export interface WorkerRequestSyncMessage {
   type: 'request-sync';
   id: number;
@@ -83,6 +99,8 @@ export type WorkerMessage =
   | WorkerResponseMessage
   | WorkerDoneMessage
   | WorkerRequestMessage
+  | WorkerNotificationMessage
+  | WorkerNotificationErrorMessage
   | WorkerResponseErrorMessage
   | WorkerDoneErrorMessage
   | WorkerRequestSyncMessage;
@@ -355,6 +373,16 @@ export const run = async (
             mainSyncPort?.close();
             reject(deserializeError(message.error));
           });
+        } else if (message.type === 'notification') {
+          // Apply dependency changes before the next request or task completion.
+          try {
+            options.handleIncomingRequest(message.requestType, ...message.data);
+          } catch (error) {
+            mainPort.postMessage({
+              type: 'notification-error',
+              error: serializeError(error),
+            } satisfies WorkerNotificationErrorMessage);
+          }
         } else if (isWorkerRequestMessage(message)) {
           pendingRequests.set(
             message.id,
@@ -398,26 +426,12 @@ export const run = async (
         try {
           switch (message.requestType) {
             case RequestSyncType.WaitForPendingRequest: {
-              const pendingRequestId = message.data[0];
-              const isArray = Array.isArray(pendingRequestId);
-
-              const ids = isArray ? pendingRequestId : [pendingRequestId];
-              // Pending requests now are not returning errors.
-              // To handle errors, you should not call `wait()` on send request
-              // result;
-              result = await Promise.all(
-                ids.map((id) => {
-                  const pendingRequest = pendingRequests.get(id);
-                  if (!pendingRequest) {
-                    throw new Error(`Unknown pending request: ${id}`);
-                  }
-                  return pendingRequest;
-                }),
-              );
-
-              if (!isArray) {
-                result = result[0];
+              const id = message.data[0];
+              const pendingRequest = pendingRequests.get(id);
+              if (!pendingRequest) {
+                throw new Error(`Unknown pending request: ${id}`);
               }
+              result = await pendingRequest;
               break;
             }
             default:

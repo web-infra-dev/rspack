@@ -33,6 +33,7 @@ import {
   serializeError,
   type WorkerError,
   type WorkerMessage,
+  type WorkerNotificationMessage,
   type WorkerRequestMessage,
   type WorkerRequestSyncMessage,
   type WorkerResponseErrorMessage,
@@ -74,51 +75,37 @@ function dirname(path: string) {
 async function loaderImpl(
   { args, loaderContext, loaderState }: WorkerOptions,
   sendRequest: SendRequestFunction,
-  waitForPendingRequest: WaitForPendingRequestFunction,
 ) {
   //
   const resourcePath = loaderContext.resourcePath;
   const contextDirectory = resourcePath ? dirname(resourcePath) : null;
 
-  const pendingDependencyRequest: SendRequestResult[] = [];
-
   // @ts-expect-error `loaderContext.parallel` only works with loaders in worker
   loaderContext.parallel = true;
   loaderContext.dependency = loaderContext.addDependency =
     function addDependency(file) {
-      pendingDependencyRequest.push(
-        sendRequest(RequestType.AddDependency, file),
-      );
+      sendRequest.notify(RequestType.AddDependency, file);
     };
   loaderContext.addContextDependency = function addContextDependency(context) {
-    pendingDependencyRequest.push(
-      sendRequest(RequestType.AddContextDependency, context),
-    );
+    sendRequest.notify(RequestType.AddContextDependency, context);
   };
   loaderContext.addMissingDependency = function addMissingDependency(missing) {
-    pendingDependencyRequest.push(
-      sendRequest(RequestType.AddMissingDependency, missing),
-    );
+    sendRequest.notify(RequestType.AddMissingDependency, missing);
   };
   loaderContext.addBuildDependency = function addBuildDependency(file) {
-    pendingDependencyRequest.push(
-      sendRequest(RequestType.AddBuildDependency, file),
-    );
+    sendRequest.notify(RequestType.AddBuildDependency, file);
   };
   loaderContext.getDependencies = function getDependencies() {
-    waitForPendingRequest(pendingDependencyRequest);
     return sendRequest(RequestType.GetDependencies).wait();
   };
   loaderContext.getContextDependencies = function getContextDependencies() {
-    waitForPendingRequest(pendingDependencyRequest);
     return sendRequest(RequestType.GetContextDependencies).wait();
   };
   loaderContext.getMissingDependencies = function getMissingDependencies() {
-    waitForPendingRequest(pendingDependencyRequest);
     return sendRequest(RequestType.GetMissingDependencies).wait();
   };
   loaderContext.clearDependencies = function clearDependencies() {
-    pendingDependencyRequest.push(sendRequest(RequestType.ClearDependencies));
+    sendRequest.notify(RequestType.ClearDependencies);
   };
 
   loaderContext.resolve = function resolve(context, request, callback) {
@@ -625,46 +612,27 @@ function handleIncomingResponses(workerMessage: WorkerMessage) {
     } else {
       throw new Error(`No callback found for response with id ${id}`);
     }
+  } else if (workerMessage.type === 'notification-error') {
+    // Dependency methods return void. Surface failures as asynchronous rejections.
+    void Promise.reject(deserializeError(workerMessage.error));
   }
 }
 
 type SendRequestResult<T = any> = Promise<T> & {
-  // Put current thread into sleep until the request is resolved.
-  // Should not return error in `wait`
-  //
-  // Pending requests now are not returning errors.
-  // To handle errors, you should not call `wait()` on send request
-  // result;
-  //
-  // You should use `sendRequest` directly or use `sendRequest.sync`.
+  // Blocks for the result. Errors are delivered through the promise.
   wait: () => T;
-  // The request Id
-  id: number;
 };
 
 interface SendRequestFunction {
   <T = any>(requestType: RequestType, ...args: any[]): SendRequestResult<T>;
-  sync<T = any>(requestType: RequestSyncType, ...args: any[]): T;
-}
-
-type WaitForPendingRequestFunction = (
-  id: SendRequestResult[] | SendRequestResult,
-) => any;
-
-function createWaitForPendingRequest(
-  sendRequest: SendRequestFunction,
-): WaitForPendingRequestFunction {
-  return (requests: SendRequestResult[] | SendRequestResult) => {
-    const pending = Array.isArray(requests) ? requests : [requests];
-    if (pending.length === 0) return [];
-    return sendRequest.sync(
-      RequestSyncType.WaitForPendingRequest,
-      pending.map((request) => request.id),
-    );
-  };
+  notify(
+    requestType: WorkerNotificationMessage['requestType'],
+    ...args: any[]
+  ): void;
 }
 
 function createSendRequest(workerPort: MessagePort): SendRequestFunction {
+  const sendRequestSync = createSendRequestSync(workerPort);
   const sendRequest = ((requestType, ...args) => {
     const id = nextId++;
     workerPort.postMessage({
@@ -683,12 +651,17 @@ function createSendRequest(workerPort: MessagePort): SendRequestFunction {
       };
     }) as SendRequestResult;
     result.wait = () => {
-      return sendRequest.sync(RequestSyncType.WaitForPendingRequest, id);
+      return sendRequestSync(RequestSyncType.WaitForPendingRequest, id);
     };
-    result.id = id;
     return result;
   }) as SendRequestFunction;
-  sendRequest.sync = createSendRequestSync(workerPort);
+  sendRequest.notify = (requestType, ...data) => {
+    workerPort.postMessage({
+      type: 'notification',
+      requestType,
+      data,
+    } satisfies WorkerNotificationMessage);
+  };
   return sendRequest;
 }
 
@@ -756,9 +729,8 @@ function worker(workerOptions: WorkerOptions) {
 
   workerData.workerPort.on('message', handleIncomingResponses);
   const sendRequest = createSendRequest(workerData.workerPort);
-  const waitFor = createWaitForPendingRequest(sendRequest);
 
-  loaderImpl(workerOptions, sendRequest, waitFor)
+  loaderImpl(workerOptions, sendRequest)
     .then((data) => {
       workerData.workerPort.postMessage({ type: 'done', data });
     })
