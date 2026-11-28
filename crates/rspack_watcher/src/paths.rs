@@ -4,8 +4,6 @@ mod registration;
 pub(crate) use registration::Registration;
 mod scan;
 mod scan_commit;
-mod scan_io;
-pub(crate) use scan_io::MAX_SCAN_READS;
 mod time_info;
 mod update;
 
@@ -162,7 +160,7 @@ pub(crate) struct PathManager {
   directories: PathTracker,
   missing: PathTracker,
   ignored: IgnoredMatcher,
-  scan_io: scan_io::ScanIo,
+  scans_closed: std::sync::atomic::AtomicBool,
   /// Observations of registered files, missing dependencies and context
   /// members. Only explicit dependencies also need an event baseline.
   /// See: https://gist.github.com/stormslowly/ed758500de6f23211fd63b39eba5ed07
@@ -206,7 +204,7 @@ impl PathManager {
       directories: PathTracker::default(),
       missing: PathTracker::default(),
       ignored: IgnoredMatcher::new(ignored),
-      scan_io: Default::default(),
+      scans_closed: Default::default(),
       file_times: FileTimes(Arc::clone(&watchers.directories)),
       watchers,
       registered_ancestors: InternedPathDashMap::default(),
@@ -224,7 +222,9 @@ impl PathManager {
 
   pub(crate) fn close_scans(&self) {
     let _index = self.lock_index();
-    self.scan_io.close();
+    self
+      .scans_closed
+      .store(true, std::sync::atomic::Ordering::Release);
     for watcher in self.watchers.directories.iter() {
       if let Some(scan) = &watcher.scan {
         scan.invalidate();
@@ -424,7 +424,6 @@ impl PathManager {
       impl Iterator<Item = InternedPath>,
     ),
   ) -> Result<()> {
-    self.scan_io.start();
     let mut registered = Vec::new();
     let mut unregistered = Vec::new();
     for (paths, tracker) in [

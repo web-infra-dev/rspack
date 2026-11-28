@@ -324,8 +324,8 @@ fn create_execute_aggregate_task(
 ) -> tokio::task::JoinHandle<()> {
   let future = async move {
     // A rebuild reads the new contexts' timestamps as soon as the first aggregate is delivered.
-    for root in context_ready {
-      if root.await.is_err() {
+    for mut root in context_ready {
+      if root.wait_for(|done| *done).await.is_err() {
         return;
       }
     }

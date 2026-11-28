@@ -25,10 +25,7 @@ use std::{
 use analyzer::{Analyzer, RecommendedAnalyzer};
 use disk_watcher::DiskWatcher;
 use executor::{Aggregated, Executor};
-use futures::{
-  FutureExt,
-  future::{Shared, join_all},
-};
+use futures::future::join_all;
 pub use ignored::{FsWatcherIgnored, FsWatcherIgnoredItem, IgnoredFn};
 use paths::PathManager;
 use rspack_error::Result;
@@ -135,6 +132,9 @@ pub struct FsWatcherOptions {
   pub aggregate_timeout: Option<u32>,
 }
 
+// Registration and filesystem events each run on a current-thread runtime.
+const SCAN_THREADS_PER_RUNTIME: usize = 8;
+
 const WATCHER_UNAVAILABLE: &str =
   "The watcher has been stopped and cannot accept new watch requests";
 
@@ -166,7 +166,7 @@ pub struct FsWatcher {
   executor_trace: testing::ExecutorTrace,
 }
 
-type InitialIndex = Shared<oneshot::Receiver<()>>;
+type InitialIndex = tokio::sync::watch::Receiver<bool>;
 
 struct FsWatcherInner {
   indexing: InternedPathMap<InitialIndex>,
@@ -392,7 +392,7 @@ fn spawn_owner_thread(mut inner: FsWatcherInner) -> mpsc::UnboundedSender<Watche
     .name("rspack-fs-watcher".to_string())
     .spawn(move || {
       let runtime = tokio::runtime::Builder::new_current_thread()
-        .max_blocking_threads(crate::paths::MAX_SCAN_READS)
+        .max_blocking_threads(SCAN_THREADS_PER_RUNTIME)
         .enable_all()
         .build()
         .expect("create watcher runtime");
@@ -511,7 +511,8 @@ impl FsWatcherInner {
           .path_manager
           .watchers
           .is_explicit_context(&InternedPath::from(p))
-      }) && ready.clone().now_or_never().is_none()
+      }) && !*ready.borrow()
+        && ready.has_changed().is_ok()
     });
     let trigger = self
       .trigger
@@ -521,8 +522,8 @@ impl FsWatcherInner {
       .expect("watcher is open");
     let mut scans = Vec::with_capacity(roots.len());
     for (root, scan) in roots {
-      let (done, ready) = oneshot::channel();
-      self.indexing.insert(root, ready.shared());
+      let (done, ready) = tokio::sync::watch::channel(false);
+      self.indexing.insert(root, ready);
       let paths = Arc::clone(&self.path_manager);
       let trigger = Arc::clone(&trigger);
       let separate = Arc::clone(&separate);
@@ -532,7 +533,7 @@ impl FsWatcherInner {
             trigger.on_scanned_events(events)
           })
           .await;
-        let _ = done.send(());
+        let _ = done.send(true);
       });
     }
     Ok(async move {

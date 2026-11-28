@@ -68,21 +68,19 @@ impl PathManager {
     if groups.is_empty() {
       return Vec::new();
     }
-    self
-      .scan_io
-      .read(move || {
-        let mut seen = FxHashMap::default();
-        let mut observed = Vec::new();
-        for (i, entries, start) in &groups {
-          for entry in entries.iter() {
-            let metadata = *seen.entry(entry).or_insert_with(|| entry.read());
-            observed.push((*i, entry.clone(), *start, metadata));
-          }
+    super::directory_scan::read_disk(move || {
+      let mut seen = FxHashMap::default();
+      let mut observed = Vec::new();
+      for (i, entries, start) in &groups {
+        for entry in entries.iter() {
+          let metadata = *seen.entry(entry).or_insert_with(|| entry.read());
+          observed.push((*i, entry.clone(), *start, metadata));
         }
-        observed
-      })
-      .await
-      .unwrap_or_default()
+      }
+      observed
+    })
+    .await
+    .unwrap_or_default()
   }
 
   pub(crate) fn commit_registered(
