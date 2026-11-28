@@ -9,8 +9,8 @@
     "preview": "rspack preview"
   },
   "dependencies": {
-    "@solidjs/web": "^2.0.3",
-    "solid-js": "^2.0.3"
+    "@solidjs/web": "^2.0.4",
+    "solid-js": "^2.0.4"
   },
   "devDependencies": {
     "@rspack/cli": "workspace:*",
