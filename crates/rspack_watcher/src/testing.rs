@@ -127,3 +127,20 @@ impl DirectoryAnalyzer {
       .collect()
   }
 }
+
+pub use crate::{
+  directory_watcher::{DirectoryWatcher, WatcherSubKind},
+  watcher_manager::{ContextLookup, WatcherManager, normalize_dir_path},
+};
+pub fn watcher_counts(w: &FsWatcher) -> (usize, (usize, usize)) {
+  let d = w.path_manager.watchers.directories.len();
+  (d, w.path_manager.index_sizes())
+}
+pub fn watcher_dw_files_empty(w: &FsWatcher, d: &InternedPath) -> bool {
+  let w = w.path_manager.watchers.get(d);
+  w.is_some_and(|dw| dw.files.is_empty())
+}
+pub fn dw_file(dw: &DirectoryWatcher, p: &InternedPath) -> (bool, Option<u64>) {
+  let t = dw.files.get(p).and_then(|r| r.time).map(|t| t.safe_time);
+  (dw.files.contains_key(p), t)
+}

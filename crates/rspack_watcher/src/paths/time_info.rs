@@ -7,8 +7,9 @@ use rspack_util::{fx_hash::FxHashMap, time::current_time};
 use super::PathManager;
 use crate::{
   TimeInfoEntries, TimeInfoEntry,
+  directory_watcher::DirectoryWatcher,
   time::{fs_accuracy, mtime_accuracy, mtime_safe_time, mtime_to_millis},
-  watcher_manager::DirectoryWatcher,
+  watcher_manager::normalize_dir_path,
 };
 
 /// One value of watchpack's `files` map, as written by `setFileTime`: the mtime
@@ -16,8 +17,8 @@ use crate::{
 /// observation.
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct FileTime {
-  pub(super) mtime: SystemTime,
-  safe_time: u64,
+  pub(crate) mtime: SystemTime,
+  pub(crate) safe_time: u64,
   accuracy: u64,
 }
 
@@ -64,7 +65,7 @@ impl FileTime {
 }
 
 #[derive(Clone, Copy, Default, PartialEq, Eq)]
-pub(super) enum ReportedBaseline {
+pub(crate) enum ReportedBaseline {
   #[default]
   Unknown,
   Present(SystemTime),
@@ -74,13 +75,13 @@ pub(super) enum ReportedBaseline {
 #[derive(Default)]
 pub(crate) struct FileRecord {
   /// Last observation exported by `collect_time_info_entries`.
-  pub(super) time: Option<FileTime>,
+  pub(crate) time: Option<FileTime>,
   /// State the build already knows from registration or a reported event.
-  pub(super) reported: ReportedBaseline,
+  pub(crate) reported: ReportedBaseline,
 }
 
 impl FileRecord {
-  pub(super) fn set_time(
+  pub(crate) fn set_time(
     &mut self,
     mtime: SystemTime,
     initial: bool,
@@ -104,7 +105,7 @@ impl FileRecord {
     self.time.is_none() && self.reported == ReportedBaseline::Unknown
   }
 
-  pub(super) fn clear_present(&mut self) {
+  pub(crate) fn clear_present(&mut self) {
     self.time = None;
     if matches!(self.reported, ReportedBaseline::Present(_)) {
       self.reported = ReportedBaseline::Unknown;
@@ -125,7 +126,7 @@ impl FileTimes {
   pub(super) fn get(&self, path: &InternedPath) -> Option<FileTime> {
     self
       .0
-      .get(&DirectoryWatcher::owner(path))?
+      .get(&DirectoryWatcher::owner_or_self(path))?
       .files
       .get(path)?
       .time
@@ -134,7 +135,7 @@ impl FileTimes {
   fn reported(&self, path: &InternedPath) -> ReportedBaseline {
     self
       .0
-      .get(&DirectoryWatcher::owner(path))
+      .get(&DirectoryWatcher::owner_or_self(path))
       .and_then(|watcher| watcher.files.get(path).map(|r| r.reported))
       .unwrap_or_default()
   }
@@ -143,17 +144,18 @@ impl FileTimes {
     &self,
     path: &InternedPath,
   ) -> MappedRefMut<'_, InternedPath, DirectoryWatcher, FileRecord> {
+    let owner = DirectoryWatcher::owner_or_self(path);
     self
       .0
-      .entry(DirectoryWatcher::owner(path))
-      .or_default()
+      .entry(owner.clone())
+      .or_insert_with(|| DirectoryWatcher::new(owner))
       .map(|watcher| watcher.files.entry(path.clone()).or_default())
   }
 
   pub(super) fn clear(&self, path: &InternedPath, clear: impl FnOnce(&mut FileRecord)) {
     self
       .0
-      .remove_if_mut(&DirectoryWatcher::owner(path), |_, watcher| {
+      .remove_if_mut(&DirectoryWatcher::owner_or_self(path), |_, watcher| {
         watcher.clear_file(path, clear);
         watcher.is_unused()
       });
@@ -234,12 +236,9 @@ impl PathManager {
   pub fn set_last_watch_events(&self, path: &InternedPath) {
     let now = current_time();
     for ancestor in path.ancestors() {
-      let ancestor = InternedPath::from(ancestor);
-      if let Some(mut watcher) = self.watchers.directories.get_mut(&ancestor)
-        && watcher.subscriptions.is_active()
-      {
-        watcher.last_watch_event = Some(now);
-      }
+      self
+        .watchers
+        .set_last_watch_event(&InternedPath::from(ancestor), now);
     }
   }
 
@@ -251,6 +250,11 @@ impl PathManager {
   /// Equal mtimes are only stale once they are past the filesystem accuracy window.
   pub fn has_mtime_changed(&self, path: &InternedPath) -> bool {
     if !self.files.all.contains(path) && !self.missing.all.contains(path) {
+      return true;
+    }
+    if std::fs::symlink_metadata(path).is_ok_and(|m| m.is_dir()) {
+      self.file_times.clear(path, FileRecord::clear_present);
+      self.unindex_record(path);
       return true;
     }
 
@@ -375,12 +379,11 @@ impl PathManager {
       mut file_safe_times,
     } = registered;
     for watcher in self.watchers.directories.iter() {
-      for (path, member) in &watcher.members {
-        if member.directory {
-          dir_paths.insert(path.clone());
-        }
-        if member.file
-          && !file_paths.contains(path)
+      for path in &watcher.directories {
+        dir_paths.insert(path.clone());
+      }
+      for path in &watcher.context_files {
+        if !file_paths.contains(path)
           && let Some(time) = watcher.files.get(path).and_then(|record| record.time)
         {
           file_safe_times.push((path.clone(), time.narrowed().safe_time));
@@ -391,18 +394,21 @@ impl PathManager {
     let mut dir_safe_times: FxHashMap<InternedPath, Option<u64>> =
       FxHashMap::with_capacity_and_hasher(dir_paths.len(), Default::default());
     for dir in &dir_paths {
-      let last_watch_event = self.watchers.event_time(dir);
+      let norm = normalize_dir_path(dir);
+      let last_watch_event = self.watchers.event_time(&norm);
       // An absent registered context reads null, where watchpack reports `{}`
       // or `{ safeTime: 0 }`: webpack then sees it as missing and rebuilds
       // once it appears, instead of trusting a time for a directory not there.
       let safe_time = if self.absent_directories.contains(dir) {
-        disk_mtime(dir)
-          .map(mtime_safe_time)
+        dir
+          .is_dir()
+          .then(|| disk_mtime(dir).map(mtime_safe_time))
+          .flatten()
           .map(|own| last_watch_event.map_or(own, |event| own.max(event)))
       } else {
         Some(last_watch_event.unwrap_or_default())
       };
-      dir_safe_times.insert(dir.clone(), safe_time);
+      dir_safe_times.insert(norm, safe_time);
     }
     // Raise each ancestor directory that exists by its descendant files' safe
     // times; a record cannot resurrect a directory gone from disk. Files are
@@ -428,7 +434,8 @@ impl PathManager {
       }
       for (parent, safe_time) in parent_safe_times {
         for dir in parent.ancestors() {
-          if let Some(Some(current)) = dir_safe_times.get_mut(&InternedPath::from(dir)) {
+          let norm = normalize_dir_path(&InternedPath::from(dir));
+          if let Some(Some(current)) = dir_safe_times.get_mut(&norm) {
             *current = (*current).max(safe_time);
           }
         }
@@ -437,7 +444,11 @@ impl PathManager {
     let mut directory_timestamps = TimeInfoEntries::with_capacity(dir_paths.len());
     for dir in &dir_paths {
       let path = path_to_string(dir.as_path());
-      match dir_safe_times.get(dir).copied().flatten() {
+      match dir_safe_times
+        .get(&normalize_dir_path(dir))
+        .copied()
+        .flatten()
+      {
         Some(safe_time) => {
           file_timestamps.push((path.clone(), TimeInfoEntry::ExistenceOnlyTimeEntry));
           directory_timestamps.push((path, TimeInfoEntry::OnlySafeTimeEntry { safe_time }));

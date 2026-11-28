@@ -4,10 +4,7 @@ use rspack_paths::InternedPath;
 use rspack_util::time::system_time_to_millis;
 
 use super::PathManager;
-use crate::{
-  time::{mtime_accuracy, mtime_safe_time},
-  watcher_manager::MemberKind,
-};
+use crate::time::{mtime_accuracy, mtime_safe_time};
 
 impl PathManager {
   /// watchpack's initial scan of a `DirectoryWatcher`, for this cycle's newly
@@ -67,9 +64,11 @@ impl PathManager {
           continue;
         };
         if metadata.is_dir() {
-          self.record(&path, || {
-            self.watchers.add_member(&path, MemberKind::Directory)
-          });
+          let birthtime = metadata
+            .created()
+            .or_else(|_| metadata.modified())
+            .unwrap_or(SystemTime::UNIX_EPOCH);
+          self.record(&path, || self.watchers.record_dir(&path, birthtime, true));
           if self.forget_if_orphaned(&path) {
             break;
           }
@@ -88,11 +87,7 @@ impl PathManager {
           pending.push((path, ancestry.clone(), false));
         } else if let Ok(mtime) = metadata.modified().or_else(|_| metadata.created()) {
           self.record(&path, || {
-            self.watchers.add_member(&path, MemberKind::File);
-            self
-              .file_times
-              .record(&path)
-              .set_time(mtime, !observed, true)
+            self.watchers.put_file(&path, Some(mtime), !observed, true)
           });
           let registered = self.files.all.contains(&path) || self.missing.all.contains(&path);
           if self.forget_if_orphaned(&path) {
@@ -120,8 +115,9 @@ impl PathManager {
     if self.is_below_context(path) {
       return false;
     }
-    self.watchers.remove_member(path);
-    if !self.files.all.contains(path) && !self.missing.all.contains(path) {
+    let keep = self.files.all.contains(path) || self.missing.all.contains(path);
+    self.watchers.del_member(path, true, Some(keep));
+    if !keep {
       self.file_times.clear(path, |record| record.time = None);
     }
     if !self.watchers.is_explicit_context(path) {

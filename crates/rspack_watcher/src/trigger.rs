@@ -45,7 +45,7 @@ impl<D: ContextLookup> DependencyFinder<'_, D> {
     if path.exists() {
       // If the given path is a directory and is registered as a directory, add it to the result.
       if path.is_dir() && self.contains_directory(path) {
-        paths.push((path.clone(), kind));
+        self.push_dir(path, kind, self.missing.contains(path), &mut paths);
       }
 
       // If the given path is a file and is registered as a file, add it to the result.
@@ -54,12 +54,29 @@ impl<D: ContextLookup> DependencyFinder<'_, D> {
       }
     } else if self.contains_path(path) {
       // If the path does not exist but is registered as missing, add it to the result.
-      paths.push((path.clone(), kind));
+      self.push_dir(path, kind, self.contains_file(path), &mut paths);
     }
 
     self.collect_parent_dependencies(path, &mut paths);
 
     paths
+  }
+
+  fn push_dir(
+    &self,
+    path: &InternedPath,
+    kind: FsEventKind,
+    fallback: bool,
+    paths: &mut Vec<(InternedPath, FsEventKind)>,
+  ) {
+    if self.directories.subscriptions(path).explicit {
+      for logical in self.directories.logical_directories(path) {
+        paths.push((logical, kind));
+      }
+    }
+    if fallback && !paths.iter().any(|(p, _)| p == path) {
+      paths.push((path.clone(), kind));
+    }
   }
 
   /// Checks if the given path is registered as a file or missing.
@@ -89,7 +106,12 @@ impl<D: ContextLookup> DependencyFinder<'_, D> {
         .parent
         .or_else(|| directory.parent().map(InternedPath::from));
       if subscriptions.explicit || self.missing.contains(&directory) {
-        paths.push((directory, FsEventKind::Change));
+        self.push_dir(
+          &directory,
+          FsEventKind::Change,
+          self.missing.contains(&directory),
+          paths,
+        );
       }
     }
   }
